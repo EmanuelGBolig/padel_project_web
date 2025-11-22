@@ -275,7 +275,7 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
     model = Torneo
     template_name = 'torneos/admin_torneo_list.html'
     context_object_name = 'torneos'
-    queryset = Torneo.objects.all().order_by('-fecha_inicio')
+    queryset = Torneo.objects.select_related('division').order_by('-fecha_inicio')
 
 
 class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
@@ -313,7 +313,11 @@ class TorneoDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         torneo = self.object
         user = self.request.user
-        grupos = torneo.grupos.all().prefetch_related('tabla__equipo', 'partidos_grupo')
+        grupos = torneo.grupos.all().prefetch_related(
+            'tabla__equipo',
+            'partidos_grupo__equipo1',
+            'partidos_grupo__equipo2'
+        )
         context['grupos'] = grupos
         context['partidos_eliminacion'] = torneo.partidos.all().order_by(
             'ronda', 'orden_partido'
@@ -354,9 +358,9 @@ class TorneoFinalizadoListView(ListView):
     model = Torneo
     template_name = 'torneos/torneo_finalizado_list.html'
     context_object_name = 'torneos_finalizados'
-    queryset = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO).order_by(
-        '-fecha_inicio'
-    )
+    queryset = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO) \
+        .select_related('division') \
+        .order_by('-fecha_inicio')
     paginate_by = 10
 
 

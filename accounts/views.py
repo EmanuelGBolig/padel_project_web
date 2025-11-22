@@ -30,5 +30,5 @@ class PerfilView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('accounts:perfil')
 
     def get_object(self, queryset=None):
-        # Devuelve el usuario actualmente logueado
-        return self.request.user
+        # Devuelve el usuario actualmente logueado con división precargada
+        return CustomUser.objects.select_related('division').get(pk=self.request.user.pk)

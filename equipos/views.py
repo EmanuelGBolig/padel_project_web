@@ -121,8 +121,14 @@ class MiEquipoDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'equipo'
 
     def get_object(self, queryset=None):
-        """Devuelve el equipo del usuario logueado."""
-        return self.request.user.equipo
+        """Devuelve el equipo del usuario logueado con relaciones precargadas."""
+        equipo = self.request.user.equipo
+        if equipo:
+            # Precarga jugador1, jugador2 y division para evitar queries extras
+            return Equipo.objects.select_related(
+                'jugador1', 'jugador2', 'division'
+            ).get(pk=equipo.pk)
+        return None
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
