@@ -3,11 +3,12 @@ from django.views.generic import CreateView, UpdateView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import CustomUser
-from .forms import CustomUserCreationForm, CustomUserChangeForm
+from .forms import CustomUserCreationForm, CustomUserChangeForm, CustomLoginForm
 
 
 class CustomLoginView(LoginView):
     template_name = 'accounts/login.html'
+    authentication_form = CustomLoginForm
     redirect_authenticated_user = True
 
 

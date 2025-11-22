@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
 from .models import CustomUser
 from equipos.models import Division
 
@@ -66,3 +66,12 @@ class CustomUserChangeForm(UserChangeForm):
                 field.widget.attrs['class'] = estilo_input
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select
+
+
+class CustomLoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        
+        for field_name, field in self.fields.items():
+            field.widget.attrs['class'] = estilo_input
