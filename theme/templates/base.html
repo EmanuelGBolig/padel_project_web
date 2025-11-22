@@ -148,17 +148,140 @@
 
     {% block extra_head %}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    {% for message in messages %}
-    <div role="alert"
-        class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg">
-        <span>{{ message }}</span>
-    </div>
-    {% endfor %}
-    </div>
-    {% endif %}
+    {% if form.media %} {{ form.media.css }} {% endif %}
+    {% endblock extra_head %}
+</head>
 
-    {% block content %}
-    {% endblock %}
+<body class="min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+    <!-- Navbar -->
+    <div class="navbar bg-base-100 shadow-md sticky top-0 z-50 px-4">
+        <div class="navbar-start">
+            <!-- Menú Hamburguesa -->
+            <div class="dropdown">
+                <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h8m-8 6h16" />
+                    </svg>
+                </div>
+                <ul tabindex="0"
+                    class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    <li><a href="{% url 'core:home' %}">Inicio</a></li>
+                    {% if user.is_authenticated %}
+                    <li><a href="{% url 'accounts:perfil' %}">Mi Perfil</a></li>
+                    {% if user.tipo_usuario == 'PLAYER' %}
+                    <li><a href="{% url 'equipos:mi_equipo' %}">Mi Equipo</a></li>
+                    {% elif user.tipo_usuario == 'ADMIN' %}
+                    <li>
+                        <a>Administración</a>
+                        <ul class="p-2">
+                            <li><a href="{% url 'equipos:admin_list' %}">Equipos</a></li>
+                            <li><a href="{% url 'torneos:admin_list' %}">Torneos</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                    <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
+                    <li>
+                        <form action="{% url 'accounts:logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="text-error">Cerrar Sesión</button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li><a href="{% url 'accounts:login' %}">Ingresar</a></li>
+                    <li><a href="{% url 'accounts:registro' %}">Registrarse</a></li>
+                    <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            <a href="{% url 'core:home' %}"
+                class="btn btn-ghost text-xl text-primary font-extrabold tracking-tight">PadelApp</a>
+        </div>
+
+        <div class="navbar-center hidden lg:flex">
+            <ul class="menu menu-horizontal px-1 gap-1 font-medium">
+                <li><a href="{% url 'core:home' %}"
+                        class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Inicio</a></li>
+                {% if user.is_authenticated %}
+                {% if user.tipo_usuario == 'PLAYER' %}
+                <li><a href="{% url 'equipos:mi_equipo' %}">Mi Equipo</a></li>
+                {% elif user.tipo_usuario == 'ADMIN' %}
+                <li><a href="{% url 'equipos:admin_list' %}">Equipos</a></li>
+                <li>
+                    <details>
+                        <summary>Torneos</summary>
+                        <ul class="p-2 z-50 w-48 bg-base-100 rounded-box shadow-lg">
+                            <li><a href="{% url 'torneos:admin_list' %}">Listado</a></li>
+                            <li><a href="{% url 'torneos:admin_crear' %}">Crear Nuevo</a></li>
+                        </ul>
+                    </details>
+                </li>
+                {% endif %}
+                {% endif %}
+                <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
+            </ul>
+        </div>
+
+        <div class="navbar-end gap-2">
+            <!-- Toggle Tema -->
+            <label class="swap swap-rotate btn btn-ghost btn-circle">
+                <input type="checkbox" class="theme-controller" value="dark" />
+                <svg class="swap-off fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path
+                        d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,4.93l.71.71A1,1,0,0,0,5.64,7.05Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
+                </svg>
+                <svg class="swap-on fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path
+                        d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
+                </svg>
+            </label>
+
+            {% if user.is_authenticated %}
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button"
+                    class="btn btn-ghost btn-circle avatar placeholder bg-primary text-primary-content">
+                    <div class="w-10 rounded-full">
+                        <span>{{ user.nombre|slice:":1"|upper }}</span>
+                    </div>
+                </div>
+                <ul tabindex="0"
+                    class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    <li class="menu-title text-opacity-50">{{ user.email }}</li>
+                    <li><a href="{% url 'accounts:perfil' %}">Mi Perfil</a></li>
+                    <li class="mt-2 border-t pt-2">
+                        <form action="{% url 'accounts:logout' %}" method="post" class="w-full">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full text-left text-error font-bold">Cerrar Sesión</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            {% else %}
+            <div class="hidden lg:flex">
+                <a href="{% url 'accounts:login' %}" class="btn btn-ghost btn-sm mr-2">Ingresar</a>
+                <a href="{% url 'accounts:registro' %}" class="btn btn-primary btn-sm">Registrarse</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow container mx-auto px-4 py-8 w-full max-w-7xl">
+        {% if messages %}
+        <div class="toast toast-top toast-center z-[100] w-full max-w-md">
+            {% for message in messages %}
+            <div role="alert"
+                class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg">
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
     </main>
 
     <footer class="footer footer-center p-4 bg-base-300 text-base-content mt-auto">
@@ -199,6 +322,6 @@
             });
         });
     </script>
-    </body>
+</body>
 
 </html>
