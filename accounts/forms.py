@@ -18,7 +18,6 @@ class CustomUserCreationForm(UserCreationForm):
             'numero_telefono',
             'genero',
             'division',
-            'tipo_usuario',
         )
 
     def __init__(self, *args, **kwargs):
@@ -27,10 +26,17 @@ class CustomUserCreationForm(UserCreationForm):
         estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
         
         for field_name, field in self.fields.items():
-            if isinstance(field.widget, (forms.TextInput, forms.NumberInput, forms.EmailInput)):
+            if isinstance(field.widget, (forms.TextInput, forms.NumberInput, forms.EmailInput, forms.PasswordInput)):
                 field.widget.attrs['class'] = estilo_input
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.tipo_usuario = 'PLAYER'
+        if commit:
+            user.save()
+        return user
 
 
 class CustomUserChangeForm(UserChangeForm):
