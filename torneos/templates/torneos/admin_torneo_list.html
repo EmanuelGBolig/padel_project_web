@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-4">
+
+    {% for torneo in torneos %}
+    <div class="bg-base-100 dark:bg-base-300 shadow-md rounded-xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors hover:shadow-lg">
+        
+        <!-- Info del torneo -->
+        <div class="flex-1">
+            <h3 class="font-bold text-lg sm:text-xl text-base-content dark:text-base-content">{{ torneo.nombre }}</h3>
+            <p class="text-sm text-base-content/70 dark:text-base-content/80 mt-1">
+                <span class="font-medium">División:</span> {{ torneo.division.nombre }}<br>
+                <span class="font-medium">Inscritos:</span> {{ torneo.inscripciones.count }}/{{ torneo.cupos_totales }}
+            </p>
+            {% if torneo.ganador %}
+            <p class="mt-2 text-green-700 dark:text-green-400 font-semibold">
+                🏆 Ganador: {{ torneo.ganador }}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Estado y acciones -->
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center mt-2 sm:mt-0">
+
+            {% if torneo.estado == 'AB' %}
+                <div class="badge badge-success">Abierto</div>
+            {% elif torneo.estado == 'EJ' %}
+                <div class="badge badge-info">En Juego</div>
+            {% else %}
+                <div class="badge badge-ghost">Finalizado</div>
+            {% endif %}
+
+            <a href="{% url 'torneos:admin_manage' torneo.pk %}" 
+               class="btn btn-primary btn-sm shadow hover:shadow-lg">
+               Gestionar
+            </a>
+            <a href="{% url 'torneos:admin_editar' torneo.pk %}" 
+               class="btn btn-secondary btn-sm shadow hover:shadow-lg">
+               Editar
+            </a>
+
+        </div>
+
+    </div>
+    {% empty %}
+    <p class="text-center text-base-content dark:text-base-content">No hay torneos.</p>
+    {% endfor %}
+
+</div>
+{% endblock %}

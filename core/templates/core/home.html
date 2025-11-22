@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - PadelApp{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-12">
+    <!-- Hero -->
+    <div class="text-center py-8">
+        <h1 class="text-5xl font-black text-primary mb-4">Torneos de Pádel</h1>
+        <p class="text-xl text-base-content/70">Gestiona tus equipos, inscríbete y sigue los resultados.</p>
+        {% if user.is_authenticated and user.tipo_usuario == 'ADMIN' %}
+            <div class="mt-6 flex justify-center gap-4">
+                <a href="{% url 'torneos:admin_list' %}" class="btn btn-outline">⚙️ Administrar</a>
+                <a href="{% url 'torneos:admin_crear' %}" class="btn btn-primary">+ Crear Torneo</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Torneos Abiertos -->
+    {% if torneos_abiertos %}
+    <div>
+        <h2 class="text-2xl font-bold mb-6 border-l-4 border-success pl-4 text-base-content">Inscripciones Abiertas</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for torneo in torneos_abiertos %}
+            <div class="card bg-base-100 shadow-xl border-t-4 border-success">
+                <div class="card-body">
+                    <h2 class="card-title justify-between text-base-content">{{ torneo.nombre }} <div class="badge badge-success text-white">Abierto</div></h2>
+                    <div class="badge badge-outline">{{ torneo.division.nombre }}</div>
+                    <div class="text-sm text-base-content/70 mt-4">
+                        <p>📅 Inicio: {{ torneo.fecha_inicio|date:"d M Y" }}</p>
+                        <p>👥 Cupos: {{ torneo.inscripciones.count }} / {{ torneo.cupos_totales }}</p>
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-success text-white w-full">Ver e Inscribirse</a>
+                        {% if user.is_staff %}<a href="{% url 'torneos:admin_manage' torneo.pk %}" class="btn btn-sm btn-ghost w-full">Gestionar</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Torneos en Juego -->
+    {% if torneos_en_juego %}
+    <div>
+        <h2 class="text-2xl font-bold mb-6 border-l-4 border-info pl-4 text-base-content">En Juego</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for torneo in torneos_en_juego %}
+            <div class="card bg-base-100 shadow-xl border-t-4 border-info">
+                <div class="card-body">
+                    <h2 class="card-title justify-between text-base-content">{{ torneo.nombre }} <div class="badge badge-info text-white">Jugando</div></h2>
+                    <div class="badge badge-outline">{{ torneo.division.nombre }}</div>
+                    <div class="card-actions justify-end mt-6">
+                        <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-outline btn-info w-full">Ver Brackets</a>
+                        {% if user.is_staff %}<a href="{% url 'torneos:admin_manage' torneo.pk %}" class="btn btn-sm btn-ghost w-full">Cargar Resultados</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Estado Vacío -->
+    {% if not torneos_abiertos and not torneos_en_juego %}
+        <div class="hero bg-base-200 rounded-box py-12">
+            <div class="hero-content text-center">
+                <div class="max-w-md">
+                    <h1 class="text-3xl font-bold text-base-content/50">No hay torneos activos</h1>
+                    {% if user.is_staff %}
+                        <a href="{% url 'torneos:admin_crear' %}" class="btn btn-primary mt-4">Crear Torneo</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-4">
+
+    <div class="bg-base-100 dark:bg-base-300 shadow-xl rounded-xl p-6">
+
+        <h2 class="text-2xl sm:text-3xl font-bold text-base-content dark:text-base-content mb-6 text-center">
+            Gestión de Equipos
+        </h2>
+
+        <!-- Filtros -->
+        <form method="get" class="flex flex-wrap gap-4 mb-6 bg-base-200 dark:bg-base-400 p-4 rounded-lg">
+            <input type="text" name="search" placeholder="Buscar por nombre..." value="{{ search_query }}" 
+                   class="input input-bordered w-full sm:w-auto flex-1" />
+            
+            <select name="division" class="select select-bordered w-full sm:w-auto flex-1">
+                <option value="">Todas las divisiones</option>
+                {% for div in divisiones %}
+                    <option value="{{ div.pk }}" {% if current_division == div.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ div.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <button class="btn btn-primary shadow hover:shadow-lg">Filtrar</button>
+        </form>
+
+        <!-- Tabla responsive -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Jugador 1</th>
+                        <th>Jugador 2</th>
+                        <th>División</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for equipo in equipos %}
+                    <tr>
+                        <td class="font-bold">{{ equipo.nombre }}</td>
+                        <td>{{ equipo.jugador1.full_name }}</td>
+                        <td>{{ equipo.jugador2.full_name }}</td>
+                        <td><div class="badge badge-secondary text-white">{{ equipo.division.nombre }}</div></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center py-4">No hay equipos registrados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tarjetas para móviles -->
+        <div class="md:hidden grid gap-4">
+            {% for equipo in equipos %}
+            <div class="bg-base-200 dark:bg-base-400 p-4 rounded-lg shadow hover:shadow-lg transition-colors">
+                <h3 class="font-bold text-lg mb-2 text-base-content dark:text-base-content">{{ equipo.nombre }}</h3>
+                <p class="text-base-content dark:text-base-content"><span class="font-semibold">Jugador 1:</span> {{ equipo.jugador1.full_name }}</p>
+                <p class="text-base-content dark:text-base-content"><span class="font-semibold">Jugador 2:</span> {{ equipo.jugador2.full_name }}</p>
+                <p class="mt-2">
+                    <span class="badge badge-secondary text-white dark:text-white">{{ equipo.division.nombre }}</span>
+                </p>
+            </div>
+            {% empty %}
+            <p class="text-center py-4 text-base-content dark:text-base-content">
+                No hay equipos registrados.
+            </p>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

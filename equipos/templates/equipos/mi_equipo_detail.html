@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex justify-center mt-10">
+    <div class="card w-full max-w-2xl bg-base-100 shadow-xl">
+        <div class="card-body items-center text-center">
+            <h2 class="card-title text-4xl text-primary">{{ equipo.nombre }}</h2>
+            <div class="badge badge-secondary badge-lg my-2">{{ equipo.division.nombre }}</div>
+            
+            <div class="divider">Integrantes</div>
+            
+            <div class="flex flex-col sm:flex-row gap-8 w-full justify-center mt-4">
+                <div class="stat place-items-center p-0">
+                    <div class="stat-title">Jugador 1</div>
+                    <div class="stat-value text-lg">{{ equipo.jugador1.full_name }}</div>
+                    <div class="stat-desc">{{ equipo.jugador1.email }}</div>
+                </div>
+                <div class="stat place-items-center p-0">
+                    <div class="stat-title">Jugador 2</div>
+                    <div class="stat-value text-lg">{{ equipo.jugador2.full_name }}</div>
+                    <div class="stat-desc">{{ equipo.jugador2.email }}</div>
+                </div>
+            </div>
+
+            <div class="card-actions mt-10">
+                <a href="{% url 'equipos:disolver' %}" class="btn btn-error btn-outline">Disolver Equipo</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

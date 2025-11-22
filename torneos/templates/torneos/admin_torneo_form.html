@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto mt-10 px-4 sm:px-0">
+    <div class="card bg-base-100 dark:bg-base-200 shadow-xl rounded-xl p-8">
+
+        <h2 class="text-3xl font-bold text-center mb-6 text-base-content dark:text-base-content">
+            {{ titulo }}
+        </h2>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="space-y-4">
+                {% load widget_tweaks %}
+
+                <div class="space-y-4">
+                    {% for field in form %}
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text text-base-content">{{ field.label }}</span>
+                        </label>
+                        {% if field.errors %}
+                        {{ field|add_class:"input-error" }}
+                        {% for error in field.errors %}
+                        <span class="text-error text-sm mt-1">{{ error }}</span>
+                        {% endfor %}
+                        {% else %}
+                        {{ field }}
+                        {% endif %}
+                        {% if field.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-base-content/70">{{ field.help_text }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="btn btn-primary w-full">
+                    Guardar Torneo
+                </button>
+            </div>
+        </form>
+
+        {% if object or torneo %}
+        <div class="mt-6 text-center">
+            <a href="{% url 'torneos:admin_editar' object.pk %}" class="link link-primary text-sm font-medium">
+                Ir a Editar Configuración
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

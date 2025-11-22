@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="flex justify-center items-center py-10">
+    <div class="card w-full max-w-md shadow-2xl bg-base-100">
+        <div class="card-body">
+            <h2 class="card-title justify-center text-2xl font-bold mb-4">Crear Cuenta</h2>
+            <form method="post">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    {% for field in form %}
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text text-base-content">{{ field.label }}</span>
+                        </label>
+                        {% if field.errors %}
+                        {{ field }}
+                        {% for error in field.errors %}
+                        <span class="text-error text-sm mt-1">{{ error }}</span>
+                        {% endfor %}
+                        {% else %}
+                        {{ field }}
+                        {% endif %}
+                        {% if field.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-base-content/70">{{ field.help_text }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="form-control mt-6">
+                    <button class="btn btn-primary">Registrarse</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+from django import forms
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from .models import CustomUser
+from equipos.models import Division
+
+
+class CustomUserCreationForm(UserCreationForm):
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.all(), required=True, label="División"
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = CustomUser
+        fields = (
+            'email',
+            'nombre',
+            'apellido',
+            'numero_telefono',
+            'genero',
+            'division',
+            'tipo_usuario',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
+        
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, (forms.TextInput, forms.NumberInput, forms.EmailInput)):
+                field.widget.attrs['class'] = estilo_input
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = estilo_select
+
+
+class CustomUserChangeForm(UserChangeForm):
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.all(), required=True, label="División"
+    )
+    password = None # Ocultar campo de contraseña en perfil simple
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'email',
+            'nombre',
+            'apellido',
+            'numero_telefono',
+            'genero',
+            'division',
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
+
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, (forms.TextInput, forms.NumberInput, forms.EmailInput)):
+                field.widget.attrs['class'] = estilo_input
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = estilo_select

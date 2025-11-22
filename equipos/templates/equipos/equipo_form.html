@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex justify-center items-center py-10">
+    <div class="card w-full max-w-lg shadow-xl bg-base-100">
+        <div class="card-body">
+            <h2 class="card-title text-center justify-center mb-2">Crear Nuevo Equipo</h2>
+            
+            <div role="alert" class="alert alert-info text-sm mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Tu compañero debe estar en tu misma división ({{ user.division.nombre }}).</span>
+            </div>
+
+            <form method="post" class="w-full">
+                {% csrf_token %}
+                
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text font-bold">Selecciona tu compañero</span>
+                    </label>
+                    <!-- Renderizado manual del widget DAL -->
+                    <div class="w-full">
+                        {{ form.jugador2 }}
+                    </div>
+                    {% if form.jugador2.errors %}
+                        <div class="text-error text-xs mt-1">{{ form.jugador2.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="card-actions justify-end mt-6">
+                    <button type="submit" class="btn btn-primary w-full">Confirmar Equipo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

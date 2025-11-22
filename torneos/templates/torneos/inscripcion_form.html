@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Confirmar Inscripción{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-8 mt-12">
+
+    <!-- Título -->
+    <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-6">
+        Confirmar Inscripción
+    </h2>
+
+    <!-- Datos del torneo -->
+    <p class="text-center text-lg text-gray-700 mb-2">
+        Torneo: 
+        <span class="font-semibold text-indigo-600">
+            {{ torneo.nombre }} ({{ torneo.division.nombre }})
+        </span>
+    </p>
+
+    <p class="text-center text-lg text-gray-700 mb-6">
+        Equipo:
+        <span class="font-semibold text-indigo-600">
+            {{ equipo.nombre }}
+        </span>
+    </p>
+
+    <p class="text-center text-gray-600 mb-8">
+        Estás a punto de inscribir a tu equipo en este torneo.  
+        ¿Deseas continuar con la inscripción?
+    </p>
+
+    <!-- Formulario -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        {{ form|crispy }}
+
+        <!-- Botones -->
+        <div class="flex justify-center gap-4 pt-2">
+
+            <a href="{% url 'torneos:detail' torneo.pk %}"
+               class="btn bg-gray-200 text-gray-800 border border-gray-300 hover:bg-gray-300 px-6">
+                Cancelar
+            </a>
+
+            <button type="submit"
+                    class="btn bg-green-600 border-none text-white hover:bg-green-700 px-6">
+                Sí, confirmar inscripción
+            </button>
+
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% load crispy_forms_tags %}
+{% load torneo_extras %}
+
+<!-- HEADER -->
+<div class="bg-primary text-primary-content px-4 sm:px-6 py-4 flex justify-between items-center rounded-t-xl">
+    <div>
+        <h3 class="font-bold text-lg sm:text-xl">Resultado Final</h3>
+        <p class="text-[9px] sm:text-xs opacity-75 uppercase tracking-wider">
+            {{ partido.nombre_ronda }}
+        </p>
+    </div>
+
+    <!-- Botón cerrar -->
+    <button type="button" class="btn btn-sm btn-circle btn-ghost text-white" onclick="resultado_modal.close()">
+        ✕
+    </button>
+</div>
+
+<!-- FORM -->
+<form method="post" action="{% url 'torneos:admin_partido_resultado' partido.pk %}"
+    class="p-4 sm:p-6 bg-base-100 text-base-content rounded-b-xl">
+
+    {% csrf_token %}
+
+    <!-- ========================================================= -->
+    <!-- EQUIPOS Y SETS EN COLUMNAS ALINEADAS -->
+    <!-- ========================================================= -->
+    <div class="flex flex-col gap-4">
+
+        <!-- Encabezados de equipos -->
+        <div class="flex items-center justify-center gap-6">
+            <div class="w-24 text-center">
+                <span class="text-lg sm:text-xl font-bold text-primary">
+                    {% get_team_code partido.equipo1 partido.torneo %}
+                </span>
+            </div>
+            <div class="w-16 text-center">
+                <span class="text-base sm:text-lg font-black text-base-content/30">VS</span>
+            </div>
+            <div class="w-24 text-center">
+                <span class="text-lg sm:text-xl font-bold text-secondary">
+                    {% get_team_code partido.equipo2 partido.torneo %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Sets -->
+        <div class="flex flex-col gap-3">
+            {% for i in "123" %}
+            <div class="flex items-center justify-center gap-6">
+                <!-- Input equipo 1 -->
+                <div class="w-24 flex justify-center">
+                    <div class="w-14 sm:w-16">
+                        {% if i == "1" %}
+                        {{ form.set1_local }}
+                        {% elif i == "2" %}
+                        {{ form.set2_local }}
+                        {% else %}
+                        {{ form.set3_local }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Label SET -->
+                <div class="w-16 text-center">
+                    <span class="text-[10px] sm:text-xs font-black text-base-content/40 uppercase">
+                        SET {{ i }}
+                    </span>
+                </div>
+
+                <!-- Input equipo 2 -->
+                <div class="w-24 flex justify-center">
+                    <div class="w-14 sm:w-16">
+                        {% if i == "1" %}
+                        {{ form.set1_visitante }}
+                        {% elif i == "2" %}
+                        {{ form.set2_visitante }}
+                        {% else %}
+                        {{ form.set3_visitante }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Ocultos -->
+    {{ form.resultado_local }}
+    {{ form.resultado_visitante }}
+
+    <!-- Errores -->
+    {% if form.non_field_errors %}
+    <div class="alert alert-error text-xs py-2 mt-6 shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ form.non_field_errors.0 }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Botones -->
+    <div class="modal-action mt-6 flex flex-col sm:flex-row justify-center gap-2 w-full">
+        <button type="button" class="btn btn-ghost w-full sm:w-auto" onclick="resultado_modal.close()">Cancelar</button>
+
+        <button type="submit" class="btn btn-primary px-8 shadow-lg w-full sm:w-auto">
+            Guardar
+        </button>
+    </div>
+
+</form>
