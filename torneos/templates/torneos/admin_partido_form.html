@@ -18,6 +18,7 @@
 
 <!-- FORM -->
 <form method="post" action="{% url 'torneos:admin_partido_resultado' partido.pk %}"
+    hx-post="{% url 'torneos:admin_partido_resultado' partido.pk %}" hx-target="#modal_content"
     class="p-4 sm:p-6 bg-base-100 text-base-content rounded-b-xl">
 
     {% csrf_token %}

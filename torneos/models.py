@@ -231,13 +231,29 @@ class Partido(models.Model):
     @property
     def nombre_ronda(self):
         """Devuelve el nombre legible de la ronda"""
-        nombres = {
-            4: 'Final',
-            3: 'Semifinal',
-            2: 'Cuartos de Final',
-            1: 'Octavos de Final',
-        }
-        return nombres.get(self.ronda, f"Ronda {self.ronda}")
+        from django.db.models import Max
+        # Intentar obtener el max_ronda del torneo
+        # Nota: Esto hace una query extra por cada partido si no se optimiza,
+        # pero es necesario para la visualización correcta en formularios individuales.
+        max_ronda = self.torneo.partidos.aggregate(Max('ronda'))['ronda__max']
+        
+        if not max_ronda:
+            return f"Ronda {self.ronda}"
+            
+        diff = max_ronda - self.ronda
+        
+        if diff == 0:
+            return 'Final'
+        elif diff == 1:
+            return 'Semifinal'
+        elif diff == 2:
+            return 'Cuartos de Final'
+        elif diff == 3:
+            return 'Octavos de Final'
+        elif diff == 4:
+            return '16vos de Final'
+        else:
+            return f"Ronda {self.ronda}"
 
     def save(self, *args, **kwargs):
         # Lógica de avance automático
