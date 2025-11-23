@@ -111,6 +111,12 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         elif action == 'generar_octavos':
             return self.generar_octavos_logica(request, torneo)
+        
+        elif action == 'reset_bracket':
+            # Eliminar todos los partidos de eliminación
+            torneo.partidos.all().delete()
+            messages.success(request, "Bracket eliminado. Puedes generar uno nuevo.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
 
         elif action == 'finalizar_torneo':
             torneo.estado = Torneo.Estado.FINALIZADO
@@ -196,11 +202,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         slots = clasificados + [None] * num_byes
 
         # 3. Calcular número de rondas
-        # bracket_size = 4 -> 2 rondas (Semifinal=3, Final=4)
-        # bracket_size = 8 -> 3 rondas (Cuartos=2, Semifinal=3, Final=4)
+        # bracket_size = 4 -> 2 rondas (Semifinal=1, Final=2)
+        # bracket_size = 8 -> 3 rondas (Cuartos=1, Semifinal=2, Final=3)
         # bracket_size = 16 -> 4 rondas (Octavos=1, Cuartos=2, Semifinal=3, Final=4)
         num_rondas = int(math.log2(bracket_size))
-        ronda_inicio = num_rondas  # La ronda más baja (ej: 1 para Octavos si bracket_size=16)
+        ronda_inicio = 1  # Siempre empezamos en ronda 1
         
         # 4. Generar todas las rondas desde la primera hasta la final
         partidos_por_ronda = {}
@@ -236,8 +242,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 p.save()
 
         # 5. Generar las rondas superiores (vacías por ahora)
-        for ronda_num in range(ronda_inicio + 1, num_rondas + 1 + ronda_inicio):
-            cant_partidos = 2 ** (num_rondas + ronda_inicio - ronda_num)
+        for ronda_num in range(2, num_rondas + 1):
+            cant_partidos = bracket_size // (2 ** ronda_num)
             partidos_por_ronda[ronda_num] = []
             
             for i in range(cant_partidos):
@@ -249,7 +255,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 partidos_por_ronda[ronda_num].append(p)
 
         # 6. Enlazar partidos con siguiente_partido
-        for ronda_num in range(ronda_inicio, num_rondas + ronda_inicio):
+        for ronda_num in range(1, num_rondas):
             partidos_actuales = partidos_por_ronda[ronda_num]
             partidos_siguientes = partidos_por_ronda.get(ronda_num + 1, [])
             
