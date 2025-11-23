@@ -5,9 +5,14 @@
     <!-- Header con botón para crear torneo de prueba -->
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-base-content">Gestión de Torneos</h1>
-        <a href="{% url 'torneos:crear_torneo_prueba' %}" class="btn btn-outline btn-info"
+        <a href="{% url 'torneos:crear_torneo_prueba' %}" class="btn btn-outline btn-info gap-2"
             onclick="return confirm('¿Crear un torneo de prueba con 24 equipos? Esto eliminará torneos de prueba anteriores.')">
-            🧪 Crear Torneo de Prueba (24 equipos)
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+            </svg>
+            Crear Torneo de Prueba (24 equipos)
         </a>
     </div>
 
@@ -23,8 +28,14 @@
                 <span class="font-medium">Inscritos:</span> {{ torneo.inscripciones.count }}/{{ torneo.cupos_totales }}
             </p>
             {% if torneo.ganador %}
-            <p class="mt-2 text-green-700 dark:text-green-400 font-semibold">
-                🏆 Ganador: {{ torneo.ganador }}
+            <p class="mt-2 text-green-700 dark:text-green-400 font-semibold flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                    class="w-5 h-5 text-yellow-500">
+                    <path fill-rule="evenodd"
+                        d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 5.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z"
+                        clip-rule="evenodd" />
+                </svg>
+                Ganador: {{ torneo.ganador }}
             </p>
             {% endif %}
         </div>
