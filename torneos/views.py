@@ -171,9 +171,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
     def generar_octavos_logica(self, request, torneo):
-        if torneo.partidos.exists():
-            messages.warning(request, "La fase de eliminación ya fue generada.")
-            return redirect('torneos:admin_manage', pk=torneo.pk)
+        # Permitir regeneración si se eliminaron los partidos
+        # if torneo.partidos.exists():
+        #     messages.warning(request, "La fase de eliminación ya fue generada.")
+        #     return redirect('torneos:admin_manage', pk=torneo.pk)
 
         # 1. Obtener clasificados (1ro y 2do de cada grupo)
         clasificados = []
