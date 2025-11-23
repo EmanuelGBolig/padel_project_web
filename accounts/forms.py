@@ -39,11 +39,29 @@ class CustomUserCreationForm(UserCreationForm):
         return user
 
 
-class CustomUserChangeForm(UserChangeForm):
+class CustomUserAdminForm(UserChangeForm):
+    """Formulario para el Admin de Django (Mantiene el campo password seguro)"""
     division = forms.ModelChoiceField(
         queryset=Division.objects.all(), required=True, label="División"
     )
-    password = None # Ocultar campo de contraseña en perfil simple
+
+    class Meta:
+        model = CustomUser
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # No aplicamos estilos personalizados agresivos aquí para no romper el admin,
+        # o solo aplicamos a campos específicos si es necesario.
+        # UserChangeForm ya trae widgets adecuados para el admin.
+
+
+class CustomUserProfileForm(UserChangeForm):
+    """Formulario para editar perfil en el frontend (Oculta password)"""
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.all(), required=True, label="División"
+    )
+    password = None 
 
     class Meta:
         model = CustomUser

@@ -3,7 +3,8 @@ from django.views.generic import CreateView, UpdateView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import CustomUser
-from .forms import CustomUserCreationForm, CustomUserChangeForm, CustomLoginForm
+from .models import CustomUser
+from .forms import CustomUserCreationForm, CustomUserProfileForm, CustomLoginForm
 
 
 class CustomLoginView(LoginView):
@@ -25,7 +26,7 @@ class RegistroView(CreateView):
 
 class PerfilView(LoginRequiredMixin, UpdateView):
     model = CustomUser
-    form_class = CustomUserChangeForm
+    form_class = CustomUserProfileForm
     template_name = 'accounts/perfil.html'
     success_url = reverse_lazy('accounts:perfil')
 
