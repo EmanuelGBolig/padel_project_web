@@ -190,6 +190,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         # 2. Calcular tamaño del bracket (Potencia de 2)
+        import math
+        bracket_size = 2 ** math.ceil(math.log2(num_equipos))
         num_byes = bracket_size - num_equipos
         slots = clasificados + [None] * num_byes
 
