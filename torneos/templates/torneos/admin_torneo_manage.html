@@ -15,558 +15,226 @@
                     <h1 class="card-title text-3xl font-bold">{{ torneo.nombre }}</h1>
 
                     <div class="flex flex-wrap gap-2 mt-2">
-                        {% extends "base.html" %}
-                        {% load torneo_extras %}
+                        <div class="badge badge-secondary badge-outline">{{ torneo.division.nombre }}</div>
+                        <div class="badge badge-accent">{{ torneo.get_estado_display }}</div>
+                        <div class="badge badge-primary badge-outline">{{ torneo.get_tipo_torneo_display }}</div>
+                    </div>
+                </div>
 
-                        {% block title %}Gestionar: {{ torneo.nombre }}{% endblock %}
+                <a href="{% url 'torneos:admin_editar' torneo.pk %}" class="btn btn-ghost btn-sm">
+                    ⚙️ Configuración
+                </a>
+            </div>
 
-                        {% block content %}
-                        <div class="space-y-8">
+            <div class="divider"></div>
 
-                            <!-- 1. HEADER DEL TORNEO -->
-                            <div class="card bg-base-100 shadow-xl border border-base-300">
-                                <div class="card-body">
-                                    <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+            <!-- Acciones Torneo -->
+            <form method="post" class="flex flex-wrap gap-3 w-full">
+                {% csrf_token %}
 
-                                        <div>
-                                            <h1 class="card-title text-3xl font-bold">{{ torneo.nombre }}</h1>
+                {% if torneo.estado == 'AB' %}
+                <button type="submit" name="action" value="iniciar_torneo" class="btn btn-success text-white">
+                    ▶️ Iniciar Torneo y Generar Grupos
+                </button>
 
-                                            <div class="flex flex-wrap gap-2 mt-2">
-                                                <div class="badge badge-secondary badge-outline">{{
-                                                    torneo.division.nombre }}</div>
-                                                <div class="badge badge-accent">{{ torneo.get_estado_display }}</div>
-                                                <div class="badge badge-primary badge-outline">{{
-                                                    torneo.get_tipo_torneo_display }}</div>
-                                            </div>
-                                        </div>
+                {% elif torneo.estado == 'EJ' %}
 
-                                        <a href="{% url 'torneos:admin_editar' torneo.pk %}"
-                                            class="btn btn-ghost btn-sm gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            Configuración
-                                        </a>
-                                    </div>
+                {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
+                <button type="submit" name="action" value="generar_octavos" class="btn btn-primary">
+                    🏆 Calcular Clasificación y Generar Bracket
+                </button>
 
-                                    <div class="divider"></div>
+                {% elif not fase_eliminatoria_existente %}
+                <div role="alert" class="alert alert-warning py-2 max-w-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current h-6 w-6" fill="none"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Faltan <strong>{{ partidos_grupo_pendientes }}</strong> partidos de grupo.</span>
+                </div>
+                {% endif %}
 
-                                    <!-- Acciones Torneo -->
-                                    <form method="post" class="flex flex-wrap gap-3 w-full">
-                                        {% csrf_token %}
+                <button type="submit" name="action" value="finalizar_torneo" class="btn btn-error text-white ml-auto">
+                    Finalizar Torneo
+                </button>
 
-                                        {% if torneo.estado == 'AB' %}
-                                        <button type="submit" name="action" value="iniciar_torneo"
-                                            class="btn btn-success text-white gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                                fill="currentColor" class="w-5 h-5">
-                                                <path fill-rule="evenodd"
-                                                    d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
-                                                    clip-rule="evenodd" />
-                                            </svg>
-                                            Iniciar Torneo y Generar Grupos
-                                        </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
 
-                                        {% elif torneo.estado == 'EJ' %}
+    <!-- 2. FASE DE GRUPOS -->
+    {% if torneo.estado == 'EJ' and grupos %}
+    <h2 class="text-2xl font-bold mb-4 divider divider-start text-primary">
+        Fase de Grupos
+    </h2>
 
-                                        {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
-                                        <button type="submit" name="action" value="generar_octavos"
-                                            class="btn btn-primary gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.625 2.625 0 11-5.25 0v2.875M6.75 5.625a4.125 4.125 0 118.25 0" />
-                                            </svg>
-                                            Calcular Clasificación y Generar Bracket
-                                        </button>
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for grupo in grupos %}
+        <div class="card bg-base-100 shadow-md border border-base-300">
+            <div class="card-body p-4">
 
-                                        {% elif not fase_eliminatoria_existente %}
-                                        <div role="alert" class="alert alert-warning py-2 max-w-md">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current h-6 w-6"
-                                                fill="none" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                            <span>Faltan <strong>{{ partidos_grupo_pendientes }}</strong> partidos de
-                                                grupo.</span>
-                                        </div>
-                                        {% endif %}
+                <h3 class="card-title text-lg justify-center border-b pb-2 mb-2">
+                    {{ grupo.nombre }}
+                </h3>
 
-                                        <button type="submit" name="action" value="finalizar_torneo"
-                                            class="btn btn-error text-white ml-auto">
-                                            Finalizar Torneo
-                                        </button>
+                <!-- Tabla Posiciones -->
+                <div class="overflow-x-auto">
+                    <table class="table table-sm table-zebra w-full text-center">
+                        <thead>
+                            <tr>
+                                <th class="text-left">Equipo</th>
+                                <th>PG</th>
+                                <th>DS</th>
+                                <th>DG</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in grupo.tabla.all %}
+                            <tr
+                                class="{% if forloop.counter <= torneo.equipos_por_grupo %}font-bold text-success{% endif %}">
+                                <td class="text-left truncate max-w-[120px]">
+                                    <span class="opacity-50 mr-1">{{ forloop.counter }}.</span>
+                                    {% get_team_code item.equipo torneo %}
+                                </td>
+                                <td>{{ item.partidos_ganados }}</td>
+                                <td>{{ item.diferencia_sets }}</td>
+                                <td>{{ item.diferencia_games }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
-                                        {% endif %}
-                                    </form>
-                                </div>
+                <div class="divider my-1"></div>
+
+                <!-- Partidos -->
+                <div class="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                    {% for partido in grupo.partidos_grupo.all %}
+                    <div
+                        class="flex justify-between items-center text-sm p-2 bg-base-200 rounded hover:bg-base-300 transition-colors">
+
+                        <div class="w-1/3 truncate text-right text-xs" title="{{ partido.equipo1.nombre }}">
+                            {% get_team_code partido.equipo1 torneo %}
+                        </div>
+
+                        <div class="font-bold text-center min-w-[50px] text-xs">
+                            {% if partido.ganador %}
+                            <div class="badge badge-sm badge-ghost">
+                                {{ partido.e1_sets_ganados }}-{{ partido.e2_sets_ganados }}
+                            </div>
+                            {% else %}
+                            <span class="opacity-50">vs</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="w-1/3 truncate text-left text-xs" title="{{ partido.equipo2.nombre }}">
+                            {% get_team_code partido.equipo2 torneo %}
+                        </div>
+
+                        <button class="btn btn-xs btn-square btn-ghost text-primary"
+                            hx-get="{% url 'torneos:cargar_resultado_grupo' partido.pk %}" hx-target="#modal_content"
+                            onclick="resultado_modal.showModal()">
+                            ✎
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% endif %}
+
+    <!-- 3. BRACKET -->
+    {% if fase_eliminatoria_existente %}
+    <h2 class="text-2xl font-bold mb-4 divider divider-start text-secondary">
+        Fase Eliminatoria
+    </h2>
+
+    <div class="overflow-x-auto pb-4">
+        <div class="flex gap-8 min-w-max px-4">
+
+            {% regroup partidos_eliminacion by ronda as rondas_list %}
+
+            {% for ronda in rondas_list %}
+            <div class="flex flex-col min-w-[260px] gap-4">
+
+                <h3
+                    class="text-center font-bold text-primary uppercase text-sm tracking-wide bg-base-200 py-1 rounded-lg">
+                    {% if ronda.grouper == 4 %}🏆 Final
+                    {% elif ronda.grouper == 3 %}Semifinal
+                    {% elif ronda.grouper == 2 %}Cuartos
+                    {% else %}Octavos{% endif %}
+                </h3>
+
+                <div class="flex flex-col gap-4">
+
+                    {% for partido in ronda.list %}
+                    <div
+                        class="card card-compact bg-base-100 shadow-md border border-base-300 hover:shadow-lg transition-all">
+                        <div class="card-body p-3">
+
+                            <!-- Equipo 1 -->
+                            <div
+                                class="flex justify-between items-center py-1 px-1 rounded 
+                                            {% if partido.ganador == partido.equipo1 %} bg-success/10 font-bold text-success{% endif %}">
+                                <span class="text-xs truncate max-w-[150px]">
+                                    {% get_team_code partido.equipo1 torneo %}
+                                </span>
+                                {% if partido.ganador == partido.equipo1 %}✓{% endif %}
                             </div>
 
-                            <!-- 2. FASE DE GRUPOS -->
-                            {% if torneo.estado == 'EJ' and grupos %}
-                            <h2
-                                class="text-2xl font-bold mb-4 divider md:divider-start text-primary text-center md:text-left">
-                                Fase de Grupos
-                            </h2>
+                            <div class="divider my-0"></div>
 
-                            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                                {% for grupo in grupos %}
-                                <div class="card bg-base-100 shadow-md border border-base-300">
-                                    <div class="card-body p-4">
-
-                                        <h3 class="card-title text-lg justify-center border-b pb-2 mb-2">
-                                            {{ grupo.nombre }}
-                                        </h3>
-
-                                        <!-- Tabla Posiciones -->
-                                        <div class="overflow-x-auto">
-                                            <table class="table table-sm table-zebra w-full text-center">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="text-left">Equipo</th>
-                                                        <th>PG</th>
-                                                        <th>DS</th>
-                                                        <th>DG</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {% for item in grupo.tabla.all %}
-                                                    <tr
-                                                        class="{% if forloop.counter <= torneo.equipos_por_grupo %}font-bold text-success{% endif %}">
-                                                        <td class="text-left max-w-[120px]">
-                                                            <div class="flex items-center">
-                                                                <span class="opacity-50 mr-1">{{ forloop.counter
-                                                                    }}.</span>
-                                                                <span class="tooltip tooltip-right cursor-help"
-                                                                    data-tip="{{ item.equipo.nombre }}">
-                                                                    <div class="truncate max-w-[90px]">
-                                                                        {% get_team_code item.equipo torneo %}
-                                                                    </div>
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        <td>{{ item.partidos_ganados }}</td>
-                                                        <td>{{ item.diferencia_sets }}</td>
-                                                        <td>{{ item.diferencia_games }}</td>
-                                                    </tr>
-                                                    {% endfor %}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div class="divider my-1"></div>
-
-                                        <!-- Partidos -->
-                                        <div class="space-y-2">
-                                            {% for partido in grupo.partidos_grupo.all %}
-                                            <div
-                                                class="flex justify-between items-center text-sm p-2 bg-base-200 rounded hover:bg-base-300 transition-colors">
-
-                                                <div class="w-1/3 text-right text-xs tooltip tooltip-right cursor-help"
-                                                    data-tip="{{ partido.equipo1.nombre }}">
-                                                    <div class="truncate">
-                                                        {% get_team_code partido.equipo1 torneo %}
-                                                    </div>
-                                                </div>
-
-                                                <div class="font-bold text-center min-w-[50px] text-xs">
-                                                    {% if partido.ganador %}
-                                                    <div class="badge badge-sm badge-ghost">
-                                                        {{ partido.e1_sets_ganados }}-{{ partido.e2_sets_ganados }}
-                                                    </div>
-                                                    {% else %}
-                                                    <span class="opacity-50">vs</span>
-                                                    {% endif %}
-                                                </div>
-
-                                                <div class="w-1/3 text-left text-xs tooltip tooltip-left cursor-help"
-                                                    data-tip="{{ partido.equipo2.nombre }}">
-                                                    <div class="truncate">
-                                                        {% get_team_code partido.equipo2 torneo %}
-                                                    </div>
-                                                </div>
-
-                                                <button class="btn btn-xs btn-square btn-ghost text-primary"
-                                                    hx-get="{% url 'torneos:cargar_resultado_grupo' partido.pk %}"
-                                                    hx-target="#modal_content" onclick="resultado_modal.showModal()">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                                                        class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-
-                                    </div>
-                                </div>
-                                {% endfor %}
+                            <!-- Equipo 2 -->
+                            <div
+                                class="flex justify-between items-center py-1 px-1 rounded 
+                                            {% if partido.ganador == partido.equipo2 %} bg-success/10 font-bold text-success{% endif %}">
+                                <span class="text-xs truncate max-w-[150px]">
+                                    {% get_team_code partido.equipo2 torneo %}
+                                </span>
+                                {% if partido.ganador == partido.equipo2 %}✓{% endif %}
                             </div>
 
+                            <!-- Acción -->
+                            {% if partido.equipo1 and partido.equipo2 %}
+                            <button class="btn btn-xs btn-block btn-outline btn-primary mt-2"
+                                hx-get="{% url 'torneos:admin_partido_resultado' partido.pk %}"
+                                hx-target="#modal_content" onclick="resultado_modal.showModal()">
+                                {% if partido.ganador %}{{ partido.resultado }}{% else %}Cargar{% endif %}
+                            </button>
+                            {% else %}
+                            <p class="text-center text-[10px] opacity-50 italic py-1">
+                                Esperando rivales...
+                            </p>
                             {% endif %}
 
-                            <!-- 3. BRACKET -->
-                            {% if fase_eliminatoria_existente %}
-                            ```html
-                            {% block title %}Gestionar: {{ torneo.nombre }}{% endblock %}
+                        </div>
+                    </div>
+                    {% endfor %}
 
-                            {% block content %}
-                            <div class="space-y-8">
+                </div>
+            </div>
+            {% endfor %}
 
-                                <!-- 1. HEADER DEL TORNEO -->
-                                <div class="card bg-base-100 shadow-xl border border-base-300">
-                                    <div class="card-body">
-                                        <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+        </div>
+    </div>
+    {% endif %}
 
-                                            <div>
-                                                <h1 class="card-title text-3xl font-bold">{{ torneo.nombre }}</h1>
+</div>
 
-                                                <div class="flex flex-wrap gap-2 mt-2">
-                                                    <div class="badge badge-secondary badge-outline">{{
-                                                        torneo.division.nombre }}</div>
-                                                    <div class="badge badge-accent">{{ torneo.get_estado_display }}
-                                                    </div>
-                                                    <div class="badge badge-primary badge-outline">{{
-                                                        torneo.get_tipo_torneo_display }}</div>
-                                                </div>
-                                            </div>
+<!-- MODAL -->
+<dialog id="resultado_modal" class="modal">
+    <div class="modal-box max-w-lg p-0 overflow-hidden">
+        <div id="modal_content" class="p-10 flex justify-center">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button></button></form>
+</dialog>
 
-                                            <a href="{% url 'torneos:admin_editar' torneo.pk %}"
-                                                class="btn btn-ghost btn-sm gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                Configuración
-                                            </a>
-                                        </div>
-
-                                        <div class="divider"></div>
-
-                                        <!-- Acciones Torneo -->
-                                        <form method="post" class="flex flex-wrap gap-3 w-full">
-                                            {% csrf_token %}
-
-                                            {% if torneo.estado == 'AB' %}
-                                            <button type="submit" name="action" value="iniciar_torneo"
-                                                class="btn btn-success text-white gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                                    fill="currentColor" class="w-5 h-5">
-                                                    <path fill-rule="evenodd"
-                                                        d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
-                                                        clip-rule="evenodd" />
-                                                </svg>
-                                                Iniciar Torneo y Generar Grupos
-                                            </button>
-
-                                            {% elif torneo.estado == 'EJ' %}
-
-                                            {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
-                                            <button type="submit" name="action" value="generar_octavos"
-                                                class="btn btn-primary gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.625 2.625 0 11-5.25 0v2.875M6.75 5.625a4.125 4.125 0 118.25 0" />
-                                                </svg>
-                                                Calcular Clasificación y Generar Bracket
-                                            </button>
-
-                                            {% elif not fase_eliminatoria_existente %}
-                                            <div role="alert" class="alert alert-warning py-2 max-w-md">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current h-6 w-6"
-                                                    fill="none" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                </svg>
-                                                <span>Faltan <strong>{{ partidos_grupo_pendientes }}</strong> partidos
-                                                    de
-                                                    grupo.</span>
-                                            </div>
-                                            {% endif %}
-
-                                            <button type="submit" name="action" value="finalizar_torneo"
-                                                class="btn btn-error text-white ml-auto">
-                                                Finalizar Torneo
-                                            </button>
-
-                                            {% endif %}
-                                        </form>
-                                    </div>
-                                </div>
-
-                                <!-- 2. FASE DE GRUPOS -->
-                                {% if torneo.estado == 'EJ' and grupos %}
-                                <h2
-                                    class="text-2xl font-bold mb-4 divider md:divider-start text-primary text-center md:text-left">
-                                    Fase de Grupos
-                                </h2>
-
-                                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                                    {% for grupo in grupos %}
-                                    <div class="card bg-base-100 shadow-md border border-base-300">
-                                        <div class="card-body p-4">
-
-                                            <h3 class="card-title text-lg justify-center border-b pb-2 mb-2">
-                                                {{ grupo.nombre }}
-                                            </h3>
-
-                                            <!-- Tabla Posiciones -->
-                                            <div class="overflow-x-auto">
-                                                <table class="table table-sm table-zebra w-full text-center">
-                                                    <thead>
-                                                        <tr>
-                                                            <th class="text-left">Equipo</th>
-                                                            <th>PG</th>
-                                                            <th>DS</th>
-                                                            <th>DG</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for item in grupo.tabla.all %}
-                                                        <tr
-                                                            class="{% if forloop.counter <= torneo.equipos_por_grupo %}font-bold text-success{% endif %}">
-                                                            <td class="text-left max-w-[120px]">
-                                                                <div class="flex items-center">
-                                                                    <span class="opacity-50 mr-1">{{ forloop.counter
-                                                                        }}.</span>
-                                                                    <span class="tooltip tooltip-right cursor-help"
-                                                                        data-tip="{{ item.equipo.nombre }}">
-                                                                        <div class="truncate">
-                                                                            {% get_team_code item.equipo torneo %}
-                                                                        </div>
-                                                                    </span>
-                                                                </div>
-                                                            </td>
-                                                            <td>{{ item.partidos_ganados }}</td>
-                                                            <td>{{ item.diferencia_sets }}</td>
-                                                            <td>{{ item.diferencia_games }}</td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            <div class="divider my-1"></div>
-
-                                            <!-- Partidos -->
-                                            <div class="space-y-2">
-                                                {% for partido in grupo.partidos_grupo.all %}
-                                                <div
-                                                    class="flex justify-between items-center text-sm p-2 bg-base-200 rounded hover:bg-base-300 transition-colors">
-
-                                                    <div class="w-1/3 text-right text-xs tooltip tooltip-right cursor-help"
-                                                        data-tip="{{ partido.equipo1.nombre }}">
-                                                        <div class="truncate">
-                                                            {% get_team_code partido.equipo1 torneo %}
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="font-bold text-center min-w-[50px] text-xs">
-                                                        {% if partido.ganador %}
-                                                        <div class="badge badge-sm badge-ghost">
-                                                            {{ partido.e1_sets_ganados }}-{{ partido.e2_sets_ganados }}
-                                                        </div>
-                                                        {% else %}
-                                                        <span class="opacity-50">vs</span>
-                                                        {% endif %}
-                                                    </div>
-
-                                                    <div class="w-1/3 text-left text-xs tooltip tooltip-left cursor-help"
-                                                        data-tip="{{ partido.equipo2.nombre }}">
-                                                        <div class="truncate">
-                                                            {% get_team_code partido.equipo2 torneo %}
-                                                        </div>
-                                                    </div>
-
-                                                    <button class="btn btn-xs btn-square btn-ghost text-primary"
-                                                        hx-get="{% url 'torneos:cargar_resultado_grupo' partido.pk %}"
-                                                        hx-target="#modal_content"
-                                                        onclick="resultado_modal.showModal()">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                                                            class="w-4 h-4">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-
-                                {% endif %}
-
-                                <!-- 3. BRACKET -->
-                                {% if fase_eliminatoria_existente %}
-                                <h2
-                                    class="text-2xl font-bold mb-4 divider md:divider-start text-secondary text-center md:text-left">
-                                    Fase Eliminatoria
-                                </h2>
-
-                                <div class="overflow-x-auto pb-4">
-                                    <div class="flex gap-8 min-w-max px-4">
-
-                                        {% regroup partidos_eliminacion by ronda as rondas_list %}
-
-                                        {% for ronda in rondas_list %}
-                                        <div class="flex flex-col min-w-[200px] gap-6 round-container">
-
-                                            <!-- NOMBRE DE LA RONDA -->
-                                            <h3
-                                                class="text-center font-bold text-primary uppercase text-sm tracking-wide bg-base-200 py-1 rounded-lg">
-                                                {% if ronda.grouper == 4 %}🏆 Final
-                                                {% elif ronda.grouper == 3 %}Semifinal
-                                                {% elif ronda.grouper == 2 %}Cuartos
-                                                {% else %}Octavos{% endif %}
-                                            </h3>
-                                            <div class="flex flex-col justify-around flex-grow gap-4">
-
-                                                {% for partido in ronda.list %}
-                                                <div
-                                                    class="card card-compact bg-base-100 shadow-md border border-base-300 hover:shadow-lg transition-all">
-                                                    <div class="card-body p-3">
-
-                                                        <!-- Equipo 1 -->
-                                                        <div
-                                                            class="flex justify-between items-center py-1 px-1 rounded {% if partido.ganador == partido.equipo1 %} bg-success/10 font-bold text-success{% endif %}">
-                                                            <span
-                                                                class="text-xs max-w-[150px] tooltip tooltip-right cursor-help"
-                                                                data-tip="{{ partido.equipo1.nombre }}">
-                                                                <span class="block truncate">
-                                                                    {% get_team_code partido.equipo1 torneo %}
-                                                                </span>
-                                                            </span>
-                                                            {% if partido.ganador == partido.equipo1 %}✓{% endif %}
-                                                        </div>
-
-                                                        <div class="divider my-0"></div>
-
-                                                        <!-- Equipo 2 -->
-                                                        <div
-                                                            class="flex justify-between items-center py-1 px-1 rounded {% if partido.ganador == partido.equipo2 %} bg-success/10 font-bold text-success{% endif %}">
-                                                            <span
-                                                                class="text-xs max-w-[150px] tooltip tooltip-right cursor-help"
-                                                                data-tip="{{ partido.equipo2.nombre }}">
-                                                                <span class="block truncate">
-                                                                    {% get_team_code partido.equipo2 torneo %}
-                                                                </span>
-                                                            </span>
-                                                            {% if partido.ganador == partido.equipo2 %}✓{% endif %}
-                                                        </div>
-
-                                                        <!-- Acción -->
-                                                        {% if partido.equipo1 and partido.equipo2 %}
-                                                        <button
-                                                            class="btn btn-xs btn-block btn-outline btn-primary mt-2"
-                                                            hx-get="{% url 'torneos:admin_partido_resultado' partido.pk %}"
-                                                            hx-target="#modal_content"
-                                                            onclick="resultado_modal.showModal()">
-                                                            {% if partido.ganador %}{{ partido.resultado }}{% else
-                                                            %}Cargar{% endif %}
-                                                        </button>
-                                                        {% else %}
-                                                        <p class="text-center text-[10px] opacity-50 italic py-1">
-                                                            Esperando rivales...
-                                                        </p>
-                                                        {% endif %}
-
-                                                    </div>
-                                                </div>
-                                                {% endfor %}
-
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-
-                                    </div>
-                                </div>
-                                {% endif %}
-
-                            </div>
-
-                            <!-- MODAL -->
-                            <dialog id="resultado_modal" class="modal">
-                                <div class="modal-box w-11/12 max-w-lg p-0 overflow-hidden">
-                                    <div id="modal_content" class="p-10 flex justify-center">
-                                        <span class="loading loading-spinner loading-lg text-primary"></span>
-                                    </div>
-                                </div>
-                                <form method="dialog" class="modal-backdrop"><button></button></form>
-                            </dialog>
-
-                            <style>
-                                /* Tooltips anchos para nombres completos */
-                                .tooltip::before {
-                                    max-width: 400px !important;
-                                    width: max-content !important;
-                                    white-space: normal !important;
-                                    text-align: center;
-                                    z-index: 1000 !important;
-                                    font-size: 0.875rem;
-                                    padding: 0.5rem 1rem;
-                                }
-
-                                /* Asegurar que el tooltip se vea en móviles */
-                                @media (hover: none) {
-
-                                    .tooltip:active::before,
-                                    .tooltip:focus::before,
-                                    .tooltip.active::before,
-                                    .tooltip.active::after {
-                                        opacity: 1 !important;
-                                        visibility: visible !important;
-                                    }
-                                }
-                            </style>
-
-                            <script>
-                                document.addEventListener('DOMContentLoaded', () => {
-                                    // Detectar si es dispositivo táctil
-                                    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-                                    if (isMobile) {
-                                        document.querySelectorAll('.tooltip').forEach(el => {
-                                            el.addEventListener('click', function (e) {
-                                                // En móviles, el primer tap muestra el tooltip
-                                                // Si ya está activo, dejamos que el evento se propague (para links o botones)
-                                                if (!this.classList.contains('active')) {
-                                                    e.preventDefault(); // Prevenir acción por defecto si es necesario
-                                                    e.stopPropagation();
-
-                                                    // Cerrar otros
-                                                    document.querySelectorAll('.tooltip.active').forEach(other => {
-                                                        other.classList.remove('active');
-                                                    });
-
-                                                    this.classList.add('active');
-                                                }
-                                            });
-                                        });
-
-                                        // Cerrar al hacer click fuera
-                                        document.addEventListener('click', () => {
-                                            document.querySelectorAll('.tooltip.active').forEach(el => {
-                                                el.classList.remove('active');
-                                            });
-                                        });
-                                    }
-                                });
-                            </script>
-
-                            {% endblock %}
-                            ```
+{% endblock %}

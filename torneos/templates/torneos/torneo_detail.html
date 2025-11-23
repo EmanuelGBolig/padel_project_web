@@ -19,13 +19,7 @@
 
                 {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
                 <div class="mt-4">
-                    <p class="text-success font-semibold text-lg flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                            class="w-6 h-6 text-yellow-500">
-                            <path fill-rule="evenodd"
-                                d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 5.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z"
-                                clip-rule="evenodd" />
-                        </svg>
+                    <p class="text-success font-semibold text-lg">
                         Ganador: {{ torneo.ganador_del_torneo.nombre }}
                     </p>
                 </div>
@@ -60,8 +54,7 @@
 
     <!-- GRUPOS -->
     {% if grupos %}
-    <h2 class="text-3xl font-bold divider md:divider-start text-base-content text-center md:text-left">Fase de Grupos
-    </h2>
+    <h2 class="text-3xl font-bold divider divider-start text-base-content">Fase de Grupos</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {% for grupo in grupos %}
@@ -85,16 +78,13 @@
                         {% for item in grupo.tabla.all %}
                         <tr
                             class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                            <td class="pl-4 font-medium max-w-[120px]">
-                                <div class="flex items-center">
-                                    <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
-                                    {% get_team_info item.equipo torneo as team_info %}
-                                    <span class="tooltip tooltip-bottom cursor-help" data-tip="{{ team_info.name }}">
-                                        <div class="truncate max-w-[90px]">
-                                            {{ team_info.code }}
-                                        </div>
-                                    </span>
-                                </div>
+                            <td class="pl-4 font-medium truncate max-w-[120px]">
+                                <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
+                                {% get_team_info item.equipo torneo as team_info %}
+                                <span class="tooltip tooltip-bottom cursor-help" data-tip="{{ team_info.name }}"
+                                    title="{{ team_info.name }}">
+                                    {{ team_info.code }}
+                                </span>
                             </td>
                             <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
                             <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
@@ -104,7 +94,7 @@
                 </table>
 
                 <!-- PARTIDOS DEL GRUPO -->
-                <div class="px-2 pb-2 mt-2 space-y-1">
+                <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
                     {% for partido in grupo.partidos_grupo.all %}
                     <div class="text-[10px] bg-base-200/50 rounded px-2 py-1">
                         <span class="opacity-70">Resultado de </span>
@@ -113,9 +103,7 @@
                         <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                             {% if partido.equipo1 %}
                             {% get_team_info partido.equipo1 torneo as team_info %}
-                            <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
-                                {{ team_info.code }}
-                            </span>
+                            {{ team_info.code }}
                             {% else %}-{% endif %}
                         </span>
 
@@ -125,9 +113,7 @@
                         <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                             {% if partido.equipo2 %}
                             {% get_team_info partido.equipo2 torneo as team_info %}
-                            <span class="tooltip tooltip-left cursor-help" data-tip="{{ team_info.name }}">
-                                {{ team_info.code }}
-                            </span>
+                            {{ team_info.code }}
                             {% else %}-{% endif %}
                         </span>
 
@@ -154,19 +140,18 @@
 
     <!-- BRACKET -->
     {% if partidos_eliminacion %}
-    <h2 class="text-3xl font-bold divider md:divider-start mt-12 text-base-content text-center md:text-left">Cuadro
-        Final</h2>
+    <h2 class="text-3xl font-bold divider divider-start mt-12 text-base-content">Cuadro Final</h2>
 
     <div class="overflow-x-auto pb-6">
-        <div class="flex flex-row gap-8 min-w-max px-4">
+        <div class="flex gap-8 min-w-max px-4">
 
             {% regroup partidos_eliminacion by ronda as rondas_list %}
 
             {% for ronda in rondas_list %}
-            <div class="flex flex-col min-w-[200px] gap-6 round-container">
+            <div class="flex flex-col min-w-[200px] gap-6">
 
                 <!-- NOMBRE DE LA RONDA -->
-                <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content mb-4">
+                <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
                     {% if ronda.grouper == total_rondas %}
                     Final
                     {% elif ronda.grouper == total_rondas|add:"-1" %}
@@ -185,50 +170,46 @@
                 <!-- PARTIDOS -->
                 <div class="flex flex-col justify-around flex-grow gap-4">
                     {% for partido in ronda.list %}
-                    <div
-                        class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative justify-center min-w-[120px]">
+                    <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
 
                         <!-- EQUIPO 1 -->
                         <div
                             class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-                            <span class="truncate max-w-[100px]">
-                                {% get_team_code partido.equipo1 torneo %}
+                            <span>
+                                {% if partido.equipo1 %}
+                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
+                                    {{ team_info.code }}
+                                </span>
+                                {% else %}
+                                ...
+                                {% endif %}
                             </span>
-                            {% if partido.ganador == partido.equipo1 %}
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                class="w-3 h-3">
-                                <path fill-rule="evenodd"
-                                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            {% endif %}
                         </div>
 
-                        <div class="divider my-0 opacity-50"></div>
+                        <div class="divider my-1 h-px"></div>
 
                         <!-- EQUIPO 2 -->
                         <div
                             class="flex justify-between {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-                            <span class="truncate max-w-[100px]">
-                                {% get_team_code partido.equipo2 torneo %}
+                            <span>
+                                {% if partido.equipo2 %}
+                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
+                                    {{ team_info.code }}
+                                </span>
+                                {% else %}
+                                ...
+                                {% endif %}
                             </span>
-                            {% if partido.ganador == partido.equipo2 %}
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                class="w-3 h-3">
-                                <path fill-rule="evenodd"
-                                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            {% endif %}
                         </div>
 
                         <!-- RESULTADO -->
                         {% if partido.resultado %}
-                        <div
-                            class="absolute top-0 right-0 bottom-0 flex items-center justify-center pr-2 pointer-events-none">
-                            <div class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">
+                        <div class="absolute top-0 right-0 bottom-0 flex items-center pr-2">
+                            <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">
                                 {{ partido.resultado }}
-                            </div>
+                            </span>
                         </div>
                         {% endif %}
 
@@ -244,72 +225,4 @@
     {% endif %}
 
 </div>
-
-<style>
-    /* Tooltips anchos para nombres completos */
-    .tooltip::before {
-        max-width: 400px !important;
-        width: max-content !important;
-        white-space: normal !important;
-        text-align: center;
-        z-index: 1000 !important;
-        font-size: 0.875rem;
-        padding: 0.5rem 1rem;
-    }
-
-
-
-    /* Asegurar que el tooltip se vea en móviles */
-    @media (hover: none) {
-
-        .tooltip:active::before,
-        .tooltip:focus::before,
-        .tooltip.active::before,
-        .tooltip.active::after {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-    }
-</style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Detectar si es dispositivo táctil
-        const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-        if (isMobile) {
-            document.querySelectorAll('.tooltip').forEach(el => {
-                el.addEventListener('click', function (e) {
-                    // En móviles, el primer tap muestra el tooltip
-                    // Si ya está activo, dejamos que el evento se propague (para links o botones)
-                    if (!this.classList.contains('active')) {
-                        e.preventDefault(); // Prevenir acción por defecto si es necesario
-                        e.stopPropagation();
-
-                        // Cerrar otros
-                        document.querySelectorAll('.tooltip.active').forEach(other => {
-                            other.classList.remove('active');
-                        });
-
-                        this.classList.add('active');
-                    }
-                });
-            });
-
-            // Cerrar al hacer click fuera
-            document.addEventListener('click', () => {
-                document.querySelectorAll('.tooltip.active').forEach(el => {
-                    el.classList.remove('active');
-                });
-            });
-
-            // Formatear scores en móvil para que se apilen
-            document.querySelectorAll('.score-display-mobile').forEach(el => {
-                // Reemplazar comas por saltos de línea
-                el.innerHTML = el.innerText.replace(/,\s*/g, '<br>');
-            });
-        }
-    });
-</script>
-
 {% endblock %}
