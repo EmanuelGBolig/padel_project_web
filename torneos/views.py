@@ -406,3 +406,85 @@ class InscripcionCreateView(PlayerRequiredMixin, CreateView):
         form.instance.equipo = self.request.user.equipo
         messages.success(self.request, "¡Inscripción confirmada!")
         return super().form_valid(form)
+
+
+# --- UTILIDAD: Crear Torneo de Prueba ---
+
+@login_required
+def crear_torneo_prueba(request):
+    """
+    Vista protegida para admins que crea un torneo de prueba con 24 equipos.
+    Accesible desde la interfaz web sin necesidad de shell.
+    """
+    # Verificar que el usuario sea admin
+    if request.user.tipo_usuario != 'ADMIN':
+        messages.error(request, "Acceso denegado: solo administradores.")
+        return redirect('core:home')
+    
+    from accounts.models import Division
+    from django.contrib.auth import get_user_model
+    from datetime import timedelta
+    import string
+    
+    User = get_user_model()
+    
+    # Limpiar datos de prueba anteriores
+    Torneo.objects.filter(nombre__startswith="Torneo 24 Equipos").delete()
+    User.objects.filter(email__contains='@ejemplo.com').delete()
+    
+    # Crear división
+    division, _ = Division.objects.get_or_create(nombre="Séptima")
+    
+    # Crear torneo
+    torneo_nombre = f"Torneo 24 Equipos - {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+    torneo = Torneo.objects.create(
+        nombre=torneo_nombre,
+        division=division,
+        fecha_inicio=timezone.now().date(),
+        fecha_limite_inscripcion=timezone.now() + timedelta(days=7),
+        cupos_totales=24,
+        equipos_por_grupo=3,
+        estado=Torneo.Estado.ABIERTO
+    )
+    
+    # Crear 24 equipos
+    for i in range(1, 25):
+        sufijo = string.ascii_lowercase[i % 26] if i > 26 else ''
+        email1 = f"jugador{i}a{sufijo}@ejemplo.com"
+        email2 = f"jugador{i}b{sufijo}@ejemplo.com"
+        
+        jugador1 = User.objects.create_user(
+            email=email1,
+            nombre=f'Jugador{i}A',
+            apellido=f'Sim{i}A',
+            division=division,
+            tipo_usuario='PLAYER',
+            password='sim123456'
+        )
+        
+        jugador2 = User.objects.create_user(
+            email=email2,
+            nombre=f'Jugador{i}B',
+            apellido=f'Sim{i}B',
+            division=division,
+            tipo_usuario='PLAYER',
+            password='sim123456'
+        )
+        
+        equipo = Equipo.objects.create(
+            jugador1=jugador1,
+            jugador2=jugador2,
+            division=division
+        )
+        
+        Inscripcion.objects.create(
+            torneo=torneo,
+            equipo=equipo
+        )
+    
+    messages.success(
+        request, 
+        f"✓ Torneo de prueba creado con 24 equipos. "
+        f"Ahora puedes iniciar el torneo para crear los grupos."
+    )
+    return redirect('torneos:admin_manage', pk=torneo.pk)
