@@ -33,10 +33,19 @@
                         <p>👥 Cupos: {{ torneo.inscripciones.count }} / {{ torneo.cupos_totales }}</p>
                     </div>
                     <div class="card-actions justify-end mt-4">
-                        <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-success text-white w-full">Ver e
-                            Inscribirse</a>
-                        {% if user.is_staff %}<a href="{% url 'torneos:admin_manage' torneo.pk %}"
-                            class="btn btn-sm btn-ghost w-full">Gestionar</a>{% endif %}
+
+                        {% if not user.is_staff %}
+                        <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-success text-white w-full">
+                            Ver e Inscribirse
+                        </a>
+                        {% endif %}
+
+                        {% if user.is_staff %}
+                        <a href="{% url 'torneos:admin_manage' torneo.pk %}" class="btn btn-sm btn-ghost w-full">
+                            Gestionar
+                        </a>
+                        {% endif %}
+
                     </div>
                 </div>
             </div>
