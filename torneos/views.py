@@ -350,6 +350,7 @@ class TorneoDetailView(DetailView):
                 and context['hay_cupos']
                 and context['division_correcta']
                 and not context['ya_inscrito']
+                and not user.is_staff
             )
         return context
 

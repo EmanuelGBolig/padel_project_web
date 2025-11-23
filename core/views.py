@@ -19,4 +19,9 @@ def home(request):
         'torneos_abiertos': torneos_abiertos,
         'torneos_en_juego': torneos_en_juego,
     }
+
+    if request.user.is_authenticated and hasattr(request.user, 'equipo') and request.user.equipo:
+        from torneos.models import Inscripcion
+        inscripciones = Inscripcion.objects.filter(equipo=request.user.equipo)
+        context['torneos_inscritos_ids'] = set(inscripciones.values_list('torneo_id', flat=True))
     return render(request, 'core/home.html', context)

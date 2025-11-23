@@ -26,6 +26,7 @@ class CustomUserCreationForm(UserCreationForm):
         estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
         
         for field_name, field in self.fields.items():
+            field.help_text = None # Eliminar textos de ayuda (requisitos de contraseña)
             if isinstance(field.widget, (forms.TextInput, forms.NumberInput, forms.EmailInput, forms.PasswordInput)):
                 field.widget.attrs['class'] = estilo_input
             elif isinstance(field.widget, forms.Select):
