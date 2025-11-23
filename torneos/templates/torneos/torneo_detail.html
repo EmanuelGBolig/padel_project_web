@@ -54,7 +54,8 @@
 
     <!-- GRUPOS -->
     {% if grupos %}
-    <h2 class="text-3xl font-bold divider divider-start text-base-content">Fase de Grupos</h2>
+    <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left text-base-content">Fase de Grupos
+    </h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         {% for grupo in grupos %}
@@ -138,11 +139,94 @@
     {% endif %}
 
 
+
     <!-- BRACKET -->
     {% if partidos_eliminacion %}
-    <h2 class="text-3xl font-bold divider divider-start mt-12 text-base-content">Cuadro Final</h2>
+    <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">Cuadro
+        Final</h2>
 
-    <div class="overflow-x-auto pb-6">
+    <!-- MOBILE: Vertical stacked phases with horizontal scrolling matches -->
+    <div class="md:hidden space-y-6 pb-6">
+        {% regroup partidos_eliminacion by ronda as rondas_list %}
+
+        {% for ronda in rondas_list %}
+        <div>
+            <!-- NOMBRE DE LA RONDA -->
+            <h3 class="text-center font-bold uppercase tracking-wide text-xs text-primary mb-3 px-4">
+                {% if ronda.grouper == total_rondas %}
+                🏆 FINAL
+                {% elif ronda.grouper == total_rondas|add:"-1" %}
+                SEMIFINAL
+                {% elif ronda.grouper == total_rondas|add:"-2" %}
+                CUARTOS
+                {% elif ronda.grouper == total_rondas|add:"-3" %}
+                OCTAVOS
+                {% elif ronda.grouper == total_rondas|add:"-4" %}
+                16VOS
+                {% else %}
+                RONDA {{ ronda.grouper }}
+                {% endif %}
+            </h3>
+
+            <!-- PARTIDOS - Horizontal scroll -->
+            <div class="flex gap-2 overflow-x-auto pb-2 justify-center md:justify-start px-4">
+                {% for partido in ronda.list %}
+                <div class="card bg-base-100 shadow border border-base-200 min-w-[100px] max-w-[100px] shrink-0">
+                    <div class="card-body p-2">
+                        <!-- Teams -->
+                        <div class="flex items-center justify-center gap-2 mb-1">
+                            <span
+                                class="text-sm font-bold {% if partido.ganador == partido.equipo1 %}text-success{% elif partido.equipo1 == equipo %}text-primary{% endif %}">
+                                {% if partido.equipo1 %}
+                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                {{ team_info.code }}
+                                {% else %}?{% endif %}
+                            </span>
+                            <span class="text-xs font-bold opacity-30">|</span>
+                            <span
+                                class="text-sm font-bold {% if partido.ganador == partido.equipo2 %}text-success{% elif partido.equipo2 == equipo %}text-primary{% endif %}">
+                                {% if partido.equipo2 %}
+                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                {{ team_info.code }}
+                                {% else %}?{% endif %}
+                            </span>
+                        </div>
+
+                        <!-- Score - stacked vertically -->
+                        {% if partido.resultado %}
+                        <div class="text-center text-xs font-mono opacity-60 leading-tight">
+                            {% with sets=partido.resultado|split:"," %}
+                            {% for set_score in sets %}
+                            <div>{{ set_score }}</div>
+                            {% endfor %}
+                            {% endwith %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Divider -->
+                        <div class="divider my-0.5"></div>
+
+                        <!-- Winner -->
+                        {% if partido.ganador %}
+                        <div class="text-center text-base font-bold text-success">
+                            {% get_team_info partido.ganador torneo as winner_info %}
+                            {{ winner_info.code }}
+                        </div>
+                        {% else %}
+                        <div class="text-center text-xs opacity-40">
+                            ...
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- DESKTOP: Horizontal bracket -->
+    <div class="hidden md:block overflow-x-auto pb-6">
         <div class="flex gap-8 min-w-max px-4">
 
             {% regroup partidos_eliminacion by ronda as rondas_list %}

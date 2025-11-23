@@ -66,7 +66,7 @@
 
     <!-- 2. FASE DE GRUPOS -->
     {% if torneo.estado == 'EJ' and grupos %}
-    <h2 class="text-2xl font-bold mb-4 divider divider-start text-primary">
+    <h2 class="text-2xl font-bold mb-4 divider text-center md:divider-start md:text-left text-primary">
         Fase de Grupos
     </h2>
 
@@ -151,11 +151,78 @@
 
     <!-- 3. BRACKET -->
     {% if fase_eliminatoria_existente %}
-    <h2 class="text-2xl font-bold mb-4 divider divider-start text-secondary">
+    <h2 class="text-2xl font-bold mb-4 divider text-center md:divider-start md:text-left text-secondary">
         Fase Eliminatoria
     </h2>
 
-    <div class="overflow-x-auto pb-4">
+    <!-- MOBILE: Vertical stacked phases with horizontal scrolling matches -->
+    <div class="md:hidden space-y-6 pb-6">
+        {% regroup partidos_eliminacion by ronda as rondas_list %}
+
+        {% for ronda in rondas_list %}
+        <div>
+            <!-- NOMBRE DE LA RONDA -->
+            <h3 class="text-center font-bold uppercase tracking-wide text-xs text-primary mb-3 px-4">
+                {% if ronda.grouper == 4 %}🏆 FINAL
+                {% elif ronda.grouper == 3 %}SEMIFINAL
+                {% elif ronda.grouper == 2 %}CUARTOS
+                {% else %}OCTAVOS{% endif %}
+            </h3>
+
+            <!-- PARTIDOS - Horizontal scroll -->
+            <div class="flex gap-2 overflow-x-auto pb-2 justify-center md:justify-start px-4">
+                {% for partido in ronda.list %}
+                <div class="card bg-base-100 shadow border border-base-200 min-w-[100px] max-w-[100px] shrink-0">
+                    <div class="card-body p-2">
+                        <!-- Teams -->
+                        <div class="flex items-center justify-center gap-2 mb-1">
+                            <span
+                                class="text-sm font-bold {% if partido.ganador == partido.equipo1 %}text-success{% endif %}">
+                                {% get_team_code partido.equipo1 torneo %}
+                            </span>
+                            <span class="text-xs font-bold opacity-30">|</span>
+                            <span
+                                class="text-sm font-bold {% if partido.ganador == partido.equipo2 %}text-success{% endif %}">
+                                {% get_team_code partido.equipo2 torneo %}
+                            </span>
+                        </div>
+
+                        <!-- Score - stacked vertically -->
+                        {% if partido.resultado %}
+                        <div class="text-center text-xs font-mono opacity-60 leading-tight">
+                            {% with sets=partido.resultado|split:"," %}
+                            {% for set_score in sets %}
+                            <div>{{ set_score }}</div>
+                            {% endfor %}
+                            {% endwith %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Divider -->
+                        <div class="divider my-0.5"></div>
+
+                        <!-- Action Button -->
+                        {% if partido.equipo1 and partido.equipo2 %}
+                        <button class="btn btn-xs btn-block btn-outline btn-primary"
+                            hx-get="{% url 'torneos:admin_partido_resultado' partido.pk %}" hx-target="#modal_content"
+                            onclick="resultado_modal.showModal()">
+                            {% if partido.ganador %}✓{% else %}⚡{% endif %}
+                        </button>
+                        {% else %}
+                        <div class="text-center text-xs opacity-40">
+                            ...
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- DESKTOP: Horizontal bracket -->
+    <div class="hidden md:block overflow-x-auto pb-4">
         <div class="flex gap-8 min-w-max px-4">
 
             {% regroup partidos_eliminacion by ronda as rondas_list %}

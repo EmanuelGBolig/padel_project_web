@@ -66,3 +66,13 @@ def get_team_info(equipo, torneo):
     
     return {'code': code, 'name': equipo.nombre}
 
+@register.filter
+def split(value, delimiter=','):
+    """
+    Divide un string por el delimitador especificado.
+    Uso: {{ "a,b,c"|split:"," }}
+    """
+    if not value:
+        return []
+    return [item.strip() for item in value.split(delimiter)]
+
