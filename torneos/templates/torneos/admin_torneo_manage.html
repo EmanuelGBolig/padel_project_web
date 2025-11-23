@@ -94,9 +94,16 @@
                             {% for item in grupo.tabla.all %}
                             <tr
                                 class="{% if forloop.counter <= torneo.equipos_por_grupo %}font-bold text-success{% endif %}">
-                                <td class="text-left truncate max-w-[120px]">
-                                    <span class="opacity-50 mr-1">{{ forloop.counter }}.</span>
-                                    {% get_team_code item.equipo torneo %}
+                                <td class="text-left max-w-[120px]">
+                                    <div class="flex items-center">
+                                        <span class="opacity-50 mr-1">{{ forloop.counter }}.</span>
+                                        <span class="tooltip tooltip-right cursor-help"
+                                            data-tip="{{ item.equipo.nombre }}">
+                                            <div class="truncate max-w-[90px]">
+                                                {% get_team_code item.equipo torneo %}
+                                            </div>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>{{ item.partidos_ganados }}</td>
                                 <td>{{ item.diferencia_sets }}</td>
@@ -115,8 +122,11 @@
                     <div
                         class="flex justify-between items-center text-sm p-2 bg-base-200 rounded hover:bg-base-300 transition-colors">
 
-                        <div class="w-1/3 truncate text-right text-xs" title="{{ partido.equipo1.nombre }}">
-                            {% get_team_code partido.equipo1 torneo %}
+                        <div class="w-1/3 text-right text-xs tooltip tooltip-right cursor-help"
+                            data-tip="{{ partido.equipo1.nombre }}">
+                            <div class="truncate">
+                                {% get_team_code partido.equipo1 torneo %}
+                            </div>
                         </div>
 
                         <div class="font-bold text-center min-w-[50px] text-xs">
@@ -129,8 +139,11 @@
                             {% endif %}
                         </div>
 
-                        <div class="w-1/3 truncate text-left text-xs" title="{{ partido.equipo2.nombre }}">
-                            {% get_team_code partido.equipo2 torneo %}
+                        <div class="w-1/3 text-left text-xs tooltip tooltip-left cursor-help"
+                            data-tip="{{ partido.equipo2.nombre }}">
+                            <div class="truncate">
+                                {% get_team_code partido.equipo2 torneo %}
+                            </div>
                         </div>
 
                         <button class="btn btn-xs btn-square btn-ghost text-primary"
@@ -182,8 +195,11 @@
                             <div
                                 class="flex justify-between items-center py-1 px-1 rounded 
                                             {% if partido.ganador == partido.equipo1 %} bg-success/10 font-bold text-success{% endif %}">
-                                <span class="text-xs truncate max-w-[150px]">
-                                    {% get_team_code partido.equipo1 torneo %}
+                                <span class="text-xs max-w-[150px] tooltip tooltip-right cursor-help"
+                                    data-tip="{{ partido.equipo1.nombre }}">
+                                    <span class="block truncate">
+                                        {% get_team_code partido.equipo1 torneo %}
+                                    </span>
                                 </span>
                                 {% if partido.ganador == partido.equipo1 %}✓{% endif %}
                             </div>
@@ -194,8 +210,11 @@
                             <div
                                 class="flex justify-between items-center py-1 px-1 rounded 
                                             {% if partido.ganador == partido.equipo2 %} bg-success/10 font-bold text-success{% endif %}">
-                                <span class="text-xs truncate max-w-[150px]">
-                                    {% get_team_code partido.equipo2 torneo %}
+                                <span class="text-xs max-w-[150px] tooltip tooltip-right cursor-help"
+                                    data-tip="{{ partido.equipo2.nombre }}">
+                                    <span class="block truncate">
+                                        {% get_team_code partido.equipo2 torneo %}
+                                    </span>
                                 </span>
                                 {% if partido.ganador == partido.equipo2 %}✓{% endif %}
                             </div>
@@ -229,12 +248,71 @@
 
 <!-- MODAL -->
 <dialog id="resultado_modal" class="modal">
-    <div class="modal-box max-w-lg p-0 overflow-hidden">
+    <div class="modal-box w-11/12 max-w-lg p-0 overflow-hidden">
         <div id="modal_content" class="p-10 flex justify-center">
             <span class="loading loading-spinner loading-lg text-primary"></span>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop"><button></button></form>
 </dialog>
+
+<style>
+    /* Tooltips anchos para nombres completos */
+    .tooltip::before {
+        max-width: 400px !important;
+        width: max-content !important;
+        white-space: normal !important;
+        text-align: center;
+        z-index: 1000 !important;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Asegurar que el tooltip se vea en móviles */
+    @media (hover: none) {
+
+        .tooltip:active::before,
+        .tooltip:focus::before,
+        .tooltip.active::before,
+        .tooltip.active::after {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Detectar si es dispositivo táctil
+        const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        if (isMobile) {
+            document.querySelectorAll('.tooltip').forEach(el => {
+                el.addEventListener('click', function (e) {
+                    // En móviles, el primer tap muestra el tooltip
+                    // Si ya está activo, dejamos que el evento se propague (para links o botones)
+                    if (!this.classList.contains('active')) {
+                        e.preventDefault(); // Prevenir acción por defecto si es necesario
+                        e.stopPropagation();
+
+                        // Cerrar otros
+                        document.querySelectorAll('.tooltip.active').forEach(other => {
+                            other.classList.remove('active');
+                        });
+
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // Cerrar al hacer click fuera
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.tooltip.active').forEach(el => {
+                    el.classList.remove('active');
+                });
+            });
+        }
+    });
+</script>
 
 {% endblock %}

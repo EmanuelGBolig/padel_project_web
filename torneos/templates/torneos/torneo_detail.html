@@ -78,13 +78,16 @@
                         {% for item in grupo.tabla.all %}
                         <tr
                             class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                            <td class="pl-4 font-medium truncate max-w-[120px]">
-                                <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
-                                {% get_team_info item.equipo torneo as team_info %}
-                                <span class="tooltip tooltip-bottom cursor-help" data-tip="{{ team_info.name }}"
-                                    title="{{ team_info.name }}">
-                                    {{ team_info.code }}
-                                </span>
+                            <td class="pl-4 font-medium max-w-[120px]">
+                                <div class="flex items-center">
+                                    <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
+                                    {% get_team_info item.equipo torneo as team_info %}
+                                    <span class="tooltip tooltip-bottom cursor-help" data-tip="{{ team_info.name }}">
+                                        <div class="truncate max-w-[90px]">
+                                            {{ team_info.code }}
+                                        </div>
+                                    </span>
+                                </div>
                             </td>
                             <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
                             <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
@@ -103,7 +106,9 @@
                         <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                             {% if partido.equipo1 %}
                             {% get_team_info partido.equipo1 torneo as team_info %}
-                            {{ team_info.code }}
+                            <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
+                                {{ team_info.code }}
+                            </span>
                             {% else %}-{% endif %}
                         </span>
 
@@ -113,7 +118,9 @@
                         <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                             {% if partido.equipo2 %}
                             {% get_team_info partido.equipo2 torneo as team_info %}
-                            {{ team_info.code }}
+                            <span class="tooltip tooltip-left cursor-help" data-tip="{{ team_info.name }}">
+                                {{ team_info.code }}
+                            </span>
                             {% else %}-{% endif %}
                         </span>
 
@@ -179,7 +186,9 @@
                                 {% if partido.equipo1 %}
                                 {% get_team_info partido.equipo1 torneo as team_info %}
                                 <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
-                                    {{ team_info.code }}
+                                    <span class="block truncate max-w-[100px]">
+                                        {{ team_info.code }}
+                                    </span>
                                 </span>
                                 {% else %}
                                 ...
@@ -196,7 +205,9 @@
                                 {% if partido.equipo2 %}
                                 {% get_team_info partido.equipo2 torneo as team_info %}
                                 <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
-                                    {{ team_info.code }}
+                                    <span class="block truncate max-w-[100px]">
+                                        {{ team_info.code }}
+                                    </span>
                                 </span>
                                 {% else %}
                                 ...
@@ -225,4 +236,64 @@
     {% endif %}
 
 </div>
+
+<style>
+    /* Tooltips anchos para nombres completos */
+    .tooltip::before {
+        max-width: 400px !important;
+        width: max-content !important;
+        white-space: normal !important;
+        text-align: center;
+        z-index: 1000 !important;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Asegurar que el tooltip se vea en móviles */
+    @media (hover: none) {
+
+        .tooltip:active::before,
+        .tooltip:focus::before,
+        .tooltip.active::before,
+        .tooltip.active::after {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Detectar si es dispositivo táctil
+        const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        if (isMobile) {
+            document.querySelectorAll('.tooltip').forEach(el => {
+                el.addEventListener('click', function (e) {
+                    // En móviles, el primer tap muestra el tooltip
+                    // Si ya está activo, dejamos que el evento se propague (para links o botones)
+                    if (!this.classList.contains('active')) {
+                        e.preventDefault(); // Prevenir acción por defecto si es necesario
+                        e.stopPropagation();
+
+                        // Cerrar otros
+                        document.querySelectorAll('.tooltip.active').forEach(other => {
+                            other.classList.remove('active');
+                        });
+
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // Cerrar al hacer click fuera
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.tooltip.active').forEach(el => {
+                    el.classList.remove('active');
+                });
+            });
+        }
+    });
+</script>
+
 {% endblock %}

@@ -28,29 +28,29 @@
     <div class="flex flex-col gap-4">
 
         <!-- Encabezados de equipos -->
-        <div class="flex items-center justify-center gap-6">
-            <div class="w-24 text-center">
-                <span class="text-lg sm:text-xl font-bold text-primary">
+        <div class="flex items-center justify-center gap-2 sm:gap-6">
+            <div class="w-20 sm:w-24 text-center truncate">
+                <span class="text-base sm:text-xl font-bold text-primary">
                     {% get_team_code partidogrupo.equipo1 partidogrupo.grupo.torneo %}
                 </span>
             </div>
-            <div class="w-16 text-center">
-                <span class="text-base sm:text-lg font-black text-base-content/30">VS</span>
+            <div class="w-8 sm:w-16 text-center">
+                <span class="text-sm sm:text-lg font-black text-base-content/30">VS</span>
             </div>
-            <div class="w-24 text-center">
-                <span class="text-lg sm:text-xl font-bold text-secondary">
+            <div class="w-20 sm:w-24 text-center truncate">
+                <span class="text-base sm:text-xl font-bold text-secondary">
                     {% get_team_code partidogrupo.equipo2 partidogrupo.grupo.torneo %}
                 </span>
             </div>
         </div>
 
         <!-- Sets -->
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-2 sm:gap-3">
             {% for i in "123" %}
-            <div class="flex items-center justify-center gap-6">
+            <div class="flex items-center justify-center gap-2 sm:gap-6">
                 <!-- Input equipo 1 -->
-                <div class="w-24 flex justify-center">
-                    <div class="w-14 sm:w-16">
+                <div class="w-20 sm:w-24 flex justify-center">
+                    <div class="w-12 sm:w-16">
                         {% if i == "1" %}
                         {{ form.e1_set1 }}
                         {% elif i == "2" %}
@@ -62,15 +62,15 @@
                 </div>
 
                 <!-- Label SET -->
-                <div class="w-16 text-center">
-                    <span class="text-[10px] sm:text-xs font-black text-base-content/40 uppercase">
+                <div class="w-8 sm:w-16 text-center">
+                    <span class="text-[9px] sm:text-xs font-black text-base-content/40 uppercase">
                         SET {{ i }}
                     </span>
                 </div>
 
                 <!-- Input equipo 2 -->
-                <div class="w-24 flex justify-center">
-                    <div class="w-14 sm:w-16">
+                <div class="w-20 sm:w-24 flex justify-center">
+                    <div class="w-12 sm:w-16">
                         {% if i == "1" %}
                         {{ form.e2_set1 }}
                         {% elif i == "2" %}
