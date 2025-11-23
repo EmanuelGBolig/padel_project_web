@@ -1,0 +1,24 @@
+databases:
+  - name: padel_db
+    databaseName: padel_db
+    user: padel_user
+
+services:
+  - type: web
+    name: padel_project
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn padel_project.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: padel_db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
+      - key: DEBUG
+        value: "False"
+      - key: RENDER_EXTERNAL_HOSTNAME
+        sync: false

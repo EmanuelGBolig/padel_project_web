@@ -111,6 +111,12 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         elif action == 'generar_octavos':
             return self.generar_octavos_logica(request, torneo)
+        
+        elif action == 'reset_bracket':
+            # Eliminar todos los partidos de eliminación
+            torneo.partidos.all().delete()
+            messages.success(request, "Bracket eliminado. Puedes generar uno nuevo.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
 
         elif action == 'finalizar_torneo':
             torneo.estado = Torneo.Estado.FINALIZADO
@@ -165,9 +171,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
     def generar_octavos_logica(self, request, torneo):
-        if torneo.partidos.exists():
-            messages.warning(request, "La fase de eliminación ya fue generada.")
-            return redirect('torneos:admin_manage', pk=torneo.pk)
+        # Permitir regeneración si se eliminaron los partidos
+        # if torneo.partidos.exists():
+        #     messages.warning(request, "La fase de eliminación ya fue generada.")
+        #     return redirect('torneos:admin_manage', pk=torneo.pk)
 
         # 1. Obtener clasificados (1ro y 2do de cada grupo)
         clasificados = []
@@ -190,14 +197,28 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         # 2. Calcular tamaño del bracket (Potencia de 2)
+        import math
+        bracket_size = 2 ** math.ceil(math.log2(num_equipos))
         num_byes = bracket_size - num_equipos
         slots = clasificados + [None] * num_byes
 
+        # 3. Calcular número de rondas
+        # bracket_size = 4 -> 2 rondas (Semifinal=1, Final=2)
+        # bracket_size = 8 -> 3 rondas (Cuartos=1, Semifinal=2, Final=3)
+        # bracket_size = 16 -> 4 rondas (Octavos=1, Cuartos=2, Semifinal=3, Final=4)
+        num_rondas = int(math.log2(bracket_size))
+        ronda_inicio = 1  # Siempre empezamos en ronda 1
+        
+        # 4. Generar todas las rondas desde la primera hasta la final
+        partidos_por_ronda = {}
+        
+        # Generar partidos de la ronda inicial (la más grande)
         cant_partidos_r1 = bracket_size // 2
-
+        partidos_por_ronda[ronda_inicio] = []
+        
         for i in range(cant_partidos_r1):
-            e1 = slots.pop(0)
-            e2 = slots.pop(0)
+            e1 = slots.pop(0) if slots else None
+            e2 = slots.pop(0) if slots else None
 
             p = Partido.objects.create(
                 torneo=torneo,
@@ -205,11 +226,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 orden_partido=i + 1,
                 equipo1=e1,
                 equipo2=e2,
-                # Enlazar con la siguiente ronda (que creamos en el bucle)
-                siguiente_partido=(
-                    partidos_ronda_superior[i // 2] if partidos_ronda_superior else None
-                ),
             )
+            partidos_por_ronda[ronda_inicio].append(p)
 
             # MANEJO DE BYES
             if e1 and not e2:
@@ -223,6 +241,29 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             elif not e1 and not e2:
                 p.resultado = "Bye"
                 p.save()
+
+        # 5. Generar las rondas superiores (vacías por ahora)
+        for ronda_num in range(2, num_rondas + 1):
+            cant_partidos = bracket_size // (2 ** ronda_num)
+            partidos_por_ronda[ronda_num] = []
+            
+            for i in range(cant_partidos):
+                p = Partido.objects.create(
+                    torneo=torneo,
+                    ronda=ronda_num,
+                    orden_partido=i + 1,
+                )
+                partidos_por_ronda[ronda_num].append(p)
+
+        # 6. Enlazar partidos con siguiente_partido
+        for ronda_num in range(1, num_rondas):
+            partidos_actuales = partidos_por_ronda[ronda_num]
+            partidos_siguientes = partidos_por_ronda.get(ronda_num + 1, [])
+            
+            for i, partido in enumerate(partidos_actuales):
+                if partidos_siguientes:
+                    partido.siguiente_partido = partidos_siguientes[i // 2]
+                    partido.save()
 
         messages.success(
             request, f"Bracket de {bracket_size} generado con {num_equipos} equipos."
@@ -275,7 +316,7 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
     model = Torneo
     template_name = 'torneos/admin_torneo_list.html'
     context_object_name = 'torneos'
-    queryset = Torneo.objects.all().order_by('-fecha_inicio')
+    queryset = Torneo.objects.select_related('division').order_by('-fecha_inicio')
 
 
 class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
@@ -313,7 +354,11 @@ class TorneoDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         torneo = self.object
         user = self.request.user
-        grupos = torneo.grupos.all().prefetch_related('tabla__equipo', 'partidos_grupo')
+        grupos = torneo.grupos.all().prefetch_related(
+            'tabla__equipo',
+            'partidos_grupo__equipo1',
+            'partidos_grupo__equipo2'
+        )
         context['grupos'] = grupos
         context['partidos_eliminacion'] = torneo.partidos.all().order_by(
             'ronda', 'orden_partido'
@@ -346,6 +391,7 @@ class TorneoDetailView(DetailView):
                 and context['hay_cupos']
                 and context['division_correcta']
                 and not context['ya_inscrito']
+                and not user.is_staff
             )
         return context
 
@@ -354,9 +400,9 @@ class TorneoFinalizadoListView(ListView):
     model = Torneo
     template_name = 'torneos/torneo_finalizado_list.html'
     context_object_name = 'torneos_finalizados'
-    queryset = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO).order_by(
-        '-fecha_inicio'
-    )
+    queryset = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO) \
+        .select_related('division') \
+        .order_by('-fecha_inicio')
     paginate_by = 10
 
 
@@ -402,3 +448,85 @@ class InscripcionCreateView(PlayerRequiredMixin, CreateView):
         form.instance.equipo = self.request.user.equipo
         messages.success(self.request, "¡Inscripción confirmada!")
         return super().form_valid(form)
+
+
+# --- UTILIDAD: Crear Torneo de Prueba ---
+
+@login_required
+def crear_torneo_prueba(request):
+    """
+    Vista protegida para admins que crea un torneo de prueba con 24 equipos.
+    Accesible desde la interfaz web sin necesidad de shell.
+    """
+    # Verificar que el usuario sea admin
+    if request.user.tipo_usuario != 'ADMIN':
+        messages.error(request, "Acceso denegado: solo administradores.")
+        return redirect('core:home')
+    
+    from accounts.models import Division
+    from django.contrib.auth import get_user_model
+    from datetime import timedelta
+    import string
+    
+    User = get_user_model()
+    
+    # Limpiar datos de prueba anteriores
+    Torneo.objects.filter(nombre__startswith="Torneo 24 Equipos").delete()
+    User.objects.filter(email__contains='@ejemplo.com').delete()
+    
+    # Crear división
+    division, _ = Division.objects.get_or_create(nombre="Séptima")
+    
+    # Crear torneo
+    torneo_nombre = f"Torneo 24 Equipos - {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+    torneo = Torneo.objects.create(
+        nombre=torneo_nombre,
+        division=division,
+        fecha_inicio=timezone.now().date(),
+        fecha_limite_inscripcion=timezone.now() + timedelta(days=7),
+        cupos_totales=24,
+        equipos_por_grupo=3,
+        estado=Torneo.Estado.ABIERTO
+    )
+    
+    # Crear 24 equipos
+    for i in range(1, 25):
+        sufijo = string.ascii_lowercase[i % 26] if i > 26 else ''
+        email1 = f"jugador{i}a{sufijo}@ejemplo.com"
+        email2 = f"jugador{i}b{sufijo}@ejemplo.com"
+        
+        jugador1 = User.objects.create_user(
+            email=email1,
+            nombre=f'Jugador{i}A',
+            apellido=f'Sim{i}A',
+            division=division,
+            tipo_usuario='PLAYER',
+            password='sim123456'
+        )
+        
+        jugador2 = User.objects.create_user(
+            email=email2,
+            nombre=f'Jugador{i}B',
+            apellido=f'Sim{i}B',
+            division=division,
+            tipo_usuario='PLAYER',
+            password='sim123456'
+        )
+        
+        equipo = Equipo.objects.create(
+            jugador1=jugador1,
+            jugador2=jugador2,
+            division=division
+        )
+        
+        Inscripcion.objects.create(
+            torneo=torneo,
+            equipo=equipo
+        )
+    
+    messages.success(
+        request, 
+        f"✓ Torneo de prueba creado con 24 equipos. "
+        f"Ahora puedes iniciar el torneo para crear los grupos."
+    )
+    return redirect('torneos:admin_manage', pk=torneo.pk)

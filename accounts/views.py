@@ -3,11 +3,13 @@ from django.views.generic import CreateView, UpdateView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import CustomUser
-from .forms import CustomUserCreationForm, CustomUserChangeForm
+from .models import CustomUser
+from .forms import CustomUserCreationForm, CustomUserProfileForm, CustomLoginForm
 
 
 class CustomLoginView(LoginView):
     template_name = 'accounts/login.html'
+    authentication_form = CustomLoginForm
     redirect_authenticated_user = True
 
 
@@ -24,10 +26,10 @@ class RegistroView(CreateView):
 
 class PerfilView(LoginRequiredMixin, UpdateView):
     model = CustomUser
-    form_class = CustomUserChangeForm
+    form_class = CustomUserProfileForm
     template_name = 'accounts/perfil.html'
     success_url = reverse_lazy('accounts:perfil')
 
     def get_object(self, queryset=None):
-        # Devuelve el usuario actualmente logueado
-        return self.request.user
+        # Devuelve el usuario actualmente logueado con división precargada
+        return CustomUser.objects.select_related('division').get(pk=self.request.user.pk)

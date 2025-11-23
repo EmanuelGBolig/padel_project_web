@@ -145,6 +145,7 @@
             color: #a6adbb;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'css/select2-mobile.css' %}">
 
     {% block extra_head %}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -190,7 +191,9 @@
                         </form>
                     </li>
                     {% else %}
-                    <li><a href="{% url 'accounts:login' %}">Login</a></li>
+                    <li><a href="{% url 'accounts:login' %}">Ingresar</a></li>
+                    <li><a href="{% url 'accounts:registro' %}">Registrarse</a></li>
+                    <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -257,8 +260,10 @@
                 </ul>
             </div>
             {% else %}
-            <a href="{% url 'accounts:login' %}" class="btn btn-ghost btn-sm mr-2">Ingresar</a>
-            <a href="{% url 'accounts:registro' %}" class="btn btn-primary btn-sm">Registrarse</a>
+            <div class="hidden lg:flex">
+                <a href="{% url 'accounts:login' %}" class="btn btn-ghost btn-sm mr-2">Ingresar</a>
+                <a href="{% url 'accounts:registro' %}" class="btn btn-primary btn-sm">Registrarse</a>
+            </div>
             {% endif %}
         </div>
     </div>

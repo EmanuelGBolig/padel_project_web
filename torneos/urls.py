@@ -38,4 +38,10 @@ urlpatterns = [
         views.CargarResultadoGrupoView.as_view(),
         name='cargar_resultado_grupo',
     ),
+    # Utilidad: Crear torneo de prueba
+    path(
+        'admin/crear-torneo-prueba/',
+        views.crear_torneo_prueba,
+        name='crear_torneo_prueba',
+    ),
 ]
