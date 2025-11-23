@@ -195,11 +195,23 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         num_byes = bracket_size - num_equipos
         slots = clasificados + [None] * num_byes
 
+        # 3. Calcular número de rondas
+        # bracket_size = 4 -> 2 rondas (Semifinal=3, Final=4)
+        # bracket_size = 8 -> 3 rondas (Cuartos=2, Semifinal=3, Final=4)
+        # bracket_size = 16 -> 4 rondas (Octavos=1, Cuartos=2, Semifinal=3, Final=4)
+        num_rondas = int(math.log2(bracket_size))
+        ronda_inicio = num_rondas  # La ronda más baja (ej: 1 para Octavos si bracket_size=16)
+        
+        # 4. Generar todas las rondas desde la primera hasta la final
+        partidos_por_ronda = {}
+        
+        # Generar partidos de la ronda inicial (la más grande)
         cant_partidos_r1 = bracket_size // 2
-
+        partidos_por_ronda[ronda_inicio] = []
+        
         for i in range(cant_partidos_r1):
-            e1 = slots.pop(0)
-            e2 = slots.pop(0)
+            e1 = slots.pop(0) if slots else None
+            e2 = slots.pop(0) if slots else None
 
             p = Partido.objects.create(
                 torneo=torneo,
@@ -207,11 +219,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 orden_partido=i + 1,
                 equipo1=e1,
                 equipo2=e2,
-                # Enlazar con la siguiente ronda (que creamos en el bucle)
-                siguiente_partido=(
-                    partidos_ronda_superior[i // 2] if partidos_ronda_superior else None
-                ),
             )
+            partidos_por_ronda[ronda_inicio].append(p)
 
             # MANEJO DE BYES
             if e1 and not e2:
@@ -225,6 +234,29 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             elif not e1 and not e2:
                 p.resultado = "Bye"
                 p.save()
+
+        # 5. Generar las rondas superiores (vacías por ahora)
+        for ronda_num in range(ronda_inicio + 1, num_rondas + 1 + ronda_inicio):
+            cant_partidos = 2 ** (num_rondas + ronda_inicio - ronda_num)
+            partidos_por_ronda[ronda_num] = []
+            
+            for i in range(cant_partidos):
+                p = Partido.objects.create(
+                    torneo=torneo,
+                    ronda=ronda_num,
+                    orden_partido=i + 1,
+                )
+                partidos_por_ronda[ronda_num].append(p)
+
+        # 6. Enlazar partidos con siguiente_partido
+        for ronda_num in range(ronda_inicio, num_rondas + ronda_inicio):
+            partidos_actuales = partidos_por_ronda[ronda_num]
+            partidos_siguientes = partidos_por_ronda.get(ronda_num + 1, [])
+            
+            for i, partido in enumerate(partidos_actuales):
+                if partidos_siguientes:
+                    partido.siguiente_partido = partidos_siguientes[i // 2]
+                    partido.save()
 
         messages.success(
             request, f"Bracket de {bracket_size} generado con {num_equipos} equipos."
