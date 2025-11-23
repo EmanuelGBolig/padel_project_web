@@ -79,10 +79,10 @@
                         {% for item in grupo.tabla.all %}
                         <tr
                             class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                            <td class="pl-4 font-medium truncate max-w-[120px]">
+                            <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
                                 <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
                                 {% get_team_info item.equipo torneo as team_info %}
-                                <span class="tooltip tooltip-bottom cursor-help" data-tip="{{ team_info.name }}"
+                                <span class="tooltip tooltip-top cursor-help z-50" data-tip="{{ team_info.name }}"
                                     title="{{ team_info.name }}">
                                     {{ team_info.code }}
                                 </span>
@@ -154,7 +154,14 @@
             <!-- NOMBRE DE LA RONDA -->
             <h3 class="text-center font-bold uppercase tracking-wide text-xs text-primary mb-3 px-4">
                 {% if ronda.grouper == total_rondas %}
-                🏆 FINAL
+                <span class="flex items-center justify-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    FINAL
+                </span>
                 {% elif ronda.grouper == total_rondas|add:"-1" %}
                 SEMIFINAL
                 {% elif ronda.grouper == total_rondas|add:"-2" %}
@@ -177,7 +184,10 @@
                                 class="text-sm font-bold {% if partido.ganador == partido.equipo1 %}text-success{% elif partido.equipo1 == equipo %}text-primary{% endif %}">
                                 {% if partido.equipo1 %}
                                 {% get_team_info partido.equipo1 torneo as team_info %}
-                                {{ team_info.code }}
+                                <span class="tooltip tooltip-top cursor-help z-50" data-tip="{{ team_info.name }}"
+                                    tabindex="0">
+                                    {{ team_info.code }}
+                                </span>
                                 {% else %}?{% endif %}
                             </span>
                             <span class="text-xs font-bold opacity-30">|</span>
@@ -185,7 +195,10 @@
                                 class="text-sm font-bold {% if partido.ganador == partido.equipo2 %}text-success{% elif partido.equipo2 == equipo %}text-primary{% endif %}">
                                 {% if partido.equipo2 %}
                                 {% get_team_info partido.equipo2 torneo as team_info %}
-                                {{ team_info.code }}
+                                <span class="tooltip tooltip-top cursor-help z-50" data-tip="{{ team_info.name }}"
+                                    tabindex="0">
+                                    {{ team_info.code }}
+                                </span>
                                 {% else %}?{% endif %}
                             </span>
                         </div>
@@ -260,7 +273,8 @@
                             <span>
                                 {% if partido.equipo1 %}
                                 {% get_team_info partido.equipo1 torneo as team_info %}
-                                <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
+                                <span class="tooltip tooltip-right cursor-help z-50" data-tip="{{ team_info.name }}"
+                                    tabindex="0">
                                     {{ team_info.code }}
                                 </span>
                                 {% else %}
@@ -277,7 +291,8 @@
                             <span>
                                 {% if partido.equipo2 %}
                                 {% get_team_info partido.equipo2 torneo as team_info %}
-                                <span class="tooltip tooltip-right cursor-help" data-tip="{{ team_info.name }}">
+                                <span class="tooltip tooltip-right cursor-help z-50" data-tip="{{ team_info.name }}"
+                                    tabindex="0">
                                     {{ team_info.code }}
                                 </span>
                                 {% else %}
