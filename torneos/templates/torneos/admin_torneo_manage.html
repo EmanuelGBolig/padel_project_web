@@ -21,8 +21,14 @@
                     </div>
                 </div>
 
-                <a href="{% url 'torneos:admin_editar' torneo.pk %}" class="btn btn-ghost btn-sm">
-                    ⚙️ Configuración
+                <a href="{% url 'torneos:admin_editar' torneo.pk %}" class="btn btn-ghost btn-sm gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Configuración
                 </a>
             </div>
 
@@ -33,15 +39,25 @@
                 {% csrf_token %}
 
                 {% if torneo.estado == 'AB' %}
-                <button type="submit" name="action" value="iniciar_torneo" class="btn btn-success text-white">
-                    ▶️ Iniciar Torneo y Generar Grupos
+                <button type="submit" name="action" value="iniciar_torneo" class="btn btn-success text-white gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                    </svg>
+                    Iniciar Torneo y Generar Grupos
                 </button>
 
                 {% elif torneo.estado == 'EJ' %}
 
                 {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
-                <button type="submit" name="action" value="generar_octavos" class="btn btn-primary">
-                    🏆 Calcular Clasificación y Generar Bracket
+                <button type="submit" name="action" value="generar_octavos" class="btn btn-primary gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.25 2.25 0 11-4.5 0v9.75m4.5 0h.75a2.25 2.25 0 012.25 2.25v3.375M9.497 14.625h-.75a2.25 2.25 0 01-2.25-2.25V5.625a2.25 2.25 0 014.5 0v9.75" />
+                    </svg>
+                    Calcular Clasificación y Generar Bracket
                 </button>
 
                 {% elif not fase_eliminatoria_existente %}
@@ -64,24 +80,50 @@
         </div>
     </div>
 
+    <!-- SEARCH BAR -->
+    {% if grupos or fase_eliminatoria_existente %}
+    <div class="form-control w-full max-w-md mx-auto mb-6">
+        <div class="relative">
+            <input type="text" id="adminSearchInput" placeholder="Buscar equipo, grupo o ronda..."
+                class="input input-bordered w-full pr-10 pl-10" />
+            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+            </div>
+            <button class="absolute right-0 top-0 rounded-l-none btn btn-ghost btn-square"
+                onclick="document.getElementById('adminSearchInput').value = ''; document.getElementById('adminSearchInput').dispatchEvent(new Event('input'));">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 2. FASE DE GRUPOS -->
     {% if torneo.estado == 'EJ' and grupos %}
     <h2 class="text-2xl font-bold mb-4 divider divider-start text-primary">
         Fase de Grupos
     </h2>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div class="space-y-2" id="groupsContainer">
         {% for grupo in grupos %}
-        <div class="card bg-base-100 shadow-md border border-base-300">
-            <div class="card-body p-4">
+        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item">
+            <input type="checkbox" class="group-checkbox" />
+            <div class="collapse-title text-xl font-medium flex justify-between items-center">
+                <span class="group-name">{{ grupo.nombre }}</span>
+                <span class="text-sm font-normal opacity-70">Ver Partidos</span>
+            </div>
+            <div class="collapse-content">
 
-                <h3 class="card-title text-lg justify-center border-b pb-2 mb-2">
-                    {{ grupo.nombre }}
-                </h3>
-
-                <!-- Tabla Posiciones -->
-                <div class="overflow-x-auto">
-                    <table class="table table-sm table-zebra w-full text-center">
+                <!-- Tabla Posiciones (Compacta) -->
+                <div class="overflow-x-auto mb-4 bg-base-200 rounded-lg p-2">
+                    <h4 class="text-sm font-bold mb-2 opacity-70">Tabla de Posiciones</h4>
+                    <table class="table table-xs w-full text-center">
                         <thead>
                             <tr>
                                 <th class="text-left">Equipo</th>
@@ -94,7 +136,7 @@
                             {% for item in grupo.tabla.all %}
                             <tr
                                 class="{% if forloop.counter <= torneo.equipos_por_grupo %}font-bold text-success{% endif %}">
-                                <td class="text-left truncate max-w-[120px]">
+                                <td class="text-left filter-text">
                                     <span class="opacity-50 mr-1">{{ forloop.counter }}.</span>
                                     {% get_team_code item.equipo torneo %}
                                 </td>
@@ -107,37 +149,40 @@
                     </table>
                 </div>
 
-                <div class="divider my-1"></div>
-
-                <!-- Partidos -->
-                <div class="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                <!-- Partidos del Grupo -->
+                <div class="space-y-2">
+                    <h4 class="text-sm font-bold mb-2 opacity-70">Partidos</h4>
                     {% for partido in grupo.partidos_grupo.all %}
-                    <div
-                        class="flex justify-between items-center text-sm p-2 bg-base-200 rounded hover:bg-base-300 transition-colors">
-
-                        <div class="w-1/3 truncate text-right text-xs" title="{{ partido.equipo1.nombre }}">
-                            {% get_team_code partido.equipo1 torneo %}
-                        </div>
-
-                        <div class="font-bold text-center min-w-[50px] text-xs">
-                            {% if partido.ganador %}
-                            <div class="badge badge-sm badge-ghost">
-                                {{ partido.e1_sets_ganados }}-{{ partido.e2_sets_ganados }}
+                    <div class="collapse collapse-plus bg-base-200 border border-base-300 match-item">
+                        <input type="checkbox" />
+                        <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8">
+                            <div class="flex flex-col w-full">
+                                <div class="flex justify-between items-center w-full filter-text">
+                                    <span
+                                        class="{% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %}">
+                                        {% get_team_display partido.equipo1 torneo %}
+                                    </span>
+                                    <span class="text-xs opacity-50 mx-2">vs</span>
+                                    <span
+                                        class="text-right {% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %}">
+                                        {% get_team_display partido.equipo2 torneo %}
+                                    </span>
+                                </div>
+                                {% if partido.ganador %}
+                                <div class="text-xs text-center mt-1 text-primary font-bold">
+                                    Resultado: {{ partido.e1_sets_ganados }}-{{ partido.e2_sets_ganados }}
+                                    <span class="opacity-70 font-normal">({{ partido.resultado }})</span>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% else %}
-                            <span class="opacity-50">vs</span>
-                            {% endif %}
                         </div>
-
-                        <div class="w-1/3 truncate text-left text-xs" title="{{ partido.equipo2.nombre }}">
-                            {% get_team_code partido.equipo2 torneo %}
+                        <div class="collapse-content flex justify-center items-center pt-2">
+                            <button class="btn btn-sm btn-primary"
+                                hx-get="{% url 'torneos:cargar_resultado_grupo' partido.pk %}"
+                                hx-target="#modal_content" onclick="resultado_modal.showModal()">
+                                {% if partido.ganador %}Editar Resultado{% else %}Cargar Resultado{% endif %}
+                            </button>
                         </div>
-
-                        <button class="btn btn-xs btn-square btn-ghost text-primary"
-                            hx-get="{% url 'torneos:cargar_resultado_grupo' partido.pk %}" hx-target="#modal_content"
-                            onclick="resultado_modal.showModal()">
-                            ✎
-                        </button>
                     </div>
                     {% endfor %}
                 </div>
@@ -146,7 +191,6 @@
         </div>
         {% endfor %}
     </div>
-
     {% endif %}
 
     <!-- 3. BRACKET -->
@@ -155,73 +199,71 @@
         Fase Eliminatoria
     </h2>
 
-    <div class="overflow-x-auto pb-4">
-        <div class="flex gap-8 min-w-max px-4">
+    <div class="space-y-4" id="bracketContainer">
+        {% regroup partidos_eliminacion by ronda as rondas_list %}
 
-            {% regroup partidos_eliminacion by ronda as rondas_list %}
-
-            {% for ronda in rondas_list reversed %}
-            <div class="flex flex-col min-w-[260px] gap-4">
-
-                <h3
-                    class="text-center font-bold text-primary uppercase text-sm tracking-wide bg-base-200 py-1 rounded-lg">
-                    {% if ronda.grouper == 4 %}🏆 Final
+        {% for ronda in rondas_list reversed %}
+        <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item">
+            <input type="checkbox" class="round-checkbox" {% if forloop.first %}checked{% endif %} />
+            <div class="collapse-title text-xl font-medium flex justify-between items-center">
+                <span class="round-name flex items-center gap-2">
+                    {% if ronda.grouper == 4 %}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5 text-warning">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.25 2.25 0 11-4.5 0v9.75m4.5 0h.75a2.25 2.25 0 012.25 2.25v3.375M9.497 14.625h-.75a2.25 2.25 0 01-2.25-2.25V5.625a2.25 2.25 0 014.5 0v9.75" />
+                    </svg>
+                    Final
                     {% elif ronda.grouper == 3 %}Semifinal
-                    {% elif ronda.grouper == 2 %}Cuartos
-                    {% else %}Octavos{% endif %}
-                </h3>
+                    {% elif ronda.grouper == 2 %}Cuartos de Final
+                    {% else %}Octavos de Final{% endif %}
+                </span>
+                <span class="text-sm font-normal opacity-70">Ver Partidos</span>
+            </div>
+            <div class="collapse-content">
 
-                <div class="flex flex-col gap-4">
-
+                <div class="space-y-2 mt-2">
                     {% for partido in ronda.list %}
-                    <div
-                        class="card card-compact bg-base-100 shadow-md border border-base-300 hover:shadow-lg transition-all">
-                        <div class="card-body p-3">
-
-                            <!-- Equipo 1 -->
-                            <div
-                                class="flex justify-between items-center py-1 px-1 rounded 
-                                            {% if partido.ganador == partido.equipo1 %} bg-success/10 font-bold text-success{% endif %}">
-                                <span class="text-xs truncate max-w-[150px]">
-                                    {% get_team_code partido.equipo1 torneo %}
-                                </span>
-                                {% if partido.ganador == partido.equipo1 %}✓{% endif %}
+                    <div class="collapse collapse-plus bg-base-200 border border-base-300 match-item">
+                        <input type="checkbox" />
+                        <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8">
+                            <div class="flex flex-col w-full">
+                                <div class="flex justify-between items-center w-full filter-text">
+                                    <span
+                                        class="{% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %} truncate w-1/2 text-right pr-2">
+                                        {% get_team_display partido.equipo1 torneo %}
+                                    </span>
+                                    <span class="text-xs opacity-50">vs</span>
+                                    <span
+                                        class="{% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %} truncate w-1/2 text-left pl-2">
+                                        {% get_team_display partido.equipo2 torneo %}
+                                    </span>
+                                </div>
+                                {% if partido.ganador %}
+                                <div class="text-xs text-center mt-1 text-primary font-bold">
+                                    {{ partido.resultado }}
+                                </div>
+                                {% endif %}
                             </div>
-
-                            <div class="divider my-0"></div>
-
-                            <!-- Equipo 2 -->
-                            <div
-                                class="flex justify-between items-center py-1 px-1 rounded 
-                                            {% if partido.ganador == partido.equipo2 %} bg-success/10 font-bold text-success{% endif %}">
-                                <span class="text-xs truncate max-w-[150px]">
-                                    {% get_team_code partido.equipo2 torneo %}
-                                </span>
-                                {% if partido.ganador == partido.equipo2 %}✓{% endif %}
-                            </div>
-
-                            <!-- Acción -->
+                        </div>
+                        <div class="collapse-content flex justify-center items-center pt-2">
                             {% if partido.equipo1 and partido.equipo2 %}
-                            <button class="btn btn-xs btn-block btn-outline btn-primary mt-2"
+                            <button class="btn btn-sm btn-primary"
                                 hx-get="{% url 'torneos:admin_partido_resultado' partido.pk %}"
                                 hx-target="#modal_content" onclick="resultado_modal.showModal()">
-                                {% if partido.ganador %}{{ partido.resultado }}{% else %}Cargar{% endif %}
+                                {% if partido.ganador %}Editar Resultado{% else %}Cargar Resultado{% endif %}
                             </button>
                             {% else %}
-                            <p class="text-center text-[10px] opacity-50 italic py-1">
-                                Esperando rivales...
-                            </p>
+                            <p class="text-sm opacity-50 italic">Esperando rivales...</p>
                             {% endif %}
-
                         </div>
                     </div>
                     {% endfor %}
-
                 </div>
-            </div>
-            {% endfor %}
 
+            </div>
         </div>
+        {% endfor %}
     </div>
     {% endif %}
 
@@ -230,11 +272,90 @@
 <!-- MODAL -->
 <dialog id="resultado_modal" class="modal">
     <div class="modal-box max-w-lg p-0 overflow-hidden">
-        <div id="modal_content" class="p-10 flex justify-center">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
+        <div id="modal_content">
+            <div class="p-10 flex justify-center">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+            </div>
         </div>
     </div>
     <form method="dialog" class="modal-backdrop"><button></button></form>
 </dialog>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('adminSearchInput');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function (e) {
+            const term = e.target.value.toLowerCase().trim();
+
+            // 1. Filtrar Grupos
+            const groupItems = document.querySelectorAll('.group-item');
+            groupItems.forEach(group => {
+                const groupName = group.querySelector('.group-name').textContent.toLowerCase();
+                const matches = group.querySelectorAll('.match-item');
+                let hasMatch = false;
+
+                // Check matches inside group
+                matches.forEach(match => {
+                    const text = match.querySelector('.filter-text').textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        match.style.display = '';
+                        hasMatch = true;
+                    } else {
+                        match.style.display = 'none';
+                    }
+                });
+
+                // Check table rows inside group
+                const tableRows = group.querySelectorAll('tbody tr');
+                tableRows.forEach(row => {
+                    const text = row.querySelector('.filter-text').textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        hasMatch = true;
+                    }
+                });
+
+                // Show/Hide Group
+                if (term === '' || groupName.includes(term) || hasMatch) {
+                    group.style.display = '';
+                    // Expand if searching and match found inside
+                    if (term !== '' && hasMatch) {
+                        group.querySelector('.group-checkbox').checked = true;
+                    }
+                } else {
+                    group.style.display = 'none';
+                }
+            });
+
+            // 2. Filtrar Rondas (Bracket)
+            const roundItems = document.querySelectorAll('.round-item');
+            roundItems.forEach(round => {
+                const roundName = round.querySelector('.round-name').textContent.toLowerCase();
+                const matches = round.querySelectorAll('.match-item');
+                let hasMatch = false;
+
+                matches.forEach(match => {
+                    const text = match.querySelector('.filter-text').textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        match.style.display = '';
+                        hasMatch = true;
+                    } else {
+                        match.style.display = 'none';
+                    }
+                });
+
+                if (term === '' || roundName.includes(term) || hasMatch) {
+                    round.style.display = '';
+                    if (term !== '' && hasMatch) {
+                        round.querySelector('.round-checkbox').checked = true;
+                    }
+                } else {
+                    round.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 
 {% endblock %}

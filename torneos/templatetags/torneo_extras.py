@@ -76,3 +76,18 @@ def split(value, delimiter=','):
         return []
     return [item.strip() for item in value.split(delimiter)]
 
+
+@register.simple_tag
+def get_team_display(equipo, torneo):
+    """
+    Devuelve el string formateado "CODIGO Nombre" (Ej: "A1 Perez/Gomez").
+    """
+    if not equipo or not torneo:
+        return "TBD"
+    
+    code = get_team_code(equipo, torneo)
+    # Si el codigo es igual al nombre (no tiene grupo), solo mostramos el nombre
+    if code == equipo.nombre:
+        return equipo.nombre
+        
+    return f"{code} {equipo.nombre}"
