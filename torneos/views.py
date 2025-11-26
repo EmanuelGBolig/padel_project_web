@@ -177,15 +177,34 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         #     return redirect('torneos:admin_manage', pk=torneo.pk)
 
         # 1. Obtener clasificados (1ro y 2do de cada grupo)
-        clasificados = []
+        primeros = []
+        segundos = []
         grupos = torneo.grupos.all().order_by('nombre')
 
         for grupo in grupos:
             tabla = grupo.tabla.all()  # Ya viene ordenada por mérito (PG, DS, DG)
-            # Clasifican los primeros 2 de cada grupo (estándar para grupos de 3 o 4 equipos)
-            num_clasificados_por_grupo = 2
-            for i in range(min(len(tabla), num_clasificados_por_grupo)):
-                clasificados.append(tabla[i].equipo)
+            # Clasifican los primeros 2 de cada grupo
+            if len(tabla) >= 1:
+                primeros.append(tabla[0].equipo)
+            if len(tabla) >= 2:
+                segundos.append(tabla[1].equipo)
+
+        # Emparejamiento cruzado:
+        # Rotamos la lista de segundos para que el 1ro del Grupo A no juegue con el 2do del Grupo A
+        # Ejemplo con 3 grupos:
+        # Primeros: [A1, B1, C1]
+        # Segundos: [A2, B2, C2] -> Rotado: [B2, C2, A2]
+        # Resultado: A1 vs B2, B1 vs C2, C1 vs A2
+        if segundos:
+            segundos = segundos[1:] + segundos[:1]
+
+        clasificados = []
+        # Intercalar: [A1, B2, B1, C2, C1, A2]
+        # Usamos zip_longest por si hay diferente cantidad (aunque no debería en grupos balanceados)
+        from itertools import zip_longest
+        for p, s in zip_longest(primeros, segundos):
+            if p: clasificados.append(p)
+            if s: clasificados.append(s)
 
         num_equipos = len(clasificados)
 
@@ -393,6 +412,69 @@ class TorneoDetailView(DetailView):
                 and not context['ya_inscrito']
                 and not user.is_staff
             )
+
+            # --- LÓGICA PARA "MIS PARTIDOS" ---
+            if context['ya_inscrito']:
+                # 1. Partidos de Grupo
+                partidos_grupo = PartidoGrupo.objects.filter(
+                    grupo__torneo=torneo
+                ).filter(
+                    Q(equipo1=equipo) | Q(equipo2=equipo)
+                ).select_related('equipo1', 'equipo2', 'grupo')
+
+                # 2. Partidos de Eliminación
+                partidos_bracket = Partido.objects.filter(
+                    torneo=torneo
+                ).filter(
+                    Q(equipo1=equipo) | Q(equipo2=equipo)
+                ).select_related('equipo1', 'equipo2')
+
+                mis_partidos_pendientes = []
+                mis_partidos_jugados = []
+
+                # Procesar Grupos
+                for p in partidos_grupo:
+                    # Un partido de grupo está jugado si tiene ganador O si se cargaron sets (empate técnico o en proceso)
+                    # En este modelo, 'ganador' se setea al final. Usaremos 'ganador' como criterio de "Jugado"
+                    # O si tiene resultado string. El modelo tiene 'resultado' property pero no campo persistido de estado.
+                    # Chequeamos si tiene ganador asignado.
+                    if p.ganador:
+                        mis_partidos_jugados.append({
+                            'tipo': 'Grupo',
+                            'contexto': p.grupo.nombre,
+                            'rival': p.equipo2 if p.equipo1 == equipo else p.equipo1,
+                            'resultado': p.resultado,
+                            'obj': p
+                        })
+                    else:
+                        mis_partidos_pendientes.append({
+                            'tipo': 'Grupo',
+                            'contexto': p.grupo.nombre,
+                            'rival': p.equipo2 if p.equipo1 == equipo else p.equipo1,
+                            'obj': p
+                        })
+
+                # Procesar Bracket
+                for p in partidos_bracket:
+                    if p.ganador:
+                        mis_partidos_jugados.append({
+                            'tipo': 'Eliminatoria',
+                            'contexto': p.nombre_ronda,
+                            'rival': p.equipo2 if p.equipo1 == equipo else p.equipo1,
+                            'resultado': p.resultado,
+                            'obj': p
+                        })
+                    else:
+                        mis_partidos_pendientes.append({
+                            'tipo': 'Eliminatoria',
+                            'contexto': p.nombre_ronda,
+                            'rival': p.equipo2 if p.equipo1 == equipo else p.equipo1,
+                            'obj': p
+                        })
+                
+                context['mis_partidos_pendientes'] = mis_partidos_pendientes
+                context['mis_partidos_jugados'] = mis_partidos_jugados
+
         return context
 
 
