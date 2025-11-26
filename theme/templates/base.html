@@ -198,6 +198,7 @@
                     <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
                 </ul>
             </div>
+            <a href="{% url 'core:home' %}" class="btn btn-ghost text-xl">PadelApp</a>
         </div>
 
         <div class="navbar-center hidden lg:flex">
@@ -272,6 +273,16 @@
                 </a>
                 <a href="{% url 'accounts:registro' %}" class="btn btn-primary btn-sm rounded-full">Registrarse</a>
             </div>
+            <!-- Mobile Login Button -->
+            <a href="{% url 'accounts:login' %}"
+                class="btn btn-sm rounded-full border border-base-content/20 text-blue-600 bg-transparent font-medium gap-2 px-3 lg:hidden normal-case">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Acceder
+            </a>
             {% endif %}
         </div>
     </div>
