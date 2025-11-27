@@ -45,3 +45,133 @@ class Equipo(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    # === ESTADÍSTICAS ===
+    
+    def get_partidos_jugados(self):
+        """Retorna todos los partidos (grupos + eliminación) donde participó"""
+        from torneos.models import Partido, PartidoGrupo
+        
+        partidos_elim = Partido.objects.filter(
+            models.Q(equipo1=self) | models.Q(equipo2=self),
+            ganador__isnull=False
+        )
+        
+        partidos_grupo = PartidoGrupo.objects.filter(
+            models.Q(equipo1=self) | models.Q(equipo2=self),
+            ganador__isnull=False
+        )
+        
+        return {
+            'eliminacion': partidos_elim,
+            'grupos': partidos_grupo,
+            'total': partidos_elim.count() + partidos_grupo.count()
+        }
+    
+    def get_victorias(self):
+        """Cuenta victorias totales"""
+        from torneos.models import Partido, PartidoGrupo
+        
+        victorias_elim = Partido.objects.filter(ganador=self).count()
+        victorias_grupo = PartidoGrupo.objects.filter(ganador=self).count()
+        
+        return victorias_elim + victorias_grupo
+    
+    def get_derrotas(self):
+        """Cuenta derrotas totales"""
+        partidos = self.get_partidos_jugados()
+        return partidos['total'] - self.get_victorias()
+    
+    def get_win_rate(self):
+        """Calcula % de victorias"""
+        partidos = self.get_partidos_jugados()
+        if partidos['total'] == 0:
+            return 0
+        return round((self.get_victorias() / partidos['total']) * 100, 1)
+    
+    def get_torneos_ganados(self):
+        """Cuenta torneos donde fue campeón"""
+        from torneos.models import Torneo
+        return Torneo.objects.filter(ganador_del_torneo=self).count()
+    
+    def get_racha_actual(self):
+        """Calcula racha de victorias/derrotas consecutivas"""
+        from torneos.models import Partido, PartidoGrupo
+        
+        partidos_elim = list(Partido.objects.filter(
+            models.Q(equipo1=self) | models.Q(equipo2=self),
+            ganador__isnull=False
+        ).select_related('torneo').order_by('-torneo__fecha_inicio', '-ronda'))
+        
+        partidos_grupo = list(PartidoGrupo.objects.filter(
+            models.Q(equipo1=self) | models.Q(equipo2=self),
+            ganador__isnull=False
+        ).select_related('grupo__torneo').order_by('-grupo__torneo__fecha_inicio'))
+        
+        todos = partidos_elim + partidos_grupo
+        
+        if not todos:
+            return {'tipo': None, 'cantidad': 0, 'texto': ''}
+        
+        ultimo = todos[0]
+        es_victoria = ultimo.ganador == self
+        
+        racha = 0
+        for partido in todos:
+            if partido.ganador == self:
+                if es_victoria:
+                    racha += 1
+                else:
+                    break
+            else:
+                if not es_victoria:
+                    racha += 1
+                else:
+                    break
+        
+        tipo = 'victoria' if es_victoria else 'derrota'
+        tipo_texto = tipo.title() + ('s' if racha != 1 else '')
+       
+        return {
+            'tipo': tipo,
+            'cantidad': racha,
+            'texto': f'Racha de {racha} {tipo_texto}'
+        }
+    
+    def get_ultimos_resultados(self, limit=5):
+        """Obtiene últimos N resultados"""
+        from torneos.models import Partido, PartidoGrupo
+        
+        partidos_elim = Partido.objects.filter(
+            models.Q(equipo1=self) | models.Q(equipo2=self),
+            ganador__isnull=False
+        ).select_related('torneo', 'equipo1', 'equipo2').order_by('-torneo__fecha_inicio', '-ronda')
+        
+        partidos_grupo = PartidoGrupo.objects.filter(
+            models.Q(equipo1=self) | models.Q(equipo2=self),
+            ganador__isnull=False
+        ).select_related('grupo__torneo', 'equipo1', 'equipo2').order_by('-grupo__torneo__fecha_inicio')
+        
+        resultados = []
+        
+        for p in partidos_elim:
+            if len(resultados) >= limit:
+                break
+            resultados.append({
+                'ganado': p.ganador == self,
+                'rival': p.equipo2 if p.equipo1 == self else p.equipo1,
+                'torneo': p.torneo.nombre,
+                'tipo': 'eliminacion'
+            })
+        
+        for p in partidos_grupo:
+            if len(resultados) >= limit:
+                break
+            resultados.append({
+                'ganado': p.ganador == self,
+                'rival': p.equipo2 if p.equipo1 == self else p.equipo1,
+                'torneo': p.grupo.torneo.nombre,
+                'tipo': 'grupo'
+            })
+        
+        return resultados[:limit]

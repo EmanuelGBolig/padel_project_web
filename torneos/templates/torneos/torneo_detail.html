@@ -187,8 +187,7 @@
                                 </div>
                                 <span
                                     class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-error{% endif %}">
-                                    {% if partido.obj.ganador == equipo %}VICTORIA{%
-                                    else %}DERROTA{% endif %}
+                                    {% if partido.obj.ganador == equipo %}VICTORIA{% else %}DERROTA{% endif %}
                                 </span>
                             </div>
                         </div>
@@ -209,8 +208,7 @@
                                     {% if partido.resultado %}
                                     {% with sets=partido.resultado|split:"," %}
                                     {% for set_score in sets %}
-                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{
-                                        set_score }}</span>
+                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
                                     {% endfor %}
                                     {% endwith %}
                                     {% endif %}

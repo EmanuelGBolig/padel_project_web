@@ -1,0 +1,84 @@
+<div class="card bg-base-100 shadow-lg border border-base-200">
+    <div class="card-body">
+
+        <!-- TÍTULO -->
+        <h2 class="card-title text-2xl flex items-center gap-2">
+            <!-- Icono -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Estadísticas
+        </h2>
+
+        {% if stats.partidos_jugados > 0 %}
+
+        <!-- GRID PRINCIPAL -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+
+            <!-- Partidos -->
+            <div class="stat bg-base-200/50 rounded-lg p-4">
+                <div class="stat-title text-xs opacity-70">Partidos</div>
+                <div class="stat-value text-2xl md:text-3xl">{{ stats.partidos_jugados }}</div>
+                <div class="stat-desc text-xs mt-1">Total</div>
+            </div>
+
+            <!-- Victorias -->
+            <div class="stat bg-success/10 rounded-lg p-4 border border-success/20">
+                <div class="stat-title text-xs text-success font-semibold">Victorias</div>
+                <div class="stat-value text-2xl md:text-3xl text-success">{{ stats.victorias }}</div>
+                <div class="stat-desc text-xs mt-1 text-success/70">Ganados</div>
+            </div>
+
+            <!-- Derrotas -->
+            <div class="stat bg-error/10 rounded-lg p-4 border border-error/20">
+                <div class="stat-title text-xs text-error font-semibold">Derrotas</div>
+                <div class="stat-value text-2xl md:text-3xl text-error">{{ stats.derrotas }}</div>
+                <div class="stat-desc text-xs mt-1 text-error/70">Perdidos</div>
+            </div>
+
+            <!-- Win Rate -->
+            <div class="stat bg-primary/10 rounded-lg p-4 border border-primary/20">
+                <div class="stat-title text-xs text-primary font-semibold">Win Rate</div>
+                <div class="stat-value text-2xl md:text-3xl text-primary">{{ stats.win_rate }}%</div>
+                <div class="stat-desc text-xs mt-1 text-primary/70">Efectividad</div>
+            </div>
+        </div>
+
+        <!-- TORNEOS GANADOS -->
+        {% if stats.torneos_ganados > 0 %}
+        <div class="alert alert-success mt-4 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="font-bold">
+                {% for resultado in stats.ultimos_resultados %}
+                <div class="tooltip" data-tip="vs {{ resultado.rival.nombre }} - {{ resultado.torneo }}">
+                    <div
+                        class="badge {% if resultado.ganado %}badge-success{% else %}badge-error{% endif %} badge-lg font-bold">
+                        {% if resultado.ganado %}V{% else %}D{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+        </div>
+        {% endif %}
+
+        {% else %}
+
+        <!-- SIN ESTADÍSTICAS -->
+        <div class="text-center py-8 opacity-60">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 opacity-40" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <p class="text-sm">Aún no hay estadísticas disponibles</p>
+            <p class="text-xs mt-2">¡Inscríbete en un torneo y comienza a jugar!</p>
+        </div>
+
+        {% endif %}
+    </div>
+</div>

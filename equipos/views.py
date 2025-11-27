@@ -142,6 +142,24 @@ class MiEquipoDetailView(LoginRequiredMixin, DetailView):
 
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
+    
+    def get_context_data(self, **kwargs):
+        """Añade estadísticas del equipo al contexto"""
+        context = super().get_context_data(**kwargs)
+        equipo = self.get_object()
+        
+        if equipo:
+            context['stats'] = {
+                'partidos_jugados': equipo.get_partidos_jugados()['total'],
+                'victorias': equipo.get_victorias(),
+                'derrotas': equipo.get_derrotas(),
+                'win_rate': equipo.get_win_rate(),
+                'torneos_ganados': equipo.get_torneos_ganados(),
+                'racha': equipo.get_racha_actual(),
+                'ultimos_resultados': equipo.get_ultimos_resultados(),
+            }
+        
+        return context
 
 
 class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
