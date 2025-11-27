@@ -31,16 +31,28 @@
                     <p class="mb-4 text-success font-medium">
                         ¡Tu equipo <strong>{{ equipo.nombre }}</strong> puede participar!
                     </p>
+                    {% if user.is_authenticated %}
                     <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
                         Inscribirse Ahora
                     </a>
+                    {% else %}
+                    <button onclick="login_required_modal.showModal()" class="btn btn-primary btn-wide shadow-lg">
+                        Inscribirse Ahora
+                    </button>
+                    {% endif %}
                 </div>
 
                 {% elif not ya_inscrito and torneo.estado == 'AB' %}
                 <div class="mt-8">
+                    {% if user.is_authenticated %}
                     <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
                         Inscribirse Ahora
                     </a>
+                    {% else %}
+                    <button onclick="login_required_modal.showModal()" class="btn btn-primary btn-wide shadow-lg">
+                        Inscribirse Ahora
+                    </button>
+                    {% endif %}
                 </div>
 
                 {% elif ya_inscrito %}
@@ -524,5 +536,22 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Modal Login Requerido -->
+<dialog id="login_required_modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg text-info">Iniciar Sesión Requerido</h3>
+        <p class="py-4">Para inscribirte en este torneo, necesitas iniciar sesión en tu cuenta.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancelar</button>
+            </form>
+            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary">Iniciar Sesión</a>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 
 {% endblock %}
