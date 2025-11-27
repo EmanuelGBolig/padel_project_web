@@ -290,11 +290,11 @@
     <!-- Contenido Principal -->
     <main class="flex-grow container mx-auto px-4 py-8 w-full max-w-7xl">
         {% if messages %}
-        <div class="toast toast-top toast-center z-[100] w-full max-w-md">
+        <div class="toast toast-top toast-center z-[100] w-full max-w-md p-4">
             {% for message in messages %}
             <div role="alert"
-                class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg">
-                <span>{{ message }}</span>
+                class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg flex flex-row items-start text-left">
+                <span class="whitespace-normal break-words text-sm md:text-base">{{ message }}</span>
             </div>
             {% endfor %}
         </div>
