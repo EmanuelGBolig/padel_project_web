@@ -36,7 +36,7 @@
                     </a>
                 </div>
 
-                {% elif not ya_inscrito %}
+                {% elif not ya_inscrito and torneo.estado == 'AB' %}
                 <div class="mt-8">
                     <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
                         Inscribirse Ahora
