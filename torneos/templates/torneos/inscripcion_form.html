@@ -4,53 +4,59 @@
 {% block title %}Confirmar Inscripción{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-xl p-8 mt-12">
+<div class="flex justify-center items-center py-10">
+    <div class="card w-full max-w-lg bg-base-100 shadow-xl border border-base-200">
+        <div class="card-body">
+            <!-- Título -->
+            <h2 class="card-title text-3xl font-bold text-center justify-center mb-6 text-base-content">
+                Confirmar Inscripción
+            </h2>
 
-    <!-- Título -->
-    <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-6">
-        Confirmar Inscripción
-    </h2>
+            <!-- Datos del torneo -->
+            <div class="text-center space-y-4 mb-6">
+                <p class="text-lg text-base-content/80">
+                    Torneo:
+                    <span class="font-bold text-primary block text-xl">
+                        {{ torneo.nombre }}
+                    </span>
+                    <span class="badge badge-secondary mt-1">{{ torneo.division.nombre }}</span>
+                </p>
 
-    <!-- Datos del torneo -->
-    <p class="text-center text-lg text-gray-700 mb-2">
-        Torneo: 
-        <span class="font-semibold text-indigo-600">
-            {{ torneo.nombre }} ({{ torneo.division.nombre }})
-        </span>
-    </p>
+                <p class="text-lg text-base-content/80">
+                    Equipo:
+                    <span class="font-bold text-primary block text-xl">
+                        {{ equipo.nombre }}
+                    </span>
+                </p>
+            </div>
 
-    <p class="text-center text-lg text-gray-700 mb-6">
-        Equipo:
-        <span class="font-semibold text-indigo-600">
-            {{ equipo.nombre }}
-        </span>
-    </p>
+            <div class="alert alert-info shadow-sm mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>¿Deseas confirmar la inscripción de tu equipo en este torneo?</span>
+            </div>
 
-    <p class="text-center text-gray-600 mb-8">
-        Estás a punto de inscribir a tu equipo en este torneo.  
-        ¿Deseas continuar con la inscripción?
-    </p>
+            <!-- Formulario -->
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
 
-    <!-- Formulario -->
-    <form method="post" class="space-y-6">
-        {% csrf_token %}
-        
-        {{ form|crispy }}
+                {{ form|crispy }}
 
-        <!-- Botones -->
-        <div class="flex justify-center gap-4 pt-2">
+                <!-- Botones -->
+                <div class="card-actions justify-center gap-4 mt-4">
+                    <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-ghost">
+                        Cancelar
+                    </a>
 
-            <a href="{% url 'torneos:detail' torneo.pk %}"
-               class="btn bg-gray-200 text-gray-800 border border-gray-300 hover:bg-gray-300 px-6">
-                Cancelar
-            </a>
-
-            <button type="submit"
-                    class="btn bg-green-600 border-none text-white hover:bg-green-700 px-6">
-                Sí, confirmar inscripción
-            </button>
-
+                    <button type="submit" class="btn btn-primary text-white shadow-lg">
+                        Sí, confirmar inscripción
+                    </button>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 {% endblock %}

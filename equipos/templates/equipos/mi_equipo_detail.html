@@ -5,9 +5,9 @@
         <div class="card-body items-center text-center">
             <h2 class="card-title text-4xl text-primary">{{ equipo.nombre }}</h2>
             <div class="badge badge-secondary badge-lg my-2">{{ equipo.division.nombre }}</div>
-            
+
             <div class="divider">Integrantes</div>
-            
+
             <div class="flex flex-col sm:flex-row gap-8 w-full justify-center mt-4">
                 <div class="stat place-items-center p-0">
                     <div class="stat-title">Jugador 1</div>
@@ -22,9 +22,41 @@
             </div>
 
             <div class="card-actions mt-10">
-                <a href="{% url 'equipos:disolver' %}" class="btn btn-error btn-outline">Disolver Equipo</a>
+                <button onclick="dissolve_modal.showModal()" class="btn btn-error btn-outline">Disolver Equipo</button>
             </div>
         </div>
     </div>
 </div>
+
+<dialog id="dissolve_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg text-error">Disolver Equipo</h3>
+        <p class="py-4 text-lg">
+            ¿Estás seguro de que quieres disolver el equipo <strong class="text-primary">{{ equipo.nombre }}</strong>?
+        </p>
+
+        <div role="alert" class="alert alert-warning mb-6 text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>Esta acción no se puede deshacer. Ambos jugadores quedarán libres y serán eliminados de cualquier
+                torneo activo.</span>
+        </div>
+
+        <div class="modal-action justify-center gap-4">
+            <form method="dialog">
+                <button class="btn btn-ghost">Cancelar</button>
+            </form>
+            <form method="post" action="{% url 'equipos:disolver' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error text-white">Sí, disolver</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 {% endblock %}

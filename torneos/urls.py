@@ -14,6 +14,11 @@ urlpatterns = [
         views.InscripcionCreateView.as_view(),
         name='inscribirse',
     ),
+    path(
+        '<int:torneo_pk>/cancelar-inscripcion/',
+        views.InscripcionDeleteView.as_view(),
+        name='cancelar_inscripcion',
+    ),
     # Vistas de Admin
     path('admin/listado/', views.AdminTorneoListView.as_view(), name='admin_list'),
     path('admin/crear/', views.AdminTorneoCreateView.as_view(), name='admin_crear'),

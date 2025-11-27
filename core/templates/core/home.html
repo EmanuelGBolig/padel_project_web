@@ -41,8 +41,14 @@
             {% for torneo in torneos_abiertos %}
             <div class="card bg-base-100 shadow-xl border-t-4 border-success">
                 <div class="card-body">
-                    <h2 class="card-title justify-between text-base-content">{{ torneo.nombre }} <div
-                            class="badge badge-success text-white">Abierto</div>
+                    <h2 class="card-title justify-between text-base-content items-start gap-2">
+                        {{ torneo.nombre }}
+                        <div class="flex flex-col items-end gap-1 shrink-0">
+                            <div class="badge badge-success text-white">Abierto</div>
+                            {% if torneo.pk in torneos_inscritos_ids %}
+                            <div class="badge badge-info text-white">Inscrito</div>
+                            {% endif %}
+                        </div>
                     </h2>
                     <div class="badge badge-outline">{{ torneo.division.nombre }}</div>
                     <div class="text-sm text-base-content/70 mt-4 space-y-1">
@@ -64,11 +70,16 @@
                         </p>
                     </div>
                     <div class="card-actions justify-end mt-4">
-
                         {% if not user.is_staff %}
+                        {% if torneo.pk in torneos_inscritos_ids %}
+                        <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-info text-white w-full">
+                            Ver
+                        </a>
+                        {% else %}
                         <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-success text-white w-full">
                             Ver e Inscribirse
                         </a>
+                        {% endif %}
                         {% endif %}
 
                         {% if user.is_staff %}
@@ -76,7 +87,6 @@
                             Gestionar
                         </a>
                         {% endif %}
-
                     </div>
                 </div>
             </div>

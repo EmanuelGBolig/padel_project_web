@@ -488,7 +488,38 @@ class TorneoFinalizadoListView(ListView):
     paginate_by = 10
 
 
-class InscripcionCreateView(PlayerRequiredMixin, CreateView):
+import unicodedata
+
+def normalize_division_name(name):
+    """
+    Normaliza el nombre de una división para comparación flexible.
+    Ej: "Séptima" -> "septima", "7ma" -> "septima", "3ra" -> "tercera"
+    """
+    if not name:
+        return ""
+    
+    # 1. Lowercase y quitar espacios
+    norm = name.lower().strip()
+    
+    # 2. Quitar tildes
+    norm = ''.join(c for c in unicodedata.normalize('NFD', norm) if unicodedata.category(c) != 'Mn')
+    
+    # 3. Mapeo de alias comunes
+    aliases = {
+        '1ra': 'primera', '1a': 'primera',
+        '2da': 'segunda', '2a': 'segunda',
+        '3ra': 'tercera', '3a': 'tercera',
+        '4ta': 'cuarta', '4a': 'cuarta',
+        '5ta': 'quinta', '5a': 'quinta',
+        '6ta': 'sexta', '6a': 'sexta',
+        '7ma': 'septima', '7a': 'septima',
+        '8va': 'octava', '8a': 'octava',
+    }
+    
+    return aliases.get(norm, norm)
+
+
+class InscripcionCreateView(LoginRequiredMixin, CreateView):
     model = Inscripcion
     form_class = InscripcionForm
     template_name = 'torneos/inscripcion_form.html'
@@ -496,41 +527,91 @@ class InscripcionCreateView(PlayerRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('torneos:detail', kwargs={'pk': self.kwargs['torneo_pk']})
 
-    def get_torneo(self):
-        return get_object_or_404(Torneo, pk=self.kwargs['torneo_pk'])
-
     def dispatch(self, request, *args, **kwargs):
-        if not hasattr(request.user, 'equipo') or not request.user.equipo:
-            messages.error(request, "Debes tener un equipo creado para inscribirte.")
-            return redirect(reverse_lazy('equipos:crear'))
-        torneo = self.get_torneo()
-        equipo = request.user.equipo
-        if torneo.estado != Torneo.Estado.ABIERTO:
-            messages.error(request, "La inscripción está cerrada.")
-            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+        self.torneo = get_object_or_404(Torneo, pk=self.kwargs['torneo_pk'])
+        torneo = self.torneo
+
+        # Verificar si el usuario tiene equipo
+        try:
+            equipo = request.user.equipo
+            if not equipo:
+                messages.error(request, "Necesitas tener un equipo para inscribirte.")
+                return redirect('equipos:create')
+        except Exception:
+             messages.error(request, "Error al obtener tu equipo.")
+             return redirect('home')
+
         if Inscripcion.objects.filter(torneo=torneo, equipo=equipo).exists():
             messages.warning(request, "Tu equipo ya está inscrito.")
             return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
-        if equipo.division != torneo.division:
-            messages.error(request, "División incorrecta.")
-            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+        
+        # --- VERIFICACIÓN DE DIVISIÓN FLEXIBLE ---
+        equipo_div_norm = normalize_division_name(equipo.division.nombre)
+        torneo_div_norm = normalize_division_name(torneo.division.nombre)
+        
+        if equipo_div_norm != torneo_div_norm:
+             # Fallback: si la normalización falla, chequear IDs por si acaso son el mismo objeto exacto
+             if equipo.division_id != torneo.division_id:
+                messages.error(request, f"División incorrecta. Tu equipo es {equipo.division} y el torneo es {torneo.division}.")
+                return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+
         if torneo.inscripciones.count() >= torneo.cupos_totales:
             messages.error(request, "Torneo lleno.")
             return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+            
+        if torneo.estado != Torneo.Estado.ABIERTO:
+            messages.error(request, "La inscripción está cerrada.")
+            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+
+        if timezone.now() > torneo.fecha_limite_inscripcion:
+            messages.error(request, "La fecha límite de inscripción ha pasado.")
+            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['torneo'] = self.get_torneo()
+        context['torneo'] = self.torneo
         context['equipo'] = self.request.user.equipo
         return context
 
     def form_valid(self, form):
-        form.instance.torneo = self.get_torneo()
+        form.instance.torneo = self.torneo
         form.instance.equipo = self.request.user.equipo
         messages.success(self.request, "¡Inscripción confirmada!")
         return super().form_valid(form)
 
+
+class InscripcionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Inscripcion
+    
+    def get_object(self):
+        # Obtener la inscripción basada en el torneo y el equipo del usuario
+        torneo_pk = self.kwargs.get('torneo_pk')
+        torneo = get_object_or_404(Torneo, pk=torneo_pk)
+        
+        if not hasattr(self.request.user, 'equipo') or not self.request.user.equipo:
+            raise Http404("No tienes equipo.")
+            
+        return get_object_or_404(Inscripcion, torneo=torneo, equipo=self.request.user.equipo)
+
+    def test_func(self):
+        inscripcion = self.get_object()
+        # Verificar que el torneo esté abierto
+        if inscripcion.torneo.estado != Torneo.Estado.ABIERTO:
+            return False
+        return True
+        
+    def handle_no_permission(self):
+        messages.error(self.request, "No puedes cancelar la inscripción de este torneo (ya comenzó o no estás inscrito).")
+        return redirect('torneos:detail', pk=self.kwargs['torneo_pk'])
+
+    def post(self, request, *args, **kwargs):
+        inscripcion = self.get_object()
+        torneo_pk = inscripcion.torneo.pk
+        inscripcion.delete()
+        messages.success(request, "Inscripción cancelada exitosamente.")
+        return redirect('torneos:detail', pk=torneo_pk)
 
 # --- UTILIDAD: Crear Torneo de Prueba ---
 

@@ -31,8 +31,14 @@
                     <p class="mb-4 text-success font-medium">
                         ¡Tu equipo <strong>{{ equipo.nombre }}</strong> puede participar!
                     </p>
-                    <a href="{% url 'torneos:inscribirse' torneo.pk %}"
-                        class="btn btn-primary btn-wide shadow-lg animate-pulse">
+                    <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
+                        Inscribirse Ahora
+                    </a>
+                </div>
+
+                {% elif not ya_inscrito %}
+                <div class="mt-8">
+                    <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
                         Inscribirse Ahora
                     </a>
                 </div>
@@ -46,7 +52,7 @@
                         <span class="text-2xl font-black">{{ my_team_info.code }}</span>
                     </div>
                     {% else %}
-                    <div class="alert alert-success shadow-sm">
+                    <div class="alert alert-success shadow-sm mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -54,6 +60,34 @@
                         </svg>
                         <span>¡Inscripción confirmada!</span>
                     </div>
+
+                    <!-- Botón Cancelar Inscripción -->
+                    <button class="btn btn-outline btn-error btn-sm" onclick="cancel_inscription_modal.showModal()">
+                        Cancelar Inscripción
+                    </button>
+
+                    <!-- Modal de Confirmación -->
+                    <dialog id="cancel_inscription_modal" class="modal modal-bottom sm:modal-middle">
+                        <div class="modal-box">
+                            <h3 class="font-bold text-lg text-error">¿Cancelar Inscripción?</h3>
+                            <p class="py-4">¿Estás seguro de que quieres cancelar tu inscripción a <span
+                                    class="font-bold">{{ torneo.nombre }}</span>? <br>Esta acción liberará tu cupo
+                                inmediatamente.</p>
+                            <div class="modal-action">
+                                <form method="dialog">
+                                    <!-- if there is a button in form, it will close the modal -->
+                                    <button class="btn">No, mantener</button>
+                                </form>
+                                <form action="{% url 'torneos:cancelar_inscripcion' torneo.pk %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-error">Sí, cancelar inscripción</button>
+                                </form>
+                            </div>
+                        </div>
+                        <form method="dialog" class="modal-backdrop">
+                            <button>close</button>
+                        </form>
+                    </dialog>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -78,7 +112,8 @@
             class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-96 mt-2 border border-base-200">
             <!-- Partidos Pendientes -->
             {% if mis_partidos_pendientes %}
-            <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">Por Jugar</h3>
+            <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">
+                Por Jugar</h3>
             {% for partido in mis_partidos_pendientes %}
             <li class="mb-2">
                 <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
@@ -87,7 +122,8 @@
                             <span class="font-bold uppercase tracking-wider">
                                 {{ partido.contexto }}
                             </span>
-                            <div class="badge badge-warning badge-xs font-bold">PENDIENTE</div>
+                            <div class="badge badge-warning badge-xs font-bold">
+                                PENDIENTE</div>
                         </div>
 
                         <div class="flex items-center justify-between gap-2 mt-1">
@@ -99,7 +135,8 @@
                                 </span>
                             </div>
 
-                            <div class="font-black text-base-content/30 text-xs px-2">VS</div>
+                            <div class="font-black text-base-content/30 text-xs px-2">VS
+                            </div>
 
                             <!-- Rival -->
                             <div class="flex-1 text-center">
@@ -138,7 +175,8 @@
                                 </div>
                                 <span
                                     class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-error{% endif %}">
-                                    {% if partido.obj.ganador == equipo %}VICTORIA{% else %}DERROTA{% endif %}
+                                    {% if partido.obj.ganador == equipo %}VICTORIA{%
+                                    else %}DERROTA{% endif %}
                                 </span>
                             </div>
                         </div>
@@ -159,7 +197,8 @@
                                     {% if partido.resultado %}
                                     {% with sets=partido.resultado|split:"," %}
                                     {% for set_score in sets %}
-                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
+                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{
+                                        set_score }}</span>
                                     {% endfor %}
                                     {% endwith %}
                                     {% endif %}
@@ -215,7 +254,8 @@
 
 <!-- GRUPOS -->
 {% if grupos %}
-<h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left text-base-content">Fase de Grupos</h2>
+<h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left text-base-content">
+    Fase de Grupos</h2>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
     {% for grupo in grupos %}
@@ -247,8 +287,10 @@
                                 {{ team_info.code }}
                             </span>
                         </td>
-                        <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
-                        <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
+                        <td class="text-center font-bold">{{ item.partidos_ganados }}
+                        </td>
+                        <td class="text-center opacity-60">{{ item.diferencia_sets }}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -302,7 +344,8 @@
 
 <!-- BRACKET -->
 {% if partidos_eliminacion %}
-<h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">Cuadro Final
+<h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">
+    Cuadro Final
 </h2>
 
 <!-- MOBILE: Vertical stacked phases with horizontal scrolling matches -->
