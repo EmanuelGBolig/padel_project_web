@@ -1,0 +1,82 @@
+<!-- Torneos Jugados Card -->
+<div class="card bg-base-100 shadow-lg border border-base-200 mt-6">
+    <div class="card-body">
+        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            Torneos
+        </h2>
+
+        {% if torneos_jugados %}
+        <div class="overflow-x-auto">
+            <table class="table w-full">
+                <thead>
+                    <tr class="bg-base-200">
+                        <th>Torneo</th>
+                        <th class="text-center hidden sm:table-cell">División</th>
+                        <th class="text-center hidden md:table-cell">Fecha</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in torneos_jugados %}
+                    <tr class="hover {% if item.gano %}bg-success/5{% endif %}">
+                        <td>
+                            <a href="{% url 'torneos:detalle' item.torneo.pk %}"
+                                class="font-bold text-primary hover:underline">
+                                {{ item.torneo.nombre }}
+                            </a>
+                        </td>
+                        <td class="text-center hidden sm:table-cell">
+                            <div class="badge badge-secondary badge-sm">{{ item.torneo.division.nombre }}</div>
+                        </td>
+                        <td class="text-center text-sm opacity-70 hidden md:table-cell">
+                            {{ item.torneo.fecha_inicio|date:"d/m/Y" }}
+                        </td>
+                        <td class="text-center">
+                            {% if item.torneo.estado == 'FINALIZADO' %}
+                            <div class="badge badge-ghost badge-sm">Finalizado</div>
+                            {% elif item.torneo.estado == 'EN_CURSO' %}
+                            <div class="badge badge-warning badge-sm">En Curso</div>
+                            {% else %}
+                            <div class="badge badge-info badge-sm">Próximo</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.gano %}
+                            <span class="badge badge-success gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                Campeón
+                            </span>
+                            {% elif item.torneo.estado == 'FINALIZADO' %}
+                            <span class="badge badge-ghost">Participó</span>
+                            {% else %}
+                            <span class="opacity-40">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {%else %}
+        <div class="text-center py-8 opacity-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-3 opacity-30" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <p>No has jugado ningún torneo todavía.</p>
+            <p class="text-xs mt-2">¡Inscríbete en un torneo para empezar a competir!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

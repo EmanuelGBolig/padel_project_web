@@ -196,6 +196,7 @@
                     </li>
                     {% endif %}
                     <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
+                    <li><a href="{% url 'equipos:rankings' %}">Rankings</a></li>
                 </ul>
             </div>
             <a href="{% url 'core:home' %}" class="btn btn-ghost text-xl">PadelApp</a>
@@ -223,6 +224,8 @@
                 {% endif %}
                 {% endif %}
                 <li><a href="{% url 'torneos:finalizado_list' %}">Historial</a></li>
+                <li><a href="{% url 'equipos:rankings' %}">Rankings</a></li>
+
             </ul>
         </div>
 

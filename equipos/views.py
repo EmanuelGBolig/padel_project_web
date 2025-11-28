@@ -240,3 +240,69 @@ class AdminEquipoListView(AdminRequiredMixin, ListView):
         context['current_division'] = self.request.GET.get('division')
         context['search_query'] = self.request.GET.get('search', '')
         return context
+
+
+# --- Vista de Rankings ---
+
+
+class RankingListView(ListView):
+    model = Equipo
+    template_name = 'equipos/ranking_list.html'
+    context_object_name = 'rankings_por_division'
+    
+    def get_queryset(self):
+        # Obtener división seleccionada del parámetro GET
+        division_id = self.request.GET.get('division')
+        
+        # Filtrar divisiones
+        if division_id:
+            divisiones = Division.objects.filter(id=division_id)
+        else:
+            divisiones = Division.objects.all().order_by('nombre')
+        
+        rankings_por_division = []
+        
+        for division in divisiones:
+            equipos = Equipo.objects.filter(division=division).select_related('jugador1', 'jugador2', 'division')
+            
+            # Calcular puntos para equipos de esta división
+            equipos_con_puntos = []
+            for equipo in equipos:
+                puntos = equipo.get_puntos_ranking()
+                if puntos > 0:  # Solo equipos con actividad
+                    equipos_con_puntos.append({
+                        'equipo': equipo,
+                        'puntos': puntos,
+                        'victorias': equipo.get_victorias(),
+                        'win_rate': equipo.get_win_rate(),
+                        'torneos_ganados': equipo.get_torneos_ganados()
+                    })
+            
+            # Ordenar por puntos
+            equipos_con_puntos.sort(key=lambda x: x['puntos'], reverse=True)
+            
+            # Agregar posición
+            for i, item in enumerate(equipos_con_puntos, 1):
+                item['posicion'] = i
+            
+            # Solo agregar división si tiene equipos con actividad
+            if equipos_con_puntos:
+                rankings_por_division.append({
+                    'division': division,
+                    'equipos': equipos_con_puntos
+                })
+        
+        return rankings_por_division
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Agregar todas las divisiones para el filtro
+        context['divisiones'] = Division.objects.all().order_by('nombre')
+        context['division_seleccionada'] = self.request.GET.get('division')
+        
+        # Agregar información del equipo del usuario si está autenticado
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
+            context['mi_equipo'] = self.request.user.equipo
+        
+        return context

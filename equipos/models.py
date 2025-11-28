@@ -175,3 +175,20 @@ class Equipo(models.Model):
             })
         
         return resultados[:limit]
+    
+    def get_puntos_ranking(self):
+        """Calcula puntos para el ranking global"""
+        puntos = 0
+        
+        # Victorias: 3 puntos cada una
+        puntos += self.get_victorias() * 3
+        
+        # Torneos ganados: 50 puntos extra cada uno
+        puntos += self.get_torneos_ganados() * 50
+        
+        # Bonus por win rate alto (>=75%) con al menos 5 partidos
+        partidos_jugados = self.get_partidos_jugados()['total']
+        if self.get_win_rate() >= 75 and partidos_jugados >= 5:
+            puntos += 20
+        
+        return puntos
