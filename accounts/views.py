@@ -67,79 +67,79 @@ class RankingJugadoresListView(ListView):
         for division in divisiones:
             # Obtener jugadores que tienen equipo en esta división
             jugadores_con_stats = CustomUser.objects.filter(
-                Q(equipo_jugador1__division=division) | Q(equipo_jugador2__division=division)
+                Q(equipos_como_jugador1__division=division) | Q(equipos_como_jugador2__division=division)
             ).distinct().annotate(
                 # Victorias como jugador1 en partidos de eliminación
                 victorias_j1_elim=Count(
-                    'equipo_jugador1__partidos_bracket_ganados',
-                    filter=Q(equipo_jugador1__partidos_bracket_ganados__isnull=False),
+                    'equipos_como_jugador1__partidos_bracket_ganados',
+                    filter=Q(equipos_como_jugador1__partidos_bracket_ganados__isnull=False),
                     distinct=True
                 ),
                 # Victorias como jugador1 en partidos de grupo
                 victorias_j1_grupo=Count(
-                    'equipo_jugador1__partidos_grupo_ganados',
-                    filter=Q(equipo_jugador1__partidos_grupo_ganados__isnull=False),
+                    'equipos_como_jugador1__partidos_grupo_ganados',
+                    filter=Q(equipos_como_jugador1__partidos_grupo_ganados__isnull=False),
                     distinct=True
                 ),
                 # Victorias como jugador2 en partidos de eliminación
                 victorias_j2_elim=Count(
-                    'equipo_jugador2__partidos_bracket_ganados',
-                    filter=Q(equipo_jugador2__partidos_bracket_ganados__isnull=False),
+                    'equipos_como_jugador2__partidos_bracket_ganados',
+                    filter=Q(equipos_como_jugador2__partidos_bracket_ganados__isnull=False),
                     distinct=True
                 ),
                 # Victorias como jugador2 en partidos de grupo
                 victorias_j2_grupo=Count(
-                    'equipo_jugador2__partidos_grupo_ganados',
-                    filter=Q(equipo_jugador2__partidos_grupo_ganados__isnull=False),
+                    'equipos_como_jugador2__partidos_grupo_ganados',
+                    filter=Q(equipos_como_jugador2__partidos_grupo_ganados__isnull=False),
                     distinct=True
                 ),
                 # Partidos jugados como jugador1 en eliminación
                 partidos_j1_elim_1=Count(
-                    'equipo_jugador1__partidos_bracket_e1',
-                    filter=Q(equipo_jugador1__partidos_bracket_e1__ganador__isnull=False),
+                    'equipos_como_jugador1__partidos_bracket_e1',
+                    filter=Q(equipos_como_jugador1__partidos_bracket_e1__ganador__isnull=False),
                     distinct=True
                 ),
                 partidos_j1_elim_2=Count(
-                    'equipo_jugador1__partidos_bracket_e2',
-                    filter=Q(equipo_jugador1__partidos_bracket_e2__ganador__isnull=False),
+                    'equipos_como_jugador1__partidos_bracket_e2',
+                    filter=Q(equipos_como_jugador1__partidos_bracket_e2__ganador__isnull=False),
                     distinct=True
                 ),
                 # Partidos jugados como jugador1 en grupo
                 partidos_j1_grupo_1=Count(
-                    'equipo_jugador1__partidos_grupo_e1',
-                    filter=Q(equipo_jugador1__partidos_grupo_e1__ganador__isnull=False),
+                    'equipos_como_jugador1__partidos_grupo_e1',
+                    filter=Q(equipos_como_jugador1__partidos_grupo_e1__ganador__isnull=False),
                     distinct=True
                 ),
                 partidos_j1_grupo_2=Count(
-                    'equipo_jugador1__partidos_grupo_e2',
-                    filter=Q(equipo_jugador1__partidos_grupo_e2__ganador__isnull=False),
+                    'equipos_como_jugador1__partidos_grupo_e2',
+                    filter=Q(equipos_como_jugador1__partidos_grupo_e2__ganador__isnull=False),
                     distinct=True
                 ),
                 # Partidos jugados como jugador2 en eliminación
                 partidos_j2_elim_1=Count(
-                    'equipo_jugador2__partidos_bracket_e1',
-                    filter=Q(equipo_jugador2__partidos_bracket_e1__ganador__isnull=False),
+                    'equipos_como_jugador2__partidos_bracket_e1',
+                    filter=Q(equipos_como_jugador2__partidos_bracket_e1__ganador__isnull=False),
                     distinct=True
                 ),
                 partidos_j2_elim_2=Count(
-                    'equipo_jugador2__partidos_bracket_e2',
-                    filter=Q(equipo_jugador2__partidos_bracket_e2__ganador__isnull=False),
+                    'equipos_como_jugador2__partidos_bracket_e2',
+                    filter=Q(equipos_como_jugador2__partidos_bracket_e2__ganador__isnull=False),
                     distinct=True
                 ),
                 # Partidos jugados como jugador2 en grupo
                 partidos_j2_grupo_1=Count(
-                    'equipo_jugador2__partidos_grupo_e1',
-                    filter=Q(equipo_jugador2__partidos_grupo_e1__ganador__isnull=False),
+                    'equipos_como_jugador2__partidos_grupo_e1',
+                    filter=Q(equipos_como_jugador2__partidos_grupo_e1__ganador__isnull=False),
                     distinct=True
                 ),
                 partidos_j2_grupo_2=Count(
-                    'equipo_jugador2__partidos_grupo_e2',
-                    filter=Q(equipo_jugador2__partidos_grupo_e2__ganador__isnull=False),
+                    'equipos_como_jugador2__partidos_grupo_e2',
+                    filter=Q(equipos_como_jugador2__partidos_grupo_e2__ganador__isnull=False),
                     distinct=True
                 ),
                 # Torneos ganados
-                torneos_j1=Count('equipo_jugador1__torneos_ganados', distinct=True),
-                torneos_j2=Count('equipo_jugador2__torneos_ganados', distinct=True),
+                torneos_j1=Count('equipos_como_jugador1__torneos_ganados', distinct=True),
+                torneos_j2=Count('equipos_como_jugador2__torneos_ganados', distinct=True),
             )
             
             # Procesar jugadores y calcular métricas
