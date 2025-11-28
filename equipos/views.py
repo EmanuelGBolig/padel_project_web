@@ -251,8 +251,19 @@ class RankingListView(ListView):
     context_object_name = 'rankings_por_division'
     
     def get_queryset(self):
+        from django.db.models import Count, Q, F, Case, When, IntegerField, FloatField, Value
+        from django.core.cache import cache
+        
         # Obtener división seleccionada del parámetro GET
         division_id = self.request.GET.get('division')
+        
+        # Crear clave de cache única
+        cache_key = f'rankings_{"all" if not division_id else f"div_{division_id}"}'
+        
+        # Intentar obtener del cache
+        cached_rankings = cache.get(cache_key)
+        if cached_rankings is not None:
+            return cached_rankings
         
         # Filtrar divisiones
         if division_id:
@@ -263,19 +274,85 @@ class RankingListView(ListView):
         rankings_por_division = []
         
         for division in divisiones:
-            equipos = Equipo.objects.filter(division=division).select_related('jugador1', 'jugador2', 'division')
+            # Usar agregación para calcular todo en una sola query
+            equipos_con_stats = Equipo.objects.filter(
+                division=division
+            ).select_related(
+                'jugador1', 'jugador2', 'division'
+            ).annotate(
+                # Contar victorias en partidos de eliminación
+                victorias_eliminacion=Count(
+                    'partidos_bracket_ganados',
+                    filter=Q(partidos_bracket_ganados__isnull=False),
+                    distinct=True
+                ),
+                # Contar victorias en partidos de grupo
+                victorias_grupo=Count(
+                    'partidos_grupo_ganados',
+                    filter=Q(partidos_grupo_ganados__isnull=False),
+                    distinct=True
+                ),
+                # Contar partidos jugados como equipo1 en eliminación
+                partidos_elim_1=Count(
+                    'partidos_bracket_e1',
+                    filter=Q(partidos_bracket_e1__ganador__isnull=False),
+                    distinct=True
+                ),
+                # Contar partidos jugados como equipo2 en eliminación
+                partidos_elim_2=Count(
+                    'partidos_bracket_e2',
+                    filter=Q(partidos_bracket_e2__ganador__isnull=False),
+                    distinct=True
+                ),
+                # Contar partidos jugados como equipo1 en grupo
+                partidos_grupo_1=Count(
+                    'partidos_grupo_e1',
+                    filter=Q(partidos_grupo_e1__ganador__isnull=False),
+                    distinct=True
+                ),
+                # Contar partidos jugados como equipo2 en grupo
+                partidos_grupo_2=Count(
+                    'partidos_grupo_e2',
+                    filter=Q(partidos_grupo_e2__ganador__isnull=False),
+                    distinct=True
+                ),
+                # Contar torneos ganados
+                torneos_ganados_count=Count(
+                    'torneos_ganados',
+                    distinct=True
+                )
+            )
             
-            # Calcular puntos para equipos de esta división
+            # Procesar equipos y calcular métricas
             equipos_con_puntos = []
-            for equipo in equipos:
-                puntos = equipo.get_puntos_ranking()
-                if puntos > 0:  # Solo equipos con actividad
+            for equipo in equipos_con_stats:
+                # Calcular totales
+                victorias_total = equipo.victorias_eliminacion + equipo.victorias_grupo
+                partidos_total = (equipo.partidos_elim_1 + equipo.partidos_elim_2 + 
+                                 equipo.partidos_grupo_1 + equipo.partidos_grupo_2)
+                
+                # Calcular win rate
+                if partidos_total > 0:
+                    win_rate = round((victorias_total / partidos_total) * 100, 1)
+                else:
+                    win_rate = 0
+                
+                # Calcular puntos de ranking
+                puntos = victorias_total * 3  # 3 puntos por victoria
+                puntos += equipo.torneos_ganados_count * 50  # 50 puntos por torneo ganado
+                
+                # Bonus por win rate alto
+                if win_rate >= 75 and partidos_total >= 5:
+                    puntos += 20
+                
+                # Solo incluir equipos con actividad
+                if puntos > 0:
                     equipos_con_puntos.append({
                         'equipo': equipo,
                         'puntos': puntos,
-                        'victorias': equipo.get_victorias(),
-                        'win_rate': equipo.get_win_rate(),
-                        'torneos_ganados': equipo.get_torneos_ganados()
+                        'victorias': victorias_total,
+                        'win_rate': win_rate,
+                        'torneos_ganados': equipo.torneos_ganados_count
                     })
             
             # Ordenar por puntos
@@ -291,6 +368,9 @@ class RankingListView(ListView):
                     'division': division,
                     'equipos': equipos_con_puntos
                 })
+        
+        # Guardar en cache por 5 minutos
+        cache.set(cache_key, rankings_por_division, 300)
         
         return rankings_por_division
     

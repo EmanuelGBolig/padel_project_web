@@ -140,6 +140,20 @@ USE_I18N = True  # <--- ¡CORREGIDO: DEBE SER I18N, NO I1N!
 USE_TZ = True
 
 
+# --- Cache Configuration ---
+# https://docs.djangoproject.com/en/5.0/topics/cache/
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'padel-rankings-cache',
+        'TIMEOUT': 300,  # 5 minutos por defecto
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+
 # --- Archivos Estáticos (Static files) ---
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
