@@ -171,6 +171,9 @@
                                                         {% get_team_display partido.equipo2 torneo %}
                                                     </span>
                                                 </div>
+                                                {% if partido.fecha_hora %}
+                                                    <div class="text-xs text-center mt-1 opacity-70 font-mono">{{ partido.fecha_hora|date:"d/m H:i" }}</div>
+                                                {% endif %}
                                                 {% if partido.ganador %}
                                                     <div class="text-xs text-center mt-1 text-primary font-bold">
                                                         Resultado: {{ partido.e1_sets_ganados }}-{{ partido.e2_sets_ganados }}
@@ -189,6 +192,19 @@
                                                 {% else %}
                                                     Cargar Resultado
                                                 {% endif %}
+                                            </button>
+                                            <button class="btn btn-sm btn-ghost text-info"
+                                                    hx-get="{% url 'torneos:schedule_partido_grupo' partido.pk %}"
+                                                    hx-target="#schedule_modal_content"
+                                                    onclick="schedule_modal.showModal()">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke-width="1.5"
+                                                     stroke="currentColor"
+                                                     class="w-5 h-5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0h18M5.25 12h13.5h-13.5v4.5h13.5" />
+                                                </svg>
                                             </button>
                                         </div>
                                     </div>
@@ -245,6 +261,9 @@
                                                         {% get_team_display partido.equipo2 torneo %}
                                                     </span>
                                                 </div>
+                                                {% if partido.fecha_hora %}
+                                                    <div class="text-xs text-center mt-1 opacity-70 font-mono">{{ partido.fecha_hora|date:"d/m H:i" }}</div>
+                                                {% endif %}
                                                 {% if partido.ganador %}
                                                     <div class="text-xs text-center mt-1 text-primary font-bold">{{ partido.resultado }}</div>
                                                 {% endif %}
@@ -261,6 +280,19 @@
                                                     {% else %}
                                                         Cargar Resultado
                                                     {% endif %}
+                                                </button>
+                                                <button class="btn btn-sm btn-ghost text-info"
+                                                        hx-get="{% url 'torneos:schedule_partido' partido.pk %}"
+                                                        hx-target="#schedule_modal_content"
+                                                        onclick="schedule_modal.showModal()">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         fill="none"
+                                                         viewBox="0 0 24 24"
+                                                         stroke-width="1.5"
+                                                         stroke="currentColor"
+                                                         class="w-5 h-5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0h18M5.25 12h13.5h-13.5v4.5h13.5" />
+                                                    </svg>
                                                 </button>
                                             {% else %}
                                                 <p class="text-sm opacity-50 italic">Esperando rivales...</p>
@@ -285,6 +317,17 @@
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button></button>
+            </form>
+        </dialog>
+        <!-- SCHEDULE MODAL -->
+        <dialog id="schedule_modal" class="modal">
+            <div id="schedule_modal_content" class="modal-box">
+                <div class="p-10 flex justify-center">
+                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
             </form>
         </dialog>
         <script>

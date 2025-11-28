@@ -1,4 +1,12 @@
 {% load torneo_extras %}
+{% load torneo_extras %}
+{% if partido.fecha_hora %}
+    <div class="absolute -top-3 left-0 right-0 flex justify-center z-20">
+        <span class="badge badge-xs badge-neutral font-mono text-[9px] opacity-90 shadow-sm border border-base-300">
+            {{ partido.fecha_hora|date:"d/m H:i" }}
+        </span>
+    </div>
+{% endif %}
 <!-- EQUIPO 1 -->
 <div class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
     <span>

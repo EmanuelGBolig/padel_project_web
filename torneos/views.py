@@ -20,6 +20,8 @@ from .forms import (
     CargarResultadoForm,
     InscripcionForm,
     PartidoResultadoForm,
+    PartidoGrupoScheduleForm,
+    PartidoScheduleForm,
 )
 from equipos.models import Equipo
 
@@ -315,6 +317,41 @@ class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
     form_class = PartidoResultadoForm
     template_name = 'torneos/admin_partido_form.html'
     context_object_name = 'partido'
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'torneos:admin_manage', kwargs={'pk': self.object.torneo.pk}
+        )
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse('<script>window.location.reload();</script>')
+        return response
+
+
+
+class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
+    model = PartidoGrupo
+    form_class = PartidoGrupoScheduleForm
+    template_name = 'torneos/schedule_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'torneos:admin_manage', kwargs={'pk': self.object.grupo.torneo.pk}
+        )
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse('<script>window.location.reload();</script>')
+        return response
+
+
+class SchedulePartidoView(AdminRequiredMixin, UpdateView):
+    model = Partido
+    form_class = PartidoScheduleForm
+    template_name = 'torneos/schedule_form.html'
 
     def get_success_url(self):
         return reverse_lazy(

@@ -239,3 +239,37 @@ class InscripcionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget = forms.HiddenInput()
+
+
+class PartidoGrupoScheduleForm(forms.ModelForm):
+    class Meta:
+        model = PartidoGrupo
+        fields = ['fecha_hora']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(
+                attrs={'type': 'datetime-local', 'class': 'input input-bordered w-full'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.fecha_hora:
+            self.initial['fecha_hora'] = self.instance.fecha_hora.strftime('%Y-%m-%dT%H:%M')
+
+
+class PartidoScheduleForm(forms.ModelForm):
+    class Meta:
+        model = Partido
+        fields = ['fecha_hora']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(
+                attrs={'type': 'datetime-local', 'class': 'input input-bordered w-full'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.fecha_hora:
+            self.initial['fecha_hora'] = self.instance.fecha_hora.strftime('%Y-%m-%dT%H:%M')

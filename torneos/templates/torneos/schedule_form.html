@@ -1,0 +1,22 @@
+<h3 class="font-bold text-lg mb-4">Programar Partido</h3>
+<form method="post"
+      action="{{ request.path }}"
+      hx-post="{{ request.path }}"
+      hx-target="#schedule_modal_content">
+    {% csrf_token %}
+    <div class="form-control w-full">
+        <label class="label">
+            <span class="label-text">Fecha y Hora</span>
+        </label>
+        {{ form.fecha_hora }}
+        {% if form.fecha_hora.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.fecha_hora.errors.0 }}</span>
+            </label>
+        {% endif %}
+    </div>
+    <div class="modal-action">
+        <button type="button" class="btn" onclick="schedule_modal.close()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </div>
+</form>

@@ -122,6 +122,11 @@
                                             <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
                                             <div class="badge badge-warning badge-xs font-bold">PENDIENTE</div>
                                         </div>
+                                        {% if partido.obj.fecha_hora %}
+                                            <div class="text-[10px] text-center opacity-70 font-mono bg-base-200 rounded py-0.5">
+                                                {{ partido.obj.fecha_hora|date:"d/m H:i" }}
+                                            </div>
+                                        {% endif %}
                                         <div class="flex items-center justify-between gap-2 mt-1">
                                             <!-- Mi Equipo -->
                                             <div class="flex-1 text-center">
@@ -270,34 +275,39 @@
                         <!-- PARTIDOS DEL GRUPO -->
                         <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
                             {% for partido in grupo.partidos_grupo.all %}
-                                <div class="text-[10px] bg-base-200/50 rounded px-2 py-1">
-                                    <span class="opacity-70">Resultado de</span>
-                                    <!-- EQUIPO 1 -->
-                                    <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
-                                        {% if partido.equipo1 %}
-                                            {% get_team_info partido.equipo1 torneo as team_info %}
-                                            {{ team_info.code }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </span>
-                                    <span class="mx-0.5">vs</span>
-                                    <!-- EQUIPO 2 -->
-                                    <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
-                                        {% if partido.equipo2 %}
-                                            {% get_team_info partido.equipo2 torneo as team_info %}
-                                            {{ team_info.code }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </span>
-                                    <span class="mx-1">=</span>
-                                    <!-- RESULTADO -->
-                                    {% if partido.resultado %}
-                                        <span class="font-mono font-bold text-success">{{ partido.resultado }}</span>
-                                    {% else %}
-                                        <span class="opacity-30 italic">Pendiente</span>
+                                <div class="text-[10px] bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
+                                    {% if partido.fecha_hora %}
+                                        <span class="text-[9px] opacity-50 font-mono text-center mb-0.5">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
                                     {% endif %}
+                                    <div class="flex justify-between items-center">
+                                        <span class="opacity-70">Resultado de</span>
+                                        <!-- EQUIPO 1 -->
+                                        <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                            {% if partido.equipo1 %}
+                                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                                {{ team_info.code }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </span>
+                                        <span class="mx-0.5">vs</span>
+                                        <!-- EQUIPO 2 -->
+                                        <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                            {% if partido.equipo2 %}
+                                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                                {{ team_info.code }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </span>
+                                        <span class="mx-1">=</span>
+                                        <!-- RESULTADO -->
+                                        {% if partido.resultado %}
+                                            <span class="font-mono font-bold text-success">{{ partido.resultado }}</span>
+                                        {% else %}
+                                            <span class="opacity-30 italic">Pendiente</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>

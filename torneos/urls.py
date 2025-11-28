@@ -48,6 +48,16 @@ urlpatterns = [
         views.CargarResultadoGrupoView.as_view(),
         name='cargar_resultado_grupo',
     ),
+    path(
+        'admin/partido-grupo/<int:pk>/schedule/',
+        views.SchedulePartidoGrupoView.as_view(),
+        name='schedule_partido_grupo',
+    ),
+    path(
+        'admin/partido/<int:pk>/schedule/',
+        views.SchedulePartidoView.as_view(),
+        name='schedule_partido',
+    ),
     # Utilidad: Crear torneo de prueba
     path(
         'admin/crear-torneo-prueba/',

@@ -146,6 +146,9 @@ class PartidoGrupo(models.Model):
     e1_set3 = models.PositiveSmallIntegerField(null=True, blank=True)
     e2_set3 = models.PositiveSmallIntegerField(null=True, blank=True)
 
+    # Fecha y Hora del Partido
+    fecha_hora = models.DateTimeField(null=True, blank=True)
+
     ganador = models.ForeignKey(
         Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name="partidos_grupo_ganados"
     )
@@ -210,6 +213,9 @@ class Partido(models.Model):
 
     # Resultado en texto (Ej: "6-4, 6-2")
     resultado = models.CharField(max_length=100, blank=True, null=True)
+
+    # Fecha y Hora del Partido
+    fecha_hora = models.DateTimeField(null=True, blank=True)
 
     # NUEVOS CAMPOS: Para guardar el detalle de sets en el bracket
     sets_local = models.JSONField(default=list, blank=True)
