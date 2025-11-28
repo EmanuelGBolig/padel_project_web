@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Eliminar Torneo{% endblock %}
+{% block content %}
+    <div class="flex justify-center items-center min-h-[60vh]">
+        <div class="card w-96 bg-base-100 shadow-xl border border-error">
+            <div class="card-body items-center text-center">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-16 w-16 text-error mb-4"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h2 class="card-title text-error">¿Eliminar Torneo?</h2>
+                <p class="py-4">
+                    Estás a punto de eliminar el torneo <strong>"{{ object.nombre }}"</strong>.
+                </p>
+                <div class="alert alert-warning text-sm text-left mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Esta acción es irreversible. Se borrarán todos los partidos, grupos e inscripciones asociados.</span>
+                </div>
+                <form method="post" class="card-actions justify-end w-full">
+                    {% csrf_token %}
+                    <a href="{% url 'torneos:admin_list' %}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-error text-white">Sí, Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -28,6 +28,11 @@ urlpatterns = [
         name='admin_editar',
     ),
     path(
+        'admin/<int:pk>/eliminar/',
+        views.AdminTorneoDeleteView.as_view(),
+        name='admin_eliminar',
+    ),
+    path(
         'admin/<int:pk>/gestionar/',
         views.AdminTorneoManageView.as_view(),
         name='admin_manage',

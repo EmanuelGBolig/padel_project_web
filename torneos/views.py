@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -350,6 +350,7 @@ class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
         return context
 
 
+
 class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
     model = Torneo
     form_class = TorneoAdminForm
@@ -362,6 +363,18 @@ class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['titulo'] = f"Editar Torneo: {self.object.nombre}"
         return context
+
+
+class AdminTorneoDeleteView(AdminRequiredMixin, DeleteView):
+    model = Torneo
+    success_url = reverse_lazy('torneos:admin_list')
+    template_name = 'torneos/admin_torneo_confirm_delete.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f"Eliminar Torneo: {self.object.nombre}"
+        return context
+
 
 
 class TorneoDetailView(DetailView):

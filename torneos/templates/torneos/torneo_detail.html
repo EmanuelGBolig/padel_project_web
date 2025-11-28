@@ -1,255 +1,229 @@
 ﻿{% extends "base.html" %}
 {% load torneo_extras %}
-
 {% block title %}{{ torneo.nombre }}{% endblock %}
-
 {% block content %}
-<div class="space-y-8">
-
-    <!-- HERO -->
-    <div class="hero bg-base-100 rounded-xl shadow-lg border-t-4 border-primary">
-        <div class="hero-content flex-col text-center py-8 w-full">
-
-            <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
-
-            <div class="max-w-md w-full">
-                <div class="flex justify-center gap-2 mt-2">
-                    <div class="badge badge-lg badge-secondary">{{ torneo.division.nombre }}</div>
-                    <div class="badge badge-lg badge-outline">{{ torneo.get_estado_display }}</div>
-                </div>
-
-                {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
-                <div class="mt-4">
-                    <p class="text-success font-semibold text-lg">
-                        Ganador: {{ torneo.ganador_del_torneo.nombre }}
-                    </p>
-                </div>
-                {% endif %}
-
-                {% if puede_inscribirse %}
-                <div class="mt-8">
-                    <p class="mb-4 text-success font-medium">
-                        ¡Tu equipo <strong>{{ equipo.nombre }}</strong> puede participar!
-                    </p>
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
-                        Inscribirse Ahora
-                    </a>
-                    {% else %}
-                    <button onclick="login_required_modal.showModal()" class="btn btn-primary btn-wide shadow-lg">
-                        Inscribirse Ahora
-                    </button>
-                    {% endif %}
-                </div>
-
-                {% elif not ya_inscrito and torneo.estado == 'AB' %}
-                <div class="mt-8">
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'torneos:inscribirse' torneo.pk %}" class="btn btn-primary btn-wide shadow-lg">
-                        Inscribirse Ahora
-                    </a>
-                    {% else %}
-                    <button onclick="login_required_modal.showModal()" class="btn btn-primary btn-wide shadow-lg">
-                        Inscribirse Ahora
-                    </button>
-                    {% endif %}
-                </div>
-
-                {% elif ya_inscrito %}
-                <div class="mt-6">
-                    {% if torneo.estado != 'AB' %}
-                    {% get_team_info equipo torneo as my_team_info %}
-                    <div class="bg-primary/10 text-primary rounded-lg p-3 border border-primary/20 inline-block">
-                        <span class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Tu Equipo</span>
-                        <span class="text-2xl font-black">{{ my_team_info.code }}</span>
+    <div class="space-y-8">
+        <!-- HERO -->
+        <div class="hero bg-base-100 rounded-xl shadow-lg border-t-4 border-primary">
+            <div class="hero-content flex-col text-center py-8 w-full">
+                <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
+                <div class="max-w-md w-full">
+                    <div class="flex justify-center gap-2 mt-2">
+                        <div class="badge badge-lg badge-secondary">{{ torneo.division.nombre }}</div>
+                        <div class="badge badge-lg badge-outline">{{ torneo.get_estado_display }}</div>
                     </div>
-                    {% else %}
-                    <div class="alert alert-success shadow-sm mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>¡Inscripción confirmada!</span>
-                    </div>
-
-                    <!-- Botón Cancelar Inscripción -->
-                    <button class="btn btn-outline btn-error btn-sm" onclick="cancel_inscription_modal.showModal()">
-                        Cancelar Inscripción
-                    </button>
-
-                    <!-- Modal de Confirmación -->
-                    <dialog id="cancel_inscription_modal" class="modal modal-bottom sm:modal-middle">
-                        <div class="modal-box">
-                            <h3 class="font-bold text-lg text-error">¿Cancelar Inscripción?</h3>
-                            <p class="py-4">¿Estás seguro de que quieres cancelar tu inscripción a <span
-                                    class="font-bold">{{ torneo.nombre }}</span>? <br>Esta acción liberará tu cupo
-                                inmediatamente.</p>
-                            <div class="modal-action">
-                                <form method="dialog">
-                                    <!-- if there is a button in form, it will close the modal -->
-                                    <button class="btn">No, mantener</button>
-                                </form>
-                                <form action="{% url 'torneos:cancelar_inscripcion' torneo.pk %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-error">Sí, cancelar inscripción</button>
-                                </form>
-                            </div>
+                    {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
+                        <div class="mt-4">
+                            <p class="text-success font-semibold text-lg">Ganador: {{ torneo.ganador_del_torneo.nombre }}</p>
                         </div>
-                        <form method="dialog" class="modal-backdrop">
-                            <button>close</button>
-                        </form>
-                    </dialog>
+                    {% endif %}
+                    {% if puede_inscribirse %}
+                        <div class="mt-8">
+                            <p class="mb-4 text-success font-medium">
+                                ¡Tu equipo <strong>{{ equipo.nombre }}</strong> puede participar!
+                            </p>
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'torneos:inscribirse' torneo.pk %}"
+                                   class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</a>
+                            {% else %}
+                                <button onclick="login_required_modal.showModal()"
+                                        class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</button>
+                            {% endif %}
+                        </div>
+                    {% elif not ya_inscrito and torneo.estado == 'AB' %}
+                        <div class="mt-8">
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'torneos:inscribirse' torneo.pk %}"
+                                   class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</a>
+                            {% else %}
+                                <button onclick="login_required_modal.showModal()"
+                                        class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</button>
+                            {% endif %}
+                        </div>
+                    {% elif ya_inscrito %}
+                        <div class="mt-6">
+                            {% if torneo.estado != 'AB' %}
+                                {% get_team_info equipo torneo as my_team_info %}
+                                <div class="bg-primary/10 text-primary rounded-lg p-3 border border-primary/20 inline-block">
+                                    <span class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Tu Equipo</span>
+                                    <span class="text-2xl font-black">{{ my_team_info.code }}</span>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-success shadow-sm mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="stroke-current shrink-0 h-6 w-6"
+                                         fill="none"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>¡Inscripción confirmada!</span>
+                                </div>
+                                <!-- Botón Cancelar Inscripción -->
+                                <button class="btn btn-outline btn-error btn-sm"
+                                        onclick="cancel_inscription_modal.showModal()">Cancelar Inscripción</button>
+                                <!-- Modal de Confirmación -->
+                                <dialog id="cancel_inscription_modal"
+                                        class="modal modal-bottom sm:modal-middle">
+                                    <div class="modal-box">
+                                        <h3 class="font-bold text-lg text-error">¿Cancelar Inscripción?</h3>
+                                        <p class="py-4">
+                                            ¿Estás seguro de que quieres cancelar tu inscripción a <span class="font-bold">{{ torneo.nombre }}</span>?
+                                            <br>
+                                            Esta acción liberará tu cupo
+                                            inmediatamente.
+                                        </p>
+                                        <div class="modal-action">
+                                            <form method="dialog">
+                                                <!-- if there is a button in form, it will close the modal -->
+                                                <button class="btn">No, mantener</button>
+                                            </form>
+                                            <form action="{% url 'torneos:cancelar_inscripcion' torneo.pk %}"
+                                                  method="post">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-error">Sí, cancelar inscripción</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <form method="dialog" class="modal-backdrop">
+                                        <button>close</button>
+                                    </form>
+                                </dialog>
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
-</div>
-
-<!-- Dropdown Mis Partidos (Relocated) -->
-{% if ya_inscrito %}
-<div class="w-full px-0 md:px-0 md:flex md:justify-end mt-4 mb-6">
-    <details class="dropdown dropdown-bottom md:dropdown-end w-full md:w-auto" id="mis-partidos-dropdown">
-        <summary class="btn btn-primary gap-2 shadow-lg animate-pulse hover:animate-none w-full md:w-auto">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            Mis Partidos
-        </summary>
-        <ul
-            class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-96 mt-2 border border-base-200">
-            <!-- Partidos Pendientes -->
-            {% if mis_partidos_pendientes %}
-            <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">
-                Por Jugar</h3>
-            {% for partido in mis_partidos_pendientes %}
-            <li class="mb-2">
-                <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex flex-col gap-2 w-full">
-                        <div class="flex justify-between items-center text-xs opacity-60">
-                            <span class="font-bold uppercase tracking-wider">
-                                {{ partido.contexto }}
-                            </span>
-                            <div class="badge badge-warning badge-xs font-bold">
-                                PENDIENTE</div>
-                        </div>
-
-                        <div class="flex items-center justify-between gap-2 mt-1">
-                            <!-- Mi Equipo -->
-                            <div class="flex-1 text-center">
-                                <span class="font-bold text-primary break-words leading-tight block min-w-0">
-                                    {% get_team_info equipo torneo as my_team %}
-                                    {{ my_team.name }}
-                                </span>
-                            </div>
-
-                            <div class="font-black text-base-content/30 text-xs px-2">VS
-                            </div>
-
-                            <!-- Rival -->
-                            <div class="flex-1 text-center">
-                                <span class="font-bold text-base-content break-words leading-tight block min-w-0">
-                                    {% if partido.rival %}
-                                    {% get_team_info partido.rival torneo as rival %}
-                                    {{ rival.name }}
-                                    {% else %}
-                                    <span class="italic opacity-50">Por definir</span>
-                                    {% endif %}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </li>
-            {% endfor %}
-            {% endif %}
-
-            <!-- Partidos Jugados -->
-            {% if mis_partidos_jugados %}
-            <h3
-                class="font-bold text-sm uppercase tracking-wider text-success mb-2 px-1 {% if mis_partidos_pendientes %}border-t border-base-200 pt-4{% endif %}">
-                Jugados</h3>
-            {% for partido in mis_partidos_jugados %}
-            <li class="mb-2">
-                <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex flex-col gap-2 w-full">
-                        <div class="flex justify-between items-center text-xs opacity-60">
-                            <span class="font-bold uppercase tracking-wider">
-                                {{ partido.contexto }}
-                            </span>
-                            <div class="flex items-center gap-1">
-                                <div
-                                    class="w-2 h-2 rounded-full {% if partido.obj.ganador == equipo %}bg-success{% else %}bg-error{% endif %}">
+    <!-- Dropdown Mis Partidos (Relocated) -->
+    {% if ya_inscrito %}
+        <div class="w-full px-0 md:px-0 md:flex md:justify-end mt-4 mb-6">
+            <details class="dropdown dropdown-bottom md:dropdown-end w-full md:w-auto"
+                     id="mis-partidos-dropdown">
+                <summary class="btn btn-primary gap-2 shadow-lg animate-pulse hover:animate-none w-full md:w-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    Mis Partidos
+                </summary>
+                <ul class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-96 mt-2 border border-base-200">
+                    <!-- Partidos Pendientes -->
+                    {% if mis_partidos_pendientes %}
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">Por Jugar</h3>
+                        {% for partido in mis_partidos_pendientes %}
+                            <li class="mb-2">
+                                <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
+                                    <div class="flex flex-col gap-2 w-full">
+                                        <div class="flex justify-between items-center text-xs opacity-60">
+                                            <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
+                                            <div class="badge badge-warning badge-xs font-bold">PENDIENTE</div>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-2 mt-1">
+                                            <!-- Mi Equipo -->
+                                            <div class="flex-1 text-center">
+                                                <span class="font-bold text-primary break-words leading-tight block min-w-0">
+                                                    {% get_team_info equipo torneo as my_team %}
+                                                    {{ my_team.name }}
+                                                </span>
+                                            </div>
+                                            <div class="font-black text-base-content/30 text-xs px-2">VS</div>
+                                            <!-- Rival -->
+                                            <div class="flex-1 text-center">
+                                                <span class="font-bold text-base-content break-words leading-tight block min-w-0">
+                                                    {% if partido.rival %}
+                                                        {% get_team_info partido.rival torneo as rival %}
+                                                        {{ rival.name }}
+                                                    {% else %}
+                                                        <span class="italic opacity-50">Por definir</span>
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span
-                                    class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-error{% endif %}">
-                                    {% if partido.obj.ganador == equipo %}VICTORIA{% else %}DERROTA{% endif %}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center justify-between gap-2 mt-1">
-                            <!-- Mi Equipo -->
-                            <div class="flex-1 text-center">
-                                <span
-                                    class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
-                                    {% get_team_info equipo torneo as my_team %}
-                                    {{ my_team.name }}
-                                </span>
-                            </div>
-
-                            <!-- Resultado -->
-                            <div class="flex flex-col items-center justify-center px-2">
-                                <div class="flex gap-1 flex-wrap justify-center">
-                                    {% if partido.resultado %}
-                                    {% with sets=partido.resultado|split:"," %}
-                                    {% for set_score in sets %}
-                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
-                                    {% endfor %}
-                                    {% endwith %}
-                                    {% endif %}
+                            </li>
+                        {% endfor %}
+                    {% endif %}
+                    <!-- Partidos Jugados -->
+                    {% if mis_partidos_jugados %}
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-success mb-2 px-1 {% if mis_partidos_pendientes %}border-t border-base-200 pt-4{% endif %}">
+                            Jugados
+                        </h3>
+                        {% for partido in mis_partidos_jugados %}
+                            <li class="mb-2">
+                                <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
+                                    <div class="flex flex-col gap-2 w-full">
+                                        <div class="flex justify-between items-center text-xs opacity-60">
+                                            <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
+                                            <div class="flex items-center gap-1">
+                                                <div class="w-2 h-2 rounded-full {% if partido.obj.ganador == equipo %}bg-success{% else %}bg-error{% endif %}"></div>
+                                                <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-error{% endif %}">
+                                                    {% if partido.obj.ganador == equipo %}
+                                                        VICTORIA
+                                                    {% else %}
+                                                        DERROTA
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-2 mt-1">
+                                            <!-- Mi Equipo -->
+                                            <div class="flex-1 text-center">
+                                                <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
+                                                    {% get_team_info equipo torneo as my_team %}
+                                                    {{ my_team.name }}
+                                                </span>
+                                            </div>
+                                            <!-- Resultado -->
+                                            <div class="flex flex-col items-center justify-center px-2">
+                                                <div class="flex gap-1 flex-wrap justify-center">
+                                                    {% if partido.resultado %}
+                                                        {% with sets=partido.resultado|split:"," %}
+                                                            {% for set_score in sets %}
+                                                                <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
+                                                            {% endfor %}
+                                                        {% endwith %}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <!-- Rival -->
+                                            <div class="flex-1 text-center">
+                                                <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
+                                                    {% if partido.rival %}
+                                                        {% get_team_info partido.rival torneo as rival %}
+                                                        {{ rival.name }}
+                                                    {% else %}
+                                                        {% get_team_info partido.equipo1 torneo as rival %}
+                                                        {{ rival.name }}
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <!-- Rival -->
-                            <div class="flex-1 text-center">
-                                <span
-                                    class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
-                                    {% if partido.rival %}
-                                    {% get_team_info partido.rival torneo as rival %}
-                                    {{ rival.name }}
-                                    {% else %}
-                                    {% get_team_info partido.equipo1 torneo as rival %}
-                                    {{ rival.name }}
-                                    {% endif %}
-                                </span>
-                            </div>
+                            </li>
+                        {% endfor %}
+                    {% endif %}
+                    {% if not mis_partidos_pendientes and not mis_partidos_jugados %}
+                        <div class="text-center py-8 opacity-50">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-12 w-12 mx-auto mb-2 opacity-50"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <p class="text-sm">No tienes partidos asignados aún.</p>
                         </div>
-                    </div>
-                </div>
-            </li>
-            {% endfor %}
-            {% endif %}
-
-            {% if not mis_partidos_pendientes and not mis_partidos_jugados %}
-            <div class="text-center py-8 opacity-50">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-50" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <p class="text-sm">No tienes partidos asignados aún.</p>
-            </div>
-            {% endif %}
-        </ul>
-    </details>
-</div>
-
-<script>
+                    {% endif %}
+                </ul>
+            </details>
+        </div>
+        <script>
     // Close dropdown when clicking outside
     document.addEventListener('click', function (event) {
         const dropdown = document.getElementById('mis-partidos-dropdown');
@@ -259,297 +233,246 @@
             }
         }
     });
-</script>
-{% endif %}
-
-<!-- GRUPOS -->
-{% if grupos %}
-<h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left text-base-content">
-    Fase de Grupos</h2>
-
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-    {% for grupo in grupos %}
-    <div class="card bg-base-100 shadow-sm border border-base-200 compact">
-        <div class="card-body p-0">
-
-            <div
-                class="bg-neutral text-neutral-content p-2 text-center font-bold uppercase tracking-wider rounded-t-xl">
-                {{ grupo.nombre }}
-            </div>
-
-            <table class="table table-xs w-full">
-                <thead>
-                    <tr class="text-base-content/60">
-                        <th class="pl-4">Equipo</th>
-                        <th class="text-center">PG</th>
-                        <th class="text-center">DS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in grupo.tabla.all %}
-                    <tr
-                        class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                        <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
-                            <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
-                            {% get_team_info item.equipo torneo as team_info %}
-                            <span class="tooltip tooltip-top cursor-help z-50" data-tip="{{ team_info.name }}"
-                                title="{{ team_info.name }}">
-                                {{ team_info.code }}
-                            </span>
-                        </td>
-                        <td class="text-center font-bold">{{ item.partidos_ganados }}
-                        </td>
-                        <td class="text-center opacity-60">{{ item.diferencia_sets }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <!-- PARTIDOS DEL GRUPO -->
-            <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
-                {% for partido in grupo.partidos_grupo.all %}
-                <div class="text-[10px] bg-base-200/50 rounded px-2 py-1">
-                    <span class="opacity-70">Resultado de </span>
-
-                    <!-- EQUIPO 1 -->
-                    <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
-                        {% if partido.equipo1 %}
-                        {% get_team_info partido.equipo1 torneo as team_info %}
-                        {{ team_info.code }}
-                        {% else %}-{% endif %}
-                    </span>
-
-                    <span class="mx-0.5">vs</span>
-
-                    <!-- EQUIPO 2 -->
-                    <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
-                        {% if partido.equipo2 %}
-                        {% get_team_info partido.equipo2 torneo as team_info %}
-                        {{ team_info.code }}
-                        {% else %}-{% endif %}
-                    </span>
-
-                    <span class="mx-1">=</span>
-
-                    <!-- RESULTADO -->
-                    {% if partido.resultado %}
-                    <span class="font-mono font-bold text-success">
-                        {{ partido.resultado }}
-                    </span>
-                    {% else %}
-                    <span class="opacity-30 italic">Pendiente</span>
-                    {% endif %}
-
+        </script>
+    {% endif %}
+    <!-- GRUPOS -->
+    {% if grupos %}
+        <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left text-base-content">Fase de Grupos</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            {% for grupo in grupos %}
+                <div class="card bg-base-100 shadow-sm border border-base-200 compact">
+                    <div class="card-body p-0">
+                        <div class="bg-neutral text-neutral-content p-2 text-center font-bold uppercase tracking-wider rounded-t-xl">
+                            {{ grupo.nombre }}
+                        </div>
+                        <table class="table table-xs w-full">
+                            <thead>
+                                <tr class="text-base-content/60">
+                                    <th class="pl-4">Equipo</th>
+                                    <th class="text-center">PG</th>
+                                    <th class="text-center">DS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in grupo.tabla.all %}
+                                    <tr class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
+                                        <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
+                                            <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
+                                            {% get_team_info item.equipo torneo as team_info %}
+                                            <span class="truncate max-w-[120px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                        </td>
+                                        <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
+                                        <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <!-- PARTIDOS DEL GRUPO -->
+                        <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
+                            {% for partido in grupo.partidos_grupo.all %}
+                                <div class="text-[10px] bg-base-200/50 rounded px-2 py-1">
+                                    <span class="opacity-70">Resultado de</span>
+                                    <!-- EQUIPO 1 -->
+                                    <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                        {% if partido.equipo1 %}
+                                            {% get_team_info partido.equipo1 torneo as team_info %}
+                                            {{ team_info.code }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </span>
+                                    <span class="mx-0.5">vs</span>
+                                    <!-- EQUIPO 2 -->
+                                    <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                        {% if partido.equipo2 %}
+                                            {% get_team_info partido.equipo2 torneo as team_info %}
+                                            {{ team_info.code }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </span>
+                                    <span class="mx-1">=</span>
+                                    <!-- RESULTADO -->
+                                    {% if partido.resultado %}
+                                        <span class="font-mono font-bold text-success">{{ partido.resultado }}</span>
+                                    {% else %}
+                                        <span class="opacity-30 italic">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-
-
-<!-- BRACKET -->
-{% if partidos_eliminacion %}
-<h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">
-    Cuadro Final
-</h2>
-
-<!-- MOBILE: Vertical stacked phases with horizontal scrolling matches -->
-<div class="md:hidden space-y-6 pb-6">
-    {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
-
-    {% for ronda in rondas_list %}
-    <div>
-        <!-- NOMBRE DE LA RONDA -->
-        <h3 class="text-center font-bold uppercase tracking-wide text-xs text-primary mb-3 px-4">
-            {% if ronda.grouper == total_rondas %}
-            <span class="flex items-center justify-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                    stroke="currentColor" class="size-6">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" />
-                </svg>
-
-                FINAL
-            </span>
-            {% elif ronda.grouper == total_rondas|add:"-1" %}
-            SEMIFINAL
-            {% elif ronda.grouper == total_rondas|add:"-2" %}
-            CUARTOS
-            {% elif ronda.grouper == total_rondas|add:"-3" %}
-            OCTAVOS
-            {% else %}
-            16VOS
-            {% endif %}
-        </h3>
-
-        <!-- PARTIDOS - Horizontal scroll -->
-        <div class="flex gap-2 overflow-x-auto pb-2 justify-center md:justify-start px-4">
-            {% for partido in ronda.list %}
-            <div class="card bg-base-100 shadow border border-base-200 min-w-[100px] max-w-[100px] shrink-0">
-                <div class="card-body p-2">
-                    <!-- Teams -->
-                    <div class="flex items-center justify-center gap-2 mb-1">
-                        <span
-                            class="text-sm font-bold {% if partido.ganador == partido.equipo1 %}text-success{% elif partido.equipo1 == equipo %}text-primary{% endif %}">
-                            {% if partido.equipo1 %}
-                            {% get_team_info partido.equipo1 torneo as team_info %}
-                            <span class="tooltip tooltip-top cursor-help z-50" data-tip="{{ team_info.name }}"
-                                tabindex="0">
-                                {{ team_info.code }}
-                            </span>
-                            {% else %}?{% endif %}
-                        </span>
-                        <span class="text-xs font-bold opacity-30">|</span>
-                        <span
-                            class="text-sm font-bold {% if partido.ganador == partido.equipo2 %}text-success{% elif partido.equipo2 == equipo %}text-primary{% endif %}">
-                            {% if partido.equipo2 %}
-                            {% get_team_info partido.equipo2 torneo as team_info %}
-                            <span class="tooltip tooltip-top cursor-help z-50" data-tip="{{ team_info.name }}"
-                                tabindex="0">
-                                {{ team_info.code }}
-                            </span>
-                            {% else %}?{% endif %}
-                        </span>
-                    </div>
-
-                    <!-- Score - stacked vertically -->
-                    {% if partido.resultado %}
-                    <div class="text-center text-xs font-mono opacity-60 leading-tight">
-                        {% with sets=partido.resultado|split:"," %}
-                        {% for set_score in sets %}
-                        <div>{{ set_score }}</div>
-                        {% endfor %}
-                        {% endwith %}
-                    </div>
-                    {% endif %}
-
-                    <!-- Divider -->
-                    <div class="divider my-0.5"></div>
-
-                    <!-- Winner -->
-                    {% if partido.ganador %}
-                    <div class="text-center text-base font-bold text-success">
-                        {% get_team_info partido.ganador torneo as winner_info %}
-                        {{ winner_info.code }}
-                    </div>
-                    {% else %}
-                    <div class="text-center text-xs opacity-40">
-                        ...
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
             {% endfor %}
         </div>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- DESKTOP: Horizontal bracket -->
-<div class="hidden md:block overflow-x-auto pb-6">
-    <div class="flex gap-8 min-w-max px-4">
-
-        {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
-
-        {% for ronda in rondas_list %}
-        <div class="flex flex-col min-w-[200px] gap-6">
-
-            <!-- NOMBRE DE LA RONDA -->
-            <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
-                {% if ronda.grouper == total_rondas %}
-                Final
-                {% elif ronda.grouper == total_rondas|add:"-1" %}
-                Semifinal
-                {% elif ronda.grouper == total_rondas|add:"-2" %}
-                Cuartos
-                {% elif ronda.grouper == total_rondas|add:"-3" %}
-                Octavos
-                {% elif ronda.grouper == total_rondas|add:"-4" %}
-                16vos
-                {% else %}
-                Ronda {{ ronda.grouper }}
-                {% endif %}
-            </div>
-
-            <!-- PARTIDOS -->
-            <div class="flex flex-col justify-around flex-grow gap-4">
-                {% for partido in ronda.list %}
-                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-
-                    <!-- EQUIPO 1 -->
-                    <div
-                        class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-                        <span>
-                            {% if partido.equipo1 %}
-                            {% get_team_info partido.equipo1 torneo as team_info %}
-                            <span class="tooltip tooltip-right cursor-help z-50" data-tip="{{ team_info.name }}"
-                                tabindex="0">
-                                {{ team_info.code }}
+    {% endif %}
+    <!-- BRACKET -->
+    {% if partidos_eliminacion %}
+        <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">
+            Cuadro Final
+        </h2>
+        <!-- MOBILE: Vertical stacked phases with horizontal scrolling matches -->
+        <div class="md:hidden space-y-6 pb-6">
+            {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
+            {% for ronda in rondas_list %}
+                <div>
+                    <!-- NOMBRE DE LA RONDA -->
+                    <h3 class="text-center font-bold uppercase tracking-wide text-xs text-primary mb-3 px-4">
+                        {% if ronda.grouper == total_rondas %}
+                            <span class="flex items-center justify-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke-width="1.5"
+                                     stroke="currentColor"
+                                     class="size-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" />
+                                </svg>
+                                FINAL
                             </span>
-                            {% else %}
-                            ...
-                            {% endif %}
-                        </span>
+                        {% elif ronda.grouper == total_rondas|add:"-1" %}
+                            SEMIFINAL
+                        {% elif ronda.grouper == total_rondas|add:"-2" %}
+                            CUARTOS
+                        {% elif ronda.grouper == total_rondas|add:"-3" %}
+                            OCTAVOS
+                        {% else %}
+                            16VOS
+                        {% endif %}
+                    </h3>
+                    <!-- PARTIDOS - Horizontal scroll -->
+                    <div class="flex gap-2 overflow-x-auto pb-2 justify-center md:justify-start px-4">
+                        {% for partido in ronda.list %}
+                            <div class="card bg-base-100 shadow border border-base-200 min-w-[100px] max-w-[100px] shrink-0">
+                                <div class="card-body p-2">
+                                    <!-- Teams -->
+                                    <div class="flex items-center justify-center gap-2 mb-1">
+                                        <span class="text-sm font-bold {% if partido.ganador == partido.equipo1 %}text-success{% elif partido.equipo1 == equipo %}text-primary{% endif %}">
+                                            {% if partido.equipo1 %}
+                                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                                <span class="truncate max-w-[100px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                            {% else %}
+                                                ?
+                                            {% endif %}
+                                        </span>
+                                        <span class="text-xs font-bold opacity-30">|</span>
+                                        <span class="text-sm font-bold {% if partido.ganador == partido.equipo2 %}text-success{% elif partido.equipo2 == equipo %}text-primary{% endif %}">
+                                            {% if partido.equipo2 %}
+                                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                                <span class="truncate max-w-[100px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                            {% else %}
+                                                ?
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <!-- Score - stacked vertically -->
+                                    {% if partido.resultado %}
+                                        <div class="text-center text-xs font-mono opacity-60 leading-tight">
+                                            {% with sets=partido.resultado|split:"," %}
+                                                {% for set_score in sets %}<div>{{ set_score }}</div>{% endfor %}
+                                            {% endwith %}
+                                        </div>
+                                    {% endif %}
+                                    <!-- Divider -->
+                                    <div class="divider my-0.5"></div>
+                                    <!-- Winner -->
+                                    {% if partido.ganador %}
+                                        <div class="text-center text-base font-bold text-success">
+                                            {% get_team_info partido.ganador torneo as winner_info %}
+                                            {{ winner_info.code }}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center text-xs opacity-40">...</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-
-                    <div class="divider my-1 h-px"></div>
-
-                    <!-- EQUIPO 2 -->
-                    <div
-                        class="flex justify-between {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-                        <span>
-                            {% if partido.equipo2 %}
-                            {% get_team_info partido.equipo2 torneo as team_info %}
-                            <span class="tooltip tooltip-right cursor-help z-50" data-tip="{{ team_info.name }}"
-                                tabindex="0">
-                                {{ team_info.code }}
-                            </span>
-                            {% else %}
-                            ...
-                            {% endif %}
-                        </span>
-                    </div>
-
-                    <!-- RESULTADO -->
-                    {% if partido.resultado %}
-                    <div class="absolute top-0 right-0 bottom-0 flex items-center pr-2">
-                        <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">
-                            {{ partido.resultado }}
-                        </span>
-                    </div>
-                    {% endif %}
-
                 </div>
+            {% endfor %}
+        </div>
+        <!-- DESKTOP: Horizontal bracket -->
+        <div class="hidden md:block overflow-x-auto pb-6">
+            <div class="flex gap-8 min-w-max px-4">
+                {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
+                {% for ronda in rondas_list %}
+                    <div class="flex flex-col min-w-[200px] gap-6">
+                        <!-- NOMBRE DE LA RONDA -->
+                        <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
+                            {% if ronda.grouper == total_rondas %}
+                                Final
+                            {% elif ronda.grouper == total_rondas|add:"-1" %}
+                                Semifinal
+                            {% elif ronda.grouper == total_rondas|add:"-2" %}
+                                Cuartos
+                            {% elif ronda.grouper == total_rondas|add:"-3" %}
+                                Octavos
+                            {% elif ronda.grouper == total_rondas|add:"-4" %}
+                                16vos
+                            {% else %}
+                                Ronda {{ ronda.grouper }}
+                            {% endif %}
+                        </div>
+                        <!-- PARTIDOS -->
+                        <div class="flex flex-col justify-around flex-grow gap-4">
+                            {% for partido in ronda.list %}
+                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
+                                    <!-- EQUIPO 1 -->
+                                    <div class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
+                                        <span>
+                                            {% if partido.equipo1 %}
+                                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                                {% get_team_info partido.equipo1 torneo as team_info %}
+                                                <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                            {% else %}
+                                                ...
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="divider my-1 h-px"></div>
+                                    <!-- EQUIPO 2 -->
+                                    <div class="flex justify-between {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
+                                        <span>
+                                            {% if partido.equipo2 %}
+                                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                                {% get_team_info partido.equipo2 torneo as team_info %}
+                                                <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                            {% else %}
+                                                ...
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <!-- RESULTADO -->
+                                    {% if partido.resultado %}
+                                        <div class="absolute top-0 right-0 bottom-0 flex items-center pr-2">
+                                            <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">{{ partido.resultado }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 {% endfor %}
             </div>
-
         </div>
-        {% endfor %}
-
-    </div>
-</div>
-{% endif %}
-
-<!-- Modal Login Requerido -->
-<dialog id="login_required_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box">
-        <h3 class="font-bold text-lg text-info">Iniciar Sesión Requerido</h3>
-        <p class="py-4">Para inscribirte en este torneo, necesitas iniciar sesión en tu cuenta.</p>
-        <div class="modal-action">
-            <form method="dialog">
-                <button class="btn">Cancelar</button>
-            </form>
-            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary">Iniciar Sesión</a>
+    {% endif %}
+    <!-- Modal Login Requerido -->
+    <dialog id="login_required_modal" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg text-info">Iniciar Sesión Requerido</h3>
+            <p class="py-4">Para inscribirte en este torneo, necesitas iniciar sesión en tu cuenta.</p>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn">Cancelar</button>
+                </form>
+                <a href="{% url 'accounts:login' %}?next={{ request.path }}"
+                   class="btn btn-primary">Iniciar Sesión</a>
+            </div>
         </div>
-    </div>
-    <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-    </form>
-</dialog>
-
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 {% endblock %}
