@@ -45,3 +45,19 @@ def get_team_display(equipo, torneo):
         return "TBD"
         
     return equipo.nombre
+
+@register.filter
+def batch(value, batch_size):
+    """
+    Divide una lista en sublistas de tamaño batch_size.
+    """
+    if not value:
+        return []
+    try:
+        batch_size = int(batch_size)
+        result = []
+        for i in range(0, len(value), batch_size):
+            result.append(value[i:i + batch_size])
+        return result
+    except (ValueError, TypeError):
+        return value

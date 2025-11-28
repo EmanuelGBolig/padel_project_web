@@ -206,9 +206,7 @@
                 {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                 {% for ronda in rondas_list %}
                     <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item">
-                        <input type="checkbox"
-                               class="round-checkbox"
-                               {% if forloop.first %}checked{% endif %} />
+                        <input type="checkbox" class="round-checkbox" />
                         <div class="collapse-title text-xl font-medium flex justify-between items-center">
                             <span class="round-name flex items-center gap-2">
                                 {% if ronda.grouper == 4 %}
@@ -272,41 +270,24 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <div class="collapse-content flex justify-center items-center pt-2">
-                            {% if partido.equipo1 and partido.equipo2 %}
-                                <button class="btn btn-sm btn-primary"
-                                        hx-get="{% url 'torneos:admin_partido_resultado' partido.pk %}"
-                                        hx-target="#modal_content"
-                                        onclick="resultado_modal.showModal()">
-                                    {% if partido.ganador %}
-                                        Editar Resultado
-                                    {% else %}
-                                        Cargar Resultado
-                                    {% endif %}
-                                </button>
-                            {% else %}
-                                <p class="text-sm opacity-50 italic">Esperando rivales...</p>
-                            {% endif %}
-                        </div>
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
-    </div>
-    <!-- MODAL -->
-    <dialog id="resultado_modal" class="modal">
-        <div class="modal-box max-w-lg p-0 overflow-hidden">
-            <div id="modal_content">
-                <div class="p-10 flex justify-center">
-                    <span class="loading loading-spinner loading-lg text-primary"></span>
+        <!-- MODAL -->
+        <dialog id="resultado_modal" class="modal">
+            <div class="modal-box max-w-lg p-0 overflow-hidden">
+                <div id="modal_content">
+                    <div class="p-10 flex justify-center">
+                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button></button>
-        </form>
-    </dialog>
-    <script>
+            <form method="dialog" class="modal-backdrop">
+                <button></button>
+            </form>
+        </dialog>
+        <script>
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('adminSearchInput');
         if (!searchInput) return;
@@ -381,5 +362,6 @@
             });
         });
     });
-    </script>
-{% endblock %}
+        </script>
+    </div>
+{% endblock content %}

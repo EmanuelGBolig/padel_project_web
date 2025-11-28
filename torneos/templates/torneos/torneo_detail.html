@@ -311,94 +311,68 @@
         <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">
             Cuadro Final
         </h2>
-        <!-- MOBILE: Vertical stacked phases with horizontal scrolling matches -->
-        <div class="md:hidden space-y-6 pb-6">
-            {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
-            {% for ronda in rondas_list %}
-                <div>
-                    <!-- NOMBRE DE LA RONDA -->
-                    <h3 class="text-center font-bold uppercase tracking-wide text-xs text-primary mb-3 px-4">
-                        {% if ronda.grouper == total_rondas %}
-                            <span class="flex items-center justify-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     fill="none"
-                                     viewBox="0 0 24 24"
-                                     stroke-width="1.5"
-                                     stroke="currentColor"
-                                     class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" />
-                                </svg>
-                                FINAL
-                            </span>
-                        {% elif ronda.grouper == total_rondas|add:"-1" %}
-                            SEMIFINAL
-                        {% elif ronda.grouper == total_rondas|add:"-2" %}
-                            CUARTOS
-                        {% elif ronda.grouper == total_rondas|add:"-3" %}
-                            OCTAVOS
-                        {% else %}
-                            16VOS
-                        {% endif %}
-                    </h3>
-                    <!-- PARTIDOS - Horizontal scroll -->
-                    <div class="flex gap-2 overflow-x-auto pb-2 justify-center md:justify-start px-4">
-                        {% for partido in ronda.list %}
-                            <div class="card bg-base-100 shadow border border-base-200 min-w-[100px] max-w-[100px] shrink-0">
-                                <div class="card-body p-2">
-                                    <!-- Teams -->
-                                    <div class="flex items-center justify-center gap-2 mb-1">
-                                        <span class="text-sm font-bold {% if partido.ganador == partido.equipo1 %}text-success{% elif partido.equipo1 == equipo %}text-primary{% endif %}">
-                                            {% if partido.equipo1 %}
-                                                {% get_team_info partido.equipo1 torneo as team_info %}
-                                                {% get_team_info partido.equipo1 torneo as team_info %}
-                                                <span class="truncate max-w-[100px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
-                                            {% else %}
-                                                ?
-                                            {% endif %}
-                                        </span>
-                                        <span class="text-xs font-bold opacity-30">|</span>
-                                        <span class="text-sm font-bold {% if partido.ganador == partido.equipo2 %}text-success{% elif partido.equipo2 == equipo %}text-primary{% endif %}">
-                                            {% if partido.equipo2 %}
-                                                {% get_team_info partido.equipo2 torneo as team_info %}
-                                                {% get_team_info partido.equipo2 torneo as team_info %}
-                                                <span class="truncate max-w-[100px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
-                                            {% else %}
-                                                ?
-                                            {% endif %}
-                                        </span>
-                                    </div>
-                                    <!-- Score - stacked vertically -->
-                                    {% if partido.resultado %}
-                                        <div class="text-center text-xs font-mono opacity-60 leading-tight">
-                                            {% with sets=partido.resultado|split:"," %}
-                                                {% for set_score in sets %}<div>{{ set_score }}</div>{% endfor %}
-                                            {% endwith %}
-                                        </div>
-                                    {% endif %}
-                                    <!-- Divider -->
-                                    <div class="divider my-0.5"></div>
-                                    <!-- Winner -->
-                                    {% if partido.ganador %}
-                                        <div class="text-center text-base font-bold text-success">
-                                            {% get_team_info partido.ganador torneo as winner_info %}
-                                            {{ winner_info.code }}
-                                        </div>
-                                    {% else %}
-                                        <div class="text-center text-xs opacity-40">...</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-        <!-- DESKTOP: Horizontal bracket -->
-        <div class="hidden md:block overflow-x-auto pb-6">
+        <!-- BRACKET: Horizontal bracket for all screens -->
+        <!-- BRACKET: Horizontal bracket for all screens -->
+        <div class="overflow-x-auto pb-6">
+            <style>
+                /* Bracket Connector Styles */
+                .bracket-pair {
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-around;
+                    flex-grow: 1;
+                }
+                
+                /* Vertical line connecting the pair */
+                .bracket-pair::before {
+                    content: '';
+                    position: absolute;
+                    right: 0;
+                    top: 25%;
+                    bottom: 25%;
+                    width: 2px;
+                    background-color: oklch(var(--bc) / 0.2);
+                    border-radius: 1px;
+                }
+                
+                /* Horizontal line to the next round */
+                .bracket-pair::after {
+                    content: '';
+                    position: absolute;
+                    right: -2rem; /* Matches gap-8 (2rem) */
+                    top: 50%;
+                    width: 2rem;
+                    height: 2px;
+                    background-color: oklch(var(--bc) / 0.2);
+                }
+
+                /* Connectors for individual matches to the vertical line */
+                .bracket-match-connector {
+                    position: relative;
+                }
+                .bracket-match-connector::after {
+                    content: '';
+                    position: absolute;
+                    right: 0; /* Fixed: Connects to the vertical line */
+                    top: 50%;
+                    width: 1rem;
+                    height: 2px;
+                    background-color: oklch(var(--bc) / 0.2);
+                    z-index: 10;
+                }
+
+                /* Remove connectors for the last round */
+                .last-round .bracket-pair::before,
+                .last-round .bracket-pair::after,
+                .last-round .bracket-match-connector::after {
+                    display: none;
+                }
+            </style>
             <div class="flex gap-8 min-w-max px-4">
                 {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                 {% for ronda in rondas_list %}
-                    <div class="flex flex-col min-w-[200px] gap-6">
+                    <div class="flex flex-col min-w-[200px] gap-6 {% if forloop.last %}last-round{% endif %}">
                         <!-- NOMBRE DE LA RONDA -->
                         <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
                             {% if ronda.grouper == total_rondas %}
@@ -416,42 +390,28 @@
                             {% endif %}
                         </div>
                         <!-- PARTIDOS -->
-                        <div class="flex flex-col justify-around flex-grow gap-4">
-                            {% for partido in ronda.list %}
-                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-                                    <!-- EQUIPO 1 -->
-                                    <div class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-                                        <span>
-                                            {% if partido.equipo1 %}
-                                                {% get_team_info partido.equipo1 torneo as team_info %}
-                                                {% get_team_info partido.equipo1 torneo as team_info %}
-                                                <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
-                                            {% else %}
-                                                ...
-                                            {% endif %}
-                                        </span>
+                        <div class="flex flex-col justify-around flex-grow">
+                            {% if forloop.last %}
+                                <!-- Final Round: No pairing needed, just display matches -->
+                                {% for partido in ronda.list %}
+                                    <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative my-4">
+                                        {% include "torneos/partials/bracket_match_content.html" %}
                                     </div>
-                                    <div class="divider my-1 h-px"></div>
-                                    <!-- EQUIPO 2 -->
-                                    <div class="flex justify-between {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-                                        <span>
-                                            {% if partido.equipo2 %}
-                                                {% get_team_info partido.equipo2 torneo as team_info %}
-                                                {% get_team_info partido.equipo2 torneo as team_info %}
-                                                <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
-                                            {% else %}
-                                                ...
-                                            {% endif %}
-                                        </span>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Other Rounds: Group in pairs -->
+                                {% for group in ronda.list|batch:2 %}
+                                    <div class="bracket-pair">
+                                        {% for partido in group %}
+                                            <div class="bracket-match-connector w-full pr-4 my-2">
+                                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
+                                                    {% include "torneos/partials/bracket_match_content.html" %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                    <!-- RESULTADO -->
-                                    {% if partido.resultado %}
-                                        <div class="absolute top-0 right-0 bottom-0 flex items-center pr-2">
-                                            <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">{{ partido.resultado }}</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% endfor %}
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}

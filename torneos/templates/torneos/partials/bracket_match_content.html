@@ -1,0 +1,30 @@
+{% load torneo_extras %}
+<!-- EQUIPO 1 -->
+<div class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
+    <span>
+        {% if partido.equipo1 %}
+            {% get_team_info partido.equipo1 torneo as team_info %}
+            <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+        {% else %}
+            ...
+        {% endif %}
+    </span>
+</div>
+<div class="divider my-1 h-px"></div>
+<!-- EQUIPO 2 -->
+<div class="flex justify-between {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
+    <span>
+        {% if partido.equipo2 %}
+            {% get_team_info partido.equipo2 torneo as team_info %}
+            <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+        {% else %}
+            ...
+        {% endif %}
+    </span>
+</div>
+<!-- RESULTADO -->
+{% if partido.resultado %}
+    <div class="absolute top-0 right-0 bottom-0 flex items-center pr-2">
+        <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">{{ partido.resultado }}</span>
+    </div>
+{% endif %}
