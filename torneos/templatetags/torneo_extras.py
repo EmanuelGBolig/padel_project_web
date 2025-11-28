@@ -42,7 +42,7 @@ def get_team_display(equipo, torneo):
     Devuelve el nombre del equipo.
     """
     if not equipo:
-        return "TBD"
+        return "Esperando resultados"
         
     return equipo.nombre
 

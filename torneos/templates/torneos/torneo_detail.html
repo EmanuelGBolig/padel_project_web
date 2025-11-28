@@ -123,7 +123,7 @@
                                             <div class="badge badge-warning badge-xs font-bold">PENDIENTE</div>
                                         </div>
                                         {% if partido.obj.fecha_hora %}
-                                            <div class="text-[10px] text-center opacity-70 font-mono bg-base-200 rounded py-0.5">
+                                            <div class="text-xs font-bold text-center text-primary bg-base-200 rounded py-1">
                                                 {{ partido.obj.fecha_hora|date:"d/m H:i" }}
                                             </div>
                                         {% endif %}
@@ -277,10 +277,9 @@
                             {% for partido in grupo.partidos_grupo.all %}
                                 <div class="text-[10px] bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
                                     {% if partido.fecha_hora %}
-                                        <span class="text-[9px] opacity-50 font-mono text-center mb-0.5">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
+                                        <span class="text-[10px] font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
                                     {% endif %}
                                     <div class="flex justify-between items-center">
-                                        <span class="opacity-70">Resultado de</span>
                                         <!-- EQUIPO 1 -->
                                         <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                                             {% if partido.equipo1 %}

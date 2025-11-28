@@ -2,9 +2,7 @@
 {% load torneo_extras %}
 {% if partido.fecha_hora %}
     <div class="absolute -top-3 left-0 right-0 flex justify-center z-20">
-        <span class="badge badge-xs badge-neutral font-mono text-[9px] opacity-90 shadow-sm border border-base-300">
-            {{ partido.fecha_hora|date:"d/m H:i" }}
-        </span>
+        <span class="badge badge-sm badge-primary font-bold shadow-sm">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
     </div>
 {% endif %}
 <!-- EQUIPO 1 -->
