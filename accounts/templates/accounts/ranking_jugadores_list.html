@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Rankings de Jugadores
+        </h1>
+
+        <!-- Mostrar posición del usuario si está autenticado y tiene actividad -->
+        {% if usuario_actual %}
+        {% for division_ranking in rankings_por_division %}
+        {% for item in division_ranking.jugadores %}
+        {% if item.jugador == usuario_actual %}
+        <div class="alert alert-success shadow-lg mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div class="flex-1">
+                <h3 class="font-bold">Tu Posición</h3>
+                <div class="text-sm">
+                    Estás en el puesto <span class="font-bold text-lg">#{{ item.posicion }}</span> de <span
+                        class="badge badge-secondary">{{ division_ranking.division.nombre }}</span> con <span
+                        class="font-bold">{{ item.puntos }} puntos</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+        {% endif %}
+
+        <!-- Filtro por División -->
+        <div class="form-control w-full max-w-xs mt-6">
+            <label class="label">
+                <span class="label-text font-semibold">Filtrar por División</span>
+            </label>
+            <select class="select select-bordered" onchange="window.location.href=this.value">
+                <option value="{% url 'accounts:rankings_jugadores' %}" {% if not division_seleccionada %}selected{%
+                    endif %}>Todas las Divisiones</option>
+                {% for division in divisiones %}
+                <option value="?division={{ division.id }}" {% if division_seleccionada==division.id|stringformat:"i"
+                    %}selected{% endif %}>{{ division.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% for division_ranking in rankings_por_division %}
+    <!-- División -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+            <span class="badge badge-secondary badge-lg">{{ division_ranking.division.nombre }}</span>
+        </h2>
+
+        <!-- Tabla de Rankings -->
+        <div class="overflow-x-auto bg-base-100 rounded-lg shadow-lg">
+            <table class="table w-full">
+                <thead>
+                    <tr class="bg-base-200">
+                        <th class="text-center">Pos</th>
+                        <th>Jugador</th>
+                        <th class="text-center">Puntos</th>
+                        <th class="text-center hidden sm:table-cell">Victorias</th>
+                        <th class="text-center hidden lg:table-cell">Win Rate</th>
+                        <th class="text-center hidden lg:table-cell">Torneos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in division_ranking.jugadores %}
+                    <tr
+                        class="hover {% if item.posicion <= 3 %}bg-primary/5{% endif %} {% if usuario_actual and item.jugador == usuario_actual %}ring-2 ring-success{% endif %}">
+                        <td class="text-center">
+                            {% if item.posicion == 1 %}
+                            <span class="text-4xl">🥇</span>
+                            {% elif item.posicion == 2 %}
+                            <span class="text-4xl">🥈</span>
+                            {% elif item.posicion == 3 %}
+                            <span class="text-4xl">🥉</span>
+                            {% else %}
+                            <span class="font-bold text-2xl text-base-content/50">#{{ item.posicion }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>
+                                <div class="font-bold text-lg">{{ item.jugador.full_name }}</div>
+                                <div class="text-sm opacity-60">
+                                    {% if item.equipos %}
+                                    {% for equipo in item.equipos %}
+                                    <span class="badge badge-sm badge-ghost">{{ equipo.nombre }}</span>
+                                    {% endfor %}
+                                    {% else %}
+                                    <span class="text-xs">Sin equipo actual</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="font-bold text-primary text-2xl">{{ item.puntos }}</span>
+                        </td>
+                        <td class="text-center hidden sm:table-cell">
+                            <span class="font-semibold text-lg">{{ item.victorias }}</span>
+                        </td>
+                        <td class="text-center hidden lg:table-cell">
+                            {% if item.win_rate >= 75 %}
+                            <div class="badge badge-success badge-lg">{{ item.win_rate }}%</div>
+                            {% elif item.win_rate >= 50 %}
+                            <div class="badge badge-warning badge-lg">{{ item.win_rate }}%</div>
+                            {% else %}
+                            <div class="badge badge-error badge-lg">{{ item.win_rate }}%</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center hidden lg:table-cell">
+                            {% if item.torneos_ganados > 0 %}
+                            <span class="font-bold text-success text-lg">🏆 {{ item.torneos_ganados }}</span>
+                            {% else %}
+                            <span class="opacity-30 text-lg">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-12">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 opacity-20" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <p class="opacity-50">No hay jugadores con actividad.</p>
+        <p class="text-xs mt-2 opacity-40">Los jugadores aparecerán aquí una vez que participen en torneos.</p>
+    </div>
+    {% endfor %}
+
+    <!-- Info de puntuación -->
+    <div class="alert alert-info mt-8 shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+            <h3 class="font-bold">Sistema de Puntuación Individual</h3>
+            <div class="text-sm">
+                Victoria: 3 pts | Torneo Ganado: 50 pts | Bonus Win Rate ≥75% (10+ partidos): 20 pts
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
