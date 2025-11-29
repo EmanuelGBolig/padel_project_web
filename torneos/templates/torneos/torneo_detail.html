@@ -256,6 +256,7 @@
                                     <th class="pl-4">Equipo</th>
                                     <th class="text-center">PG</th>
                                     <th class="text-center">DS</th>
+                                    <th class="text-center">DG</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -264,10 +265,11 @@
                                         <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
                                             <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
                                             {% get_team_info item.equipo torneo as team_info %}
-                                            <span class="truncate max-w-[120px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                            <span class="truncate max-w-[120px]" title="{{ team_info.name }}">{{ team_info.code|short_name:15 }}</span>
                                         </td>
                                         <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
                                         <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
+                                        <td class="text-center opacity-60">{{ item.diferencia_games }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
