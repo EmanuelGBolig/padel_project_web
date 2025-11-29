@@ -22,7 +22,10 @@ from .forms import (
     PartidoResultadoForm,
     PartidoGrupoScheduleForm,
     PartidoScheduleForm,
+    PartidoReplaceTeamsForm,
+    PartidoGrupoReplaceTeamsForm,
 )
+from .formats import get_format
 from equipos.models import Equipo
 
 # --- Mixins de Permisos ---
@@ -102,6 +105,13 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             'ronda', 'orden_partido'
         )
 
+        if context['partidos_eliminacion'].exists():
+            from django.db.models import Max
+            max_ronda = context['partidos_eliminacion'].aggregate(Max('ronda'))['ronda__max']
+            context['total_rondas'] = max_ronda if max_ronda else 0
+        else:
+            context['total_rondas'] = 0
+
         return context
 
     def post(self, request, *args, **kwargs):
@@ -148,36 +158,221 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         equipos = [i.equipo for i in inscripciones]
         shuffle(equipos)
 
-        # Usar el tamaño de grupo configurado en el torneo
-        equipos_por_grupo = torneo.equipos_por_grupo
-        num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
-        letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        # --- LÓGICA DE FORMATOS PERSONALIZADOS ---
+        custom_format = get_format(count)
+        
+        if custom_format:
+            # Usar formato definido
+            num_grupos = custom_format.groups
+            teams_per_group_config = custom_format.teams_per_group
+            letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            
+            # Validar si teams_per_group es int o list
+            if isinstance(teams_per_group_config, int):
+                sizes = [teams_per_group_config] * num_grupos
+            else:
+                sizes = teams_per_group_config
+                
+            # Validar que la suma de sizes coincida con count
+            if sum(sizes) != count:
+                # Fallback o error si la configuración está mal
+                messages.error(request, f"Error en formato: {sum(sizes)} plazas definidas para {count} equipos.")
+                return redirect('torneos:admin_manage', pk=torneo.pk)
 
-        for i in range(num_grupos):
-            grupo = Grupo.objects.create(torneo=torneo, nombre=f"Grupo {letras[i]}")
-            equipos_del_grupo = []
-            for _ in range(equipos_por_grupo):
-                if equipos:
-                    equipos_del_grupo.append(equipos.pop())
+            current_team_idx = 0
+            for i in range(num_grupos):
+                group_size = sizes[i]
+                grupo = Grupo.objects.create(torneo=torneo, nombre=f"Zona {letras[i]}")
+                
+                equipos_del_grupo = []
+                for _ in range(group_size):
+                    if current_team_idx < len(equipos):
+                        equipos_del_grupo.append(equipos[current_team_idx])
+                        current_team_idx += 1
+                
+                for idx, eq in enumerate(equipos_del_grupo, start=1):
+                    EquipoGrupo.objects.create(grupo=grupo, equipo=eq, numero=idx)
 
-            for idx, eq in enumerate(equipos_del_grupo, start=1):
-                EquipoGrupo.objects.create(grupo=grupo, equipo=eq, numero=idx)
+                generar_partidos_grupos(torneo, equipos_del_grupo, grupo)
+                
+            messages.success(request, f"Torneo iniciado con formato especial: {count} parejas.")
 
-            generar_partidos_grupos(torneo, equipos_del_grupo, grupo)
+        else:
+            # --- LÓGICA POR DEFECTO ---
+            # Usar el tamaño de grupo configurado en el torneo
+            equipos_por_grupo = torneo.equipos_por_grupo
+            num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
+            letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+            for i in range(num_grupos):
+                grupo = Grupo.objects.create(torneo=torneo, nombre=f"Grupo {letras[i]}")
+                equipos_del_grupo = []
+                for _ in range(equipos_por_grupo):
+                    if equipos:
+                        equipos_del_grupo.append(equipos.pop())
+
+                for idx, eq in enumerate(equipos_del_grupo, start=1):
+                    EquipoGrupo.objects.create(grupo=grupo, equipo=eq, numero=idx)
+
+                generar_partidos_grupos(torneo, equipos_del_grupo, grupo)
+            
+            messages.success(
+                request, f"Fase de Grupos generada: {num_grupos} grupos creados."
+            )
 
         torneo.estado = Torneo.Estado.EN_JUEGO
         torneo.save()
-        messages.success(
-            request, f"Fase de Grupos generada: {num_grupos} grupos creados."
-        )
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
     def generar_octavos_logica(self, request, torneo):
-        # Permitir regeneración si se eliminaron los partidos
-        # if torneo.partidos.exists():
-        #     messages.warning(request, "La fase de eliminación ya fue generada.")
-        #     return redirect('torneos:admin_manage', pk=torneo.pk)
+        inscripciones = torneo.inscripciones.all()
+        count = inscripciones.count()
+        custom_format = get_format(count)
 
+        if custom_format:
+            # --- LÓGICA DE BRACKET PERSONALIZADO ---
+            
+            # 1. Mapear grupos por letra (Zona A -> 'A')
+            grupos_map = {}
+            grupos = torneo.grupos.all()
+            for g in grupos:
+                # Asumimos formato "Zona A" o "Grupo A"
+                letra = g.nombre.split(' ')[-1]
+                grupos_map[letra] = g
+
+            # NUEVO: Soporte para estructura explícita (Brackets asimétricos)
+            if custom_format.bracket_structure:
+                # Diccionario para guardar referencias a los partidos creados por su ID interno
+                # Key: ID interno (int), Value: Objeto Partido
+                created_matches = {}
+                
+                # Ordenar por ronda para crear en orden
+                matches_def = sorted(custom_format.bracket_structure, key=lambda x: x['round'])
+                
+                for m_def in matches_def:
+                    ronda_num = m_def['round']
+                    match_id = m_def['id']
+                    
+                    # Resolver Equipo 1
+                    e1 = None
+                    t1_def = m_def.get('t1')
+                    if t1_def:
+                        if isinstance(t1_def, tuple): # ('A', 1)
+                            g_letra, g_pos = t1_def
+                            if g_letra in grupos_map:
+                                tabla = grupos_map[g_letra].tabla.all()
+                                if len(tabla) >= g_pos:
+                                    e1 = tabla[g_pos-1].equipo
+                        # Si es int, es un ID de partido previo, pero aquí solo asignamos equipos iniciales.
+                        # Los ganadores de partidos previos se asignan vía 'siguiente_partido' en el paso de enlace.
+
+                    # Resolver Equipo 2
+                    e2 = None
+                    t2_def = m_def.get('t2')
+                    if t2_def:
+                        if isinstance(t2_def, tuple):
+                            g_letra, g_pos = t2_def
+                            if g_letra in grupos_map:
+                                tabla = grupos_map[g_letra].tabla.all()
+                                if len(tabla) >= g_pos:
+                                    e2 = tabla[g_pos-1].equipo
+
+                    # Crear Partido
+                    p = Partido.objects.create(
+                        torneo=torneo,
+                        ronda=ronda_num,
+                        orden_partido=match_id, # Usamos el ID interno como orden por simplicidad
+                        equipo1=e1,
+                        equipo2=e2,
+                    )
+                    created_matches[match_id] = p
+                
+                # Enlazar partidos (siguiente_partido)
+                for m_def in matches_def:
+                    match_id = m_def['id']
+                    next_id = m_def.get('next')
+                    
+                    if next_id and next_id in created_matches:
+                        current_match = created_matches[match_id]
+                        next_match = created_matches[next_id]
+                        current_match.siguiente_partido = next_match
+                        current_match.save()
+
+                messages.success(request, f"Bracket complejo generado para {count} parejas.")
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+
+            # LÓGICA LEGACY (Simétrica basada en crossings)
+            # 2. Determinar ronda inicial
+            if custom_format.bracket_type == 'semis':
+                bracket_size = 4
+                num_rondas = 2
+            elif custom_format.bracket_type == 'quarters':
+                bracket_size = 8
+                num_rondas = 3
+            elif custom_format.bracket_type == 'octavos':
+                bracket_size = 16
+                num_rondas = 4
+            else:
+                bracket_size = 4 # Default fallback
+                num_rondas = 2
+
+            ronda_inicio = 1
+            partidos_por_ronda = {ronda_inicio: []}
+
+            # 3. Generar partidos de la primera ronda según cruces
+            for i, (cruce1, cruce2) in enumerate(custom_format.crossings):
+                g1_letra, g1_pos = cruce1
+                g2_letra, g2_pos = cruce2
+                
+                e1 = None
+                if g1_letra in grupos_map:
+                    tabla = grupos_map[g1_letra].tabla.all() # Ordenada por mérito
+                    if len(tabla) >= g1_pos:
+                        e1 = tabla[g1_pos-1].equipo
+                
+                e2 = None
+                if g2_letra in grupos_map:
+                    tabla = grupos_map[g2_letra].tabla.all()
+                    if len(tabla) >= g2_pos:
+                        e2 = tabla[g2_pos-1].equipo
+
+                p = Partido.objects.create(
+                    torneo=torneo,
+                    ronda=ronda_inicio,
+                    orden_partido=i + 1,
+                    equipo1=e1,
+                    equipo2=e2,
+                )
+                partidos_por_ronda[ronda_inicio].append(p)
+
+            # 4. Generar rondas siguientes (vacías)
+            for ronda_num in range(2, num_rondas + 1):
+                cant_partidos = bracket_size // (2 ** ronda_num)
+                partidos_por_ronda[ronda_num] = []
+                
+                for i in range(cant_partidos):
+                    p = Partido.objects.create(
+                        torneo=torneo,
+                        ronda=ronda_num,
+                        orden_partido=i + 1,
+                    )
+                    partidos_por_ronda[ronda_num].append(p)
+
+            # 5. Enlazar partidos
+            for ronda_num in range(1, num_rondas):
+                partidos_actuales = partidos_por_ronda[ronda_num]
+                partidos_siguientes = partidos_por_ronda.get(ronda_num + 1, [])
+                
+                for i, partido in enumerate(partidos_actuales):
+                    if partidos_siguientes:
+                        partido.siguiente_partido = partidos_siguientes[i // 2]
+                        partido.save()
+
+            messages.success(request, f"Bracket personalizado generado para {count} parejas.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        # --- LÓGICA GENÉRICA (FALLBACK) ---
+        
         # 1. Obtener clasificados (1ro y 2do de cada grupo)
         primeros = []
         segundos = []
@@ -434,7 +629,10 @@ class TorneoDetailView(DetailView):
         )
         if context['partidos_eliminacion'].exists():
             from django.db.models import Max
-            context['total_rondas'] = context['partidos_eliminacion'].aggregate(Max('ronda'))['ronda__max']
+            max_ronda = context['partidos_eliminacion'].aggregate(Max('ronda'))['ronda__max']
+            context['total_rondas'] = max_ronda if max_ronda else 0
+        else:
+            context['total_rondas'] = 0
         
         context['tiene_equipo'] = (
             user.is_authenticated
@@ -458,7 +656,6 @@ class TorneoDetailView(DetailView):
                 and context['torneo_abierto']
                 and not context['inscripcion_cerrada']
                 and context['hay_cupos']
-                and context['division_correcta']
                 and not context['ya_inscrito']
                 and not user.is_staff
             )
@@ -591,23 +788,6 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
              messages.error(request, "Error al obtener tu equipo.")
              return redirect('home')
 
-        if Inscripcion.objects.filter(torneo=torneo, equipo=equipo).exists():
-            messages.warning(request, "Tu equipo ya está inscrito.")
-            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
-        
-        # --- VERIFICACIÓN DE DIVISIÓN FLEXIBLE ---
-        equipo_div_norm = normalize_division_name(equipo.division.nombre)
-        torneo_div_norm = normalize_division_name(torneo.division.nombre)
-        
-        if equipo_div_norm != torneo_div_norm:
-             # Fallback: si la normalización falla, chequear IDs por si acaso son el mismo objeto exacto
-             if equipo.division_id != torneo.division_id:
-                messages.error(request, f"División incorrecta. Tu equipo es {equipo.division} y el torneo es {torneo.division}.")
-                return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
-
-        if torneo.inscripciones.count() >= torneo.cupos_totales:
-            messages.error(request, "Torneo lleno.")
-            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
             
         if torneo.estado != Torneo.Estado.ABIERTO:
             messages.error(request, "La inscripción está cerrada.")
@@ -743,3 +923,167 @@ def crear_torneo_prueba(request):
         f"Ahora puedes iniciar el torneo para crear los grupos."
     )
     return redirect('torneos:admin_manage', pk=torneo.pk)
+
+
+class ReplacePartidoTeamsView(AdminRequiredMixin, UpdateView):
+    model = Partido
+    form_class = PartidoReplaceTeamsForm
+    template_name = 'torneos/replace_teams_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'torneos:admin_manage', kwargs={'pk': self.object.torneo.pk}
+        )
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse('<script>window.location.reload();</script>')
+        return response
+
+
+class ReplacePartidoGrupoTeamsView(AdminRequiredMixin, UpdateView):
+    model = PartidoGrupo
+    form_class = PartidoGrupoReplaceTeamsForm
+    template_name = 'torneos/replace_teams_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'torneos:admin_manage', kwargs={'pk': self.object.grupo.torneo.pk}
+        )
+
+    def form_valid(self, form):
+        # Obtener los equipos ANTES de guardar el formulario
+        old_equipo1 = self.get_object().equipo1
+        old_equipo2 = self.get_object().equipo2
+        
+        response = super().form_valid(form)
+        
+        # Obtener los equipos NUEVOS del objeto ya guardado
+        new_equipo1 = self.object.equipo1
+        new_equipo2 = self.object.equipo2
+        
+        grupo = self.object.grupo
+        
+        # Lógica para Equipo 1
+        if old_equipo1 != new_equipo1:
+            self._handle_team_change(grupo, old_equipo1, new_equipo1)
+
+        # Lógica para Equipo 2
+        if old_equipo2 != new_equipo2:
+            self._handle_team_change(grupo, old_equipo2, new_equipo2)
+
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse('<script>window.location.reload();</script>')
+        return response
+
+    def _handle_team_change(self, current_group, old_team, new_team):
+        """
+        Maneja el cambio de equipo, incluyendo el intercambio si el nuevo equipo
+        ya pertenece a otro grupo.
+        """
+        # 1. Verificar si el nuevo equipo ya está en otro grupo del mismo torneo
+        other_group_entry = new_team.tabla.filter(grupo__torneo=current_group.torneo).first()
+        
+        if other_group_entry and other_group_entry.grupo != current_group:
+            # --- ESCENARIO DE INTERCAMBIO (SWAP) ---
+            other_group = other_group_entry.grupo
+            
+            # A. Actualizar Grupo Actual: old_team -> new_team (Ya hecho parcialmente por el form, pero falta EquipoGrupo)
+            current_entry = current_group.tabla.filter(equipo=old_team).first()
+            if current_entry:
+                current_entry.equipo = new_team
+                current_entry.save()
+                
+            # B. Actualizar Otro Grupo: new_team -> old_team
+            # (other_group_entry es la entrada de new_team en el otro grupo)
+            other_group_entry.equipo = old_team
+            other_group_entry.save()
+            
+            # C. Actualizar partidos en Grupo Actual (old_team -> new_team)
+            # (Excluyendo el partido actual que ya se actualizó)
+            current_matches = current_group.partidos_grupo.exclude(pk=self.object.pk)
+            current_matches.filter(equipo1=old_team).update(equipo1=new_team)
+            current_matches.filter(equipo2=old_team).update(equipo2=new_team)
+            
+            # D. Actualizar partidos en Otro Grupo (new_team -> old_team)
+            other_matches = other_group.partidos_grupo.all()
+            other_matches.filter(equipo1=new_team).update(equipo1=old_team)
+            other_matches.filter(equipo2=new_team).update(equipo2=old_team)
+            
+        else:
+            # --- ESCENARIO DE REEMPLAZO SIMPLE ---
+            # (El nuevo equipo no estaba en ningún grupo, ej: reserva)
+            
+            # 1. Actualizar EquipoGrupo: Reemplazar old_team por new_team
+            equipo_grupo = current_group.tabla.filter(equipo=old_team).first()
+            if equipo_grupo:
+                equipo_grupo.equipo = new_team
+                equipo_grupo.save()
+            
+            # 2. Actualizar otros partidos del grupo
+            otros_partidos = current_group.partidos_grupo.exclude(pk=self.object.pk)
+            otros_partidos.filter(equipo1=old_team).update(equipo1=new_team)
+            otros_partidos.filter(equipo2=old_team).update(equipo2=new_team)
+
+
+from .forms import SwapGroupTeamsForm
+from django.views.generic import FormView
+
+class SwapGroupTeamsView(AdminRequiredMixin, FormView):
+    template_name = 'torneos/replace_teams_form.html'
+    form_class = SwapGroupTeamsForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
+        kwargs['grupo'] = grupo
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = "Intercambiar Equipos de Grupo"
+        return context
+
+    def form_valid(self, form):
+        grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
+        equipo_origen = form.cleaned_data['equipo_origen']
+        equipo_destino = form.cleaned_data['equipo_destino']
+        
+        # Lógica de Intercambio (Swap)
+        # 1. Identificar el grupo del equipo destino
+        other_group_entry = equipo_destino.equipogrupo_set.filter(grupo__torneo=grupo.torneo).first()
+        
+        if other_group_entry:
+            other_group = other_group_entry.grupo
+            
+            # A. Actualizar EquipoGrupo (Tablas de posiciones)
+            # Origen -> Destino
+            entry_origen = grupo.tabla.filter(equipo=equipo_origen).first()
+            if entry_origen:
+                entry_origen.equipo = equipo_destino
+                entry_origen.save()
+            
+            # Destino -> Origen
+            other_group_entry.equipo = equipo_origen
+            other_group_entry.save()
+            
+            # B. Actualizar Partidos
+            # Grupo Actual: equipo_origen -> equipo_destino
+            matches_origen = grupo.partidos_grupo.all()
+            matches_origen.filter(equipo1=equipo_origen).update(equipo1=equipo_destino)
+            matches_origen.filter(equipo2=equipo_origen).update(equipo2=equipo_destino)
+            
+            # Otro Grupo: equipo_destino -> equipo_origen
+            matches_destino = other_group.partidos_grupo.all()
+            matches_destino.filter(equipo1=equipo_destino).update(equipo1=equipo_origen)
+            matches_destino.filter(equipo2=equipo_destino).update(equipo2=equipo_origen)
+
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse('<script>window.location.reload();</script>')
+        
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
+        return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})

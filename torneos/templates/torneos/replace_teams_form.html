@@ -1,0 +1,30 @@
+<div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">{{ titulo|default:"Reemplazar Equipos" }}</h3>
+    <form method="post"
+          hx-post="{{ request.path }}"
+          hx-target="#schedule_modal_content">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-control w-full mb-4">
+                <label class="label">
+                    <span class="label-text">{{ field.label }}</span>
+                </label>
+                {{ field }}
+                {% if field.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ field.errors.0 }}</span>
+                    </label>
+                {% endif %}
+                {% if field.help_text %}
+                    <label class="label">
+                        <span class="label-text-alt text-info">{{ field.help_text }}</span>
+                    </label>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <div class="modal-action">
+            <button type="button" class="btn" onclick="schedule_modal.close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+    </form>
+</div>

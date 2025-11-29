@@ -58,6 +58,21 @@ urlpatterns = [
         views.SchedulePartidoView.as_view(),
         name='schedule_partido',
     ),
+    path(
+        'admin/partido/<int:pk>/replace-teams/',
+        views.ReplacePartidoTeamsView.as_view(),
+        name='replace_partido_teams',
+    ),
+    path(
+        'admin/partido-grupo/<int:pk>/replace-teams/',
+        views.ReplacePartidoGrupoTeamsView.as_view(),
+        name='replace_partido_grupo_teams',
+    ),
+    path(
+        'admin/grupo/<int:pk>/swap-teams/',
+        views.SwapGroupTeamsView.as_view(),
+        name='swap_group_teams',
+    ),
     # Utilidad: Crear torneo de prueba
     path(
         'admin/crear-torneo-prueba/',

@@ -258,7 +258,7 @@ class RankingListView(ListView):
         division_id = self.request.GET.get('division')
         
         # Crear clave de cache única
-        cache_key = f'rankings_{"all" if not division_id else f"div_{division_id}"}'
+        cache_key = f'rankings_v2_{"all" if not division_id else f"div_{division_id}"}'
         
         # Intentar obtener del cache
         cached_rankings = cache.get(cache_key)
@@ -274,51 +274,69 @@ class RankingListView(ListView):
         rankings_por_division = []
         
         for division in divisiones:
-            # Usar agregación para calcular todo en una sola query
-            equipos_con_stats = Equipo.objects.filter(
-                division=division
-            ).select_related(
+            # --- LÓGICA DE RANKING POR DIVISIÓN ---
+            # Ahora iteramos sobre TODOS los equipos, pero calculamos sus puntos
+            # basándonos ÚNICAMENTE en su desempeño en torneos de ESTA división.
+            
+            equipos_con_stats = Equipo.objects.all().select_related(
                 'jugador1', 'jugador2', 'division'
             ).annotate(
-                # Contar victorias en partidos de eliminación
+                # 1. Victorias en Eliminación (Solo torneos de esta división)
                 victorias_eliminacion=Count(
                     'partidos_bracket_ganados',
-                    filter=Q(partidos_bracket_ganados__isnull=False),
+                    filter=Q(
+                        partidos_bracket_ganados__isnull=False,
+                        partidos_bracket_ganados__torneo__division=division
+                    ),
                     distinct=True
                 ),
-                # Contar victorias en partidos de grupo
+                # 2. Victorias en Grupos (Solo torneos de esta división)
                 victorias_grupo=Count(
                     'partidos_grupo_ganados',
-                    filter=Q(partidos_grupo_ganados__isnull=False),
+                    filter=Q(
+                        partidos_grupo_ganados__isnull=False,
+                        partidos_grupo_ganados__grupo__torneo__division=division
+                    ),
                     distinct=True
                 ),
-                # Contar partidos jugados como equipo1 en eliminación
+                # 3. Partidos jugados en Eliminación (Solo torneos de esta división)
                 partidos_elim_1=Count(
                     'partidos_bracket_e1',
-                    filter=Q(partidos_bracket_e1__ganador__isnull=False),
+                    filter=Q(
+                        partidos_bracket_e1__ganador__isnull=False,
+                        partidos_bracket_e1__torneo__division=division
+                    ),
                     distinct=True
                 ),
-                # Contar partidos jugados como equipo2 en eliminación
                 partidos_elim_2=Count(
                     'partidos_bracket_e2',
-                    filter=Q(partidos_bracket_e2__ganador__isnull=False),
+                    filter=Q(
+                        partidos_bracket_e2__ganador__isnull=False,
+                        partidos_bracket_e2__torneo__division=division
+                    ),
                     distinct=True
                 ),
-                # Contar partidos jugados como equipo1 en grupo
+                # 4. Partidos jugados en Grupos (Solo torneos de esta división)
                 partidos_grupo_1=Count(
                     'partidos_grupo_e1',
-                    filter=Q(partidos_grupo_e1__ganador__isnull=False),
+                    filter=Q(
+                        partidos_grupo_e1__ganador__isnull=False,
+                        partidos_grupo_e1__grupo__torneo__division=division
+                    ),
                     distinct=True
                 ),
-                # Contar partidos jugados como equipo2 en grupo
                 partidos_grupo_2=Count(
                     'partidos_grupo_e2',
-                    filter=Q(partidos_grupo_e2__ganador__isnull=False),
+                    filter=Q(
+                        partidos_grupo_e2__ganador__isnull=False,
+                        partidos_grupo_e2__grupo__torneo__division=division
+                    ),
                     distinct=True
                 ),
-                # Contar torneos ganados
+                # 5. Torneos Ganados (Solo de esta división)
                 torneos_ganados_count=Count(
                     'torneos_ganados',
+                    filter=Q(torneos_ganados__division=division),
                     distinct=True
                 )
             )
@@ -341,18 +359,19 @@ class RankingListView(ListView):
                 puntos = victorias_total * 3  # 3 puntos por victoria
                 puntos += equipo.torneos_ganados_count * 50  # 50 puntos por torneo ganado
                 
-                # Bonus por win rate alto
+                # Bonus por win rate alto (Solo si jugó suficientes partidos en esta división)
                 if win_rate >= 75 and partidos_total >= 5:
                     puntos += 20
                 
-                # Solo incluir equipos con actividad
+                # Solo incluir equipos con PUNTOS en esta división
                 if puntos > 0:
                     equipos_con_puntos.append({
                         'equipo': equipo,
                         'puntos': puntos,
                         'victorias': victorias_total,
                         'win_rate': win_rate,
-                        'torneos_ganados': equipo.torneos_ganados_count
+                        'torneos_ganados': equipo.torneos_ganados_count,
+                        'partidos_jugados': partidos_total # Útil para debug
                     })
             
             # Ordenar por puntos

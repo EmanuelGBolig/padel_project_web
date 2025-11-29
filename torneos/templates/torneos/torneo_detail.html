@@ -283,8 +283,7 @@
                                         <!-- EQUIPO 1 -->
                                         <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                                             {% if partido.equipo1 %}
-                                                {% get_team_info partido.equipo1 torneo as team_info %}
-                                                {{ team_info.code }}
+                                                {{ partido.equipo1.nombre|short_name:15 }}
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -293,8 +292,7 @@
                                         <!-- EQUIPO 2 -->
                                         <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                                             {% if partido.equipo2 %}
-                                                {% get_team_info partido.equipo2 torneo as team_info %}
-                                                {{ team_info.code }}
+                                                {{ partido.equipo2.nombre|short_name:15 }}
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -384,42 +382,44 @@
                     <div class="flex flex-col min-w-[200px] gap-6 {% if forloop.last %}last-round{% endif %}">
                         <!-- NOMBRE DE LA RONDA -->
                         <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
-                            {% if ronda.grouper == total_rondas %}
-                                Final
-                            {% elif ronda.grouper == total_rondas|add:"-1" %}
-                                Semifinal
-                            {% elif ronda.grouper == total_rondas|add:"-2" %}
-                                Cuartos
-                            {% elif ronda.grouper == total_rondas|add:"-3" %}
-                                Octavos
-                            {% elif ronda.grouper == total_rondas|add:"-4" %}
-                                16vos
-                            {% else %}
-                                Ronda {{ ronda.grouper }}
-                            {% endif %}
+                            {% nombre_ronda_dinamico ronda.grouper total_rondas %}
                         </div>
                         <!-- PARTIDOS -->
                         <div class="flex flex-col justify-around flex-grow">
                             {% if forloop.last %}
-                                <!-- Final Round: No pairing needed, just display matches -->
+                                <!-- Final Round -->
                                 {% for partido in ronda.list %}
                                     <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative my-4">
                                         {% include "torneos/partials/bracket_match_content.html" %}
                                     </div>
                                 {% endfor %}
                             {% else %}
-                                <!-- Other Rounds: Group in pairs -->
-                                {% for group in ronda.list|batch:2 %}
-                                    <div class="bracket-pair">
-                                        {% for partido in group %}
-                                            <div class="bracket-match-connector w-full pr-4 my-2">
-                                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-                                                    {% include "torneos/partials/bracket_match_content.html" %}
+                                <!-- Other Rounds -->
+                                <!-- Check if we can pair them (even number of matches) -->
+                                {% if ronda.list|length|divisibleby:2 %}
+                                    {% for group in ronda.list|batch:2 %}
+                                        <div class="bracket-pair">
+                                            {% for partido in group %}
+                                                <div class="bracket-match-connector w-full pr-4 my-2">
+                                                    <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
+                                                        {% include "torneos/partials/bracket_match_content.html" %}
+                                                    </div>
                                                 </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Odd number of matches (Asymmetric): Don't use bracket-pair connectors -->
+                                    {% for partido in ronda.list %}
+                                        <div class="w-full my-4 relative">
+                                            <!-- Draw a simple line to right if it's not the last round -->
+                                            <div class="absolute right-0 top-1/2 w-4 h-[2px] bg-base-content/20 translate-x-full"></div>
+                                            <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
+                                                {% include "torneos/partials/bracket_match_content.html" %}
                                             </div>
-                                        {% endfor %}
-                                    </div>
-                                {% endfor %}
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>

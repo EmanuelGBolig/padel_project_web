@@ -1,5 +1,5 @@
 from django import forms
-from .models import Torneo, Partido, PartidoGrupo, Inscripcion
+from .models import Torneo, Partido, PartidoGrupo, Inscripcion, Equipo
 
 
 class TorneoAdminForm(forms.ModelForm):
@@ -239,6 +239,146 @@ class InscripcionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget = forms.HiddenInput()
+
+
+class PartidoReplaceTeamsForm(forms.ModelForm):
+    class Meta:
+        model = Partido
+        fields = ['equipo1', 'equipo2']
+        widgets = {
+            'equipo1': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'equipo2': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.torneo:
+            equipos_torneo = self.instance.torneo.equipos_inscritos.all()
+            self.fields['equipo1'].queryset = equipos_torneo
+            self.fields['equipo2'].queryset = equipos_torneo
+
+
+class PartidoGrupoReplaceTeamsForm(forms.ModelForm):
+    class Meta:
+        model = PartidoGrupo
+        fields = ['equipo1', 'equipo2']
+        widgets = {
+            'equipo1': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+            'equipo2': forms.Select(attrs={'class': 'select select-bordered w-full'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.grupo:
+            # En grupos, idealmente filtramos por equipos del torneo, 
+            # o podríamos filtrar por equipos del grupo si quisiéramos ser más estrictos,
+            # pero para "reemplazar" suele ser mejor permitir cualquiera del torneo.
+            equipos_torneo = self.instance.grupo.torneo.equipos_inscritos.all()
+            
+            # Filtrar equipos que YA han jugado partidos en CUALQUIER grupo
+            # (Para evitar romper la integridad de otros grupos)
+            from django.db.models import Q
+            from .models import PartidoGrupo
+            
+            played_teams_ids = PartidoGrupo.objects.filter(
+                grupo__torneo=self.instance.grupo.torneo,
+                ganador__isnull=False
+            ).values_list('equipo1_id', 'equipo2_id')
+            
+            # Flatten the list of tuples
+            played_ids = set()
+            for e1, e2 in played_teams_ids:
+                if e1: played_ids.add(e1)
+                if e2: played_ids.add(e2)
+            
+            # Excluir equipos que ya jugaron, PERO mantener los actuales del partido
+            # (para que aparezcan seleccionados inicialmente)
+            current_ids = {self.instance.equipo1_id, self.instance.equipo2_id}
+            available_ids = set(equipos_torneo.values_list('id', flat=True)) - played_ids
+            final_ids = available_ids | current_ids
+            
+            equipos_qs = equipos_torneo.filter(id__in=final_ids)
+            
+            self.fields['equipo1'].queryset = equipos_qs
+            self.fields['equipo2'].queryset = equipos_qs
+
+            # Validar si los equipos ya han jugado otros partidos
+            from django.db.models import Q
+            
+            # Check Equipo 1
+            if self.instance.equipo1:
+                played_e1 = self.instance.grupo.partidos_grupo.filter(
+                    Q(equipo1=self.instance.equipo1) | Q(equipo2=self.instance.equipo1),
+                    ganador__isnull=False
+                ).exclude(pk=self.instance.pk).exists()
+                
+                if played_e1:
+                    self.fields['equipo1'].disabled = True
+                    self.fields['equipo1'].help_text = f"{self.instance.equipo1} ya ha jugado partidos y no puede ser reemplazado."
+
+            # Check Equipo 2
+            if self.instance.equipo2:
+                played_e2 = self.instance.grupo.partidos_grupo.filter(
+                    Q(equipo1=self.instance.equipo2) | Q(equipo2=self.instance.equipo2),
+                    ganador__isnull=False
+                ).exclude(pk=self.instance.pk).exists()
+                
+                if played_e2:
+                    self.fields['equipo2'].disabled = True
+                    self.fields['equipo2'].help_text = f"{self.instance.equipo2} ya ha jugado partidos y no puede ser reemplazado."
+
+
+class SwapGroupTeamsForm(forms.Form):
+    equipo_origen = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        label="Equipo de este Grupo",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'})
+    )
+    equipo_destino = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        label="Intercambiar con (Otro Grupo)",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.grupo = kwargs.pop('grupo', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.grupo:
+            from .models import PartidoGrupo
+            from django.db.models import Q
+
+            # 1. Equipos del grupo actual que NO han jugado
+            played_in_group = PartidoGrupo.objects.filter(
+                grupo=self.grupo,
+                ganador__isnull=False
+            ).values_list('equipo1_id', 'equipo2_id')
+            
+            played_ids_group = set()
+            for e1, e2 in played_in_group:
+                if e1: played_ids_group.add(e1)
+                if e2: played_ids_group.add(e2)
+                
+            equipos_grupo = self.grupo.equipos.exclude(id__in=played_ids_group)
+            self.fields['equipo_origen'].queryset = equipos_grupo
+
+            # 2. Equipos de OTROS grupos que NO han jugado
+            played_in_tournament = PartidoGrupo.objects.filter(
+                grupo__torneo=self.grupo.torneo,
+                ganador__isnull=False
+            ).values_list('equipo1_id', 'equipo2_id')
+            
+            played_ids_tournament = set()
+            for e1, e2 in played_in_tournament:
+                if e1: played_ids_tournament.add(e1)
+                if e2: played_ids_tournament.add(e2)
+            
+            # Equipos del torneo, excluyendo los del grupo actual y los que ya jugaron
+            equipos_otros = self.grupo.torneo.equipos_inscritos.exclude(
+                id__in=self.grupo.equipos.values_list('id', flat=True)
+            ).exclude(id__in=played_ids_tournament)
+            
+            self.fields['equipo_destino'].queryset = equipos_otros
 
 
 class PartidoGrupoScheduleForm(forms.ModelForm):
