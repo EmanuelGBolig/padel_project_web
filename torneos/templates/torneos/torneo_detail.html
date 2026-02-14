@@ -10,13 +10,19 @@
             <div class="hero-content flex-col text-center py-12 w-full">
                 <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
                 <div class="max-w-md w-full">
-                    <div class="flex justify-center gap-2 mt-2">
+                    <div class="flex justify-center gap-2 mt-2 flex-wrap">
                         {% if torneo.division %}
-                            <div class="badge badge-lg badge-secondary">{{ torneo.division.nombre }}</div>
+                            <div class="badge badge-lg badge-secondary h-auto whitespace-normal text-center py-2">
+                                {{ torneo.division.nombre }}
+                            </div>
                         {% else %}
-                            <div class="badge badge-lg badge-accent">Torneo Libre - Todas las Divisiones</div>
+                            <div class="badge badge-lg badge-accent h-auto whitespace-normal text-center py-2">
+                                Torneo Libre - Todas las Divisiones
+                            </div>
                         {% endif %}
-                        <div class="badge badge-lg badge-neutral text-neutral-content">{{ torneo.get_estado_display }}</div>
+                        <div class="badge badge-lg badge-neutral text-neutral-content h-auto whitespace-normal text-center py-2">
+                            {{ torneo.get_estado_display }}
+                        </div>
                     </div>
                     {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
                         <div class="mt-4">
