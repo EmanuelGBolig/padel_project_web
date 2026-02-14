@@ -267,7 +267,7 @@
                     </div>
                 </summary>
                 <div class="collapse-content px-6 md:px-8 pb-6 md:pb-8 pt-0 min-w-0">
-                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full mt-4">
                         {% for grupo in grupos %}
                             <div class="card bg-base-100 shadow-sm border border-base-content/5 compact h-full">
                                 <div class="card-body p-0">
@@ -309,7 +309,7 @@
                                                 <div class="flex flex-wrap justify-between items-center gap-x-2">
                                                     <!-- EQUIPOS -->
                                                     <div class="flex items-center gap-1 text-center min-w-0 flex-1 justify-center">
-                                                        <span class="truncate max-w-[80px] {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="truncate max-w-[60px] md:max-w-[100px] {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo1 %}
                                                                 {{ partido.equipo1.nombre|short_name:12 }}
                                                             {% else %}
@@ -317,7 +317,7 @@
                                                             {% endif %}
                                                         </span>
                                                         <span class="mx-0.5 opacity-50 text-[9px] shrink-0">vs</span>
-                                                        <span class="truncate max-w-[80px] {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="truncate max-w-[60px] md:max-w-[100px] {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo2 %}
                                                                 {{ partido.equipo2.nombre|short_name:12 }}
                                                             {% else %}
