@@ -13,7 +13,9 @@ class IPv4EmailBackend(EmailBackend):
             # Esto evita afectar otras conexiones (DB, etc) si es posible
             if host == self.host:
                 print(f"--- Forzando IPv4 para {host} ---")
-                return original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+                res = original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+                print(f"--- IPs resueltas: {res} ---")
+                return res
             return original_getaddrinfo(host, port, family, type, proto, flags)
 
         # Aplicamos el patch
