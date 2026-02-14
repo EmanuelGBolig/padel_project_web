@@ -43,6 +43,7 @@ class RegistroView(CreateView):
 
         def send_email_thread(subject, html_message, plain_message, from_email, recipient_list):
             print(f"--- Intento de envío de email a {recipient_list} desde {from_email} ---")
+            print(f"--- Config: Host={settings.EMAIL_HOST}, Port={settings.EMAIL_PORT}, User={settings.EMAIL_HOST_USER}, TLS={settings.EMAIL_USE_TLS}, SSL={settings.EMAIL_USE_SSL} ---")
             sys.stdout.flush()
             try:
                 send_mail(
@@ -51,7 +52,7 @@ class RegistroView(CreateView):
                     from_email,
                     recipient_list,
                     html_message=html_message,
-                    fail_silently=False, # Queremos ver el error si falla
+                    fail_silently=False, 
                 )
                 print("--- Email enviado correctamente ---")
                 sys.stdout.flush()
