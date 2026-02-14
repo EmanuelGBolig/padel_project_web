@@ -174,13 +174,29 @@ if CLOUDINARY_URL:
         }
     
     
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    print(f"✅ USING CLOUDINARY STORAGE (Cloud Name: {CLOUDINARY_STORAGE['CLOUD_NAME']})")
+    # DEFAULT_FILE_STORAGE es obsoleto en Django 5, usamos STORAGES
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    print(f"✅ USING CLOUDINARY STORAGE (Django 5 STORAGES)")
 else:
     print("⚠️ No CLOUDINARY_URL found. Using local filesystem storage.")
     # Local: Use filesystem
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
     print(f"✅ USING LOCAL STORAGE (MEDIA_ROOT: {MEDIA_ROOT})")
 
 
@@ -205,8 +221,8 @@ STATIC_URL = '/static/'
 # Directorio donde `collectstatic` pondrá los archivos para producción
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Configuración de Whitenoise
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Configuración de Whitenoise (Ya manejada en STORAGES)
+# STATICFILES_STORAGE eliminado por obsoleto en Django 5
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
