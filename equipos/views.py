@@ -18,11 +18,11 @@ class PlayerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Verifica que el usuario sea un 'PLAYER'"""
 
     def test_func(self):
-        return self.request.user.tipo_usuario == 'PLAYER'
+        return self.request.user.tipo_usuario in ['PLAYER', 'ADMIN']
 
     def handle_no_permission(self):
         messages.error(
-            self.request, "Debes ser un jugador para acceder a esta sección."
+            self.request, "Debes ser un jugador o administrador para acceder a esta sección."
         )
         return redirect(reverse_lazy('core:home'))
 

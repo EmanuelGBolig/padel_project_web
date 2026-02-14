@@ -516,7 +516,7 @@
                         </li>
                         {% if user.is_authenticated %}
                             <li class="menu-title mt-4 opacity-70">Tu Gestión</li>
-                            {% if user.tipo_usuario == 'PLAYER' %}
+                            {% if user.tipo_usuario == 'PLAYER' or user.tipo_usuario == 'ADMIN' %}
                                 <li>
                                     <a href="{% url 'equipos:mi_equipo' %}" class="rounded-xl">
                                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -529,7 +529,20 @@
                                         Mi Equipo
                                     </a>
                                 </li>
-                            {% elif user.tipo_usuario == 'ADMIN' %}
+                            {% endif %}
+                            <li>
+                                <a href="{% url 'accounts:perfil' %}" class="rounded-xl">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="h-5 w-5"
+                                         fill="none"
+                                         viewBox="0 0 24 24"
+                                         stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    Mi Perfil
+                                </a>
+                            </li>
+                            {% if user.tipo_usuario == 'ADMIN' %}
                                 <li>
                                     <details {% if 'equipos' in request.path or 'torneos' in request.path %}open{% endif %}>
                                         <summary class="rounded-xl">
