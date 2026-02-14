@@ -30,20 +30,24 @@
                             </p>
                             {% if user.is_authenticated %}
                                 <a href="{% url 'torneos:inscribirse' torneo.pk %}"
-                                   class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</a>
+                                   class="btn btn-success text-white btn-wide shadow-lg">Inscribirse Ahora</a>
                             {% else %}
                                 <button onclick="login_required_modal.showModal()"
-                                        class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</button>
+                                        class="btn btn-success text-white btn-wide shadow-lg">
+                                    Inscribirse Ahora
+                                </button>
                             {% endif %}
                         </div>
                     {% elif not ya_inscrito and torneo.estado == 'AB' %}
                         <div class="mt-8">
                             {% if user.is_authenticated %}
                                 <a href="{% url 'torneos:inscribirse' torneo.pk %}"
-                                   class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</a>
+                                   class="btn btn-success text-white btn-wide shadow-lg">Inscribirse Ahora</a>
                             {% else %}
                                 <button onclick="login_required_modal.showModal()"
-                                        class="btn btn-primary btn-wide shadow-lg">Inscribirse Ahora</button>
+                                        class="btn btn-success text-white btn-wide shadow-lg">
+                                    Inscribirse Ahora
+                                </button>
                             {% endif %}
                         </div>
                     {% elif ya_inscrito %}
