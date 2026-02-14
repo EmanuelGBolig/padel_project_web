@@ -1,52 +1,56 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="flex justify-center items-center min-h-[60vh]">
-    <div class="card w-full max-w-sm shadow-2xl bg-base-100">
-        <div class="card-body">
-            <h2 class="card-title justify-center text-2xl font-bold mb-4">Iniciar Sesión</h2>
-            <form method="post">
-                {% csrf_token %}
-
-                <div class="form-control">
-                    <label class="label" for="id_username">
-                        <span class="label-text">Email</span>
-                    </label>
-                    <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username"
-                        maxlength="150" required id="id_username"
-                        class="input input-bordered w-full bg-base-100 text-base-content"
-                        placeholder="email@ejemplo.com">
-                    {% if form.username.errors %}
-                    <span class="text-error text-sm">{{ form.username.errors.0 }}</span>
-                    {% endif %}
-                </div>
-
-                <div class="form-control mt-4">
-                    <label class="label" for="id_password">
-                        <span class="label-text">Contraseña</span>
-                    </label>
-                    <input type="password" name="password" autocomplete="current-password" required id="id_password"
-                        class="input input-bordered w-full bg-base-100 text-base-content" placeholder="********">
-                    {% if form.password.errors %}
-                    <span class="text-error text-sm">{{ form.password.errors.0 }}</span>
-                    {% endif %}
-
-                    {% if form.non_field_errors %}
-                    <div class="alert alert-error mt-2 text-sm">
-                        {{ form.non_field_errors.0 }}
+    <div class="flex justify-center items-center min-h-[60vh]">
+        <div class="card w-full max-w-sm shadow-2xl bg-base-100">
+            <div class="card-body">
+                <h2 class="card-title justify-center text-2xl font-bold mb-4">Iniciar Sesión</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-control">
+                        <label class="label" for="id_username">
+                            <span class="label-text">Email</span>
+                        </label>
+                        <input type="text"
+                               name="username"
+                               autofocus
+                               autocapitalize="none"
+                               autocomplete="username"
+                               maxlength="150"
+                               required
+                               id="id_username"
+                               class="input input-bordered w-full bg-base-100 text-base-content"
+                               placeholder="email@ejemplo.com">
+                        {% if form.username.errors %}<span class="text-error text-sm">{{ form.username.errors.0 }}</span>{% endif %}
                     </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-control mt-6">
-                    <button class="btn btn-primary">Ingresar</button>
-                </div>
-            </form>
-            <div class="text-center mt-4">
-                <a href="{% url 'accounts:registro' %}" class="link link-hover text-sm">¿No tienes cuenta?
+                    <div class="form-control mt-4">
+                        <label class="label" for="id_password">
+                            <span class="label-text">Contraseña</span>
+                        </label>
+                        <input type="password"
+                               name="password"
+                               autocomplete="current-password"
+                               required
+                               id="id_password"
+                               class="input input-bordered w-full bg-base-100 text-base-content"
+                               placeholder="********">
+                        {% if form.password.errors %}<span class="text-error text-sm">{{ form.password.errors.0 }}</span>{% endif %}
+                        <label class="label">
+                            <a href="{% url 'accounts:password_reset' %}"
+                               class="label-text-alt link link-hover">¿Olvidaste tu contraseña?</a>
+                        </label>
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-error mt-2 text-sm">{{ form.non_field_errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-control mt-6">
+                        <button class="btn btn-primary">Ingresar</button>
+                    </div>
+                </form>
+                <div class="text-center mt-4">
+                    <a href="{% url 'accounts:registro' %}" class="link link-hover text-sm">¿No tienes cuenta?
                     Regístrate</a>
+                </div>
             </div>
         </div>
     </div>
-</div>
 {% endblock %}
