@@ -140,6 +140,27 @@ USE_I18N = True  # <--- ¡CORREGIDO: DEBE SER I18N, NO I1N!
 USE_TZ = True
 
 
+# --- Cloudinary (Media Storage in Production) ---
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
+
+if CLOUDINARY_URL:
+    # Production: Use Cloudinary
+    INSTALLED_APPS.append('cloudinary_storage')
+    INSTALLED_APPS.append('cloudinary')
+    
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+    }
+    
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+else:
+    # Local: Use filesystem
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+
 # --- Cache Configuration ---
 # https://docs.djangoproject.com/en/5.0/topics/cache/
 CACHES = {
