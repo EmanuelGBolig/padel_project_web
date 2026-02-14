@@ -1,5 +1,5 @@
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, UpdateView, ListView
+from django.views.generic import CreateView, UpdateView, ListView, DetailView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import CustomUser
@@ -32,6 +32,21 @@ class PerfilView(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         # Devuelve el usuario actualmente logueado con división precargada
         return CustomUser.objects.select_related('division').get(pk=self.request.user.pk)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .utils import get_player_stats
+        
+        # Obtener estadísticas completas
+        stats = get_player_stats(self.request.user)
+        context['stats'] = stats
+        
+        # Separar inscripciones por estado para la vista
+        inscripciones = stats['inscripciones']
+        context['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
+        context['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
+        
+        return context
 
 
 class RankingJugadoresListView(ListView):
@@ -217,5 +232,29 @@ class RankingJugadoresListView(ListView):
         # Agregar información del usuario autenticado
         if self.request.user.is_authenticated:
             context['usuario_actual'] = self.request.user
+        
+        return context
+
+
+class PublicProfileView(LoginRequiredMixin, DetailView):
+    model = CustomUser
+    template_name = 'accounts/public_profile.html'
+    context_object_name = 'perfil_usuario'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .utils import get_player_stats
+        
+        # El objeto usuario ya está en self.object o context['perfil_usuario']
+        usuario = self.object
+        
+        # Obtener estadísticas completas
+        stats = get_player_stats(usuario)
+        context['stats'] = stats
+        
+        # Separar inscripciones por estado para la vista
+        inscripciones = stats['inscripciones']
+        context['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
+        context['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
         
         return context

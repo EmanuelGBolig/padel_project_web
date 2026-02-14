@@ -67,6 +67,7 @@ class CustomUserProfileForm(UserChangeForm):
     class Meta:
         model = CustomUser
         fields = (
+            'imagen',
             'email',
             'nombre',
             'apellido',
@@ -85,6 +86,8 @@ class CustomUserProfileForm(UserChangeForm):
                 field.widget.attrs['class'] = estilo_input
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select
+            elif isinstance(field.widget, forms.FileInput):
+                field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
 
 
 class CustomLoginForm(AuthenticationForm):

@@ -25,3 +25,39 @@ def home(request):
         inscripciones = Inscripcion.objects.filter(equipo=request.user.equipo)
         context['torneos_inscritos_ids'] = set(inscripciones.values_list('torneo_id', flat=True))
     return render(request, 'core/home.html', context)
+
+
+from django.views.generic import TemplateView
+from django.db.models import Q
+from accounts.models import CustomUser
+from equipos.models import Equipo
+
+
+class GlobalSearchView(TemplateView):
+    template_name = "core/search_results.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get('q', '')
+        context['query'] = query
+
+        if query:
+            # Buscar Jugadores (nombre, apellido, email)
+            context['jugadores'] = CustomUser.objects.filter(
+                Q(nombre__icontains=query) | 
+                Q(apellido__icontains=query) | 
+                Q(email__icontains=query),
+                tipo_usuario='PLAYER'
+            ).distinct()[:10]  # Limitar a 10 resultados
+
+            # Buscar Torneos (nombre)
+            context['torneos'] = Torneo.objects.filter(
+                nombre__icontains=query
+            ).order_by('-fecha_inicio')[:10]
+
+            # Buscar Equipos (nombre)
+            context['equipos'] = Equipo.objects.filter(
+                nombre__icontains=query
+            )[:10]
+
+        return context

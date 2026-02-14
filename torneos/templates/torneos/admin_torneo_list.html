@@ -1,11 +1,29 @@
 {% extends "base.html" %}
+{% block title %}
+    Administrar Torneos
+{% endblock title %}
 {% block content %}
-    <div class="space-y-4">
+    <div class="space-y-8">
         <!-- Header con botón para crear torneo de prueba -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-base-content">Gestión de Torneos</h1>
+        <div class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-center md:text-left">
+                <h1 class="text-3xl font-black text-base-content flex items-center gap-3 justify-center md:justify-start">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke-width="2"
+                             stroke="currentColor"
+                             class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                        </svg>
+                    </div>
+                    Gestión de Torneos
+                </h1>
+                <p class="text-base-content/60 mt-1 ml-1">Administra y supervisa todos tus torneos activos</p>
+            </div>
             <a href="{% url 'torneos:crear_torneo_prueba' %}"
-               class="btn btn-outline btn-info gap-2"
+               class="btn btn-outline btn-sm md:btn-md gap-2 shadow-sm hover:shadow"
                onclick="return confirm('¿Crear un torneo de prueba con 24 equipos? Esto eliminará torneos de prueba anteriores.')">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      fill="none"
@@ -15,83 +33,103 @@
                      class="w-5 h-5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
                 </svg>
-                Crear Torneo de Prueba (24 equipos)
+                Crear Torneo de Prueba
             </a>
         </div>
-        {% for torneo in torneos %}
-            <div class="bg-base-100 dark:bg-base-300 shadow-md rounded-xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors hover:shadow-lg">
-                <!-- Info del torneo -->
-                <div class="flex-1">
-                    <h3 class="font-bold text-lg sm:text-xl text-base-content dark:text-base-content">{{ torneo.nombre }}</h3>
-                    <p class="text-sm text-base-content/70 dark:text-base-content/80 mt-1">
-                        <span class="font-medium">División:</span> {{ torneo.division.nombre }}
-                        <br>
-                        <span class="font-medium">Inscritos:</span> {{ torneo.inscripciones.count }}/{{ torneo.cupos_totales }}
-                    </p>
-                    {% if torneo.ganador %}
-                        <p class="mt-2 text-green-700 dark:text-green-400 font-semibold flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 viewBox="0 0 24 24"
-                                 fill="currentColor"
-                                 class="w-5 h-5 text-yellow-500">
-                                <path fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 5.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z" clip-rule="evenodd" />
-                            </svg>
-                            Ganador: {{ torneo.ganador }}
-                        </p>
-                    {% endif %}
+        <div class="grid gap-4">
+            {% for torneo in torneos %}
+                <div class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-300 border border-base-content/5">
+                    <div class="card-body p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                        <!-- Info del torneo -->
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="font-bold text-xl text-base-content">{{ torneo.nombre }}</h3>
+                                {% if torneo.estado == 'AB' %}
+                                    <div class="badge badge-success text-white">Abierto</div>
+                                {% elif torneo.estado == 'EJ' %}
+                                    <div class="badge badge-info text-white">En Juego</div>
+                                {% else %}
+                                    <div class="badge badge-ghost opacity-60">Finalizado</div>
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
+                                <span class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         viewBox="0 0 20 20"
+                                         fill="currentColor"
+                                         class="w-4 h-4 opacity-70">
+                                        <path fill-rule="evenodd" d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.5.5 0 01.479.425c.069.52.104 1.05.104 1.59 0 5.162-3.26 9.563-7.834 11.256a.48.48 0 01-.332 0C5.26 16.564 2 12.163 2 7c0-.538.035-1.069.104-1.589a.5.5 0 01.48-.425 11.947 11.947 0 007.077-2.75zm4.196 5.954a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                    </svg>
+                                    División: <span class="font-medium text-base-content">{{ torneo.division.nombre }}</span>
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         viewBox="0 0 20 20"
+                                         fill="currentColor"
+                                         class="w-4 h-4 opacity-70">
+                                        <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 18a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z" />
+                                    </svg>
+                                    Inscritos: <span class="font-medium text-base-content">{{ torneo.inscripciones.count }}/{{ torneo.cupos_totales }}</span>
+                                </span>
+                            </div>
+                            {% if torneo.ganador %}
+                                <div class="mt-3 flex items-center gap-2 text-success font-semibold px-3 py-1 bg-success/10 rounded-lg w-fit">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         viewBox="0 0 24 24"
+                                         fill="currentColor"
+                                         class="w-5 h-5 text-yellow-500">
+                                        <path fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 6.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z" clip-rule="evenodd" />
+                                    </svg>
+                                    Ganador: {{ torneo.ganador }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <!-- Acciones -->
+                        <div class="flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                            <a href="{% url 'torneos:admin_manage' torneo.pk %}"
+                               class="btn btn-primary btn-sm w-full md:w-32 shadow-sm">Gestionar</a>
+                            <a href="{% url 'torneos:admin_editar' torneo.pk %}"
+                               class="btn btn-outline btn-sm w-full md:w-32 hover:bg-base-200">Editar</a>
+                            <a href="{% url 'torneos:admin_eliminar' torneo.pk %}"
+                               class="btn btn-ghost btn-xs text-error opacity-70 hover:opacity-100 hover:bg-error/10 w-full md:w-32">Eliminar</a>
+                        </div>
+                    </div>
                 </div>
-                <!-- Estado y acciones -->
-                <div class="flex flex-col sm:flex-row gap-2 sm:items-center mt-2 sm:mt-0">
-                    {% if torneo.estado == 'AB' %}
-                        <div class="badge badge-success">Abierto</div>
-                    {% elif torneo.estado == 'EJ' %}
-                        <div class="badge badge-info">En Juego</div>
-                    {% else %}
-                        <div class="badge badge-ghost">Finalizado</div>
-                    {% endif %}
-                    <a href="{% url 'torneos:admin_manage' torneo.pk %}"
-                       class="btn btn-primary btn-sm shadow hover:shadow-lg">Gestionar</a>
-                    <a href="{% url 'torneos:admin_editar' torneo.pk %}"
-                       class="btn btn-secondary btn-sm shadow hover:shadow-lg">Editar</a>
-                    <button onclick="confirmDelete('{{ torneo.pk }}', '{{ torneo.nombre }}')"
-                            class="btn btn-error btn-sm shadow hover:shadow-lg text-white">Eliminar</button>
-                </div>
-            </div>
-        {% empty %}
-            <p class="text-center text-base-content dark:text-base-content">No hay torneos.</p>
-        {% endfor %}
-    </div>
-    <!-- Delete Confirmation Modal -->
-    <dialog id="delete_modal" class="modal">
-        <div class="modal-box border border-error">
-            <h3 class="font-bold text-lg text-error">¿Eliminar Torneo?</h3>
-            <p class="py-4">
-                Estás a punto de eliminar el torneo <strong id="delete_torneo_name"></strong>.
-            </p>
-            <div class="alert alert-warning text-sm mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="stroke-current shrink-0 h-6 w-6"
-                     fill="none"
-                     viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>Esta acción es irreversible. Se borrarán todos los partidos, grupos e inscripciones.</span>
-            </div>
-            <div class="modal-action">
-                <form method="dialog">
-                    <button class="btn btn-ghost">Cancelar</button>
-                </form>
-                <form id="delete_form" method="post" action="">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-error text-white">Sí, Eliminar</button>
-                </form>
-            </div>
+            {% empty %}
+                <p class="text-center text-base-content dark:text-base-content">No hay torneos.</p>
+            {% endfor %}
         </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
-    <script>
+        <!-- Delete Confirmation Modal -->
+        <dialog id="delete_modal" class="modal">
+            <div class="modal-box border border-error">
+                <h3 class="font-bold text-lg text-error">¿Eliminar Torneo?</h3>
+                <p class="py-4">
+                    Estás a punto de eliminar el torneo <strong id="delete_torneo_name"></strong>.
+                </p>
+                <div class="alert alert-warning text-sm mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Esta acción es irreversible. Se borrarán todos los partidos, grupos e inscripciones.</span>
+                </div>
+                <div class="modal-action">
+                    <form method="dialog">
+                        <button class="btn btn-ghost">Cancelar</button>
+                    </form>
+                    <form id="delete_form" method="post" action="">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-error text-white">Sí, Eliminar</button>
+                    </form>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+        <script>
         function confirmDelete(pk, nombre) {
             const modal = document.getElementById('delete_modal');
             const form = document.getElementById('delete_form');
@@ -104,5 +142,5 @@
             nameSpan.textContent = nombre;
             modal.showModal();
         }
-    </script>
-{% endblock %}
+        </script>
+    {% endblock content %}

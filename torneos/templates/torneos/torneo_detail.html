@@ -1,16 +1,22 @@
 ﻿{% extends "base.html" %}
 {% load torneo_extras %}
-{% block title %}{{ torneo.nombre }}{% endblock %}
+{% block title %}
+    {{ torneo.nombre }} - Detalles
+{% endblock title %}
 {% block content %}
-    <div class="space-y-8">
+    <div class="space-y-12">
         <!-- HERO -->
-        <div class="hero bg-base-100 rounded-xl shadow-lg border-t-4 border-primary">
-            <div class="hero-content flex-col text-center py-8 w-full">
+        <div class="hero bg-base-200/50 rounded-3xl border border-base-300/50">
+            <div class="hero-content flex-col text-center py-12 w-full">
                 <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
                 <div class="max-w-md w-full">
                     <div class="flex justify-center gap-2 mt-2">
-                        <div class="badge badge-lg badge-secondary">{{ torneo.division.nombre }}</div>
-                        <div class="badge badge-lg badge-outline">{{ torneo.get_estado_display }}</div>
+                        {% if torneo.division %}
+                            <div class="badge badge-lg badge-secondary">{{ torneo.division.nombre }}</div>
+                        {% else %}
+                            <div class="badge badge-lg badge-accent">Torneo Libre - Todas las Divisiones</div>
+                        {% endif %}
+                        <div class="badge badge-lg badge-neutral text-neutral-content">{{ torneo.get_estado_display }}</div>
                     </div>
                     {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
                         <div class="mt-4">
@@ -94,141 +100,140 @@
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Dropdown Mis Partidos (Relocated) -->
-    {% if ya_inscrito %}
-        <div class="w-full px-0 md:px-0 md:flex md:justify-end mt-4 mb-6">
-            <details class="dropdown dropdown-bottom md:dropdown-end w-full md:w-auto"
-                     id="mis-partidos-dropdown">
-                <summary class="btn btn-primary gap-2 shadow-lg animate-pulse hover:animate-none w-full md:w-auto">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-5 w-5"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                    Mis Partidos
-                </summary>
-                <ul class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-96 mt-2 border border-base-200">
-                    <!-- Partidos Pendientes -->
-                    {% if mis_partidos_pendientes %}
-                        <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">Por Jugar</h3>
-                        {% for partido in mis_partidos_pendientes %}
-                            <li class="mb-2">
-                                <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
-                                    <div class="flex flex-col gap-2 w-full">
-                                        <div class="flex justify-between items-center text-xs opacity-60">
-                                            <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
-                                            <div class="badge badge-warning badge-xs font-bold">PENDIENTE</div>
-                                        </div>
-                                        {% if partido.obj.fecha_hora %}
-                                            <div class="text-xs font-bold text-center text-primary bg-base-200 rounded py-1">
-                                                {{ partido.obj.fecha_hora|date:"d/m H:i" }}
+        <!-- Dropdown Mis Partidos (Relocated) -->
+        {% if ya_inscrito %}
+            <div class="w-full px-0 md:px-0 md:flex md:justify-end">
+                <details class="dropdown dropdown-bottom md:dropdown-end w-full md:w-auto"
+                         id="mis-partidos-dropdown">
+                    <summary class="btn btn-primary gap-2 shadow-lg animate-pulse hover:animate-none w-full md:w-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        Mis Partidos
+                    </summary>
+                    <ul class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-96 mt-2 border border-base-200">
+                        <!-- Partidos Pendientes -->
+                        {% if mis_partidos_pendientes %}
+                            <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">Por Jugar</h3>
+                            {% for partido in mis_partidos_pendientes %}
+                                <li class="mb-2">
+                                    <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
+                                        <div class="flex flex-col gap-2 w-full">
+                                            <div class="flex justify-between items-center text-xs opacity-60">
+                                                <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
+                                                <div class="badge badge-warning badge-xs font-bold">PENDIENTE</div>
                                             </div>
-                                        {% endif %}
-                                        <div class="flex items-center justify-between gap-2 mt-1">
-                                            <!-- Mi Equipo -->
-                                            <div class="flex-1 text-center">
-                                                <span class="font-bold text-primary break-words leading-tight block min-w-0">
-                                                    {% get_team_info equipo torneo as my_team %}
-                                                    {{ my_team.name }}
-                                                </span>
-                                            </div>
-                                            <div class="font-black text-base-content/30 text-xs px-2">VS</div>
-                                            <!-- Rival -->
-                                            <div class="flex-1 text-center">
-                                                <span class="font-bold text-base-content break-words leading-tight block min-w-0">
-                                                    {% if partido.rival %}
-                                                        {% get_team_info partido.rival torneo as rival %}
-                                                        {{ rival.name }}
-                                                    {% else %}
-                                                        <span class="italic opacity-50">Por definir</span>
-                                                    {% endif %}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    {% endif %}
-                    <!-- Partidos Jugados -->
-                    {% if mis_partidos_jugados %}
-                        <h3 class="font-bold text-sm uppercase tracking-wider text-success mb-2 px-1 {% if mis_partidos_pendientes %}border-t border-base-200 pt-4{% endif %}">
-                            Jugados
-                        </h3>
-                        {% for partido in mis_partidos_jugados %}
-                            <li class="mb-2">
-                                <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
-                                    <div class="flex flex-col gap-2 w-full">
-                                        <div class="flex justify-between items-center text-xs opacity-60">
-                                            <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
-                                            <div class="flex items-center gap-1">
-                                                <div class="w-2 h-2 rounded-full {% if partido.obj.ganador == equipo %}bg-success{% else %}bg-error{% endif %}"></div>
-                                                <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-error{% endif %}">
-                                                    {% if partido.obj.ganador == equipo %}
-                                                        VICTORIA
-                                                    {% else %}
-                                                        DERROTA
-                                                    {% endif %}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center justify-between gap-2 mt-1">
-                                            <!-- Mi Equipo -->
-                                            <div class="flex-1 text-center">
-                                                <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
-                                                    {% get_team_info equipo torneo as my_team %}
-                                                    {{ my_team.name }}
-                                                </span>
-                                            </div>
-                                            <!-- Resultado -->
-                                            <div class="flex flex-col items-center justify-center px-2">
-                                                <div class="flex gap-1 flex-wrap justify-center">
-                                                    {% if partido.resultado %}
-                                                        {% with sets=partido.resultado|split:"," %}
-                                                            {% for set_score in sets %}
-                                                                <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
-                                                            {% endfor %}
-                                                        {% endwith %}
-                                                    {% endif %}
+                                            {% if partido.obj.fecha_hora %}
+                                                <div class="text-xs font-bold text-center text-primary bg-base-200 rounded py-1">
+                                                    {{ partido.obj.fecha_hora|date:"d/m H:i" }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="flex items-center justify-between gap-2 mt-1">
+                                                <!-- Mi Equipo -->
+                                                <div class="flex-1 text-center">
+                                                    <span class="font-bold text-primary break-words leading-tight block min-w-0">
+                                                        {% get_team_info equipo torneo as my_team %}
+                                                        {{ my_team.name }}
+                                                    </span>
+                                                </div>
+                                                <div class="font-black text-base-content/30 text-xs px-2">VS</div>
+                                                <!-- Rival -->
+                                                <div class="flex-1 text-center">
+                                                    <span class="font-bold text-base-content break-words leading-tight block min-w-0">
+                                                        {% if partido.rival %}
+                                                            {% get_team_info partido.rival torneo as rival %}
+                                                            {{ rival.name }}
+                                                        {% else %}
+                                                            <span class="italic opacity-50">Por definir</span>
+                                                        {% endif %}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <!-- Rival -->
-                                            <div class="flex-1 text-center">
-                                                <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
-                                                    {% if partido.rival %}
-                                                        {% get_team_info partido.rival torneo as rival %}
-                                                        {{ rival.name }}
-                                                    {% else %}
-                                                        {% get_team_info partido.equipo1 torneo as rival %}
-                                                        {{ rival.name }}
-                                                    {% endif %}
-                                                </span>
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        {% endif %}
+                        <!-- Partidos Jugados -->
+                        {% if mis_partidos_jugados %}
+                            <h3 class="font-bold text-sm uppercase tracking-wider text-success mb-2 px-1 {% if mis_partidos_pendientes %}border-t border-base-200 pt-4{% endif %}">
+                                Jugados
+                            </h3>
+                            {% for partido in mis_partidos_jugados %}
+                                <li class="mb-2">
+                                    <div class="card bg-base-100 border border-base-200 p-3 shadow-sm hover:shadow-md transition-all">
+                                        <div class="flex flex-col gap-2 w-full">
+                                            <div class="flex justify-between items-center text-xs opacity-60">
+                                                <span class="font-bold uppercase tracking-wider">{{ partido.contexto }}</span>
+                                                <div class="flex items-center gap-1">
+                                                    <div class="w-2 h-2 rounded-full {% if partido.obj.ganador == equipo %}bg-success{% else %}bg-error{% endif %}"></div>
+                                                    <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-error{% endif %}">
+                                                        {% if partido.obj.ganador == equipo %}
+                                                            VICTORIA
+                                                        {% else %}
+                                                            DERROTA
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between gap-2 mt-1">
+                                                <!-- Mi Equipo -->
+                                                <div class="flex-1 text-center">
+                                                    <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
+                                                        {% get_team_info equipo torneo as my_team %}
+                                                        {{ my_team.name }}
+                                                    </span>
+                                                </div>
+                                                <!-- Resultado -->
+                                                <div class="flex flex-col items-center justify-center px-2">
+                                                    <div class="flex gap-1 flex-wrap justify-center">
+                                                        {% if partido.resultado %}
+                                                            {% with sets=partido.resultado|split:"," %}
+                                                                {% for set_score in sets %}
+                                                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
+                                                                {% endfor %}
+                                                            {% endwith %}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <!-- Rival -->
+                                                <div class="flex-1 text-center">
+                                                    <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
+                                                        {% if partido.rival %}
+                                                            {% get_team_info partido.rival torneo as rival %}
+                                                            {{ rival.name }}
+                                                        {% else %}
+                                                            {% get_team_info partido.equipo1 torneo as rival %}
+                                                            {{ rival.name }}
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    {% endif %}
-                    {% if not mis_partidos_pendientes and not mis_partidos_jugados %}
-                        <div class="text-center py-8 opacity-50">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-12 w-12 mx-auto mb-2 opacity-50"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            <p class="text-sm">No tienes partidos asignados aún.</p>
-                        </div>
-                    {% endif %}
-                </ul>
-            </details>
-        </div>
-        <script>
+                                </li>
+                            {% endfor %}
+                        {% endif %}
+                        {% if not mis_partidos_pendientes and not mis_partidos_jugados %}
+                            <div class="text-center py-8 opacity-50">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-12 w-12 mx-auto mb-2 opacity-50"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                <p class="text-sm">No tienes partidos asignados aún.</p>
+                            </div>
+                        {% endif %}
+                    </ul>
+                </details>
+            </div>
+            <script>
     // Close dropdown when clicking outside
     document.addEventListener('click', function (event) {
         const dropdown = document.getElementById('mis-partidos-dropdown');
@@ -238,73 +243,238 @@
             }
         }
     });
-        </script>
-    {% endif %}
-    <!-- GRUPOS -->
-    {% if grupos %}
-        <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left text-base-content">Fase de Grupos</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-            {% for grupo in grupos %}
-                <div class="card bg-base-100 shadow-sm border border-base-200 compact">
-                    <div class="card-body p-0">
-                        <div class="bg-neutral text-neutral-content p-2 text-center font-bold uppercase tracking-wider rounded-t-xl">
-                            {{ grupo.nombre }}
+            </script>
+        {% endif %}
+        <!-- GRUPOS -->
+        {% if grupos %}
+            <details class="collapse collapse-arrow bg-base-200/50 border border-base-300/50 rounded-3xl mt-8"
+                     open>
+                <summary class="collapse-title text-xl font-medium cursor-pointer relative text-base-content">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-base-100 flex items-center justify-center text-primary shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 width="24"
+                                 height="24"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="2"
+                                 stroke="currentColor"
+                                 class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 14.625c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" />
+                            </svg>
                         </div>
-                        <table class="table table-xs w-full">
-                            <thead>
-                                <tr class="text-base-content/60">
-                                    <th class="pl-4">Equipo</th>
-                                    <th class="text-center">PG</th>
-                                    <th class="text-center">DS</th>
-                                    <th class="text-center">DG</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in grupo.tabla.all %}
-                                    <tr class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                                        <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
-                                            <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
-                                            {% get_team_info item.equipo torneo as team_info %}
-                                            <span class="truncate max-w-[120px]" title="{{ team_info.name }}">{{ team_info.code|short_name:15 }}</span>
-                                        </td>
-                                        <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
-                                        <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
-                                        <td class="text-center opacity-60">{{ item.diferencia_games }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        <!-- PARTIDOS DEL GRUPO -->
-                        <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
-                            {% for partido in grupo.partidos_grupo.all %}
-                                <div class="text-[10px] bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
-                                    {% if partido.fecha_hora %}
-                                        <span class="text-[10px] font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
-                                    {% endif %}
-                                    <div class="flex justify-between items-center">
-                                        <!-- EQUIPO 1 -->
-                                        <span class="{% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
-                                            {% if partido.equipo1 %}
-                                                {{ partido.equipo1.nombre|short_name:15 }}
-                                            {% else %}
-                                                -
-                                            {% endif %}
-                                        </span>
-                                        <span class="mx-0.5">vs</span>
-                                        <!-- EQUIPO 2 -->
-                                        <span class="{% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
-                                            {% if partido.equipo2 %}
-                                                {{ partido.equipo2.nombre|short_name:15 }}
-                                            {% else %}
-                                                -
-                                            {% endif %}
-                                        </span>
-                                        <span class="mx-1">=</span>
-                                        <!-- RESULTADO -->
-                                        {% if partido.resultado %}
-                                            <span class="font-mono font-bold text-success">{{ partido.resultado }}</span>
+                        <h2 class="text-2xl font-bold">Fase de Grupos</h2>
+                    </div>
+                </summary>
+                <div class="collapse-content px-6 md:px-8 pb-6 md:pb-8 pt-0 min-w-0">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-4">
+                        {% for grupo in grupos %}
+                            <div class="card bg-base-100 shadow-sm border border-base-content/5 compact h-full">
+                                <div class="card-body p-0">
+                                    <div class="bg-base-200/50 text-base-content p-3 text-center font-bold uppercase tracking-wider rounded-t-xl border-b border-base-content/5">
+                                        {{ grupo.nombre }}
+                                    </div>
+                                    <table class="table table-zebra table-xs w-full">
+                                        <thead>
+                                            <tr class="text-base-content/60">
+                                                <th class="pl-4">Equipo</th>
+                                                <th class="text-center">PG</th>
+                                                <th class="text-center">DS</th>
+                                                <th class="text-center">DG</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in grupo.tabla.all %}
+                                                <tr class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
+                                                    <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
+                                                        <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
+                                                        {% get_team_info item.equipo torneo as team_info %}
+                                                        <span class="truncate max-w-[120px]" title="{{ team_info.name }}">{{ team_info.code|short_name:15 }}</span>
+                                                    </td>
+                                                    <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
+                                                    <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
+                                                    <td class="text-center opacity-60">{{ item.diferencia_games }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <!-- PARTIDOS DEL GRUPO -->
+                                    <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
+                                        {% for partido in grupo.partidos_grupo.all %}
+                                            <div class="text-[10px] bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
+                                                {% if partido.fecha_hora %}
+                                                    <span class="text-[10px] font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
+                                                {% endif %}
+                                                <div class="flex flex-wrap justify-between items-center gap-x-2">
+                                                    <!-- EQUIPOS -->
+                                                    <div class="flex items-center gap-1 text-center min-w-0 flex-1 justify-center">
+                                                        <span class="truncate max-w-[80px] {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                                            {% if partido.equipo1 %}
+                                                                {{ partido.equipo1.nombre|short_name:12 }}
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </span>
+                                                        <span class="mx-0.5 opacity-50 text-[9px] shrink-0">vs</span>
+                                                        <span class="truncate max-w-[80px] {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                                            {% if partido.equipo2 %}
+                                                                {{ partido.equipo2.nombre|short_name:12 }}
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                    <!-- RESULTADO -->
+                                                    <div class="flex items-center gap-1 shrink-0">
+                                                        <span class="mx-0.5 opacity-50 text-[9px]">=</span>
+                                                        {% if partido.resultado %}
+                                                            <span class="font-mono font-bold text-success">{{ partido.resultado }}</span>
+                                                        {% else %}
+                                                            <span class="opacity-40 italic text-[9px]">Pendiente</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+        {% endif %}
+        <!-- BRACKET -->
+        {% if partidos_eliminacion %}
+            <details class="collapse collapse-arrow bg-base-200/50 border border-base-300/50 rounded-3xl mt-12"
+                     open>
+                <summary class="collapse-title text-xl font-medium cursor-pointer relative text-base-content">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-base-100 flex items-center justify-center text-primary shadow-sm shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 width="24"
+                                 height="24"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="2"
+                                 stroke="currentColor"
+                                 class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold">Cuadro Final</h2>
+                    </div>
+                </summary>
+                <!-- Force overflow visible for horizontal scroll -->
+                <!-- Force overflow visible for horizontal scroll -->
+                <div class="collapse-content px-6 md:px-8 pb-6 md:pb-8 pt-0 min-w-0"
+                     style="overflow: visible !important">
+                    <!-- BRACKET: Horizontal bracket for all screens -->
+                    <!-- BRACKET: Horizontal bracket for all screens -->
+                    <div class="overflow-x-auto w-full pb-6"
+                         style="overflow-x: auto !important;
+                                max-width: 100vw">
+                        <style>
+                /* Bracket Connector Styles */
+                /* Force collapse arrow visibility when open */
+                details[open] > .collapse-title::after {
+                    color: oklch(var(--p)) !important;
+                    opacity: 1 !important;
+                    display: block !important;
+                }
+                .bracket-pair {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+                flex-grow: 1;
+                }
+                /* Vertical line connecting the pair */
+                .bracket-pair::before {
+                content: '';
+                position: absolute;
+                right: 0;
+                top: 25%;
+                bottom: 25%;
+                width: 2px;
+                background-color: oklch(var(--bc) / 0.2);
+                border-radius: 1px;
+                }
+                /* Horizontal line to the next round */
+                .bracket-pair::after {
+                content: '';
+                position: absolute;
+                right: -2rem; /* Matches gap-8 (2rem) */
+                top: 50%;
+                width: 2rem;
+                height: 2px;
+                background-color: oklch(var(--bc) / 0.2);
+                }
+                /* Connectors for individual matches to the vertical line */
+                .bracket-match-connector {
+                position: relative;
+                }
+                .bracket-match-connector::after {
+                content: '';
+                position: absolute;
+                right: 0; /* Fixed: Connects to the vertical line */
+                top: 50%;
+                width: 1rem;
+                height: 2px;
+                background-color: oklch(var(--bc) / 0.2);
+                z-index: 10;
+                }
+                /* Remove connectors for the last round */
+                .last-round .bracket-pair::before,
+                .last-round .bracket-pair::after,
+                .last-round .bracket-match-connector::after {
+                display: none;
+                }
+                        </style>
+                        <div class="flex gap-8 min-w-max px-4 pr-32">
+                            {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
+                            {% for ronda in rondas_list %}
+                                <div class="flex flex-col min-w-[200px] gap-6 {% if forloop.last %}last-round{% endif %}">
+                                    <!-- NOMBRE DE LA RONDA -->
+                                    <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
+                                        {% nombre_ronda_dinamico ronda.grouper total_rondas %}
+                                    </div>
+                                    <!-- PARTIDOS -->
+                                    <div class="flex flex-col justify-around flex-grow">
+                                        {% if forloop.last %}
+                                            <!-- Final Round -->
+                                            {% for partido in ronda.list %}
+                                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative my-4">
+                                                    {% include "torneos/partials/bracket_match_content.html" %}
+                                                </div>
+                                            {% endfor %}
                                         {% else %}
-                                            <span class="opacity-30 italic">Pendiente</span>
+                                            <!-- Other Rounds -->
+                                            <!-- Check if we can pair them (even number of matches) -->
+                                            {% if ronda.list|length|divisibleby:2 %}
+                                                {% for group in ronda.list|batch:2 %}
+                                                    <div class="bracket-pair">
+                                                        {% for partido in group %}
+                                                            <div class="bracket-match-connector w-full pr-4 my-2">
+                                                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
+                                                                    {% include "torneos/partials/bracket_match_content.html" %}
+                                                                </div>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endfor %}
+                                            {% else %}
+                                                <!-- Odd number of matches (Asymmetric): Don't use bracket-pair connectors -->
+                                                {% for partido in ronda.list %}
+                                                    <div class="w-full my-4 relative">
+                                                        <!-- Draw a simple line to right if it's not the last round -->
+                                                        <div class="absolute right-0 top-1/2 w-4 h-[2px] bg-base-content/20 translate-x-full"></div>
+                                                        <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
+                                                            {% include "torneos/partials/bracket_match_content.html" %}
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            {% endif %}
                                         {% endif %}
                                     </div>
                                 </div>
@@ -312,138 +482,24 @@
                         </div>
                     </div>
                 </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    <!-- BRACKET -->
-    {% if partidos_eliminacion %}
-        <h2 class="text-3xl font-bold divider text-center md:divider-start md:text-left mt-12 text-base-content">
-            Cuadro Final
-        </h2>
-        <!-- BRACKET: Horizontal bracket for all screens -->
-        <!-- BRACKET: Horizontal bracket for all screens -->
-        <div class="overflow-x-auto pb-6">
-            <style>
-                /* Bracket Connector Styles */
-                .bracket-pair {
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-around;
-                    flex-grow: 1;
-                }
-                
-                /* Vertical line connecting the pair */
-                .bracket-pair::before {
-                    content: '';
-                    position: absolute;
-                    right: 0;
-                    top: 25%;
-                    bottom: 25%;
-                    width: 2px;
-                    background-color: oklch(var(--bc) / 0.2);
-                    border-radius: 1px;
-                }
-                
-                /* Horizontal line to the next round */
-                .bracket-pair::after {
-                    content: '';
-                    position: absolute;
-                    right: -2rem; /* Matches gap-8 (2rem) */
-                    top: 50%;
-                    width: 2rem;
-                    height: 2px;
-                    background-color: oklch(var(--bc) / 0.2);
-                }
-
-                /* Connectors for individual matches to the vertical line */
-                .bracket-match-connector {
-                    position: relative;
-                }
-                .bracket-match-connector::after {
-                    content: '';
-                    position: absolute;
-                    right: 0; /* Fixed: Connects to the vertical line */
-                    top: 50%;
-                    width: 1rem;
-                    height: 2px;
-                    background-color: oklch(var(--bc) / 0.2);
-                    z-index: 10;
-                }
-
-                /* Remove connectors for the last round */
-                .last-round .bracket-pair::before,
-                .last-round .bracket-pair::after,
-                .last-round .bracket-match-connector::after {
-                    display: none;
-                }
-            </style>
-            <div class="flex gap-8 min-w-max px-4">
-                {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
-                {% for ronda in rondas_list %}
-                    <div class="flex flex-col min-w-[200px] gap-6 {% if forloop.last %}last-round{% endif %}">
-                        <!-- NOMBRE DE LA RONDA -->
-                        <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
-                            {% nombre_ronda_dinamico ronda.grouper total_rondas %}
-                        </div>
-                        <!-- PARTIDOS -->
-                        <div class="flex flex-col justify-around flex-grow">
-                            {% if forloop.last %}
-                                <!-- Final Round -->
-                                {% for partido in ronda.list %}
-                                    <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative my-4">
-                                        {% include "torneos/partials/bracket_match_content.html" %}
-                                    </div>
-                                {% endfor %}
-                            {% else %}
-                                <!-- Other Rounds -->
-                                <!-- Check if we can pair them (even number of matches) -->
-                                {% if ronda.list|length|divisibleby:2 %}
-                                    {% for group in ronda.list|batch:2 %}
-                                        <div class="bracket-pair">
-                                            {% for partido in group %}
-                                                <div class="bracket-match-connector w-full pr-4 my-2">
-                                                    <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-                                                        {% include "torneos/partials/bracket_match_content.html" %}
-                                                    </div>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <!-- Odd number of matches (Asymmetric): Don't use bracket-pair connectors -->
-                                    {% for partido in ronda.list %}
-                                        <div class="w-full my-4 relative">
-                                            <!-- Draw a simple line to right if it's not the last round -->
-                                            <div class="absolute right-0 top-1/2 w-4 h-[2px] bg-base-content/20 translate-x-full"></div>
-                                            <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-                                                {% include "torneos/partials/bracket_match_content.html" %}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
+            </details>
+        {% endif %}
+        <!-- Modal Login Requerido -->
+        <dialog id="login_required_modal" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg text-info">Iniciar Sesión Requerido</h3>
+                <p class="py-4">Para inscribirte en este torneo, necesitas iniciar sesión en tu cuenta.</p>
+                <div class="modal-action">
+                    <form method="dialog">
+                        <button class="btn">Cancelar</button>
+                    </form>
+                    <a href="{% url 'accounts:login' %}?next={{ request.path }}"
+                       class="btn btn-primary">Iniciar Sesión</a>
+                </div>
             </div>
-        </div>
-    {% endif %}
-    <!-- Modal Login Requerido -->
-    <dialog id="login_required_modal" class="modal modal-bottom sm:modal-middle">
-        <div class="modal-box">
-            <h3 class="font-bold text-lg text-info">Iniciar Sesión Requerido</h3>
-            <p class="py-4">Para inscribirte en este torneo, necesitas iniciar sesión en tu cuenta.</p>
-            <div class="modal-action">
-                <form method="dialog">
-                    <button class="btn">Cancelar</button>
-                </form>
-                <a href="{% url 'accounts:login' %}?next={{ request.path }}"
-                   class="btn btn-primary">Iniciar Sesión</a>
-            </div>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
-{% endblock %}
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+    </div>
+{% endblock content %}

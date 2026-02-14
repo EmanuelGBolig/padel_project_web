@@ -1,54 +1,31 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}
-    Mi Perfil - PadelApp
+    Perfil de {{ perfil_usuario.full_name }} - PadelApp
 {% endblock title %}
 {% block content %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Columna Izquierda: Perfil y Edición -->
+        <!-- Columna Izquierda: Perfil -->
         <div class="space-y-6">
             <!-- Tarjeta de Perfil -->
             <div class="card bg-base-100 shadow-xl border border-base-200">
                 <div class="card-body items-center text-center">
                     <div class="avatar placeholder mb-4">
                         <div class="bg-neutral text-neutral-content rounded-full w-32 ring ring-primary ring-offset-base-100 ring-offset-2">
-                            {% if user.imagen %}
-                                <img src="{{ user.imagen.url }}"
-                                     alt="{{ user.full_name }}"
+                            {% if perfil_usuario.imagen %}
+                                <img src="{{ perfil_usuario.imagen.url }}"
+                                     alt="{{ perfil_usuario.full_name }}"
                                      width="128"
                                      height="128" />
                             {% else %}
-                                <span class="text-3xl">{{ user.nombre|slice:":1"|upper }}{{ user.apellido|slice:":1"|upper }}</span>
+                                <span class="text-3xl">{{ perfil_usuario.nombre|slice:":1"|upper }}{{ perfil_usuario.apellido|slice:":1"|upper }}</span>
                             {% endif %}
                         </div>
                     </div>
-                    <h2 class="card-title text-2xl">{{ user.full_name }}</h2>
-                    <div class="badge badge-primary badge-lg">{{ user.division.nombre }}</div>
-                    <p class="text-base-content/70 mt-2">{{ user.email }}</p>
-                </div>
-            </div>
-            <!-- Formulario de Edición (Collapsible) -->
-            <div class="collapse collapse-arrow bg-base-100 shadow-xl border border-base-200">
-                <input type="checkbox" />
-                <div class="collapse-title text-lg font-medium">Editar Perfil</div>
-                <div class="collapse-content">
-                    <form method="post" enctype="multipart/form-data" class="space-y-4 pt-4">
-                        {% csrf_token %}
-                        {% for field in form %}
-                            <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text font-medium">{{ field.label }}</span>
-                                </label>
-                                {{ field }}
-                                {% if field.errors %}
-                                    {% for error in field.errors %}<span class="text-error text-xs mt-1">{{ error }}</span>{% endfor %}
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                        <div class="card-actions justify-end mt-6">
-                            <button type="submit" class="btn btn-primary w-full">Guardar Cambios</button>
-                        </div>
-                    </form>
+                    <h2 class="card-title text-2xl">{{ perfil_usuario.full_name }}</h2>
+                    <div class="badge badge-primary badge-lg">{{ perfil_usuario.division.nombre }}</div>
+                    <!-- Email oculto por privacidad o mostrarlo si se desea -->
+                    <!-- <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p> -->
                 </div>
             </div>
         </div>
@@ -135,7 +112,7 @@
                                 {% endfor %}
                             </div>
                         {% else %}
-                            <p class="text-center opacity-50 py-4">No estás participando en ningún torneo activo.</p>
+                            <p class="text-center opacity-50 py-4">Este jugador no está participando en ningún torneo activo.</p>
                         {% endif %}
                     </div>
                 </div>
@@ -171,7 +148,7 @@
                                                 <td>{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
                                                 <td>{{ torneo.division.nombre }}</td>
                                                 <td>
-                                                    {% if torneo.ganador_del_torneo.jugador1 == user or torneo.ganador_del_torneo.jugador2 == user %}
+                                                    {% if torneo.ganador_del_torneo.jugador1 == perfil_usuario or torneo.ganador_del_torneo.jugador2 == perfil_usuario %}
                                                         <span class="badge badge-warning gap-1">
                                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                                  class="h-3 w-3"

@@ -1,16 +1,15 @@
 {% load torneo_extras %}
-{% load torneo_extras %}
 {% if partido.fecha_hora %}
     <div class="absolute -top-3 left-0 right-0 flex justify-center z-20">
         <span class="badge badge-sm badge-primary font-bold shadow-sm">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
     </div>
 {% endif %}
 <!-- EQUIPO 1 -->
-<div class="flex justify-between {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-    <span>
+<div class="flex justify-between items-center pr-12 {% if partido.ganador == partido.equipo1 %}font-bold text-success{% elif partido.equipo1 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
+    <span class="truncate block max-w-[100px]">
         {% if partido.equipo1 %}
             {% get_team_info partido.equipo1 torneo as team_info %}
-            <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+            <span title="{{ team_info.name }}">{{ team_info.code|short_name:12 }}</span>
         {% else %}
             ...
         {% endif %}
@@ -18,11 +17,11 @@
 </div>
 <div class="divider my-1 h-px"></div>
 <!-- EQUIPO 2 -->
-<div class="flex justify-between {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
-    <span>
+<div class="flex justify-between items-center pr-12 {% if partido.ganador == partido.equipo2 %}font-bold text-success{% elif partido.equipo2 == equipo %}font-extrabold text-primary{% else %}text-base-content{% endif %}">
+    <span class="truncate block max-w-[100px]">
         {% if partido.equipo2 %}
             {% get_team_info partido.equipo2 torneo as team_info %}
-            <span class="truncate max-w-[150px]" title="{{ team_info.name }}">{{ team_info.code }}</span>
+            <span title="{{ team_info.name }}">{{ team_info.code|short_name:12 }}</span>
         {% else %}
             ...
         {% endif %}
@@ -31,6 +30,6 @@
 <!-- RESULTADO -->
 {% if partido.resultado %}
     <div class="absolute top-0 right-0 bottom-0 flex items-center pr-2">
-        <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded">{{ partido.resultado }}</span>
+        <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded shadow-sm whitespace-nowrap">{{ partido.resultado }}</span>
     </div>
 {% endif %}

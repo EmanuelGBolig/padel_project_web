@@ -1,123 +1,137 @@
 {% extends "base.html" %}
 {% load torneo_extras %}
-{% block title %}Gestionar: {{ torneo.nombre }}{% endblock %}
+{% block title %}
+    Gestionar: {{ torneo.nombre }}
+{% endblock title %}
 {% block content %}
     <div class="space-y-8">
         <!-- 1. HEADER DEL TORNEO -->
-        <div class="card bg-base-100 shadow-xl border border-base-300">
-            <div class="card-body">
-                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
-                    <div>
-                        <h1 class="card-title text-3xl font-bold">{{ torneo.nombre }}</h1>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                            <div class="badge badge-secondary badge-outline">{{ torneo.division.nombre }}</div>
-                            <div class="badge badge-accent">{{ torneo.get_estado_display }}</div>
-                            <div class="badge badge-primary badge-outline">{{ torneo.get_tipo_torneo_display }}</div>
-                        </div>
+        <div class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50">
+            <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+                <div>
+                    <h1 class="text-3xl font-black text-base-content">{{ torneo.nombre }}</h1>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        <div class="badge badge-lg badge-secondary">{{ torneo.division.nombre }}</div>
+                        <div class="badge badge-lg badge-accent">{{ torneo.get_estado_display }}</div>
+                        <div class="badge badge-lg badge-primary badge-outline">{{ torneo.get_tipo_torneo_display }}</div>
                     </div>
-                    <a href="{% url 'torneos:admin_editar' torneo.pk %}"
-                       class="btn btn-ghost btn-sm gap-2">
+                </div>
+                <a href="{% url 'torneos:admin_editar' torneo.pk %}"
+                   class="btn btn-ghost btn-sm gap-2 text-base-content/70 hover:text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="1.5"
+                         stroke="currentColor"
+                         class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Configuración
+                </a>
+            </div>
+            <div class="divider"></div>
+            <!-- Acciones Torneo -->
+            <form method="post" class="flex flex-wrap gap-3 w-full">
+                {% csrf_token %}
+                {% if torneo.estado == 'AB' %}
+                    <button type="submit"
+                            name="action"
+                            value="iniciar_torneo"
+                            class="btn btn-success text-white gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              fill="none"
                              viewBox="0 0 24 24"
                              stroke-width="1.5"
                              stroke="currentColor"
                              class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
                         </svg>
-                        Configuración
-                    </a>
-                </div>
-                <div class="divider"></div>
-                <!-- Acciones Torneo -->
-                <form method="post" class="flex flex-wrap gap-3 w-full">
-                    {% csrf_token %}
-                    {% if torneo.estado == 'AB' %}
+                        Iniciar Torneo y Generar Grupos
+                    </button>
+                {% elif torneo.estado == 'EJ' %}
+                    {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
                         <button type="submit"
                                 name="action"
-                                value="iniciar_torneo"
-                                class="btn btn-success text-white gap-2">
+                                value="generar_octavos"
+                                class="btn btn-primary gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                  fill="none"
                                  viewBox="0 0 24 24"
                                  stroke-width="1.5"
                                  stroke="currentColor"
                                  class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.25 2.25 0 11-4.5 0v9.75m4.5 0h.75a2.25 2.25 0 012.25 2.25v3.375M9.497 14.625h-.75a2.25 2.25 0 01-2.25-2.25V5.625a2.25 2.25 0 014.5 0v9.75" />
                             </svg>
-                            Iniciar Torneo y Generar Grupos
+                            Calcular Clasificación y Generar Bracket
                         </button>
-                    {% elif torneo.estado == 'EJ' %}
-                        {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
-                            <button type="submit"
-                                    name="action"
-                                    value="generar_octavos"
-                                    class="btn btn-primary gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     fill="none"
-                                     viewBox="0 0 24 24"
-                                     stroke-width="1.5"
-                                     stroke="currentColor"
-                                     class="w-5 h-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.25 2.25 0 11-4.5 0v9.75m4.5 0h.75a2.25 2.25 0 012.25 2.25v3.375M9.497 14.625h-.75a2.25 2.25 0 01-2.25-2.25V5.625a2.25 2.25 0 014.5 0v9.75" />
-                                </svg>
-                                Calcular Clasificación y Generar Bracket
-                            </button>
-                        {% elif not fase_eliminatoria_existente %}
-                            <div role="alert" class="alert alert-warning py-2 max-w-md">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     class="stroke-current h-6 w-6"
-                                     fill="none"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                <span>Faltan <strong>{{ partidos_grupo_pendientes }}</strong> partidos de grupo.</span>
-                            </div>
-                        {% endif %}
-                        <button type="submit"
-                                name="action"
-                                value="finalizar_torneo"
-                                class="btn btn-error text-white ml-auto">Finalizar Torneo</button>
+                    {% elif not fase_eliminatoria_existente %}
+                        <div role="alert" class="alert alert-warning py-2 max-w-md">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span>Faltan <strong>{{ partidos_grupo_pendientes }}</strong> partidos de grupo.</span>
+                        </div>
                     {% endif %}
-                </form>
+                    <button type="submit"
+                            name="action"
+                            value="finalizar_torneo"
+                            class="btn btn-error text-white ml-auto">Finalizar Torneo</button>
+                {% endif %}
+            </form>
+        </form>
+    </div>
+    <!-- SEARCH BAR -->
+    {% if grupos or fase_eliminatoria_existente %}
+        <div class="form-control w-full max-w-md mx-auto mb-6">
+            <div class="relative">
+                <input type="text"
+                       id="adminSearchInput"
+                       placeholder="Buscar equipo, grupo o ronda..."
+                       class="input input-bordered w-full pr-10 pl-10" />
+                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="1.5"
+                         stroke="currentColor"
+                         class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                </div>
+                <button class="absolute right-0 top-0 rounded-l-none btn btn-ghost btn-square"
+                        onclick="document.getElementById('adminSearchInput').value = ''; document.getElementById('adminSearchInput').dispatchEvent(new Event('input'));">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="1.5"
+                         stroke="currentColor"
+                         class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
         </div>
-        <!-- SEARCH BAR -->
-        {% if grupos or fase_eliminatoria_existente %}
-            <div class="form-control w-full max-w-md mx-auto mb-6">
-                <div class="relative">
-                    <input type="text"
-                           id="adminSearchInput"
-                           placeholder="Buscar equipo, grupo o ronda..."
-                           class="input input-bordered w-full pr-10 pl-10" />
-                    <div class="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke-width="1.5"
-                             stroke="currentColor"
-                             class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                        </svg>
-                    </div>
-                    <button class="absolute right-0 top-0 rounded-l-none btn btn-ghost btn-square"
-                            onclick="document.getElementById('adminSearchInput').value = ''; document.getElementById('adminSearchInput').dispatchEvent(new Event('input'));">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke-width="1.5"
-                             stroke="currentColor"
-                             class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+    {% endif %}
+    <!-- 2. FASE DE GRUPOS -->
+    {% if torneo.estado == 'EJ' and grupos %}
+        <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="2"
+                         stroke="currentColor"
+                         class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
                 </div>
+                <h2 class="text-2xl font-bold text-base-content">Fase de Grupos</h2>
             </div>
-        {% endif %}
-        <!-- 2. FASE DE GRUPOS -->
-        {% if torneo.estado == 'EJ' and grupos %}
-            <h2 class="text-2xl font-bold mb-4 divider divider-start text-primary">Fase de Grupos</h2>
             <div class="space-y-2" id="groupsContainer">
                 {% for grupo in grupos %}
                     <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item">
@@ -146,7 +160,7 @@
                             <!-- Tabla Posiciones (Compacta) -->
                             <div class="overflow-x-auto mb-4 bg-base-200 rounded-lg p-2">
                                 <h4 class="text-sm font-bold mb-2 opacity-70">Tabla de Posiciones</h4>
-                                <table class="table table-xs w-full text-center">
+                                <table class="table table-zebra table-xs w-full text-center">
                                     <thead>
                                         <tr>
                                             <th class="text-left">Equipo</th>
@@ -230,10 +244,24 @@
                     </div>
                 {% endfor %}
             </div>
-        {% endif %}
-        <!-- 3. BRACKET -->
-        {% if fase_eliminatoria_existente %}
-            <h2 class="text-2xl font-bold mb-4 divider divider-start text-secondary">Fase Eliminatoria</h2>
+        </section>
+    {% endif %}
+    <!-- 3. BRACKET -->
+    {% if fase_eliminatoria_existente %}
+        <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="2"
+                         stroke="currentColor"
+                         class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0V5.625a2.25 2.25 0 11-4.5 0v9.75m4.5 0h.75a2.25 2.25 0 012.25 2.25v3.375M9.497 14.625h-.75a2.25 2.25 0 01-2.25-2.25V5.625a2.25 2.25 0 014.5 0v9.75" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-base-content">Fase Eliminatoria</h2>
+            </div>
             <div class="space-y-4" id="bracketContainer">
                 {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                 {% for ronda in rondas_list %}
@@ -317,32 +345,33 @@
                     </div>
                 {% endfor %}
             </div>
-        {% endif %}
-        <!-- MODAL -->
-        <dialog id="resultado_modal" class="modal">
-            <div class="modal-box max-w-lg p-0 overflow-hidden">
-                <div id="modal_content">
-                    <div class="p-10 flex justify-center">
-                        <span class="loading loading-spinner loading-lg text-primary"></span>
-                    </div>
-                </div>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button></button>
-            </form>
-        </dialog>
-        <!-- SCHEDULE MODAL -->
-        <dialog id="schedule_modal" class="modal">
-            <div id="schedule_modal_content" class="modal-box">
+        </section>
+    {% endif %}
+    <!-- MODAL -->
+    <dialog id="resultado_modal" class="modal">
+        <div class="modal-box max-w-lg p-0 overflow-hidden">
+            <div id="modal_content">
                 <div class="p-10 flex justify-center">
                     <span class="loading loading-spinner loading-lg text-primary"></span>
                 </div>
             </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
-        <script>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    <!-- SCHEDULE MODAL -->
+    <dialog id="schedule_modal" class="modal">
+        <div id="schedule_modal_content" class="modal-box">
+            <div class="p-10 flex justify-center">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+    <script>
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('adminSearchInput');
         if (!searchInput) return;
@@ -417,6 +446,6 @@
             });
         });
     });
-        </script>
-    </div>
+    </script>
+</div>
 {% endblock content %}

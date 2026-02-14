@@ -14,6 +14,11 @@ from django.utils import timezone
 # Movido desde 'equipos' para romper la dependencia circular
 class Division(models.Model):
     nombre = models.CharField(max_length=50, unique=True)  # Ej: "3ra", "4ta", "5ta"
+    orden = models.PositiveSmallIntegerField(unique=True, help_text="Octava=8, Séptima=7, ..., Primera=1")
+
+    class Meta:
+        ordering = ['orden']  # Ordena de menor a mayor (Primera=1 primero)
+        verbose_name_plural = "Divisiones"
 
     def __str__(self):
         return self.nombre
@@ -61,6 +66,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     numero_telefono = models.CharField(max_length=20, blank=True)
+    imagen = models.ImageField(upload_to='perfiles/', blank=True, null=True)
 
     division = models.ForeignKey(
         'accounts.Division',  # <-- CAMBIO AQUÍ (apunta a sí mismo)
@@ -124,6 +130,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     @property
     def full_name(self):
         return f"{self.nombre} {self.apellido}"
+
+    @property
+    def get_avatar_url(self):
+        if self.imagen:
+            return self.imagen.url
+        return None  # El template manejará el fallback
 
     @property
     def equipo(self):

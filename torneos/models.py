@@ -18,7 +18,13 @@ class Torneo(models.Model):
         GRUPOS = 'G', 'Fase de Grupos + Eliminatoria'
 
     nombre = models.CharField(max_length=200)
-    division = models.ForeignKey(Division, on_delete=models.PROTECT)
+    division = models.ForeignKey(
+        Division, 
+        on_delete=models.PROTECT,
+        null=True,  # Permite torneos "libres" sin restricción de división
+        blank=True,
+        help_text="Dejar vacío para torneos libres (cualquier división)"
+    )
     fecha_inicio = models.DateField()
     fecha_limite_inscripcion = models.DateTimeField()
     cupos_totales = models.PositiveIntegerField(default=16)

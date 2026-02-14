@@ -1,72 +1,77 @@
 {% extends "base.html" %}
 {% block content %}
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="h-10 w-10 text-primary"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-                Ranking de Equipos
-            </h1>
-            <!-- Mostrar posición del usuario si tiene equipo -->
-            {% if mi_equipo %}
-                {% for division_ranking in rankings_por_division %}
-                    {% if division_ranking.division == mi_equipo.division %}
-                        {% for item in division_ranking.equipos %}
-                            {% if item.equipo == mi_equipo %}
-                                <div class="alert alert-success shadow-lg mt-4">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         class="h-6 w-6 shrink-0"
-                                         fill="none"
-                                         viewBox="0 0 24 24"
-                                         stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <div class="flex-1">
-                                        <h3 class="font-bold">Tu Posición</h3>
-                                        <div class="text-sm">
-                                            Estás en el puesto <span class="font-bold text-lg">#{{ item.posicion }}</span> de <span class="badge badge-secondary">{{ mi_equipo.division.nombre }}</span> con <span class="font-bold">{{ item.puntos }} puntos</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
+    <div class="space-y-8">
+        <!-- Header & Filtros -->
+        <div class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <h1 class="text-3xl font-black text-base-content flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke-width="2"
+                             stroke="currentColor"
+                             class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                        </svg>
+                    </div>
+                    Ranking de Equipos
+                </h1>
+                <p class="text-base-content/60 mt-1 ml-1">Clasificación general por divisiones</p>
+            </div>
             <!-- Filtro por División -->
-            <div class="form-control w-full max-w-xs mt-6">
-                <label class="label">
-                    <span class="label-text font-semibold">Filtrar por División</span>
-                </label>
-                <select class="select select-bordered"
+            <div class="form-control w-full md:w-auto">
+                <select class="select select-bordered w-full md:w-64"
                         onchange="window.location.href=this.value">
                     <option value="{% url 'equipos:rankings' %}"
-                            {% if not division_seleccionada %}selected{% endif %}>
-                        Todas
-                        las Divisiones
-                    </option>
-                    {% for division in divisiones %}<option value="?division={{ division.id }}">{{ division.nombre }}</option>{% endfor %}
+                            {% if not division_seleccionada %}selected{% endif %}>Todas las Divisiones</option>
+                    {% for division in divisiones %}
+                        <option value="?division={{ division.id }}"
+                                {% if division_seleccionada.id == division.id %}selected{% endif %}>
+                            {{ division.nombre }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
+        <!-- Alerta de Posición Personal -->
+        {% if mi_equipo %}
+            {% for division_ranking in rankings_por_division %}
+                {% if division_ranking.division == mi_equipo.division %}
+                    {% for item in division_ranking.equipos %}
+                        {% if item.equipo == mi_equipo %}
+                            <div class="alert bg-success/10 border-success/20 text-success-content shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-6 w-6 shrink-0 text-success"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <h3 class="font-bold text-success">¡Tu equipo está en el ranking!</h3>
+                                    <div class="text-sm opacity-90">
+                                        Puesto <span class="font-black text-lg">#{{ item.posicion }}</span> en <span class="font-bold">{{ mi_equipo.division.nombre }}</span> con {{ item.puntos }} puntos.
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
         {% for division_ranking in rankings_por_division %}
-            <!-- División -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
-                    <span class="badge badge-secondary badge-lg">{{ division_ranking.division.nombre }}</span>
-                </h2>
+            <!-- División Panel -->
+            <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="badge badge-secondary badge-lg shadow-sm">{{ division_ranking.division.nombre }}</div>
+                </div>
                 <!-- Tabla de Rankings -->
-                <div class="overflow-x-auto bg-base-100 rounded-lg shadow-lg">
-                    <table class="table w-full">
+                <div class="overflow-x-auto bg-base-100 rounded-2xl shadow-sm border border-base-content/5">
+                    <table class="table table-zebra w-full">
                         <thead>
-                            <tr class="bg-base-200">
-                                <th class="text-center">Pos</th>
+                            <tr class="bg-base-200/50 border-b border-base-300/50 text-base-content/70">
+                                <th class="text-center w-16">Pos</th>
                                 <th>Equipo</th>
                                 <th class="text-center">Puntos</th>
                                 <th class="text-center hidden sm:table-cell">Victorias</th>
@@ -76,44 +81,52 @@
                         </thead>
                         <tbody>
                             {% for item in division_ranking.equipos %}
-                                <tr class="hover {% if item.posicion <= 3 %}bg-primary/5{% endif %} {% if mi_equipo and item.equipo == mi_equipo %}ring-2 ring-success{% endif %}">
-                                    <td class="text-center">
+                                <tr class="hover group transition-colors {% if mi_equipo and item.equipo == mi_equipo %}bg-primary/5 border-l-4 border-primary{% endif %}">
+                                    <td class="text-center font-bold">
                                         {% if item.posicion == 1 %}
-                                            <span class="text-4xl">🥇</span>
+                                            <span class="text-2xl drop-shadow-sm">🥇</span>
                                         {% elif item.posicion == 2 %}
-                                            <span class="text-4xl">🥈</span>
+                                            <span class="text-2xl drop-shadow-sm">🥈</span>
                                         {% elif item.posicion == 3 %}
-                                            <span class="text-4xl">🥉</span>
+                                            <span class="text-2xl drop-shadow-sm">🥉</span>
                                         {% else %}
-                                            <span class="font-bold text-2xl text-base-content/50">#{{ item.posicion }}</span>
+                                            <span class="opacity-50">#{{ item.posicion }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div>
-                                            <div class="font-bold text-lg">{{ item.equipo.nombre }}</div>
-                                            <div class="text-sm opacity-60">{{ item.equipo.jugador1.full_name }} / {{ item.equipo.jugador2.full_name }}</div>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-base md:text-lg group-hover:text-primary transition-colors">{{ item.equipo.nombre }}</span>
+                                            <span class="text-xs text-base-content/60">{{ item.equipo.jugador1.full_name }} / {{ item.equipo.jugador2.full_name }}</span>
                                         </div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="font-bold text-primary text-2xl">{{ item.puntos }}</span>
+                                        <span class="font-black text-primary text-xl">{{ item.puntos }}</span>
                                     </td>
                                     <td class="text-center hidden sm:table-cell">
-                                        <span class="font-semibold text-lg">{{ item.victorias }}</span>
+                                        <span class="font-medium opacity-70">{{ item.victorias }}</span>
                                     </td>
                                     <td class="text-center hidden lg:table-cell">
                                         {% if item.win_rate >= 75 %}
-                                            <div class="badge badge-success badge-lg">{{ item.win_rate }}%</div>
+                                            <div class="badge badge-success badge-sm font-bold text-white">{{ item.win_rate }}%</div>
                                         {% elif item.win_rate >= 50 %}
-                                            <div class="badge badge-warning badge-lg">{{ item.win_rate }}%</div>
+                                            <div class="badge badge-warning badge-sm font-bold text-white">{{ item.win_rate }}%</div>
                                         {% else %}
-                                            <div class="badge badge-error badge-lg">{{ item.win_rate }}%</div>
+                                            <div class="badge badge-error badge-sm font-bold text-white">{{ item.win_rate }}%</div>
                                         {% endif %}
                                     </td>
                                     <td class="text-center hidden lg:table-cell">
                                         {% if item.torneos_ganados > 0 %}
-                                            <span class="font-bold text-success text-lg">🏆 {{ item.torneos_ganados }}</span>
+                                            <span class="font-bold text-success flex items-center justify-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     viewBox="0 0 24 24"
+                                                     fill="currentColor"
+                                                     class="w-4 h-4">
+                                                    <path fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 6.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z" clip-rule="evenodd" />
+                                                </svg>
+                                                {{ item.torneos_ganados }}
+                                            </span>
                                         {% else %}
-                                            <span class="opacity-30 text-lg">-</span>
+                                            <span class="opacity-20 text-lg">-</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -121,24 +134,28 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         {% empty %}
-            <div class="text-center py-12">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="h-16 w-16 mx-auto mb-4 opacity-20"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-                <p class="opacity-50">No hay equipos con actividad.</p>
-                <p class="text-xs mt-2 opacity-40">Los equipos aparecerán aquí una vez que jueguen partidos.</p>
+            <div class="text-center py-20 bg-base-200/50 rounded-3xl border border-base-300/50">
+                <div class="bg-base-100 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-10 w-10 text-base-content/20"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <h3 class="font-bold text-lg text-base-content">Sin actividad aún</h3>
+                <p class="text-base-content/60 mt-2 max-w-sm mx-auto">
+                    Los equipos aparecerán en el ranking una vez que se hayan jugado partidos.
+                </p>
             </div>
         {% endfor %}
         <!-- Info de puntuación -->
-        <div class="alert alert-info mt-8 shadow-lg">
+        <div class="alert bg-info/10 border-info/20 text-info-content shadow-sm flex items-start gap-4">
             <svg xmlns="http://www.w3.org/2000/svg"
-                 class="h-6 w-6 shrink-0"
+                 class="h-6 w-6 shrink-0 mt-0.5"
                  fill="none"
                  viewBox="0 0 24 24"
                  stroke="currentColor">
@@ -146,8 +163,8 @@
             </svg>
             <div>
                 <h3 class="font-bold">Sistema de Puntuación</h3>
-                <div class="text-sm">Victoria: 3 pts | Torneo Ganado: 50 pts | Bonus Win Rate ≥75%: 20 pts</div>
+                <div class="text-sm mt-1 opacity-90">Victoria: 3 pts | Torneo Ganado: 50 pts | Bonus Win Rate ≥75%: 20 pts</div>
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}

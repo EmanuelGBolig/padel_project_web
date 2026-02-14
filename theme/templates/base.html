@@ -3,9 +3,14 @@
 <html lang="es" data-theme="light">
     <head>
         <meta charset="UTF-8">
+        <meta name="description"
+              content="Gestión de torneos de pádel, rankings y estadísticas.">
+        <meta name="keywords" content="padel, torneos, ranking, deporte, argentina">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>
-            {% block title %}Torneos de Pádel{% endblock %}
+            {% block title %}
+                Torneos de Pádel
+            {% endblock title %}
         </title>
         <!-- 1. HTMX -->
         <script src="https://unpkg.com/htmx.org@1.9.10"
@@ -15,22 +20,40 @@
         <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css"
               rel="stylesheet"
               type="text/css" />
+        <!-- Google Fonts: Inter -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+              rel="stylesheet">
         <!-- 3. TAILWIND CSS JS (Utilidades de Diseño) -->
         <script src="https://cdn.tailwindcss.com"></script>
         <!-- Configuración para modo oscuro y tema -->
         <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { extend: {} }
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
         }
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+        if (localStorage.getItem('theme') === 'business' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'business');
         } else {
-            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.setAttribute('data-theme', 'corporate');
         }
         </script>
         <!-- Estilos extra para contraste y botones -->
         <style>
+        /* Override corporate theme defaults for rounded corners */
+        [data-theme="corporate"] {
+            --rounded-box: 1rem;
+            --rounded-btn: 0.5rem;
+            --rounded-badge: 1.9rem;
+        }
+
         /* Botones ghost con contraste al hover */
         .btn-ghost:hover {
             background-color: rgba(100, 100, 100, 0.1);
@@ -42,9 +65,15 @@
             transition: all 0.2s;
         }
 
+        .btn-primary:active,
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+
         .btn-primary:hover,
         .btn-secondary:hover {
             filter: brightness(1.1);
+            transform: translateY(-1px);
         }
 
         /* Tablas responsivas sin scroll horizontal forzado */
@@ -142,6 +171,42 @@
             border-color: #383f47;
             color: #a6adbb;
         }
+
+        /* --- Modern Gradient Animations --- */
+        @keyframes gradient-x {
+            0%, 100% {
+                background-size: 200% 200%;
+                background-position: left center;
+            }
+            50% {
+                background-size: 200% 200%;
+                background-position: right center;
+            }
+        }
+
+        .animate-gradient-x {
+            background-size: 200% auto;
+            animation: gradient-x 6s ease infinite;
+        }
+
+        /* Smooth scrollbar for overflow areas */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: oklch(var(--bc) / 0.2);
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: oklch(var(--bc) / 0.3);
+        }
         </style>
         <link rel="stylesheet" href="{% static 'css/select2-mobile.css' %}">
         {% block extra_head %}
@@ -149,217 +214,298 @@
             {% if form.media %}{{ form.media.css }}{% endif %}
         {% endblock extra_head %}
     </head>
-    <body class="min-h-screen flex flex-col font-sans transition-colors duration-200">
-        <!-- Navbar -->
-        <div class="navbar bg-base-100 shadow-md sticky top-0 z-[100] px-4">
-            <div class="navbar-start">
-                <!-- Menú Hamburguesa -->
-                <div class="dropdown">
-                    <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-5 w-5"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
-                        </svg>
+    <body class="min-h-screen font-sans transition-colors duration-200 bg-base-100 flex flex-col">
+        <div class="drawer lg:drawer-open flex-grow">
+            <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+            <div class="drawer-content flex flex-col">
+                <!-- Navbar Top -->
+                <div class="navbar sticky top-0 z-40 bg-base-100/95 backdrop-blur-md shadow-sm border-b border-base-200 justify-between">
+                    <!-- Navbar Start (Left & Search) -->
+                    <div class="navbar-start flex-1 gap-4">
+                        <div class="flex-none lg:hidden">
+                            <label for="my-drawer"
+                                   aria-label="open sidebar"
+                                   class="btn btn-square btn-ghost">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     class="inline-block w-6 h-6 stroke-current">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                                </svg>
+                            </label>
+                        </div>
+                        <!-- Search Bar (Slightly more left) -->
+                        <div class="w-full flex justify-center xl:pr-32">
+                            <form action="{% url 'core:search' %}" method="get" class="w-full max-w-md">
+                                <div class="relative w-full">
+                                    <input type="text"
+                                           name="q"
+                                           placeholder="Buscar torneos, jugadores..."
+                                           class="input input-bordered w-full h-10 pl-10 bg-base-200/50 focus:bg-base-100 transition-colors rounded-xl text-sm" />
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             class="h-5 w-5 opacity-50"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <ul tabindex="0"
-                        class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    <!-- Navbar End (Right) -->
+                    <div class="navbar-end w-auto flex-none gap-2">
+                        <!-- Theme Toggle -->
+                        <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm">
+                            <input type="checkbox" class="theme-controller" value="dark" />
+                            <svg class="swap-off fill-current w-5 h-5"
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 viewBox="0 0 24 24">
+                                <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,4.93l.71.71A1,1,0,0,0,5.64,7.05Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
+                            </svg>
+                            <svg class="swap-on fill-current w-5 h-5"
+                                 xmlns="http://www.w3.org/2000/svg"
+                                 viewBox="0 0 24 24">
+                                <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
+                            </svg>
+                        </label>
+                        {% if user.is_authenticated %}
+                            <div class="dropdown dropdown-end">
+                                <div tabindex="0"
+                                     role="button"
+                                     class="btn btn-ghost btn-circle avatar placeholder bg-primary text-primary-content">
+                                    <div class="w-9 rounded-full">
+                                        <span>{{ user.nombre|slice:":1"|upper }}</span>
+                                    </div>
+                                </div>
+                                <ul tabindex="0"
+                                    class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
+                                    <li class="menu-title text-opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box">{{ user.email }}</li>
+                                    <li>
+                                        <a href="{% url 'accounts:perfil' %}" class="py-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-5 w-5 opacity-70"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                            Mi Perfil
+                                        </a>
+                                    </li>
+                                    <li class="mt-1 border-t border-base-200">
+                                        <form action="{% url 'accounts:logout' %}" method="post" class="w-full p-0">
+                                            {% csrf_token %}
+                                            <button type="submit"
+                                                    class="w-full text-left text-error font-medium py-3 px-4 hover:bg-error/10 rounded-b-box flex gap-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-5 w-5"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                                </svg>
+                                                Cerrar Sesión
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <div class="flex items-center gap-2">
+                                <a href="{% url 'accounts:login' %}"
+                                   class="btn btn-sm btn-ghost text-primary normal-case">Acceder</a>
+                                <a href="{% url 'accounts:registro' %}"
+                                   class="btn btn-sm btn-primary rounded-lg">Registrarse</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Content Area -->
+                <div class="flex flex-grow w-full max-w-[1920px]">
+                    <!-- Max width container -->
+                    <!-- Main Content (Left Aligned) -->
+                    <main class="flex-grow p-4 md:p-6 lg:p-8 min-w-0">
+                        <!-- min-w-0 prevents flex overflow -->
+                        {% if messages %}
+                            <div class="toast toast-top toast-center z-[100] w-full max-w-md p-4 space-y-2">
+                                {% for message in messages %}
+                                    <div role="alert"
+                                         class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg border-none text-white animate-in slide-in-from-top-2 fade-in duration-300">
+                                        <!-- Icons remain same -->
+                                        <span class="text-sm font-medium">{{ message }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% block content %}
+                        {% endblock content %}
+                    </main>
+                    <!-- Right Sidebar (Placeholder for Ads - Symmetry) -->
+                    <aside class="hidden xl:block w-80 bg-base-100 border-l border-base-200 shrink-0 p-6">
+                        <!-- Placeholder Content -->
+                        <div class="h-full rounded-2xl border-2 border-dashed border-base-300/50 flex flex-col items-center justify-center text-base-content/30 gap-4 p-4 text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.5"
+                                 stroke="currentColor"
+                                 class="w-12 h-12 opacity-50">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="font-medium text-sm">Espacio Publicitario</span>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+            <!-- Sidebar -->
+            <div class="drawer-side z-50">
+                <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+                <div class="menu p-4 w-80 min-h-full bg-base-100 border-r border-base-200 text-base-content flex flex-col gap-2">
+                    <!-- Logo / Brand -->
+                    <div class="mb-6 px-2 mt-2">
+                        <a href="{% url 'core:home' %}"
+                           class="flex items-center gap-3 text-2xl font-black tracking-tight hover:opacity-80 transition-opacity">
+                            <span class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-content shadow-lg shadow-primary/30">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="w-9 h-9"
+                                     viewBox="0 0 100 100"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="5"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <g transform="rotate(45 50 50)">
+                                    <!-- Racket Frame & Handle -->
+                                    <path d="M30 55 C 20 40, 20 15, 50 15 C 80 15, 80 40, 70 55 L 60 75 L 40 75 Z" />
+                                    <!-- Lengthened Handle for visibility -->
+                                    <path d="M42 75 L 42 95 L 58 95 L 58 75" />
+                                    <!-- Handle Cap -->
+                                    <path d="M40 95 L 60 95" stroke-width="6" />
+                                    <!-- Throat Triangle -->
+                                    <path d="M43 60 L 57 60 L 50 50 Z" fill="currentColor" opacity="0.2" />
+                                    <!-- Holes (Circles) -->
+                                    <g class="text-emerald-500" fill="currentColor" stroke="none">
+                                    <circle cx="50" cy="30" r="3" />
+                                    <circle cx="40" cy="35" r="3" />
+                                    <circle cx="60" cy="35" r="3" />
+                                    <circle cx="50" cy="40" r="3" />
+                                    <circle cx="30" cy="40" r="3" />
+                                    <circle cx="70" cy="40" r="3" />
+                                    <circle cx="40" cy="45" r="3" />
+                                    <circle cx="60" cy="45" r="3" />
+                                    <circle cx="50" cy="50" r="3" />
+                                    </g>
+                                    </g>
+                                </svg>
+                            </span>
+                            PadelApp
+                        </a>
+                    </div>
+                    <!-- Sidebar Navigation -->
+                    <ul class="menu menu-md gap-1 font-medium">
                         <li>
-                            <a href="{% url 'core:home' %}">Inicio</a>
+                            <a href="{% url 'core:home' %}"
+                               class="{% if request.resolver_match.url_name == 'home' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                                Inicio
+                            </a>
                         </li>
                         {% if user.is_authenticated %}
-                            <li>
-                                <a href="{% url 'accounts:perfil' %}">Mi Perfil</a>
-                            </li>
+                            <li class="menu-title mt-4 opacity-70">Tu Gestión</li>
                             {% if user.tipo_usuario == 'PLAYER' %}
                                 <li>
-                                    <a href="{% url 'equipos:mi_equipo' %}">Mi Equipo</a>
+                                    <a href="{% url 'equipos:mi_equipo' %}" class="rounded-xl">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             class="h-5 w-5"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        Mi Equipo
+                                    </a>
                                 </li>
                             {% elif user.tipo_usuario == 'ADMIN' %}
                                 <li>
-                                    <a>Administración</a>
-                                    <ul class="p-2">
-                                        <li>
-                                            <a href="{% url 'equipos:admin_list' %}">Equipos</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'torneos:admin_list' %}">Torneos</a>
-                                        </li>
-                                    </ul>
+                                    <details {% if 'equipos' in request.path or 'torneos' in request.path %}open{% endif %}>
+                                        <summary class="rounded-xl">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-5 w-5"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            Administración
+                                        </summary>
+                                        <ul>
+                                            <li>
+                                                <a href="{% url 'equipos:admin_list' %}" class="rounded-xl">Equipos</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'torneos:admin_list' %}" class="rounded-xl">Listar Torneos</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'torneos:admin_crear' %}" class="rounded-xl">Crear Torneo</a>
+                                            </li>
+                                        </ul>
+                                    </details>
                                 </li>
                             {% endif %}
-                        {% else %}
-                            <li>
-                                <a href="{% url 'accounts:login' %}"
-                                   class="text-blue-600 font-medium gap-2">
+                        {% endif %}
+                        <li class="menu-title mt-4 opacity-70">Competición</li>
+                        <li>
+                            <a href="{% url 'torneos:finalizado_list' %}" class="rounded-xl">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Historial
+                            </a>
+                        </li>
+                        <li>
+                            <details {% if 'ranking' in request.path %}open{% endif %}>
+                                <summary class="rounded-xl">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                          class="h-5 w-5"
                                          fill="none"
                                          viewBox="0 0 24 24"
                                          stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
-                                    Acceder
-                                </a>
-                            </li>
-                        {% endif %}
-                        <li>
-                            <a href="{% url 'torneos:finalizado_list' %}">Historial</a>
-                        </li>
-                        <li>
-                            <details>
-                                <summary>Rankings</summary>
+                                    Rankings
+                                </summary>
                                 <ul>
                                     <li>
-                                        <a href="{% url 'accounts:rankings_jugadores' %}">Jugadores</a>
+                                        <a href="{% url 'accounts:rankings_jugadores' %}" class="rounded-xl">Jugadores</a>
                                     </li>
                                     <li>
-                                        <a href="{% url 'equipos:rankings' %}">Equipos</a>
+                                        <a href="{% url 'equipos:rankings' %}" class="rounded-xl">Equipos</a>
                                     </li>
                                 </ul>
                             </details>
                         </li>
                     </ul>
                 </div>
-                <a href="{% url 'core:home' %}" class="btn btn-ghost text-xl">PadelApp</a>
-            </div>
-            <div class="navbar-center hidden lg:flex">
-                <ul class="menu menu-horizontal px-1 gap-1 font-medium">
-                    <li>
-                        <a href="{% url 'core:home' %}"
-                           class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Inicio</a>
-                    </li>
-                    {% if user.is_authenticated %}
-                        {% if user.tipo_usuario == 'PLAYER' %}
-                            <li>
-                                <a href="{% url 'equipos:mi_equipo' %}">Mi Equipo</a>
-                            </li>
-                        {% elif user.tipo_usuario == 'ADMIN' %}
-                            <li>
-                                <a href="{% url 'equipos:admin_list' %}">Equipos</a>
-                            </li>
-                            <li>
-                                <details>
-                                    <summary>Torneos</summary>
-                                    <ul class="p-2 z-50 w-48 bg-base-100 rounded-box shadow-lg">
-                                        <li>
-                                            <a href="{% url 'torneos:admin_list' %}">Listado</a>
-                                        </li>
-                                        <li>
-                                            <a href="{% url 'torneos:admin_crear' %}">Crear Nuevo</a>
-                                        </li>
-                                    </ul>
-                                </details>
-                            </li>
-                        {% endif %}
-                    {% endif %}
-                    <li>
-                        <a href="{% url 'torneos:finalizado_list' %}">Historial</a>
-                    </li>
-                    <li>
-                        <details>
-                            <summary>Rankings</summary>
-                            <ul class="p-2 z-50 w-48 bg-base-100 rounded-box shadow-lg">
-                                <li>
-                                    <a href="{% url 'accounts:rankings_jugadores' %}">Jugadores</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'equipos:rankings' %}">Equipos</a>
-                                </li>
-                            </ul>
-                        </details>
-                    </li>
-                </ul>
-            </div>
-            <div class="navbar-end gap-2">
-                <!-- Toggle Tema -->
-                <label class="swap swap-rotate btn btn-ghost btn-circle">
-                    <input type="checkbox" class="theme-controller" value="dark" />
-                    <svg class="swap-off fill-current w-6 h-6"
-                         xmlns="http://www.w3.org/2000/svg"
-                         viewBox="0 0 24 24">
-                        <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,4.93l.71.71A1,1,0,0,0,5.64,7.05Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-                    </svg>
-                    <svg class="swap-on fill-current w-6 h-6"
-                         xmlns="http://www.w3.org/2000/svg"
-                         viewBox="0 0 24 24">
-                        <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-                    </svg>
-                </label>
-                {% if user.is_authenticated %}
-                    <div class="dropdown dropdown-end">
-                        <div tabindex="0"
-                             role="button"
-                             class="btn btn-ghost btn-circle avatar placeholder bg-primary text-primary-content">
-                            <div class="w-10 rounded-full">
-                                <span>{{ user.nombre|slice:":1"|upper }}</span>
-                            </div>
-                        </div>
-                        <ul tabindex="0"
-                            class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                            <li class="menu-title text-opacity-50">{{ user.email }}</li>
-                            <li>
-                                <a href="{% url 'accounts:perfil' %}">Mi Perfil</a>
-                            </li>
-                            <li class="mt-2 border-t pt-2">
-                                <form action="{% url 'accounts:logout' %}" method="post" class="w-full">
-                                    {% csrf_token %}
-                                    <button type="submit" class="w-full text-left text-error font-bold">Cerrar Sesión</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                {% else %}
-                    <div class="hidden lg:flex items-center gap-2">
-                        <a href="{% url 'accounts:login' %}"
-                           class="btn btn-sm rounded-full border border-base-content/20 hover:bg-blue-50 hover:border-blue-200 text-blue-600 bg-transparent font-medium gap-2 px-4 normal-case">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-5 w-5"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Acceder
-                        </a>
-                        <a href="{% url 'accounts:registro' %}"
-                           class="btn btn-primary btn-sm rounded-full">Registrarse</a>
-                    </div>
-                    <!-- Mobile Login Button -->
-                    <a href="{% url 'accounts:login' %}"
-                       class="btn btn-sm rounded-full border border-base-content/20 text-blue-600 bg-transparent font-medium gap-2 px-3 lg:hidden normal-case">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-4 w-4"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Acceder
-                    </a>
-                {% endif %}
             </div>
         </div>
-        <!-- Contenido Principal -->
-        <main class="flex-grow container mx-auto px-4 py-8 w-full max-w-7xl">
-            {% if messages %}
-                <div class="toast toast-top toast-center z-[100] w-full max-w-md p-4">
-                    {% for message in messages %}
-                        <div role="alert"
-                             class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg flex flex-row items-start text-left">
-                            <span class="whitespace-normal break-words text-sm md:text-base">{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            {% block content %}{% endblock %}
-        </main>
-        <footer class="footer footer-center p-4 bg-base-300 text-base-content mt-auto">
+        <!-- Footer (Full Width, below Sidebar) -->
+        <footer class="footer footer-center p-4 bg-base-200/50 text-base-content/60 mt-auto text-sm border-t border-base-200">
             <aside>
-                <p class="font-bold">PadelApp</p>
-                <p>Copyright © {% now "Y" %} - Todos los derechos reservados</p>
+                <p class="font-medium">PadelApp © {% now "Y" %}</p>
             </aside>
         </footer>
         {% block extra_js %}
@@ -368,9 +514,9 @@
         <script>
         const themeController = document.querySelector('.theme-controller');
         const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (currentTheme === 'dark') { themeController.checked = true; }
+        if (currentTheme === 'business') { themeController.checked = true; }
         themeController.addEventListener('change', (e) => {
-            const newTheme = e.target.checked ? 'dark' : 'light';
+            const newTheme = e.target.checked ? 'business' : 'corporate';
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
         });

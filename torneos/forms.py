@@ -25,6 +25,10 @@ class TorneoAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # Agregar help text para división
+        self.fields['division'].help_text = "Dejar vacío para crear un torneo libre (cualquier división puede participar)"
+        self.fields['division'].required = False
+        
         # Estilo DaisyUI para todos los campos
         estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
         estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'

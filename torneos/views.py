@@ -613,6 +613,30 @@ class TorneoDetailView(DetailView):
     model = Torneo
     template_name = 'torneos/torneo_detail.html'
     context_object_name = 'torneo'
+    
+    def _es_division_permitida(self, equipo, torneo):
+        """
+        Verifica si el equipo puede inscribirse al torneo según la división.
+        
+        Reglas:
+        - Torneos libres (division=null): cualquier equipo puede inscribirse
+        - Misma división: puede inscribirse
+        - División adyacente (±1): puede inscribirse
+        - Otras divisiones: no puede inscribirse
+        """
+        if torneo.division is None:  # Torneo libre
+            return True
+        
+        if equipo.division == torneo.division:  # Misma división
+            return True
+        
+        # División adyacente (±1)
+        if equipo.division and torneo.division:
+            if hasattr(equipo.division, 'orden') and hasattr(torneo.division, 'orden'):
+                diff = abs(equipo.division.orden - torneo.division.orden)
+                return diff <= 1
+        
+        return False
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -645,7 +669,7 @@ class TorneoDetailView(DetailView):
             context['ya_inscrito'] = Inscripcion.objects.filter(
                 torneo=torneo, equipo=equipo
             ).exists()
-            context['division_correcta'] = equipo.division == torneo.division
+            context['division_correcta'] = self._es_division_permitida(equipo, torneo)
             context['torneo_abierto'] = torneo.estado == Torneo.Estado.ABIERTO
             context['inscripcion_cerrada'] = (
                 timezone.now() > torneo.fecha_limite_inscripcion
@@ -658,6 +682,7 @@ class TorneoDetailView(DetailView):
                 and context['hay_cupos']
                 and not context['ya_inscrito']
                 and not user.is_staff
+                and context['division_correcta']  # Validación de división
             )
 
             # --- LÓGICA PARA "MIS PARTIDOS" ---
