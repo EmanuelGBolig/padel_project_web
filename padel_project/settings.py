@@ -285,7 +285,8 @@ if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     # Configuración para producción (Gmail Ejemplo)
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # Usamos nuestro backend personalizado para forzar IPv4 y evitar error 101
+    EMAIL_BACKEND = 'accounts.email_backend.IPv4EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
