@@ -288,10 +288,10 @@ else:
     # Usamos nuestro backend personalizado para forzar IPv4 y evitar error 101
     EMAIL_BACKEND = 'accounts.email_backend.IPv4EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 465
-    EMAIL_USE_SSL = True
-    EMAIL_USE_TLS = False
-    EMAIL_TIMEOUT = 30 # Aumentamos un poco por si acaso
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_TIMEOUT = 30 # Timeout de 30 segundos
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
     
