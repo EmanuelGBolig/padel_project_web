@@ -207,6 +207,23 @@
         .scrollbar-thin::-webkit-scrollbar-thumb:hover {
             background: oklch(var(--bc) / 0.3);
         }
+
+        /* Force mobile drawer between lg (1024px) and 2xl (1536px) */
+        /* DaisyUI only supports lg:drawer-open natively, so we override it */
+        @media (min-width: 1024px) and (max-width: 1535.98px) {
+            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side {
+                position: fixed !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+            }
+            .drawer.lg\:drawer-open > .drawer-toggle:checked ~ .drawer-side {
+                pointer-events: auto !important;
+                visibility: visible !important;
+            }
+            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side > .drawer-overlay {
+                cursor: pointer !important;
+            }
+        }
         </style>
         <link rel="stylesheet" href="{% static 'css/select2-mobile.css' %}">
         {% block extra_head %}
@@ -215,7 +232,7 @@
         {% endblock extra_head %}
     </head>
     <body class="min-h-screen font-sans transition-colors duration-200 bg-base-100 flex flex-col">
-        <div class="drawer 2xl:drawer-open flex-grow">
+        <div class="drawer lg:drawer-open flex-grow">
             <input id="my-drawer" type="checkbox" class="drawer-toggle" />
             <div class="drawer-content flex flex-col">
                 <!-- Navbar Top -->
@@ -344,7 +361,7 @@
                         {% endblock content %}
                     </main>
                     <!-- Right Sidebar (Placeholder for Ads - Symmetry) -->
-                    <aside class="hidden 2xl:block w-80 bg-base-100 border-l border-base-200 shrink-0 p-6">
+                    <aside class="hidden xl:block w-80 bg-base-100 border-l border-base-200 shrink-0 p-6">
                         <!-- Placeholder Content -->
                         <div class="h-full rounded-2xl border-2 border-dashed border-base-300/50 flex flex-col items-center justify-center text-base-content/30 gap-4 p-4 text-center">
                             <svg xmlns="http://www.w3.org/2000/svg"
