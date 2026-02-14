@@ -179,9 +179,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
                     sys.getsizeof(output),
                     None
                 )
-            except Exception as e:
-                print(f"Error al convertir imagen a WebP: {e}")
-                # Si falla, guardar como estaba originalmente
+            except Exception:
+                # Si falla, guardar como estaba originalmente (silenciosamente en prod)
                 pass
 
         super().save(*args, **kwargs)
