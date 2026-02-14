@@ -33,24 +33,31 @@ class RegistroView(CreateView):
         user.verification_code = code
         user.save()
 
-        # 3. Enviar email
+        # 3. Enviar email en segundo plano (Threading)
         from django.core.mail import send_mail
         from django.conf import settings
-        
+        import threading
+
+        def send_email_thread(subject, message, from_email, recipient_list):
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    from_email,
+                    recipient_list,
+                    fail_silently=True, # No bloquear si falla
+                )
+            except Exception as e:
+                print(f"Error enviando email async: {e}")
+
         subject = 'Verifica tu cuenta en PadelApp'
         message = f'Tu código de verificación es: {code}'
         
-        try:
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            # En producción, manejar esto mejor (logging)
-            print(f"Error enviando email: {e}")
+        email_thread = threading.Thread(
+            target=send_email_thread,
+            args=(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+        )
+        email_thread.start()
 
         # 4. Guardar ID en sesión para la siguiente vista
         self.request.session['verification_user_id'] = user.id
