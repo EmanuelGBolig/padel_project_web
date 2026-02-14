@@ -267,7 +267,7 @@
                     </div>
                 </summary>
                 <div class="collapse-content px-6 md:px-8 pb-6 md:pb-8 pt-0 min-w-0">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full mt-4">
                         {% for grupo in grupos %}
                             <div class="card bg-base-100 shadow-sm border border-base-content/5 compact h-full">
                                 <div class="card-body p-0">
@@ -286,10 +286,11 @@
                                         <tbody>
                                             {% for item in grupo.tabla.all %}
                                                 <tr class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                                                    <td class="pl-4 font-medium whitespace-nowrap max-w-[120px]">
+                                                    <td class="pl-4 font-medium whitespace-nowrap">
                                                         <span class="mr-1 opacity-70">{{ forloop.counter }}.</span>
                                                         {% get_team_info item.equipo torneo as team_info %}
-                                                        <span class="truncate max-w-[120px]" title="{{ team_info.name }}">{{ team_info.code|short_name:15 }}</span>
+                                                        <span class="truncate inline-block max-w-[100px]"
+                                                              title="{{ team_info.name }}">{{ team_info.code }}</span>
                                                     </td>
                                                     <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
                                                     <td class="text-center opacity-60">{{ item.diferencia_sets }}</td>
