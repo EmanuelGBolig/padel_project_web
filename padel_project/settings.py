@@ -141,17 +141,20 @@ USE_TZ = True
 
 
 # --- Cloudinary (Media Storage in Production) ---
+# --- Cloudinary (Media Storage in Production) ---
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
 
 if CLOUDINARY_URL:
+    # Strip quotes and whitespace that might be accidentally included
+    CLOUDINARY_URL = CLOUDINARY_URL.strip().strip("'").strip('"')
+    
     # Production: Use Cloudinary
     INSTALLED_APPS.append('cloudinary_storage')
     INSTALLED_APPS.append('cloudinary')
     
     # Parse CLOUDINARY_URL: cloudinary://<api_key>:<api_secret>@<cloud_name>
-    # Note: This is a simple parsing. For robustness, we could use urllib.
     import re
-    match = re.match(r'cloudinary://(.*):(.*)@(.*)', CLOUDINARY_URL)
+    match = re.match(r'cloudinary://([^:]+):([^@]+)@(.+)', CLOUDINARY_URL)
     if match:
         api_key, api_secret, cloud_name = match.groups()
         
@@ -160,8 +163,10 @@ if CLOUDINARY_URL:
             'API_KEY': api_key,
             'API_SECRET': api_secret,
         }
+        print(f"✅ Cloudinary Configured for Cloud Name: {cloud_name}")
     else:
-        # Fallback if URL format is unexpected, attempting to use individual env vars
+        print("❌ Cloudinary URL format invalid. Expected: cloudinary://<key>:<secret>@<cloud_name>")
+        # Fallback if URL format is unexpected
         CLOUDINARY_STORAGE = {
             'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
             'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
@@ -170,6 +175,7 @@ if CLOUDINARY_URL:
     
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 else:
+    print("⚠️ No CLOUDINARY_URL found. Using local filesystem storage.")
     # Local: Use filesystem
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'

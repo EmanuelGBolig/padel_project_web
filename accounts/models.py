@@ -131,6 +131,61 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def full_name(self):
         return f"{self.nombre} {self.apellido}"
 
+    def save(self, *args, **kwargs):
+        # Si hay imagen y es nueva (o ha cambiado)
+        if self.imagen:
+            try:
+                # Verificar si es una imagen nueva comparando con la base de datos
+                if self.pk:
+                    old_user = CustomUser.objects.get(pk=self.pk)
+                    if old_user.imagen == self.imagen:
+                        super().save(*args, **kwargs)
+                        return
+            except CustomUser.DoesNotExist:
+                pass  # Es un usuario nuevo
+
+            # Procesar la imagen
+            from PIL import Image
+            from io import BytesIO
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            import sys
+            import os
+
+            # Abrir la imagen subida
+            try:
+                img = Image.open(self.imagen)
+                
+                # Convertir a RGB si es necesario (ej. PNG con transparencia)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Preparar buffer
+                output = BytesIO()
+                
+                # Guardar como WebP
+                img.save(output, format='WEBP', quality=80)
+                output.seek(0)
+                
+                # Crear nuevo nombre de archivo
+                nombre_base = os.path.splitext(self.imagen.name)[0]
+                nuevo_nombre = f"{nombre_base}.webp"
+                
+                # Crear el archivo en memoria de Django
+                self.imagen = InMemoryUploadedFile(
+                    output,
+                    'ImageField',
+                    nuevo_nombre,
+                    'image/webp',
+                    sys.getsizeof(output),
+                    None
+                )
+            except Exception as e:
+                print(f"Error al convertir imagen a WebP: {e}")
+                # Si falla, guardar como estaba originalmente
+                pass
+
+        super().save(*args, **kwargs)
+
     @property
     def get_avatar_url(self):
         if self.imagen:
