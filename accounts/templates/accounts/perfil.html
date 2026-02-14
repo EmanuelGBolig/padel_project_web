@@ -114,6 +114,50 @@
             </div>
             <!-- Sección de Torneos -->
             <div class="space-y-12">
+                <!-- Próximos Partidos -->
+                <div class="card bg-base-100 shadow-xl border border-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title flex items-center gap-2 mb-4">
+                            <span class="w-3 h-3 rounded-full bg-warning animate-pulse"></span>
+                            Próximos Partidos
+                        </h3>
+                        {% if proximos_partidos %}
+                            <div class="grid gap-4">
+                                {% for partido in proximos_partidos %}
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-base-200/50 rounded-xl hover:bg-base-200 transition-colors">
+                                        <div>
+                                            <div class="text-xs opacity-60 uppercase font-bold tracking-wider mb-1">
+                                                {% if partido.grupo %}
+                                                    {{ partido.grupo.torneo.nombre }} - {{ partido.grupo.nombre }}
+                                                {% else %}
+                                                    {{ partido.torneo.nombre }} - {{ partido.nombre_ronda }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="font-bold text-lg">
+                                                vs.
+                                                {% if partido.equipo1 == user.equipo %}
+                                                    {{ partido.equipo2.nombre|default:"Por definir" }}
+                                                {% else %}
+                                                    {{ partido.equipo1.nombre|default:"Por definir" }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-sm opacity-70 mt-1">
+                                                {% if partido.fecha_hora %}
+                                                    {{ partido.fecha_hora|date:"l d M, H:i" }} hs
+                                                {% else %}
+                                                    Fecha a confirmar
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="badge badge-warning w-fit shrink-0">Pendiente</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-center opacity-50 py-4">No tienes partidos programados próximamente.</p>
+                        {% endif %}
+                    </div>
+                </div>
                 <!-- Torneos Activos -->
                 <div class="card bg-base-100 shadow-xl border border-base-200">
                     <div class="card-body">

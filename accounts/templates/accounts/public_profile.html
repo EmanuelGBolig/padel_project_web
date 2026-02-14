@@ -26,6 +26,22 @@
                     <div class="badge badge-primary badge-lg">{{ perfil_usuario.division.nombre }}</div>
                     <!-- Email oculto por privacidad o mostrarlo si se desea -->
                     <!-- <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p> -->
+                    {% if can_invite %}
+                        <div class="mt-6 w-full">
+                            <a href="{% url 'equipos:crear' %}?partner={{ perfil_usuario.pk }}"
+                               class="btn btn-primary w-full gap-2 shadow-lg animate-pulse hover:animate-none">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                </svg>
+                                Invitar a formar equipo
+                            </a>
+                            <p class="text-xs text-base-content/60 mt-2">Ambos estáis libres en {{ perfil_usuario.division.nombre }}</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

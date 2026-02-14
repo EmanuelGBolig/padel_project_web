@@ -40,6 +40,35 @@ class PerfilView(LoginRequiredMixin, UpdateView):
         # Obtener estadísticas completas
         stats = get_player_stats(self.request.user)
         context['stats'] = stats
+
+        # --- Próximos Partidos ---
+        equipo = self.request.user.equipo
+        if equipo:
+            from django.db.models import Q
+            from torneos.models import Partido, PartidoGrupo
+            
+            # 1. Partidos de Eliminatoria Pendientes
+            partidos_elim = Partido.objects.filter(
+                Q(equipo1=equipo) | Q(equipo2=equipo),
+                ganador__isnull=True,
+                torneo__estado__in=['AB', 'EJ'] # Solo torneos activos
+            ).select_related('torneo', 'equipo1', 'equipo2')
+
+            # 2. Partidos de Fase de Grupos Pendientes
+            partidos_grupo = PartidoGrupo.objects.filter(
+                Q(equipo1=equipo) | Q(equipo2=equipo),
+                ganador__isnull=True,
+                grupo__torneo__estado__in=['AB', 'EJ']
+            ).select_related('grupo__torneo', 'equipo1', 'equipo2')
+
+            # Combinar y ordenar por fecha (los que no tienen fecha van al final)
+            proximos = sorted(
+                list(partidos_elim) + list(partidos_grupo),
+                key=lambda x: x.fecha_hora.timestamp() if x.fecha_hora else 9999999999
+            )
+            context['proximos_partidos'] = proximos
+        else:
+            context['proximos_partidos'] = []
         
         # Separar inscripciones por estado para la vista
         inscripciones = stats['inscripciones']
@@ -251,6 +280,21 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
         # Obtener estadísticas completas
         stats = get_player_stats(usuario)
         context['stats'] = stats
+
+        # --- Lógica de Invitación ---
+        # Solo si:
+        # 1. El visitante está logueado y no es el dueño del perfil
+        # 2. El visitante NO tiene equipo
+        # 3. El dueño del perfil NO tiene equipo
+        # 4. Ambos son de la misma división (Regla de negocio)
+        can_invite = False
+        if self.request.user.is_authenticated and self.request.user != usuario:
+            visitante = self.request.user
+            if not visitante.equipo and not usuario.equipo:
+                if visitante.division == usuario.division:
+                    can_invite = True
+        
+        context['can_invite'] = can_invite
         
         # Separar inscripciones por estado para la vista
         inscripciones = stats['inscripciones']

@@ -175,6 +175,17 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
         context['user'] = self.request.user
         return context
 
+    def get_initial(self):
+        initial = super().get_initial()
+        partner_id = self.request.GET.get('partner')
+        if partner_id:
+            try:
+                # Add initial data for the ModelMultipleChoiceField
+                initial['jugador2'] = [int(partner_id)]
+            except ValueError:
+                pass
+        return initial
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         # Pasamos el usuario logueado al formulario para filtrar la división
