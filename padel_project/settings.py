@@ -284,16 +284,10 @@ LOGGING = {
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # Configuración para producción (Gmail Ejemplo)
-    # Usamos nuestro backend personalizado para forzar IPv4 y evitar error 101
-    EMAIL_BACKEND = 'accounts.email_backend.IPv4EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_USE_SSL = False
-    EMAIL_TIMEOUT = 30 # Timeout de 30 segundos
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+    # Configuración para producción (Resend API)
+    EMAIL_BACKEND = 'django_resend.backend.ResendBackend'
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     
-    # Gmail fuerza que el sender sea la cuenta autenticada
-    DEFAULT_FROM_EMAIL = f'PadelApp <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'PadelApp <noreply@padelapp.com>'
+    # Gmail fuerza que el sender sea la cuenta autenticada, con Resend usamos el verificado
+    # Asegúrate de verificar el dominio o email en Resend
+    DEFAULT_FROM_EMAIL = 'onboarding@resend.dev' # Default de pruebas de Resend
