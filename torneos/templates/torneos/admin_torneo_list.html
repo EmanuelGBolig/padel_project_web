@@ -42,14 +42,14 @@
                     <div class="card-body p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                         <!-- Info del torneo -->
                         <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
-                                <h3 class="font-bold text-xl text-base-content">{{ torneo.nombre }}</h3>
+                            <div class="flex flex-wrap items-center gap-3 mb-2">
+                                <h3 class="font-bold text-xl text-base-content truncate">{{ torneo.nombre }}</h3>
                                 {% if torneo.estado == 'AB' %}
-                                    <div class="badge badge-success text-white">Abierto</div>
+                                    <div class="badge badge-success text-white shrink-0">Abierto</div>
                                 {% elif torneo.estado == 'EJ' %}
-                                    <div class="badge badge-info text-white">En Juego</div>
+                                    <div class="badge badge-info text-white shrink-0">En Juego</div>
                                 {% else %}
-                                    <div class="badge badge-ghost opacity-60">Finalizado</div>
+                                    <div class="badge badge-ghost opacity-60 shrink-0">Finalizado</div>
                                 {% endif %}
                             </div>
                             <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
