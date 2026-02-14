@@ -4,9 +4,9 @@
     Perfil de {{ perfil_usuario.full_name }} - PadelApp
 {% endblock title %}
 {% block content %}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Columna Izquierda: Perfil -->
-        <div class="space-y-6">
+        <div class="space-y-6 md:min-w-[280px]">
             <!-- Tarjeta de Perfil -->
             <div class="card bg-base-100 shadow-xl border border-base-200">
                 <div class="card-body items-center text-center">
@@ -144,9 +144,9 @@
                                         {% for torneo in torneos_finalizados|slice:":5" %}
                                             <tr class="hover:bg-base-200/50 cursor-pointer"
                                                 onclick="window.location='{% url 'torneos:detail' torneo.pk %}'">
-                                                <td class="font-bold">{{ torneo.nombre }}</td>
-                                                <td>{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
-                                                <td>{{ torneo.division.nombre }}</td>
+                                                <td class="font-bold max-w-xs truncate" title="{{ torneo.nombre }}">{{ torneo.nombre }}</td>
+                                                <td class="whitespace-nowrap">{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
+                                                <td class="truncate max-w-[120px]" title="{{ torneo.division.nombre }}">{{ torneo.division.nombre }}</td>
                                                 <td>
                                                     {% if torneo.ganador_del_torneo.jugador1 == perfil_usuario or torneo.ganador_del_torneo.jugador2 == perfil_usuario %}
                                                         <span class="badge badge-warning gap-1">
