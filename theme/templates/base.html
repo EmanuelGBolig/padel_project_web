@@ -236,23 +236,56 @@
             <input id="my-drawer" type="checkbox" class="drawer-toggle" />
             <div class="drawer-content flex flex-col">
                 <!-- Navbar Top -->
-                <div class="navbar sticky top-0 z-40 bg-base-100/95 backdrop-blur-md shadow-sm border-b border-base-200 justify-between">
+                <div class="navbar sticky top-0 z-40 bg-base-200/95 backdrop-blur-md shadow-sm border-b border-base-300 justify-between px-6">
                     <!-- Navbar Start (Left & Search) -->
-                    <div class="navbar-start flex-1 gap-4">
+                    <div class="navbar-start flex-1 gap-2 md:gap-4">
                         <div class="flex-none 2xl:hidden">
                             <label for="my-drawer"
                                    aria-label="open sidebar"
-                                   class="btn btn-square btn-ghost">
+                                   class="btn btn-circle btn-ghost text-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      fill="none"
                                      viewBox="0 0 24 24"
                                      class="inline-block w-6 h-6 stroke-current">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path>
                                 </svg>
                             </label>
                         </div>
-                        <!-- Search Bar (Slightly more left) -->
-                        <div class="w-full flex justify-center 2xl:pr-32">
+                        <!-- Brand (Mobile & Desktop) -->
+                        <a href="{% url 'core:home' %}"
+                           class="btn btn-ghost normal-case text-xl gap-2 px-2 2xl:hidden">
+                            <span class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-content shadow-md shadow-primary/30">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="w-6 h-6"
+                                     viewBox="0 0 100 100"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="5"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <g transform="rotate(45 50 50)">
+                                    <path d="M30 55 C 20 40, 20 15, 50 15 C 80 15, 80 40, 70 55 L 60 75 L 40 75 Z" />
+                                    <path d="M42 75 L 42 95 L 58 95 L 58 75" />
+                                    <path d="M40 95 L 60 95" stroke-width="6" />
+                                    <path d="M43 60 L 57 60 L 50 50 Z" fill="currentColor" opacity="0.2" />
+                                    <g class="text-emerald-500" fill="currentColor" stroke="none">
+                                    <circle cx="50" cy="30" r="3" />
+                                    <circle cx="40" cy="35" r="3" />
+                                    <circle cx="60" cy="35" r="3" />
+                                    <circle cx="50" cy="40" r="3" />
+                                    <circle cx="30" cy="40" r="3" />
+                                    <circle cx="70" cy="40" r="3" />
+                                    <circle cx="40" cy="45" r="3" />
+                                    <circle cx="60" cy="45" r="3" />
+                                    <circle cx="50" cy="50" r="3" />
+                                    </g>
+                                    </g>
+                                </svg>
+                            </span>
+                            <span class="font-bold">PadelApp</span>
+                        </a>
+                        <!-- Search Bar (Desktop) -->
+                        <div class="hidden md:flex w-full justify-center 2xl:pr-32">
                             <form action="{% url 'core:search' %}" method="get" class="w-full max-w-md">
                                 <div class="relative w-full">
                                     <input type="text"
@@ -339,9 +372,9 @@
                         {% else %}
                             <div class="flex items-center gap-2">
                                 <a href="{% url 'accounts:login' %}"
-                                   class="btn btn-sm btn-ghost text-primary normal-case">Acceder</a>
+                                   class="btn btn-sm btn-outline text-primary normal-case">Acceder</a>
                                 <a href="{% url 'accounts:registro' %}"
-                                   class="btn btn-sm btn-primary rounded-lg">Registrarse</a>
+                                   class="btn btn-sm btn-primary rounded-lg hidden md:inline-flex">Registrarse</a>
                             </div>
                         {% endif %}
                     </div>
@@ -440,6 +473,19 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                 </svg>
                                 Inicio
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'core:search' %}"
+                               class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl md:hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Buscar
                             </a>
                         </li>
                         {% if user.is_authenticated %}
