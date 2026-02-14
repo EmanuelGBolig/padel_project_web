@@ -37,18 +37,26 @@ class RegistroView(CreateView):
         from django.core.mail import send_mail
         from django.conf import settings
         import threading
+        import sys
 
         def send_email_thread(subject, message, from_email, recipient_list):
+            print(f"--- Intento de envío de email a {recipient_list} desde {from_email} ---")
+            sys.stdout.flush()
             try:
                 send_mail(
                     subject,
                     message,
                     from_email,
                     recipient_list,
-                    fail_silently=True, # No bloquear si falla
+                    fail_silently=False, # Queremos ver el error si falla
                 )
+                print("--- Email enviado correctamente ---")
+                sys.stdout.flush()
             except Exception as e:
-                print(f"Error enviando email async: {e}")
+                print(f"!!! Error enviando email async: {e}")
+                import traceback
+                traceback.print_exc()
+                sys.stdout.flush()
 
         subject = 'Verifica tu cuenta en PadelApp'
         message = f'Tu código de verificación es: {code}'
