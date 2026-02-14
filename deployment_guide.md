@@ -35,9 +35,6 @@ Antes de darle a crear (o en la pestaña "Environment" si ya lo creaste), añade
 | `DEBUG` | `False` |
 | `PYTHON_VERSION` | `3.11.9` (Recomendado para asegurar compatibilidad) |
 | `CLOUDINARY_URL` | *(Copia `API Environment variable` del Dashboard de Cloudinary)* |
-| `CLOUDINARY_CLOUD_NAME` | *(Opcional si usas URL, pero bueno tener)* |
-| `CLOUDINARY_API_KEY` | *(Opcional si usas URL)* |
-| `CLOUDINARY_API_SECRET` | *(Opcional si usas URL)* |
 
 ## 4. Finalizar
 

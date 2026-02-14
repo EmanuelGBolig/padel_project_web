@@ -148,11 +148,25 @@ if CLOUDINARY_URL:
     INSTALLED_APPS.append('cloudinary_storage')
     INSTALLED_APPS.append('cloudinary')
     
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-    }
+    # Parse CLOUDINARY_URL: cloudinary://<api_key>:<api_secret>@<cloud_name>
+    # Note: This is a simple parsing. For robustness, we could use urllib.
+    import re
+    match = re.match(r'cloudinary://(.*):(.*)@(.*)', CLOUDINARY_URL)
+    if match:
+        api_key, api_secret, cloud_name = match.groups()
+        
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': cloud_name,
+            'API_KEY': api_key,
+            'API_SECRET': api_secret,
+        }
+    else:
+        # Fallback if URL format is unexpected, attempting to use individual env vars
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+            'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+            'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+        }
     
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 else:
