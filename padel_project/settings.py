@@ -173,12 +173,15 @@ if CLOUDINARY_URL:
             'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
         }
     
+    
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    print(f"✅ USING CLOUDINARY STORAGE (Cloud Name: {CLOUDINARY_STORAGE['CLOUD_NAME']})")
 else:
     print("⚠️ No CLOUDINARY_URL found. Using local filesystem storage.")
     # Local: Use filesystem
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+    print(f"✅ USING LOCAL STORAGE (MEDIA_ROOT: {MEDIA_ROOT})")
 
 
 # --- Cache Configuration ---

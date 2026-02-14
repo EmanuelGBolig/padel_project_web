@@ -164,6 +164,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
                 
                 # Guardar como WebP
                 img.save(output, format='WEBP', quality=80)
+                file_size = output.tell()
                 output.seek(0)
                 
                 # Crear nuevo nombre de archivo
@@ -176,7 +177,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
                     'ImageField',
                     nuevo_nombre,
                     'image/webp',
-                    sys.getsizeof(output),
+                    file_size,
                     None
                 )
             except Exception as e:
