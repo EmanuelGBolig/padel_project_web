@@ -828,10 +828,10 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             equipo = request.user.equipo
             if not equipo:
                 messages.error(request, "Necesitas tener un equipo para inscribirte.")
-                return redirect('equipos:create')
+                return redirect('equipos:crear')
         except Exception:
              messages.error(request, "Error al obtener tu equipo.")
-             return redirect('home')
+             return redirect('core:home')
 
             
         if torneo.estado != Torneo.Estado.ABIERTO:
@@ -851,10 +851,29 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        form.instance.torneo = self.torneo
-        form.instance.equipo = self.request.user.equipo
-        messages.success(self.request, "¡Inscripción confirmada!")
-        return super().form_valid(form)
+        from django.db import IntegrityError
+        
+        torneo = self.torneo
+        equipo = self.request.user.equipo
+        
+        # Validación extra de seguridad
+        if Inscripcion.objects.filter(torneo=torneo, equipo=equipo).exists():
+            messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
+            return redirect(self.get_success_url())
+
+        form.instance.torneo = torneo
+        form.instance.equipo = equipo
+        
+        try:
+            response = super().form_valid(form)
+            messages.success(self.request, "¡Inscripción confirmada!")
+            return response
+        except IntegrityError:
+            messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
+            return redirect(self.get_success_url())
+        except Exception as e:
+            messages.error(self.request, f"Error al inscribirse: {e}")
+            return redirect(self.get_success_url())
 
 
 class InscripcionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
