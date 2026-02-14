@@ -68,6 +68,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     numero_telefono = models.CharField(max_length=20, blank=True)
     imagen = models.ImageField(upload_to='perfiles/', blank=True, null=True)
 
+    # Campos de Verificación
+    verification_code = models.CharField(max_length=6, blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
+
+
     division = models.ForeignKey(
         'accounts.Division',  # <-- CAMBIO AQUÍ (apunta a sí mismo)
         on_delete=models.SET_NULL,

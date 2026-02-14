@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = 'accounts'
@@ -8,10 +8,12 @@ urlpatterns = [
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
     path('registro/', views.RegistroView.as_view(), name='registro'),
+    path('verificar-email/', views.VerifyEmailView.as_view(), name='verificar_email'),
     path('perfil/', views.PerfilView.as_view(), name='perfil'),
     path('jugador/<int:pk>/', views.PublicProfileView.as_view(), name='detalle'),
     path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
-    # Aquí puedes añadir vistas de Django (cambio de contraseña, etc.) si las necesitas
-    # path('password_change/', auth_views.PasswordChangeView.as_view(), name='password_change'),
-    # path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(), name='password_change_done'),
+    path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
+    
+    # Rutas de recuperación de contraseña (Django Auth)
+    path('', include('django.contrib.auth.urls')),
 ]

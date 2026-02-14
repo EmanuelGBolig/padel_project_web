@@ -20,7 +20,81 @@ class RegistroView(CreateView):
     model = CustomUser
     form_class = CustomUserCreationForm
     template_name = 'accounts/registro.html'
-    success_url = reverse_lazy('accounts:login')
+    success_url = reverse_lazy('accounts:verificar_email')
+
+    def form_valid(self, form):
+        # 1. Guardar usuario pero inactivo
+        user = form.save(commit=False)
+        user.is_active = False # Deberá verificar email
+        
+        # 2. Generar código
+        import random
+        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        user.verification_code = code
+        user.save()
+
+        # 3. Enviar email
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
+        subject = 'Verifica tu cuenta en PadelApp'
+        message = f'Tu código de verificación es: {code}'
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            # En producción, manejar esto mejor (logging)
+            print(f"Error enviando email: {e}")
+
+        # 4. Guardar ID en sesión para la siguiente vista
+        self.request.session['verification_user_id'] = user.id
+        
+        return super().form_valid(form)
+
+
+from django.views.generic import FormView
+from django.shortcuts import redirect, render
+from django.contrib.auth import login
+from django import forms
+from django.contrib import messages
+
+class VerificationForm(forms.Form):
+    code = forms.CharField(max_length=6, label="Código de Verificación")
+
+class VerifyEmailView(FormView):
+    template_name = 'accounts/verification_form.html'
+    form_class = VerificationForm
+    success_url = reverse_lazy('core:home')
+
+    def dispatch(self, request, *args, **kwargs):
+        if 'verification_user_id' not in request.session:
+            return redirect('accounts:login')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        user_id = self.request.session.get('verification_user_id')
+        user = CustomUser.objects.get(id=user_id)
+        code = form.cleaned_data['code']
+
+        if user.verification_code == code:
+            user.is_active = True
+            user.verification_code = None # Limpiar código
+            user.is_verified = True
+            user.save()
+            
+            # Autologuear
+            login(self.request, user)
+            del self.request.session['verification_user_id']
+            return super().form_valid(form)
+        else:
+            form.add_error('code', 'Código incorrecto')
+            return self.form_invalid(form)
 
 
 class PerfilView(LoginRequiredMixin, UpdateView):
