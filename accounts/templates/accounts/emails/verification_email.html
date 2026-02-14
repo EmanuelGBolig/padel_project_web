@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 40px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { font-size: 24px; font-weight: bold; color: #4F46E5; text-decoration: none; }
+        .content { color: #333333; line-height: 1.6; }
+        .code-box { background-color: #F3F4F6; border: 1px dashed #4F46E5; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 5px; font-weight: bold; color: #111827; margin: 30px 0; border-radius: 8px; }
+        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #9CA3AF; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <a href="https://padel-project-web.onrender.com" class="logo">PadelApp</a>
+            </div>
+            <div class="content">
+                <h2 style="text-align: center; color: #111827;">Verifica tu cuenta</h2>
+                <p>Hola,</p>
+                <p>
+                    Gracias por registrarte en PadelApp. Para completar tu registro y activar tu cuenta, por favor utiliza el siguiente código de verificación:
+                </p>
+                <div class="code-box">{{ code }}</div>
+                <p>Si no has solicitado este código, puedes ignorar este correo.</p>
+            </div>
+            <div class="footer">&copy; 2026 PadelApp. Todos los derechos reservados.</div>
+        </div>
+    </body>
+</html>

@@ -36,18 +36,21 @@ class RegistroView(CreateView):
         # 3. Enviar email en segundo plano (Threading)
         from django.core.mail import send_mail
         from django.conf import settings
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
         import threading
         import sys
 
-        def send_email_thread(subject, message, from_email, recipient_list):
+        def send_email_thread(subject, html_message, plain_message, from_email, recipient_list):
             print(f"--- Intento de envío de email a {recipient_list} desde {from_email} ---")
             sys.stdout.flush()
             try:
                 send_mail(
                     subject,
-                    message,
+                    plain_message,
                     from_email,
                     recipient_list,
+                    html_message=html_message,
                     fail_silently=False, # Queremos ver el error si falla
                 )
                 print("--- Email enviado correctamente ---")
@@ -59,11 +62,12 @@ class RegistroView(CreateView):
                 sys.stdout.flush()
 
         subject = 'Verifica tu cuenta en PadelApp'
-        message = f'Tu código de verificación es: {code}'
+        html_message = render_to_string('accounts/emails/verification_email.html', {'code': code})
+        plain_message = strip_tags(html_message)
         
         email_thread = threading.Thread(
             target=send_email_thread,
-            args=(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+            args=(subject, html_message, plain_message, settings.DEFAULT_FROM_EMAIL, [user.email])
         )
         email_thread.start()
 
