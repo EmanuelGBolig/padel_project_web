@@ -827,20 +827,28 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         try:
             equipo = request.user.equipo
             if not equipo:
-                messages.error(request, "Necesitas tener un equipo para inscribirte.")
-                return redirect('equipos:crear')
+                messages.warning(request, "Necesitas tener un equipo para inscribirte. Crea uno primero.")
+                # Redirecting to detail instead of create to keep context, 
+                # user can navigate to create from menu if needed, or we could add a link in message (complex).
+                # User asked to "not be redirected anywhere" (stay in place).
+                return redirect('torneos:detail', pk=torneo.pk)
+            
+            # Verificar División
+            if torneo.division and equipo.division != torneo.division:
+                messages.warning(request, f"Tu equipo es de {equipo.division} y este torneo es de {torneo.division}.")
+                return redirect('torneos:detail', pk=torneo.pk)
+
         except Exception:
              messages.error(request, "Error al obtener tu equipo.")
-             return redirect('core:home')
+             return redirect('torneos:detail', pk=torneo.pk)
 
-            
         if torneo.estado != Torneo.Estado.ABIERTO:
             messages.error(request, "La inscripción está cerrada.")
-            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+            return redirect('torneos:detail', pk=torneo.pk)
 
         if timezone.now() > torneo.fecha_limite_inscripcion:
             messages.error(request, "La fecha límite de inscripción ha pasado.")
-            return redirect(reverse_lazy('torneos:detail', kwargs={'pk': torneo.pk}))
+            return redirect('torneos:detail', pk=torneo.pk)
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -859,7 +867,7 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         # Validación extra de seguridad
         if Inscripcion.objects.filter(torneo=torneo, equipo=equipo).exists():
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
-            return redirect(self.get_success_url())
+            return redirect('torneos:detail', pk=torneo.pk)
 
         form.instance.torneo = torneo
         form.instance.equipo = equipo
@@ -870,10 +878,10 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             return response
         except IntegrityError:
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
-            return redirect(self.get_success_url())
+            return redirect('torneos:detail', pk=torneo.pk)
         except Exception as e:
             messages.error(self.request, f"Error al inscribirse: {e}")
-            return redirect(self.get_success_url())
+            return redirect('torneos:detail', pk=torneo.pk)
 
 
 class InscripcionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
