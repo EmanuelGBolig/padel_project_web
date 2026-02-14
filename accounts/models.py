@@ -179,8 +179,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
                     sys.getsizeof(output),
                     None
                 )
-            except Exception:
-                # Si falla, guardar como estaba originalmente (silenciosamente en prod)
+            except Exception as e:
+                # Si falla, guardar como estaba originalmente (pero loguear el error)
+                print(f"Error procesando imagen en save(): {e}", flush=True)
                 pass
 
         super().save(*args, **kwargs)
