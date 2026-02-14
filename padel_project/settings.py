@@ -292,4 +292,5 @@ else:
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
     
-DEFAULT_FROM_EMAIL = 'PadelApp <noreply@padelapp.com>'
+    # Gmail fuerza que el sender sea la cuenta autenticada
+    DEFAULT_FROM_EMAIL = f'PadelApp <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'PadelApp <noreply@padelapp.com>'
