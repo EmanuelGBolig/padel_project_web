@@ -8,6 +8,12 @@ urlpatterns = [
     path(
         'finalizados/', views.TorneoFinalizadoListView.as_view(), name='finalizado_list'
     ),
+    path(
+        'en-juego/', views.TorneoEnJuegoListView.as_view(), name='en_juego_list'
+    ),
+    path(
+        'abiertos/', views.TorneoAbiertoListView.as_view(), name='abierto_list'
+    ),
     path('<int:pk>/', views.TorneoDetailView.as_view(), name='detail'),
     path(
         '<int:torneo_pk>/inscribirse/',

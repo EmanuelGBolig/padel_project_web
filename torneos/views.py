@@ -760,6 +760,26 @@ class TorneoFinalizadoListView(ListView):
     paginate_by = 10
 
 
+class TorneoEnJuegoListView(ListView):
+    model = Torneo
+    template_name = 'torneos/torneo_en_juego_list.html'
+    context_object_name = 'torneos_en_juego'
+    queryset = Torneo.objects.filter(estado=Torneo.Estado.EN_JUEGO) \
+        .select_related('division') \
+        .order_by('-fecha_inicio')
+    paginate_by = 10
+
+
+class TorneoAbiertoListView(ListView):
+    model = Torneo
+    template_name = 'torneos/torneo_abierto_list.html'
+    context_object_name = 'torneos_abiertos'
+    queryset = Torneo.objects.filter(estado=Torneo.Estado.ABIERTO) \
+        .select_related('division') \
+        .order_by('fecha_inicio')
+    paginate_by = 10
+
+
 import unicodedata
 
 def normalize_division_name(name):
