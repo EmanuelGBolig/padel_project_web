@@ -132,59 +132,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return f"{self.nombre} {self.apellido}"
 
     def save(self, *args, **kwargs):
-        # Si hay imagen y es nueva (o ha cambiado)
-        if self.imagen:
-            try:
-                # Verificar si es una imagen nueva comparando con la base de datos
-                if self.pk:
-                    old_user = CustomUser.objects.get(pk=self.pk)
-                    if old_user.imagen == self.imagen:
-                        super().save(*args, **kwargs)
-                        return
-            except CustomUser.DoesNotExist:
-                pass  # Es un usuario nuevo
-
-            # Procesar la imagen
-            from PIL import Image
-            from io import BytesIO
-            from django.core.files.uploadedfile import InMemoryUploadedFile
-            import sys
-            import os
-
-            # Abrir la imagen subida
-            try:
-                img = Image.open(self.imagen)
-                
-                # Convertir a RGB si es necesario (ej. PNG con transparencia)
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
-                
-                # Preparar buffer
-                output = BytesIO()
-                
-                # Guardar como WebP
-                img.save(output, format='WEBP', quality=80)
-                file_size = output.tell()
-                output.seek(0)
-                
-                # Crear nuevo nombre de archivo
-                nombre_base = os.path.splitext(self.imagen.name)[0]
-                nuevo_nombre = f"{nombre_base}.webp"
-                
-                # Crear el archivo en memoria de Django
-                self.imagen = InMemoryUploadedFile(
-                    output,
-                    'ImageField',
-                    nuevo_nombre,
-                    'image/webp',
-                    file_size,
-                    None
-                )
-            except Exception as e:
-                # Si falla, guardar como estaba originalmente (pero loguear el error)
-                print(f"Error procesando imagen en save(): {e}", flush=True)
-                pass
-
+        # Simplemente guardar - Cloudinary se encarga de la optimización
         super().save(*args, **kwargs)
 
     @property
