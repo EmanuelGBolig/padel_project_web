@@ -284,8 +284,8 @@ LOGGING = {
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # Configuración para producción (Resend API)
-    EMAIL_BACKEND = 'django_resend.backend.ResendBackend'
+    # Configuración para producción (Resend API Custom)
+    EMAIL_BACKEND = 'accounts.resend_backend.ResendBackend'
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     
     # Gmail fuerza que el sender sea la cuenta autenticada, con Resend usamos el verificado
