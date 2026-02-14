@@ -292,9 +292,15 @@
                             <div class="dropdown dropdown-end">
                                 <div tabindex="0"
                                      role="button"
-                                     class="btn btn-ghost btn-circle avatar placeholder bg-primary text-primary-content">
+                                     class="btn btn-ghost btn-circle avatar {% if not user.imagen %}placeholder bg-primary text-primary-content{% endif %}">
                                     <div class="w-9 rounded-full">
-                                        <span>{{ user.nombre|slice:":1"|upper }}</span>
+                                        {% if user.imagen %}
+                                            <img src="{{ user.imagen.url }}"
+                                                 alt="{{ user.nombre }}"
+                                                 class="object-cover w-full h-full rounded-full" />
+                                        {% else %}
+                                            <span>{{ user.nombre|slice:":1"|upper }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <ul tabindex="0"
