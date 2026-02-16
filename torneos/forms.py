@@ -14,6 +14,7 @@ class TorneoAdminForm(forms.ModelForm):
             'equipos_por_grupo',
             'estado',
             'tipo_torneo',
+            'categoria',
         ]
         widgets = {
             'fecha_limite_inscripcion': forms.DateTimeInput(
@@ -38,6 +39,10 @@ class TorneoAdminForm(forms.ModelForm):
                 field.widget.attrs['class'] = estilo_input
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select
+            
+            # Label para categoria
+            if field_name == 'categoria':
+                field.label = "Categoría (Masculino/Femenino/Mixto)"
             
             # Mantener los tipos de fecha si ya existen
             if field_name == 'fecha_limite_inscripcion':
