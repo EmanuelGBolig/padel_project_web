@@ -23,7 +23,26 @@ def get_team_info(equipo, torneo):
     if not equipo:
         return {'code': '', 'name': ''}
     
-    return {'code': equipo.nombre, 'name': equipo.nombre}
+    nombre = equipo.nombre
+    
+    # FIX: Si el nombre contiene emails (legacy data o error), limpiarlo para mostrar solo usuario
+    if '@' in nombre:
+        try:
+            # Asumimos formato "email1@dom.com/email2@dom.com" o similar
+            parts = nombre.split('/')
+            clean_parts = []
+            for p in parts:
+                if '@' in p:
+                    # Tomar solo la parte antes del @
+                    clean_parts.append(p.split('@')[0])
+                else:
+                    clean_parts.append(p)
+            nombre = '/'.join(clean_parts)
+        except Exception:
+            # Fallback si falla el parseo
+            pass
+
+    return {'code': nombre, 'name': nombre}
 
 @register.filter
 def split(value, delimiter=','):
@@ -44,7 +63,21 @@ def get_team_display(equipo, torneo):
     if not equipo:
         return "Esperando resultados"
         
-    return equipo.nombre
+    nombre = equipo.nombre
+    if '@' in nombre:
+        try:
+            parts = nombre.split('/')
+            clean_parts = []
+            for p in parts:
+                if '@' in p:
+                    clean_parts.append(p.split('@')[0])
+                else:
+                    clean_parts.append(p)
+            nombre = '/'.join(clean_parts)
+        except Exception:
+            pass
+            
+    return nombre
 
 @register.filter
 def batch(value, batch_size):

@@ -131,7 +131,7 @@
                         </svg>
                         Mis Partidos
                     </summary>
-                    <ul class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-96 mt-2 border border-base-200">
+                    <ul class="dropdown-content z-[100] menu p-2 shadow bg-base-100 rounded-box w-full md:w-[30rem] mt-2 border border-base-200">
                         <!-- Partidos Pendientes -->
                         {% if mis_partidos_pendientes %}
                             <h3 class="font-bold text-sm uppercase tracking-wider text-primary mb-2 px-1">Por Jugar</h3>
@@ -150,16 +150,16 @@
                                             {% endif %}
                                             <div class="flex items-center justify-between gap-2 mt-1">
                                                 <!-- Mi Equipo -->
-                                                <div class="flex-1 text-center">
-                                                    <span class="font-bold text-primary break-words leading-tight block min-w-0">
+                                                <div class="flex-1 text-center min-w-0">
+                                                    <span class="font-bold text-primary break-words leading-tight block text-sm">
                                                         {% get_team_info equipo torneo as my_team %}
                                                         {{ my_team.name }}
                                                     </span>
                                                 </div>
-                                                <div class="font-black text-base-content/30 text-xs px-2">VS</div>
+                                                <div class="font-black text-base-content/30 text-xs px-2 shrink-0">VS</div>
                                                 <!-- Rival -->
-                                                <div class="flex-1 text-center">
-                                                    <span class="font-bold text-base-content break-words leading-tight block min-w-0">
+                                                <div class="flex-1 text-center min-w-0">
+                                                    <span class="font-bold text-base-content break-words leading-tight block text-sm">
                                                         {% if partido.rival %}
                                                             {% get_team_info partido.rival torneo as rival %}
                                                             {{ rival.name }}
@@ -198,27 +198,27 @@
                                             </div>
                                             <div class="flex items-center justify-between gap-2 mt-1">
                                                 <!-- Mi Equipo -->
-                                                <div class="flex-1 text-center">
-                                                    <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
+                                                <div class="flex-1 text-center min-w-0">
+                                                    <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block text-sm">
                                                         {% get_team_info equipo torneo as my_team %}
                                                         {{ my_team.name }}
                                                     </span>
                                                 </div>
                                                 <!-- Resultado -->
-                                                <div class="flex flex-col items-center justify-center px-2">
-                                                    <div class="flex gap-1 flex-wrap justify-center">
+                                                <div class="flex flex-col items-center justify-center px-2 shrink-0">
+                                                    <div class="flex gap-1 flex-nowrap justify-center">
                                                         {% if partido.resultado %}
                                                             {% with sets=partido.resultado|split:"," %}
                                                                 {% for set_score in sets %}
-                                                                    <span class="badge badge-sm badge-ghost font-mono font-bold">{{ set_score }}</span>
+                                                                    <span class="badge badge-sm badge-ghost font-mono font-bold whitespace-nowrap">{{ set_score }}</span>
                                                                 {% endfor %}
                                                             {% endwith %}
                                                         {% endif %}
                                                     </div>
                                                 </div>
                                                 <!-- Rival -->
-                                                <div class="flex-1 text-center">
-                                                    <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block min-w-0">
+                                                <div class="flex-1 text-center min-w-0">
+                                                    <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block text-sm">
                                                         {% if partido.rival %}
                                                             {% get_team_info partido.rival torneo as rival %}
                                                             {{ rival.name }}
