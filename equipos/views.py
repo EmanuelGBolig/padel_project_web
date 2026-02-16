@@ -1,13 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DetailView, DeleteView, ListView
+from django.views.generic import CreateView, DetailView, DeleteView, ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
-from .models import Equipo
+from .models import Equipo, Invitation
 from accounts.models import Division, CustomUser
 from .forms import EquipoCreateForm
-from django.db.models import Q  # Importamos Q de forma limpia
-from django.db import models  # <--- ¡CORRECCIÓN! Importamos models desde django.db
+from django.db.models import Q
+from django.db import models, transaction
 
 # IMPORTANTE: Importar las vistas de autocompletado
 from dal import autocomplete
@@ -132,16 +132,22 @@ class MiEquipoDetailView(LoginRequiredMixin, DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if self.object is None:
-            messages.info(request, "Aún no tienes un equipo. ¡Crea uno!")
-            return redirect('equipos:crear')
+        
+        # Si tiene equipo, mostrar detalle
+        if self.object:
+            context = self.get_context_data(object=self.object)
+            return self.render_to_response(context)
 
-        # Redirigir a crear si no tiene equipo
-        if not self.object:
-            return redirect('equipos:crear')
+        # Si NO tiene equipo, verificar si tiene invitaciones pendientes enviadas o recibidas
+        invitaciones_enviadas = request.user.sent_invitations.filter(status=Invitation.Status.PENDING)
+        invitaciones_recibidas = request.user.received_invitations.filter(status=Invitation.Status.PENDING)
+        
+        if invitaciones_enviadas.exists() or invitaciones_recibidas.exists():
+            messages.info(request, "No tienes equipo, pero tienes invitaciones pendientes. Revisa tu perfil.")
+            return redirect('accounts:perfil')
 
-        context = self.get_context_data(object=self.object)
-        return self.render_to_response(context)
+        messages.info(request, "Aún no tienes un equipo. ¡Crea uno!")
+        return redirect('equipos:crear')
     
     def get_context_data(self, **kwargs):
         """Añade estadísticas del equipo al contexto"""
@@ -166,7 +172,7 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
     model = Equipo
     form_class = EquipoCreateForm
     template_name = 'equipos/equipo_form.html'
-    success_url = reverse_lazy('equipos:mi_equipo')
+    success_url = reverse_lazy('accounts:perfil')  # Redirige a perfil para ver estado invitación
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -193,13 +199,91 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
         return kwargs
 
     def form_valid(self, form):
-        # Asignamos al usuario logueado como jugador1
-        form.instance.jugador1 = self.request.user
+        # NO guardamos el equipo. Creamos una invitación.
+        jugador2 = form.cleaned_data['jugador2']
+        
+        # Verificar si ya existe una invitación pendiente a este usuario
+        existing_invitation = Invitation.objects.filter(
+            inviter=self.request.user,
+            invited=jugador2,
+            status=Invitation.Status.PENDING
+        ).exists()
+        
+        if existing_invitation:
+            messages.warning(self.request, f"Ya tienes una invitación pendiente enviada a {jugador2.full_name}.")
+            return redirect('accounts:perfil')
+
+        # Crear invitación
+        Invitation.objects.create(
+            inviter=self.request.user,
+            invited=jugador2,
+            status=Invitation.Status.PENDING
+        )
+
         messages.success(
             self.request,
-            f"¡El equipo '{form.instance.nombre}' fue creado exitosamente!",
+            f"¡Invitación enviada a {jugador2.full_name}! El equipo se creará cuando acepte."
         )
-        return super().form_valid(form)
+        return redirect(self.success_url)
+
+
+class AceptarInvitacionView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        invitation = get_object_or_404(Invitation, pk=pk, invited=request.user, status=Invitation.Status.PENDING)
+        
+        # Validar que ninguno tenga equipo ya
+        if invitation.inviter.equipo or invitation.invited.equipo:
+            messages.error(request, "Uno de los jugadores ya tiene equipo. La invitación no puede aceptarse.")
+            invitation.status = Invitation.Status.REJECTED
+            invitation.save()
+            return redirect('accounts:perfil')
+            
+        with transaction.atomic():
+            # 1. Crear el equipo
+            equipo = Equipo.objects.create(
+                jugador1=invitation.inviter,
+                jugador2=invitation.invited,
+                division=invitation.inviter.division # Asumimos misma división por el form
+            )
+            
+            # 2. Marcar invitación como aceptada
+            invitation.status = Invitation.Status.ACCEPTED
+            invitation.save()
+            
+            # 3. Cancelar todas las otras invitaciones pendientes que involucren a estos usuarios
+            # (Ya sea como inviter o invited)
+            users = [invitation.inviter, invitation.invited]
+            Invitation.objects.filter(
+                Q(inviter__in=users) | Q(invited__in=users),
+                status=Invitation.Status.PENDING
+            ).exclude(pk=invitation.pk).update(status=Invitation.Status.REJECTED)
+
+        messages.success(request, f"¡Invitación aceptada! Equipo '{equipo.nombre}' creado exitosamente.")
+        return redirect('equipos:mi_equipo')
+
+
+class RechazarInvitacionView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        # Puede rechazar quien la recibe O cancelar quien la envió
+        invitation = get_object_or_404(Invitation, pk=pk)
+        
+        if request.user != invitation.invited and request.user != invitation.inviter:
+             messages.error(request, "No tienes permiso para realizar esta acción.")
+             return redirect('accounts:perfil')
+             
+        if invitation.status != Invitation.Status.PENDING:
+             messages.error(request, "Esta invitación ya no está pendiente.")
+             return redirect('accounts:perfil')
+
+        invitation.status = Invitation.Status.REJECTED
+        invitation.save()
+        
+        if request.user == invitation.inviter:
+            messages.success(request, "Invitación cancelada.")
+        else:
+            messages.info(request, "Invitación rechazada.")
+            
+        return redirect('accounts:perfil')
 
 
 class EquipoDeleteView(PlayerOwnsTeamMixin, DeleteView):
@@ -416,3 +500,4 @@ class RankingListView(ListView):
             context['mi_equipo'] = self.request.user.equipo
         
         return context
+

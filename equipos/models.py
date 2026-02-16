@@ -192,3 +192,35 @@ class Equipo(models.Model):
             puntos += 20
         
         return puntos
+
+
+class Invitation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pendiente'
+        ACCEPTED = 'ACCEPTED', 'Aceptada'
+        REJECTED = 'REJECTED', 'Rechazada'
+
+    inviter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='sent_invitations',
+        on_delete=models.CASCADE
+    )
+    invited = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='received_invitations',
+        on_delete=models.CASCADE
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('inviter', 'invited', 'status')
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"Invitación de {self.inviter} a {self.invited} ({self.status})"
+
