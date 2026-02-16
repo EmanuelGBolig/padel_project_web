@@ -696,13 +696,25 @@
             {% if form.media %}{{ form.media.js }}{% endif %}
         {% endblock extra_js %}
         <script>
-        const themeController = document.querySelector('.theme-controller');
+        const themeControllers = document.querySelectorAll('.theme-controller');
         const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (currentTheme === 'business') { themeController.checked = true; }
-        themeController.addEventListener('change', (e) => {
-            const newTheme = e.target.checked ? 'business' : 'corporate';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
+        
+        // Initialize all controllers
+        themeControllers.forEach(controller => {
+            if (currentTheme === 'business') { 
+                controller.checked = true; 
+            }
+            
+            controller.addEventListener('change', (e) => {
+                const newTheme = e.target.checked ? 'business' : 'corporate';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                
+                // Sync other controllers
+                themeControllers.forEach(c => {
+                    c.checked = e.target.checked;
+                });
+            });
         });
 
         // Auto-dismiss alerts after 5 seconds
