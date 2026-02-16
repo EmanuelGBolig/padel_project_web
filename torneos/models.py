@@ -55,6 +55,10 @@ class Torneo(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.division.nombre})"
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('torneos:detail', kwargs={'pk': self.pk})
+
 
 class Inscripcion(models.Model):
     equipo = models.ForeignKey(
