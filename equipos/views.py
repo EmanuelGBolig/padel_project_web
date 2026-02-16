@@ -495,8 +495,9 @@ class RankingListView(ListView):
                 if win_rate >= 75 and partidos_total >= 5:
                     puntos += 20
                 
-                # Solo incluir equipos con PUNTOS en esta división
-                if puntos > 0:
+                # Include all teams
+                # if puntos > 0:
+                if True: # Allow 0 points
                     equipos_con_puntos.append({
                         'equipo': equipo,
                         'puntos': puntos,

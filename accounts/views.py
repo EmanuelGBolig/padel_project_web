@@ -313,8 +313,9 @@ class RankingJugadoresListView(ListView):
                 if win_rate >= 75 and partidos_total >= 10:
                     puntos += 20
                 
-                # Solo incluir jugadores con actividad
-                if puntos > 0:
+                # Include all users for now, or just remove the check
+                # if puntos > 0:
+                if True:  # Changed to allow 0 points
                     # Obtener equipo(s) actual(es) del jugador en esta división
                     equipos_actuales = []
                     if hasattr(jugador, 'equipo') and jugador.equipo and jugador.equipo.division == division:
