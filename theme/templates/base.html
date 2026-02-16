@@ -306,8 +306,8 @@
                             </span>
                             <span class="font-bold">TodoPadel</span>
                         </a>
-                        <!-- Search Bar (Desktop) -->
-                        <div class="hidden md:flex w-full justify-center 2xl:pr-32">
+                        <!-- Search Bar (Desktop - Visible only on 2xl+) -->
+                        <div class="hidden 2xl:flex w-full justify-center 2xl:pr-32">
                             <form action="{% url 'core:search' %}" method="get" class="w-full max-w-md">
                                 <div class="relative w-full">
                                     <input type="text"
@@ -328,6 +328,20 @@
                         </div>
                     </div>
                     <!-- Navbar End (Right) -->
+                    <!-- ... inside sidebar ... -->
+                    <li>
+                        <a href="{% url 'core:search' %}"
+                           class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl 2xl:hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            Buscar
+                        </a>
+                    </li>
                     <div class="navbar-end w-auto flex-none gap-2">
                         <!-- Theme Toggle -->
                         <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm">
@@ -547,7 +561,7 @@
                         </li>
                         <li>
                             <a href="{% url 'core:search' %}"
-                               class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl md:hidden">
+                               class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl 2xl:hidden">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
