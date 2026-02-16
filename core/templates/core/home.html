@@ -333,25 +333,36 @@
             const dots = Array.from(dotsContainer.children);
 
             // 2. Clone Items for Infinite Loop (Triple Clone for Desktop safety)
-            const clonesCount = 3;
-            // Ensure we have enough items to clone, if not, repeat list
-            const itemsToCloneStart = items.slice(0, clonesCount);
-            const itemsToCloneEnd = items.slice(-clonesCount);
-            
-            // Create clones for END (append to end) -> copies of start items
-            itemsToCloneStart.forEach(item => {
-                const clone = item.cloneNode(true);
-                clone.dataset.clone = 'end-copy'; 
-                container.appendChild(clone);
-            });
+            // Fix: Only clone if we have 3 or more items to avoid confusing duplication
+            const clonesCount = items.length < 3 ? 0 : 3;
 
-            // Create clones for START (prepend to start) -> copies of end items
-            // We reverse to keep order when prepending one by one
-            itemsToCloneEnd.reverse().forEach(item => {
-                const clone = item.cloneNode(true);
-                clone.dataset.clone = 'start-copy';
-                container.insertBefore(clone, container.firstChild);
-            });
+            if (clonesCount > 0) {
+                // Ensure we have enough items to clone, if not, repeat list
+                const itemsToCloneStart = items.slice(0, clonesCount);
+                const itemsToCloneEnd = items.slice(-clonesCount);
+                
+                // Create clones for END (append to end) -> copies of start items
+                itemsToCloneStart.forEach(item => {
+                    const clone = item.cloneNode(true);
+                    clone.dataset.clone = 'end-copy'; 
+                    container.appendChild(clone);
+                });
+
+                // Create clones for START (prepend to start) -> copies of end items
+                // We reverse to keep order when prepending one by one
+                itemsToCloneEnd.reverse().forEach(item => {
+                    const clone = item.cloneNode(true);
+                    clone.dataset.clone = 'start-copy';
+                    container.insertBefore(clone, container.firstChild);
+                });
+            } else {
+                // For small lists, hide desktop arrows if content fits
+                // 3 items fit on desktop (100% / 3). So 1 or 2 items definitely fit.
+                if (window.innerWidth >= 768) {
+                    if (prevBtn) prevBtn.style.display = 'none';
+                    if (nextBtn) nextBtn.style.display = 'none';
+                }
+            }
 
             // 3. Initial Scroll Position (Skip the start clones)
             const updateScrollPos = () => {
@@ -367,6 +378,10 @@
             // Also update on resize to keep alignment
             window.addEventListener('resize', () => {
                 // Optional: Debounce this or just reset to a valid item
+                if (clonesCount === 0 && window.innerWidth >= 768) {
+                     if (prevBtn) prevBtn.style.display = 'none';
+                     if (nextBtn) nextBtn.style.display = 'none';
+                }
             });
 
             // 4. Infinite Scroll Logic
@@ -380,21 +395,23 @@
                 
                 const scrollLeft = container.scrollLeft;
                 
-                // Thresholds
-                // If we are showing the first clone (which is a copy of the last real item) at the start
-                // The start clones take up: clonesCount * cardSpace
-                // Real items start at: clonesCount * cardSpace
-                
-                // If scroll is near 0 (showing start clones - copies of end)
-                if (scrollLeft <= 10) {
-                    // Jump forward to real last items
-                    container.scrollLeft = totalRealWidth + scrollLeft;
-                }
-                // If scroll is near end (showing end clones - copies of start)
-                // End of real items is at: (clonesCount * cardSpace) + totalRealWidth
-                else if (scrollLeft >= (clonesCount * cardSpace) + totalRealWidth - 10) {
-                     // Jump back to real start
-                     container.scrollLeft = scrollLeft - totalRealWidth;
+                if (clonesCount > 0) {
+                    // Thresholds
+                    // If we are showing the first clone (which is a copy of the last real item) at the start
+                    // The start clones take up: clonesCount * cardSpace
+                    // Real items start at: clonesCount * cardSpace
+                    
+                    // If scroll is near 0 (showing start clones - copies of end)
+                    if (scrollLeft <= 10) {
+                        // Jump forward to real last items
+                        container.scrollLeft = totalRealWidth + scrollLeft;
+                    }
+                    // If scroll is near end (showing end clones - copies of start)
+                    // End of real items is at: (clonesCount * cardSpace) + totalRealWidth
+                    else if (scrollLeft >= (clonesCount * cardSpace) + totalRealWidth - 10) {
+                         // Jump back to real start
+                         container.scrollLeft = scrollLeft - totalRealWidth;
+                    }
                 }
 
                 // 5. Update Dots Active State
