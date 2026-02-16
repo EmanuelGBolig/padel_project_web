@@ -53,7 +53,8 @@ class Torneo(models.Model):
     )
 
     def __str__(self):
-        return f"{self.nombre} ({self.division.nombre})"
+        division_nombre = self.division.nombre if self.division else "Libre/General"
+        return f"{self.nombre} ({division_nombre})"
 
     def get_absolute_url(self):
         from django.urls import reverse
