@@ -1,5 +1,6 @@
 ﻿{% extends "base.html" %}
 {% load torneo_extras %}
+{% load static %}
 {% block title %}
     {{ torneo.nombre }} - TodoPadel
 {% endblock title %}
@@ -56,6 +57,9 @@
                         {% endif %}
                         <div class="badge badge-lg badge-neutral text-neutral-content h-auto whitespace-normal text-center py-2">
                             {{ torneo.get_estado_display }}
+                        </div>
+                        <div class="badge badge-lg badge-outline h-auto whitespace-normal text-center py-2">
+                            {{ torneo.get_categoria_display }}
                         </div>
                     </div>
                     {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
