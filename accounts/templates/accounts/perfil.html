@@ -181,6 +181,24 @@
                         </div>
                     </div>
                 {% endif %}
+                <!-- Botón para invitar a otro jugador (si ya hay pendientes) -->
+                {% if invitaciones_enviadas or invitaciones_recibidas %}
+                    <div class="card bg-base-100 shadow-xl border border-base-200 mt-4">
+                        <div class="card-body p-4">
+                            <a href="{% url 'equipos:crear' %}"
+                               class="btn btn-outline btn-primary btn-sm w-full gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-4 w-4"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Invitar a otro jugador
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
                 <!-- Próximos Partidos -->
                 <div class="card bg-base-100 shadow-xl border border-base-200">
                     <div class="card-body">
