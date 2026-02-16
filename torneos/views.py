@@ -42,10 +42,10 @@ class PlayerRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
-        return self.request.user.tipo_usuario == 'ADMIN'
+        return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
 
     def handle_no_permission(self):
-        messages.error(self.request, "Acceso denegado: solo administradores.")
+        messages.error(self.request, "Acceso denegado: solo administradores u organizadores.")
         return redirect('core:home')
 
 

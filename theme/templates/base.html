@@ -579,7 +579,7 @@
                                     <span class="theme-text">Modo Oscuro</span>
                                 </label>
                             </li>
-                            {% if user.tipo_usuario == 'ADMIN' %}
+                            {% if user.tipo_usuario == 'ADMIN' or user.tipo_usuario == 'ORGANIZER' %}
                                 <li>
                                     <details {% if 'equipos' in request.path or 'torneos' in request.path %}open{% endif %}>
                                         <summary class="rounded-xl">

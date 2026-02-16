@@ -55,6 +55,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     class TipoUsuario(models.TextChoices):
         PLAYER = 'PLAYER', 'Jugador'
         ADMIN = 'ADMIN', 'Admin'
+        ORGANIZER = 'ORGANIZER', 'Organizador'
 
     class Genero(models.TextChoices):
         MASCULINO = 'MASCULINO', 'Masculino'
