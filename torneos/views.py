@@ -805,6 +805,14 @@ class TorneoAbiertoListView(ListView):
              
              # Extraemos los objetos torneo de las inscripciones
              context['mis_torneos'] = [i.torneo for i in inscripciones]
+
+             # Obtener torneos EN JUEGO donde participa el equipo
+             inscripciones_juego = Inscripcion.objects.filter(
+                 equipo=user.equipo,
+                 torneo__estado=Torneo.Estado.EN_JUEGO
+             ).select_related('torneo', 'torneo__division').order_by('torneo__fecha_inicio')
+             
+             context['mis_torneos_juego'] = [i.torneo for i in inscripciones_juego]
         
         return context
 
