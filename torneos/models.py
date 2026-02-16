@@ -269,15 +269,19 @@ class Partido(models.Model):
 
     def save(self, *args, **kwargs):
         # Lógica de avance automático
+        
+        # 1. Asegurar que si es la FINAL y hay ganador, se actualice el torneo
+        # (Esto corre siempre que se grabe el partido final con ganador, por si falló antes)
+        if self.ganador and self.siguiente_partido is None:
+             if self.torneo.ganador_del_torneo != self.ganador:
+                 self.torneo.ganador_del_torneo = self.ganador
+                 self.torneo.estado = 'FN'
+                 self.torneo.save()
+
+        # 2. Avance en el bracket (Solo si cambió el ganador)
         if self.ganador != self.__original_ganador and self.ganador is not None:
 
-            if self.siguiente_partido is None:  # Es la Final
-                torneo = self.torneo
-                torneo.estado = 'FN'  # FINALIZADO
-                torneo.ganador_del_torneo = self.ganador
-                torneo.save()
-
-            elif self.siguiente_partido:  # Avanza
+            if self.siguiente_partido:  # Avanza
                 siguiente = self.siguiente_partido
                 if self.orden_partido % 2 == 1:
                     siguiente.equipo1 = self.ganador
