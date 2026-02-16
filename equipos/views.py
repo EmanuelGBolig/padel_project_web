@@ -174,6 +174,12 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
     template_name = 'equipos/equipo_form.html'
     success_url = reverse_lazy('accounts:perfil')  # Redirige a perfil para ver estado invitación
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.division:
+            messages.error(request, "Debes tener una división asignada para crear un equipo. Edita tu perfil.")
+            return redirect('accounts:perfil')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['titulo'] = "Crear Nuevo Equipo"
@@ -257,12 +263,17 @@ class AceptarInvitacionView(LoginRequiredMixin, View):
             invitation.save()
             return redirect('accounts:perfil')
             
+        # Validar que el invitador tenga división asignada
+        if not invitation.inviter.division:
+            messages.error(request, "El jugador que te invitó no tiene una división asignada. No se puede crear el equipo.")
+            return redirect('accounts:perfil')
+
         with transaction.atomic():
             # 1. Crear el equipo
             equipo = Equipo.objects.create(
                 jugador1=invitation.inviter,
                 jugador2=invitation.invited,
-                division=invitation.inviter.division # Asumimos misma división por el form
+                division=invitation.inviter.division
             )
             
             # 2. Marcar invitación como aceptada
