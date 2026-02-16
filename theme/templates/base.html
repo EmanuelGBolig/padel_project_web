@@ -34,6 +34,8 @@
               content="{% block twitter_description %}Organiza y juega al pádel como un profesional.{% endblock %}">
         <meta property="twitter:image"
               content="{% block twitter_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
+        <!-- JSON-LD Structured Data -->
+        <script type="application/ld+json">{% block structured_data %}{% endblock %}</script>
         <!-- 1. HTMX -->
         <script src="https://unpkg.com/htmx.org@1.9.10"
                 xintegrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"

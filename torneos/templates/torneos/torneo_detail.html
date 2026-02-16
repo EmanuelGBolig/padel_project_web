@@ -9,6 +9,34 @@
 {% block meta_keywords %}
     {{ torneo.nombre }}, torneo padel, {{ torneo.division }}, padel, {{ torneo.ubicacion }}
 {% endblock %}
+{% block structured_data %}
+    {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    "name": "{{ torneo.nombre }}",
+    "startDate": "{{ torneo.fecha_inicio|date:'Y-m-d' }}",
+    "endDate": "{{ torneo.fecha_fin|default:torneo.fecha_inicio|date:'Y-m-d' }}",
+    "location": {
+    "@type": "Place",
+    "name": "Club de Padel",
+    "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Argentina",
+    "addressCountry": "AR"
+    }
+    },
+    "description": "Torneo de Padel categoría {{ torneo.division.nombre|default:'Libre' }}",
+    "organizer": {
+    "@type": "Organization",
+    "name": "TodoPadel",
+    "url": "https://{{ request.get_host }}"
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "image": [
+    "{{ request.scheme }}://{{ request.get_host }}{% static 'img/og-image.jpg' %}"
+    ]
+    }
+{% endblock %}
 {% block content %}
     <div class="space-y-12">
         <!-- HERO -->

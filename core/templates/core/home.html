@@ -8,6 +8,20 @@
 {% block meta_keywords %}
     padel, torneos padel, inscripciones padel, ranking jugadores, resultados en vivo, padel amateur, gestion deportiva
 {% endblock %}
+{% block structured_data %}
+    {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TodoPadel",
+    "url": "{{ request.build_absolute_uri }}",
+    "logo": "{{ request.scheme }}://{{ request.get_host }}{% static 'img/logo.png' %}",
+    "description": "La plataforma líder para gestión de torneos de pádel amateur y profesional.",
+    "sameAs": [
+    "https://www.instagram.com/todopadelArg",
+    "https://www.facebook.com/todopadelArg"
+    ]
+    }
+{% endblock %}
 {% block content %}
     <div class="flex flex-col gap-12">
         <!-- Hero -->
