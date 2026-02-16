@@ -359,8 +359,9 @@
                                     </div>
                                 </div>
                                 <ul tabindex="0"
-                                    class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
-                                    <li class="menu-title text-opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box">{{ user.email }}</li>
+                                    class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64 border border-base-200">
+                                    <li class="menu-title opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box truncate block"
+                                        title="{{ user.email }}">{{ user.email }}</li>
                                     <li>
                                         <a href="{% url 'accounts:perfil' %}" class="py-3">
                                             <svg xmlns="http://www.w3.org/2000/svg"
