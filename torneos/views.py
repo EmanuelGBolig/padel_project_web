@@ -670,6 +670,13 @@ class TorneoDetailView(DetailView):
                 torneo=torneo, equipo=equipo
             ).exists()
             context['division_correcta'] = self._es_division_permitida(equipo, torneo)
+            
+            # Validación de Categoría
+            context['categoria_correcta'] = True
+            if hasattr(equipo, 'categoria') and hasattr(torneo, 'categoria'):
+                if torneo.categoria and equipo.categoria != torneo.categoria:
+                     context['categoria_correcta'] = False
+
             context['torneo_abierto'] = torneo.estado == Torneo.Estado.ABIERTO
             context['inscripcion_cerrada'] = (
                 timezone.now() > torneo.fecha_limite_inscripcion
@@ -683,6 +690,7 @@ class TorneoDetailView(DetailView):
                 and not context['ya_inscrito']
                 and not user.is_staff
                 and context['division_correcta']  # Validación de división
+                and context['categoria_correcta'] # Validación de categoría
             )
 
             # --- LÓGICA PARA "MIS PARTIDOS" ---
@@ -874,6 +882,16 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             if torneo.division and equipo.division != torneo.division:
                 messages.warning(request, f"Tu equipo es de {equipo.division} y este torneo es de {torneo.division}.")
                 return redirect('torneos:detail', pk=torneo.pk)
+            
+            # Verificar Categoría
+            if hasattr(equipo, 'categoria') and hasattr(torneo, 'categoria'):
+                # Si el torneo tiene categoría (M/F/X) y el equipo no coincide
+                if torneo.categoria and equipo.categoria != torneo.categoria:
+                    messages.warning(
+                        request, 
+                        f"Tu equipo es categoría {equipo.get_categoria_display()} y este torneo es {torneo.get_categoria_display()}."
+                    )
+                    return redirect('torneos:detail', pk=torneo.pk)
 
         except Exception:
              messages.error(request, "Error al obtener tu equipo.")
