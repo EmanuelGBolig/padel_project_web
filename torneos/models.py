@@ -38,6 +38,18 @@ class Torneo(models.Model):
     tipo_torneo = models.CharField(
         max_length=1, choices=TipoTorneo.choices, default=TipoTorneo.GRUPOS
     )
+    
+    class Categoria(models.TextChoices):
+        MASCULINO = 'M', 'Masculino'
+        FEMENINO = 'F', 'Femenino'
+        MIXTO = 'X', 'Mixto'
+
+    categoria = models.CharField(
+        max_length=1, 
+        choices=Categoria.choices, 
+        default=Categoria.MIXTO,
+        help_text="Categoría del torneo (Masculino, Femenino, Mixto)"
+    )
 
     ganador_del_torneo = models.ForeignKey(
         Equipo,
