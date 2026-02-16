@@ -276,6 +276,13 @@ class AceptarInvitacionView(LoginRequiredMixin, View):
                 division=invitation.inviter.division
             )
             
+            # FIX: Borrar invitaciones previas ACEPTADAS entre estos mismos usuarios para evitar error de unicidad
+            Invitation.objects.filter(
+                inviter=invitation.inviter,
+                invited=invitation.invited,
+                status=Invitation.Status.ACCEPTED
+            ).delete()
+
             # 2. Marcar invitación como aceptada
             invitation.status = Invitation.Status.ACCEPTED
             invitation.save()
