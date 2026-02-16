@@ -779,6 +779,35 @@ class TorneoAbiertoListView(ListView):
         .order_by('fecha_inicio')
     paginate_by = 10
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        
+        if user.is_authenticated and hasattr(user, 'equipo') and user.equipo:
+            # Excluir torneos donde ya está inscrito el equipo del usuario
+            # Usamos values_list para ser más eficientes
+            mis_inscripciones_ids = Inscripcion.objects.filter(equipo=user.equipo).values_list('torneo_id', flat=True)
+            qs = qs.exclude(id__in=mis_inscripciones_ids)
+            
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        context['mis_torneos'] = []
+        if user.is_authenticated and hasattr(user, 'equipo') and user.equipo:
+             # Obtener torneos ABIERTOS donde está inscrito para la sección superior
+             inscripciones = Inscripcion.objects.filter(
+                 equipo=user.equipo,
+                 torneo__estado=Torneo.Estado.ABIERTO
+             ).select_related('torneo', 'torneo__division').order_by('torneo__fecha_inicio')
+             
+             # Extraemos los objetos torneo de las inscripciones
+             context['mis_torneos'] = [i.torneo for i in inscripciones]
+        
+        return context
+
 
 import unicodedata
 
