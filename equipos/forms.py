@@ -22,10 +22,16 @@ class EquipoCreateForm(forms.ModelForm):
             },
         ),
     )
+    
+    categoria = forms.ChoiceField(
+        choices=Equipo.Categoria.choices,
+        label="Categoría del Equipo",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full'})
+    )
 
     class Meta:
         model = Equipo
-        fields = ['jugador2']
+        fields = ['jugador2', 'categoria']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

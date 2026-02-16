@@ -24,6 +24,18 @@ class Equipo(models.Model):
         # Evita que los mismos dos jugadores formen otro equipo
         unique_together = ('jugador1', 'jugador2')
 
+    class Categoria(models.TextChoices):
+        MASCULINO = 'M', 'Masculino'
+        FEMENINO = 'F', 'Femenino'
+        MIXTO = 'X', 'Mixto'
+
+    categoria = models.CharField(
+        max_length=1, 
+        choices=Categoria.choices, 
+        default=Categoria.MIXTO,
+        verbose_name="Categoría del Equipo"
+    )
+
     def save(self, *args, **kwargs):
         # Lógica adaptada de tu proyecto anterior:
         if self.jugador1 and self.jugador2:
