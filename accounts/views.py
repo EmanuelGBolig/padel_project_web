@@ -135,6 +135,11 @@ class PerfilView(LoginRequiredMixin, UpdateView):
         stats = get_player_stats(self.request.user)
         context['stats'] = stats
 
+        # --- Invitaciones (Fix: Pasar al contexto) ---
+        from equipos.models import Invitation
+        context['invitaciones_enviadas'] = self.request.user.sent_invitations.filter(status=Invitation.Status.PENDING)
+        context['invitaciones_recibidas'] = self.request.user.received_invitations.filter(status=Invitation.Status.PENDING)
+
         # --- Próximos Partidos ---
         equipo = self.request.user.equipo
         if equipo:
