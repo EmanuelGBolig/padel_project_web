@@ -101,3 +101,43 @@ def get_player_stats(jugador):
         'torneos_ganados': torneos_ganados,
         'inscripciones': inscripciones # Para listar los torneos
     }
+
+
+def send_email_async(subject, html_template, context, recipient_list, from_email=None):
+    """
+    Función utilitaria para enviar correos de forma asíncrona usando hilos.
+    """
+    from django.core.mail import send_mail
+    from django.conf import settings
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    import threading
+    import sys
+
+    # Renderizar el cuerpo del correo
+    html_message = render_to_string(html_template, context)
+    plain_message = strip_tags(html_message)
+    
+    # Usar remitente por defecto si no se especifica
+    if from_email is None:
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+    def _send():
+        print(f"--- [Async Mail] Enviando a {recipient_list} desde {from_email} ---")
+        try:
+            send_mail(
+                subject,
+                plain_message,
+                from_email,
+                recipient_list,
+                html_message=html_message,
+                fail_silently=False, 
+            )
+            print("--- [Async Mail] Enviado correctamente ---")
+        except Exception as e:
+            print(f"!!! [Async Mail] Error: {e}")
+            import traceback
+            traceback.print_exc()
+
+    email_thread = threading.Thread(target=_send)
+    email_thread.start()

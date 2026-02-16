@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+        body { font-family: sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
+        .header { background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { padding: 20px; }
+        .button { display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+        .footer { margin-top: 20px; font-size: 0.8em; color: #666; text-align: center; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>¡Tienes una nueva invitación!</h2>
+            </div>
+            <div class="content">
+                <p>
+                    Hola <strong>{{ invited.nombre }}</strong>,
+                </p>
+                <p>
+                    <strong>{{ inviter.full_name }}</strong> te ha invitado a formar parte de su equipo de pádel en <strong>TodoPadel</strong>.
+                </p>
+                <p>Para aceptar o rechazar la invitación, inicia sesión y ve a tu perfil.</p>
+                <div style="text-align: center;">
+                    <a href="{{ action_url }}" class="button">Ver Invitación</a>
+                </div>
+            </div>
+            <div class="footer">
+                <p>Si no esperabas esto, puedes ignorar este correo.</p>
+            </div>
+        </div>
+    </body>
+</html>

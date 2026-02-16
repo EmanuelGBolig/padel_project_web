@@ -214,10 +214,29 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
             return redirect('accounts:perfil')
 
         # Crear invitación
-        Invitation.objects.create(
+        invitation = Invitation.objects.create(
             inviter=self.request.user,
             invited=jugador2,
             status=Invitation.Status.PENDING
+        )
+        
+        # Enviar email de notificación
+        from accounts.utils import send_email_async
+        
+        # Construir URL absoluta para el botón del email
+        protocol = 'https' if self.request.is_secure() else 'http'
+        domain = self.request.get_host()
+        action_url = f"{protocol}://{domain}{reverse_lazy('accounts:perfil')}"
+
+        send_email_async(
+            subject=f'TodoPadel: {self.request.user.full_name} te invitó a un equipo',
+            html_template='equipos/emails/invitation_email.html',
+            context={
+                'inviter': self.request.user,
+                'invited': jugador2,
+                'action_url': action_url
+            },
+            recipient_list=[jugador2.email]
         )
 
         messages.success(

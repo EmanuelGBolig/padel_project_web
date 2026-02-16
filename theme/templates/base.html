@@ -347,7 +347,10 @@
                             <div class="dropdown dropdown-end">
                                 <div tabindex="0"
                                      role="button"
-                                     class="btn btn-ghost btn-circle avatar {% if not user.imagen %}placeholder bg-primary text-primary-content{% endif %}">
+                                     class="btn btn-ghost btn-circle avatar indicator {% if not user.imagen %}placeholder bg-primary text-primary-content{% endif %}">
+                                    {% if notification_count > 0 %}
+                                        <span class="indicator-item badge badge-error badge-xs w-2 h-2 p-0 border-none top-1 right-1"></span>
+                                    {% endif %}
                                     <div class="w-9 rounded-full">
                                         {% if user.imagen %}
                                             <img src="{{ user.imagen.url }}"
@@ -362,6 +365,24 @@
                                     class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64 border border-base-200">
                                     <li class="menu-title opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box truncate block"
                                         title="{{ user.email }}">{{ user.email }}</li>
+                                    {% if pending_invitations_count > 0 %}
+                                        <li>
+                                            <a href="{% url 'accounts:perfil' %}"
+                                               class="flex justify-between text-warning font-bold">
+                                                Invitaciones
+                                                <span class="badge badge-warning badge-sm">{{ pending_invitations_count }}</span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    {% if upcoming_matches_count > 0 %}
+                                        <li>
+                                            <a href="{% url 'accounts:perfil' %}"
+                                               class="flex justify-between text-info font-bold">
+                                                Prox. Partidos
+                                                <span class="badge badge-info badge-sm">{{ upcoming_matches_count }}</span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                     <li>
                                         <a href="{% url 'accounts:perfil' %}" class="py-3">
                                             <svg xmlns="http://www.w3.org/2000/svg"
