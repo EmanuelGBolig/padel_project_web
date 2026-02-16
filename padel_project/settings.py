@@ -295,4 +295,8 @@ else:
     
     # Gmail fuerza que el sender sea la cuenta autenticada, con Resend usamos el verificado
     # Asegúrate de verificar el dominio o email en Resend
-    DEFAULT_FROM_EMAIL = 'onboarding@resend.dev' # Default de pruebas de Resend
+    if CUSTOM_DOMAIN:
+        DEFAULT_FROM_EMAIL = f'noreply@{CUSTOM_DOMAIN}'
+    else:
+        # Fallback de seguridad para producción: usamos el dominio verificado
+        DEFAULT_FROM_EMAIL = 'noreply@todopadel.club'

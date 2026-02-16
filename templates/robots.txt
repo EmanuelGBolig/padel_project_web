@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /accounts/
+Allow: /
+
+Sitemap: https://padel-project-web.onrender.com/sitemap.xml

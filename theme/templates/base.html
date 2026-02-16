@@ -3,15 +3,37 @@
 <html lang="es" data-theme="light">
     <head>
         <meta charset="UTF-8">
-        <meta name="description"
-              content="Gestión de torneos de pádel, rankings y estadísticas.">
-        <meta name="keywords" content="padel, torneos, ranking, deporte, argentina">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- SEO Meta Tags -->
         <title>
             {% block title %}
-                Torneos de Pádel
+                TodoPadel - Tu gestión de torneos
             {% endblock title %}
         </title>
+        <meta name="description"
+              content="{% block meta_description %}Organiza y participa en los mejores torneos de pádel. Rankings, estadísticas y gestión completa en TodoPadel.{% endblock %}">
+        <meta name="keywords"
+              content="{% block meta_keywords %}padel, torneos, ranking, deporte, argentina, gestión, partidos, campeonato{% endblock %}">
+        <meta name="author" content="TodoPadel">
+        <link rel="canonical" href="{{ request.build_absolute_uri }}">
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+        <meta property="og:url" content="{{ request.build_absolute_uri }}">
+        <meta property="og:title"
+              content="{% block og_title %}TodoPadel - Gestión de Torneos{% endblock %}">
+        <meta property="og:description"
+              content="{% block og_description %}La plataforma definitiva para tus torneos de pádel.{% endblock %}">
+        <meta property="og:image"
+              content="{% block og_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
+        <meta property="twitter:title"
+              content="{% block twitter_title %}TodoPadel{% endblock %}">
+        <meta property="twitter:description"
+              content="{% block twitter_description %}Organiza y juega al pádel como un profesional.{% endblock %}">
+        <meta property="twitter:image"
+              content="{% block twitter_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
         <!-- 1. HTMX -->
         <script src="https://unpkg.com/htmx.org@1.9.10"
                 xintegrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
@@ -282,7 +304,7 @@
                                     </g>
                                 </svg>
                             </span>
-                            <span class="font-bold">PadelApp</span>
+                            <span class="font-bold">TodoPadel</span>
                         </a>
                         <!-- Search Bar (Desktop) -->
                         <div class="hidden md:flex w-full justify-center 2xl:pr-32">
@@ -457,7 +479,7 @@
                                     </g>
                                 </svg>
                             </span>
-                            PadelApp
+                            TodoPadel
                         </a>
                     </div>
                     <!-- Sidebar Navigation -->
@@ -613,7 +635,7 @@
         <!-- Footer (Full Width, below Sidebar) -->
         <footer class="footer footer-center p-4 bg-base-200/50 text-base-content/60 mt-auto text-sm border-t border-base-200">
             <aside>
-                <p class="font-medium">PadelApp © {% now "Y" %}</p>
+                <p class="font-medium">TodoPadel © {% now "Y" %}</p>
             </aside>
         </footer>
         {% block extra_js %}

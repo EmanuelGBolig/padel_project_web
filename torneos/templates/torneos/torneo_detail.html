@@ -1,8 +1,14 @@
 ﻿{% extends "base.html" %}
 {% load torneo_extras %}
 {% block title %}
-    {{ torneo.nombre }} - Detalles
+    {{ torneo.nombre }} - TodoPadel
 {% endblock title %}
+{% block meta_description %}
+    Detalles del torneo {{ torneo.nombre }} en TodoPadel. Categoría {{ torneo.division }}, fecha de inicio {{ torneo.fecha_inicio|date:"d F Y" }}. Inscríbete y sigue los resultados.
+{% endblock %}
+{% block meta_keywords %}
+    {{ torneo.nombre }}, torneo padel, {{ torneo.division }}, padel, {{ torneo.ubicacion }}
+{% endblock %}
 {% block content %}
     <div class="space-y-12">
         <!-- HERO -->

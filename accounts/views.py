@@ -62,7 +62,7 @@ class RegistroView(CreateView):
                 traceback.print_exc()
                 sys.stdout.flush()
 
-        subject = 'Verifica tu cuenta en PadelApp'
+        subject = 'Verifica tu cuenta en TodoPadel'
         html_message = render_to_string('accounts/emails/verification_email.html', {'code': code})
         plain_message = strip_tags(html_message)
         
