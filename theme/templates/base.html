@@ -287,14 +287,14 @@
                 </svg>
             </div>
         </div>
-        <div class="drawer 2xl:drawer-open flex-grow">
+        <div class="drawer xl:drawer-open flex-grow">
             <input id="my-drawer" type="checkbox" class="drawer-toggle" />
             <div class="drawer-content flex flex-col">
                 <!-- Navbar Top -->
                 <div class="navbar sticky top-0 z-40 bg-base-200/95 backdrop-blur-md shadow-sm border-b border-base-300 justify-between px-6">
                     <!-- Navbar Start (Left & Search) -->
                     <div class="navbar-start flex-1 gap-2 md:gap-4">
-                        <div class="flex-none 2xl:hidden">
+                        <div class="flex-none xl:hidden">
                             <label for="my-drawer"
                                    aria-label="open sidebar"
                                    class="btn btn-circle btn-ghost text-primary">
@@ -308,7 +308,7 @@
                         </div>
                         <!-- Brand (Mobile & Desktop) -->
                         <a href="{% url 'core:home' %}"
-                           class="btn btn-ghost normal-case text-xl gap-1 px-2 2xl:hidden">
+                           class="btn btn-ghost normal-case text-xl gap-1 px-2 xl:hidden">
                             <span class="w-8 h-8 flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      viewBox="0 0 24 24"
@@ -337,8 +337,8 @@
                             </span>
                             <span class="font-bold">TodoPadel</span>
                         </a>
-                        <!-- Search Bar (Desktop - Visible only on 2xl+) -->
-                        <div class="hidden 2xl:flex w-full justify-center 2xl:pr-32">
+                        <!-- Search Bar (Desktop - Visible only on xl+) -->
+                        <div class="hidden xl:flex w-full justify-center xl:pr-32">
                             <form action="{% url 'core:search' %}" method="get" class="w-full max-w-md">
                                 <div class="relative w-full">
                                     <input type="text"
@@ -362,7 +362,7 @@
                     <!-- ... inside sidebar ... -->
                     <li>
                         <a href="{% url 'core:search' %}"
-                           class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl hidden sm:flex 2xl:hidden">
+                           class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl hidden sm:flex xl:hidden">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                  class="h-5 w-5"
                                  fill="none"
@@ -489,7 +489,7 @@
                         {% endblock content %}
                     </main>
                     <!-- Right Sidebar (Placeholder for Ads - Symmetry) -->
-                    <aside class="hidden 2xl:block w-80 bg-base-100 border-l border-base-200 shrink-0 p-6">
+                    <aside class="hidden xl:block w-80 bg-base-100 border-l border-base-200 shrink-0 p-6">
                         <!-- Placeholder Content -->
                         <div class="h-full rounded-2xl border-2 border-dashed border-base-300/50 flex flex-col items-center justify-center text-base-content/30 gap-4 p-4 text-center">
                             <svg xmlns="http://www.w3.org/2000/svg"
