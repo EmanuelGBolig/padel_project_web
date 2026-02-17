@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
-from .models import CustomUser
-from equipos.models import Division
+from .models import CustomUser, Division
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -18,6 +17,7 @@ class CustomUserCreationForm(UserCreationForm):
             'numero_telefono',
             'genero',
             'division',
+            'tipo_usuario',
         )
 
     def __init__(self, *args, **kwargs):

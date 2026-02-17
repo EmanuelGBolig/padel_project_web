@@ -49,7 +49,7 @@ class CustomUserAdmin(UserAdmin):
                 'classes': ('wide',),
                 'fields': (
                     'email',
-                    'password',
+                    'password1',
                     'password2',
                     'nombre',
                     'apellido',
