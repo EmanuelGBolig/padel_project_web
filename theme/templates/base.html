@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+        <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
         <!-- SEO Meta Tags -->
         <title>
             {% block title %}
@@ -275,7 +275,7 @@
         <div id="global-loader"
              class="fixed inset-0 z-[9999] bg-base-100 flex flex-col items-center justify-center transition-opacity duration-500 ease-out">
             <div class="relative w-24 h-24 animate-pulse">
-                <img src="{% static 'img/logo.png' %}"
+                <img src="{% static 'img/logo.svg' %}"
                      alt="TodoPadel"
                      class="w-full h-full object-contain drop-shadow-2xl">
             </div>
@@ -303,7 +303,7 @@
                         <a href="{% url 'core:home' %}"
                            class="btn btn-ghost btn-circle sm:btn-square normal-case text-xl 2xl:hidden">
                             <span class="w-8 h-8 flex items-center justify-center">
-                                <img src="{% static 'img/logo.png' %}"
+                                <img src="{% static 'img/logo.svg' %}"
                                      alt="Logo"
                                      class="w-7 h-7 object-contain">
                             </span>
@@ -471,7 +471,7 @@
                         <a href="{% url 'core:home' %}"
                            class="flex items-center gap-1 text-2xl font-black tracking-tight hover:opacity-80 transition-opacity">
                             <span class="w-10 h-10 flex items-center justify-center">
-                                <img src="{% static 'img/logo.png' %}"
+                                <img src="{% static 'img/logo.svg' %}"
                                      alt="Logo"
                                      class="w-9 h-9 object-contain">
                             </span>
