@@ -1,42 +1,45 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" data-theme="business">
+<html lang="es" data-theme="corporate">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
         <!-- SEO Meta Tags -->
         <title>
-            {% block title %}
-                TodoPadel - Tu gestión de torneos
-            {% endblock title %}
+            {% block head_title %}
+            {% endblock head_title %}
+            TodoPadel - Tu gestión de torneos
         </title>
         <meta name="description"
-              content="{% block meta_description %}Organiza y participa en los mejores torneos de pádel. Rankings, estadísticas y gestión completa en TodoPadel.{% endblock %}">
+              content="{% block meta_description %}Organiza y participa en los mejores torneos de pádel. Rankings, estadísticas y gestión completa en TodoPadel.{% endblock meta_description %}">
         <meta name="keywords"
-              content="{% block meta_keywords %}padel, torneos, ranking, deporte, argentina, gestión, partidos, campeonato{% endblock %}">
+              content="{% block meta_keywords %}padel, torneos, ranking, deporte, argentina, gestión, partidos, campeonato{% endblock meta_keywords %}">
         <meta name="author" content="TodoPadel">
         <link rel="canonical" href="{{ request.build_absolute_uri }}">
         <!-- Open Graph / Facebook -->
-        <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+        <meta property="og:type"
+              content="{% block og_type %}website{% endblock og_type %}">
         <meta property="og:url" content="{{ request.build_absolute_uri }}">
         <meta property="og:title"
-              content="{% block og_title %}TodoPadel - Gestión de Torneos{% endblock %}">
+              content="{% block og_title %}TodoPadel - Gestión de Torneos{% endblock og_title %}">
         <meta property="og:description"
-              content="{% block og_description %}La plataforma definitiva para tus torneos de pádel.{% endblock %}">
+              content="{% block og_description %}La plataforma definitiva para tus torneos de pádel.{% endblock og_description %}">
         <meta property="og:image"
-              content="{% block og_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
+              content="{% block og_image %}{% static 'img/og-image.jpg' %}{% endblock og_image %}">
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
         <meta property="twitter:title"
-              content="{% block twitter_title %}TodoPadel{% endblock %}">
+              content="{% block twitter_title %}TodoPadel{% endblock twitter_title %}">
         <meta property="twitter:description"
-              content="{% block twitter_description %}Organiza y juega al pádel como un profesional.{% endblock %}">
+              content="{% block twitter_description %}Organiza y juega al pádel como un profesional.{% endblock twitter_description %}">
         <meta property="twitter:image"
-              content="{% block twitter_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
+              content="{% block twitter_image %}{% static 'img/og-image.jpg' %}{% endblock twitter_image %}">
         <!-- JSON-LD Structured Data -->
-        <script type="application/ld+json">{% block structured_data %}{% endblock %}</script>
+        <script type="application/ld+json">    {% block structured_data %}
+    {% endblock structured_data %}
+        </script>
         <!-- 1. HTMX -->
         <script src="https://unpkg.com/htmx.org@1.9.10"
                 xintegrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
@@ -138,6 +141,45 @@
         .table-wrapper {
             width: 100%;
             overflow: auto;
+        }
+
+        /* --- Animaciones y Utilidades UX --- */
+        
+        /* Skeleton Pulse */
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .skeleton {
+            background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 90%);
+            animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            border-radius: 0.5rem;
+        }
+
+        /* Transiciones suaves para botones */
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Animación de entrada para Toasts */
+        .toast {
+            animation: toast-slide-in 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        @keyframes toast-slide-in {
+            from { transform: translateY(100%) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        /* Fade-in para contenido principal */
+        .content-fade-in {
+            animation: content-fade-in 0.5s ease-out;
+        }
+        @keyframes content-fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* --- Select2 Dark Mode & DaisyUI Integration --- */
@@ -330,8 +372,10 @@
              class="fixed inset-0 z-[9999] bg-base-100 flex flex-col items-center justify-center transition-opacity duration-500 ease-out">
             <div class="relative w-32 h-32 animate-pulse">
                 <img src="{% static 'img/logo.png' %}"
-                     alt="TodoPadel"
-                     class="w-full h-full object-contain drop-shadow-2xl">
+                     alt="TodoPadel Logo"
+                     class="h-10 w-10 sm:h-12 sm:w-12 transition-transform hover:scale-105"
+                     width="48"
+                     height="48" />
             </div>
         </div>
         <div class="drawer lg:drawer-open flex-grow">
@@ -483,7 +527,7 @@
                 <div class="flex flex-grow w-full max-w-[1920px]">
                     <!-- Max width container -->
                     <!-- Main Content (Left Aligned) -->
-                    <main class="flex-grow p-4 md:p-6 lg:p-8 min-w-0">
+                    <main class="flex-grow p-4 md:p-8 space-y-8 content-fade-in min-w-0">
                         <!-- min-w-0 prevents flex overflow -->
                         {% if messages %}
                             <div class="toast toast-top toast-center z-[100] w-full max-w-md p-4 space-y-2">
@@ -496,6 +540,8 @@
                                 {% endfor %}
                             </div>
                         {% endif %}
+                        {% block content_title %}
+                        {% endblock content_title %}
                         {% block content %}
                         {% endblock content %}
                     </main>
@@ -766,30 +812,34 @@
             });
         });
         </script>
-        <!-- Global Scripts -->
+        <!-- Global Form Loading Script -->
         <script>
-        document.addEventListener('DOMContentLoaded', function() {
-             // Close details (Administration menu) when clicking outside
-             document.addEventListener('click', function(event) {
-                const openDetails = document.querySelectorAll('details[open]');
-                openDetails.forEach(detail => {
-                    if (!detail.contains(event.target)) {
-                        detail.removeAttribute('open');
-                    }
-                });
+        // Global form submission loading state
+        document.addEventListener('submit', (e) => {
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.classList.contains('no-loader')) {
+                if (!submitBtn.classList.contains('loading')) {
+                    submitBtn.classList.add('loading');
+                }
+            }
+        });
 
-                // Close dropdowns (User Profile) when clicking outside
-                // DaisyUI dropdowns open on focus, so we blur the active element if it's inside a dropdown
-                const dropdowns = document.querySelectorAll('.dropdown');
-                dropdowns.forEach(dropdown => {
-                    if (!dropdown.contains(event.target)) {
-                         const activeElement = document.activeElement;
-                         if (dropdown.contains(activeElement)) {
-                             activeElement.blur();
-                         }
-                    }
-                });
-             });
+        // Global HTMX loading states
+        document.addEventListener('htmx:beforeRequest', (e) => {
+            const elt = e.detail.elt;
+            const targetBtn = elt.closest('button') || elt.querySelector('button[type="submit"]');
+            if (targetBtn && !targetBtn.classList.contains('no-loader')) {
+                targetBtn.classList.add('loading');
+            }
+        });
+
+        document.addEventListener('htmx:afterOnLoad', (e) => {
+            const elt = e.detail.elt;
+            const targetBtn = elt.closest('button') || elt.querySelector('button[type="submit"]');
+            if (targetBtn) {
+                targetBtn.classList.remove('loading');
+            }
         });
         </script>
         <!-- Loader Logic -->
