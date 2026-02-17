@@ -845,15 +845,17 @@
         <!-- Loader Logic -->
         <script>
         document.addEventListener("DOMContentLoaded", function () {
-             // Create a minimum timeout to ensure the logo is seen
+            // Si hay alertas/mensajes, ocultamos el loader inmediatamente
+            const hasAlerts = document.querySelector('.toast .alert');
+            const loaderDelay = hasAlerts ? 0 : 800;
+
             setTimeout(function() {
                 const loader = document.getElementById('global-loader');
                 if (loader) {
                     loader.classList.add('opacity-0', 'pointer-events-none');
-                    // Optional: remove from DOM after transition
                     setTimeout(() => loader.remove(), 500);
                 }
-            }, 800); // 800ms minimum display time
+            }, loaderDelay);
         });
         </script>
     </body>
