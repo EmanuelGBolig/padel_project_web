@@ -17,7 +17,6 @@ class CustomUserCreationForm(UserCreationForm):
             'numero_telefono',
             'genero',
             'division',
-            'tipo_usuario',
         )
 
     def __init__(self, *args, **kwargs):
