@@ -265,7 +265,7 @@
         <!-- Estado Vacío -->
         {% if not torneos_abiertos and not torneos_en_juego %}
             <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-8">
-                {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay torneos activos o en inscripción en este momento. ¡Vuelve pronto para el próximo saque!" action_url="/torneos/" action_text="Ver histórico de torneos" %}
+                {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay torneos activos o en inscripción en este momento. ¡Vuelve pronto para el próximo saque!" action_url="/torneos/finalizados/" action_text="Ver histórico de torneos" %}
             </div>
         {% endif %}
     </div>

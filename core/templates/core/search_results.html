@@ -54,7 +54,8 @@
         {% if query %}
             {% if not jugadores and not torneos and not equipos %}
                 <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-12">
-                    {% include "partials/empty_state.html" with title="No encontramos coincidencias" message="No hay jugadores, torneos o equipos que coincidan con tu búsqueda. ¡Intenta con otros términos!" action_url="/torneos/" action_text="Ver todos los torneos" %}
+                    {% url 'torneos:abierto_list' as abierto_url %}
+                    {% include "partials/empty_state.html" with title="No encontramos coincidencias" message="No hay jugadores, torneos o equipos que coincidan con tu búsqueda. ¡Intenta con otros términos!" action_url=abierto_url action_text="Ver todos los torneos" %}
                 </div>
             {% else %}
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

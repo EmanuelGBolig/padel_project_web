@@ -94,9 +94,11 @@
             {% empty %}
                 <div class="col-span-full">
                     {% if mis_torneos %}
-                        {% include "partials/empty_state.html" with title="No hay otros torneos" message="Ya estás inscrito en todos los torneos disponibles o no hay nuevas convocatorias abiertas." action_url="/torneos/" action_text="Ver todos los torneos" %}
+                        {% url 'torneos:finalizado_list' as finalizado_url %}
+                        {% include "partials/empty_state.html" with title="No hay otros torneos" message="Ya estás inscrito en todos los torneos disponibles o no hay nuevas convocatorias abiertas." action_url=finalizado_url action_text="Ver todos los torneos" %}
                     {% else %}
-                        {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay inscripciones abiertas en este momento. ¡El próximo gran evento está por llegar!" action_url="/torneos/" action_text="Ver histórico de torneos" %}
+                        {% url 'torneos:finalizado_list' as finalizado_url %}
+                        {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay inscripciones abiertas en este momento. ¡El próximo gran evento está por llegar!" action_url=finalizado_url action_text="Ver histórico de torneos" %}
                     {% endif %}
                 </div>
             {% endfor %}
@@ -118,4 +120,4 @@
             </div>
         {% endif %}
     </div>
-{% endblock %}
+{% endblock content %}

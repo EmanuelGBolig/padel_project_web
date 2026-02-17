@@ -44,7 +44,8 @@
                 </div>
             {% empty %}
                 <div class="col-span-full">
-                    {% include "partials/empty_state.html" with title="¡Canchas libres!" message="No hay torneos jugándose en este momento. ¡Suscríbete a uno pronto!" action_url="/torneos/" action_text="Ver torneos abiertos" %}
+                    {% url 'torneos:abierto_list' as abierto_url %}
+                    {% include "partials/empty_state.html" with title="¡Canchas libres!" message="No hay torneos jugándose en este momento. ¡Suscríbete a uno pronto!" action_url=abierto_url action_text="Ver torneos abiertos" %}
                 </div>
             {% endfor %}
         </div>
@@ -65,4 +66,4 @@
             </div>
         {% endif %}
     </div>
-{% endblock %}
+{% endblock content %}

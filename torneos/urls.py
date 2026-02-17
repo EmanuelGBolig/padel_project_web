@@ -85,4 +85,9 @@ urlpatterns = [
         views.crear_torneo_prueba,
         name='crear_torneo_prueba',
     ),
+    # Redirección de seguridad para el path base /torneos/
+    path('', lambda r: redirect('torneos:abierto_list'), name='base_redirect'),
 ]
+
+from django.shortcuts import redirect
+
