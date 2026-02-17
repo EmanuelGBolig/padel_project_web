@@ -8,45 +8,60 @@
             <!-- Ball Shadow -->
             <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/10 rounded-full animate-shadow"></div>
             <!-- Racket -->
-            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-28 h-36 origin-bottom animate-racket-swing"
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-32 h-40 origin-bottom animate-racket-swing"
                  style="transform-box: fill-box">
-                <svg viewBox="0 0 100 140" class="w-full h-full drop-shadow-lg">
-                    <!-- Wrist Strap (Cordón) - Essential Padel feature -->
-                    <path d="M45 130 Q 50 145 55 130" stroke="#ef4444" stroke-width="2" fill="none" class="animate-pulse" />
+                <svg viewBox="0 0 120 160" class="w-full h-full drop-shadow-xl">
+                    <!-- Wrist Strap (Cordón) -->
+                    <path d="M55 145 Q 60 160 65 145" stroke="#ef4444" stroke-width="2.5" fill="none" class="animate-pulse" />
+                    <!-- Handle Cap -->
+                    <rect x="52" y="142" width="16" height="4" rx="1" fill="#111827" />
                     <!-- Handle with Grip -->
-                    <rect x="42" y="90" width="16" height="40" rx="3" fill="#1f2937" />
-                    <!-- White Grip tape spiraling -->
-                    <path d="M42 95 L58 92 M42 105 L58 102 M42 115 L58 112 M42 125 L58 122" stroke="white" stroke-width="1.5" opacity="0.8" />
-                    <!-- Throat/Bridge (Corazón abierto) -->
-                    <path d="M42 90 L 35 70 L 65 70 L 58 90 Z" fill="#1f2937" />
-                    <path d="M48 90 L 45 75 L 55 75 L 52 90 Z" fill="#374151" />
-                    <!-- Triangle cutout simulation -->
-                    <!-- Head (Teardrop shape typical of Padel) -->
-                    <path d="M35 70 C 5 70, 5 10, 50 10 C 95 10, 95 70, 65 70 L 35 70 Z" fill="currentColor" class="text-gray-800" stroke="#22c55e" stroke-width="3" />
-                    <!-- Inner Core -->
-                    <path d="M38 68 C 10 68, 10 15, 50 15 C 90 15, 90 68, 62 68 L 38 68 Z" fill="#1f2937" />
-                    <!-- Holes pattern (Distributed circulars) -->
-                    <g fill="#374151">
-                    <!-- Center column -->
-                    <circle cx="50" cy="25" r="2.5" />
-                    <circle cx="50" cy="35" r="2.5" />
-                    <circle cx="50" cy="45" r="2.5" />
-                    <circle cx="50" cy="55" r="2.5" />
-                    <!-- Left columns -->
-                    <circle cx="40" cy="30" r="2.5" />
-                    <circle cx="40" cy="40" r="2.5" />
-                    <circle cx="40" cy="50" r="2.5" />
-                    <circle cx="30" cy="35" r="2.5" />
-                    <circle cx="30" cy="45" r="2.5" />
-                    <circle cx="20" cy="40" r="2.5" />
-                    <!-- Right columns -->
-                    <circle cx="60" cy="30" r="2.5" />
-                    <circle cx="60" cy="40" r="2.5" />
-                    <circle cx="60" cy="50" r="2.5" />
-                    <circle cx="70" cy="35" r="2.5" />
-                    <circle cx="70" cy="45" r="2.5" />
-                    <circle cx="80" cy="40" r="2.5" />
+                    <rect x="54" y="100" width="12" height="42" fill="#1f2937" />
+                    <!-- White Grip tape spiraling (More detailed) -->
+                    <g stroke="white" stroke-width="2" opacity="0.9">
+                    <line x1="54" y1="105" x2="66" y2="102" />
+                    <line x1="54" y1="112" x2="66" y2="109" />
+                    <line x1="54" y1="119" x2="66" y2="116" />
+                    <line x1="54" y1="126" x2="66" y2="123" />
+                    <line x1="54" y1="133" x2="66" y2="130" />
+                    <line x1="54" y1="140" x2="66" y2="137" />
                     </g>
+                    <!-- Racket Frame (Outline) -->
+                    <!-- Shape: Hybrid/Teardrop Padel Racket -->
+                    <path d="M60 100 L 52 80 Q 10 70 10 40 Q 10 5 60 5 Q 110 5 110 40 Q 110 70 68 80 L 60 100 Z" fill="#171717" stroke="#10b981" stroke-width="3" />
+                    <!-- Bridge/Throat (Corazón) -->
+                    <path d="M52 80 L 68 80 L 60 100 Z" fill="#1f2937" />
+                    <!-- Cutout in bridge -->
+                    <path d="M56 82 L 64 82 L 60 92 Z" fill="#374151" />
+                    <!-- Face (Hitting Surface) -->
+                    <path d="M 54 78 Q 15 70 15 40 Q 15 10 60 10 Q 105 10 105 40 Q 105 70 66 78 Z" fill="#262626" />
+                    <!-- Holes (Agujeros) - Grid Pattern -->
+                    <g fill="#404040">
+                    <!-- Row 1 -->
+                    <circle cx="60" cy="25" r="2.5" />
+                    <circle cx="45" cy="25" r="2.5" />
+                    <circle cx="75" cy="25" r="2.5" />
+                    <circle cx="30" cy="28" r="2.5" />
+                    <circle cx="90" cy="28" r="2.5" />
+                    <!-- Row 2 -->
+                    <circle cx="60" cy="40" r="2.5" />
+                    <circle cx="45" cy="40" r="2.5" />
+                    <circle cx="75" cy="40" r="2.5" />
+                    <circle cx="30" cy="40" r="2.5" />
+                    <circle cx="90" cy="40" r="2.5" />
+                    <!-- Row 3 -->
+                    <circle cx="60" cy="55" r="2.5" />
+                    <circle cx="45" cy="55" r="2.5" />
+                    <circle cx="75" cy="55" r="2.5" />
+                    <circle cx="30" cy="52" r="2.5" />
+                    <circle cx="90" cy="52" r="2.5" />
+                    <!-- Row 4 -->
+                    <circle cx="60" cy="70" r="2.5" />
+                    <circle cx="45" cy="68" r="2.5" />
+                    <circle cx="75" cy="68" r="2.5" />
+                    </g>
+                    <!-- Shine/Reflection -->
+                    <path d="M 30 20 Q 40 15 50 15" stroke="white" stroke-width="2" opacity="0.1" fill="none" />
                 </svg>
             </div>
             <!-- Ball (Neon Green) -->
