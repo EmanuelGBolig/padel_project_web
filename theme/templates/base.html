@@ -378,155 +378,157 @@
                      height="96" />
             </div>
         </div>
-        <div class="drawer lg:drawer-open flex-grow">
-            <input id="my-drawer" type="checkbox" class="drawer-toggle" />
-            <div class="drawer-content flex flex-col">
-                <!-- Navbar Top -->
-                <div class="navbar sticky top-0 z-40 bg-base-200/95 backdrop-blur-md shadow-sm border-b border-base-300 justify-between px-6">
-                    <!-- Navbar Start (Left & Search) -->
-                    <div class="navbar-start flex-1 gap-2 md:gap-4">
-                        <div class="flex-none 2xl:hidden">
-                            <label for="my-drawer"
-                                   aria-label="open sidebar"
-                                   class="btn btn-circle btn-ghost text-primary">
+        <div class="navbar sticky top-0 z-[60] bg-base-200/95 backdrop-blur-md shadow-sm border-b border-base-300 justify-between px-6">
+            <!-- Navbar Start (Left & Brand) -->
+            <div class="navbar-start flex-1 gap-2 md:gap-4">
+                <div class="flex-none 2xl:hidden">
+                    <label for="my-drawer"
+                           aria-label="open sidebar"
+                           class="btn btn-circle btn-ghost text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             class="inline-block w-6 h-6 stroke-current">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path>
+                        </svg>
+                    </label>
+                </div>
+                <!-- Brand (Full Width Navbar) -->
+                <a href="{% url 'core:home' %}"
+                   class="flex items-center gap-1 text-2xl font-black tracking-tight hover:opacity-80 transition-opacity mr-4 group">
+                    <span class="w-10 h-10 flex items-center justify-center">
+                        <img src="{% static 'img/logo.png' %}"
+                             alt="TodoPadel Logo"
+                             class="h-8 w-8 sm:h-10 sm:w-10 object-contain transition-transform group-hover:scale-110"
+                             width="40"
+                             height="40" />
+                    </span>
+                    <span class="hidden sm:inline-flex">
+                        <span class="text-base-content font-semibold opacity-70">Todo</span><span class="text-base-content font-black brightness-[1.8] dark:brightness-[2.5]">Padel</span>
+                    </span>
+                </a>
+                <!-- Search Bar (Visible on 2xl+) -->
+                <div class="hidden 2xl:flex w-full max-w-md">
+                    <form action="{% url 'core:search' %}" method="get" class="w-full">
+                        <div class="relative w-full">
+                            <input type="text"
+                                   name="q"
+                                   placeholder="Buscar torneos, jugadores..."
+                                   class="input input-bordered w-full h-10 pl-10 bg-base-200/50 focus:bg-base-100 transition-colors rounded-xl text-sm" />
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5 opacity-50"
                                      fill="none"
                                      viewBox="0 0 24 24"
-                                     class="inline-block w-6 h-6 stroke-current">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"></path>
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
-                            </label>
+                            </div>
                         </div>
-                        <!-- Brand (Mobile/Tablet < 2xl) -->
-                        <a href="{% url 'core:home' %}"
-                           class="btn btn-ghost btn-circle sm:btn-square normal-case text-xl 2xl:hidden">
-                            <span class="w-10 h-10 flex items-center justify-center">
-                                <img src="{% static 'img/logo.png' %}"
-                                     alt="TodoPadel Logo"
-                                     class="h-8 w-8 sm:h-10 sm:w-10 object-contain"
-                                     width="40"
-                                     height="40" />
-                            </span>
-                        </a>
-                        <!-- Search Bar (Desktop - Visible only on 2xl+) -->
-                        <div class="hidden 2xl:flex w-full justify-center">
-                            <form action="{% url 'core:search' %}" method="get" class="w-full max-w-md">
-                                <div class="relative w-full">
-                                    <input type="text"
-                                           name="q"
-                                           placeholder="Buscar torneos, jugadores..."
-                                           class="input input-bordered w-full h-10 pl-10 bg-base-200/50 focus:bg-base-100 transition-colors rounded-xl text-sm" />
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    </form>
+                </div>
+            </div>
+            <!-- Navbar End (Right) -->
+            <div class="navbar-end w-auto flex-none gap-2">
+                <!-- Theme Toggle -->
+                <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm hidden sm:inline-grid">
+                    <input type="checkbox" class="theme-controller" value="dark" />
+                    <svg class="swap-on fill-current w-5 h-5"
+                         xmlns="http://www.w3.org/2000/svg"
+                         viewBox="0 0 24 24">
+                        <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,4.93l.71.71A1,1,0,0,0,5.64,7.05Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
+                    </svg>
+                    <svg class="swap-off fill-current w-5 h-5"
+                         xmlns="http://www.w3.org/2000/svg"
+                         viewBox="0 0 24 24">
+                        <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
+                    </svg>
+                </label>
+                {% if user.is_authenticated %}
+                    <div class="dropdown dropdown-end">
+                        <div tabindex="0"
+                             role="button"
+                             class="btn btn-ghost btn-circle avatar indicator {% if not user.imagen %}placeholder bg-primary text-primary-content{% endif %}">
+                            {% if notification_count > 0 %}
+                                <span class="indicator-item badge badge-error badge-xs w-2 h-2 p-0 border-none top-1 right-1"></span>
+                            {% endif %}
+                            <div class="w-9 rounded-full">
+                                {% if user.imagen %}
+                                    <img src="{{ user.imagen.url }}"
+                                         alt="{{ user.nombre }}"
+                                         class="object-cover w-full h-full rounded-full"
+                                         width="36"
+                                         height="36" />
+                                {% else %}
+                                    <span>{{ user.nombre|slice:":1"|upper }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <ul tabindex="0"
+                            class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64 border border-base-200">
+                            <li class="menu-title opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box truncate block"
+                                title="{{ user.email }}">{{ user.email }}</li>
+                            {% if pending_invitations_count > 0 %}
+                                <li>
+                                    <a href="{% url 'accounts:perfil' %}"
+                                       class="flex justify-between text-warning font-bold">
+                                        Invitaciones
+                                        <span class="badge badge-warning badge-sm">{{ pending_invitations_count }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {% if upcoming_matches_count > 0 %}
+                                <li>
+                                    <a href="{% url 'accounts:perfil' %}"
+                                       class="flex justify-between text-info font-bold">
+                                        Prox. Partidos
+                                        <span class="badge badge-info badge-sm">{{ upcoming_matches_count }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li>
+                                <a href="{% url 'accounts:perfil' %}" class="py-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="h-5 w-5 opacity-70"
+                                         fill="none"
+                                         viewBox="0 0 24 24"
+                                         stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    Mi Perfil
+                                </a>
+                            </li>
+                            <li class="mt-1 border-t border-base-200">
+                                <form action="{% url 'accounts:logout' %}" method="post" class="w-full p-0">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="w-full text-left text-error font-medium py-3 px-4 hover:bg-error/10 rounded-b-box flex gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg"
-                                             class="h-5 w-5 opacity-50"
+                                             class="h-5 w-5"
                                              fill="none"
                                              viewBox="0 0 24 24"
                                              stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                         </svg>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+                                        Cerrar Sesión
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
                     </div>
-                    <!-- Navbar End (Right) -->
-                    <div class="navbar-end w-auto flex-none gap-2">
-                        <!-- Theme Toggle (Hidden on mobile) -->
-                        <label class="swap swap-rotate btn btn-ghost btn-circle btn-sm hidden sm:inline-grid">
-                            <input type="checkbox" class="theme-controller" value="dark" />
-                            <svg class="swap-on fill-current w-5 h-5"
-                                 xmlns="http://www.w3.org/2000/svg"
-                                 viewBox="0 0 24 24">
-                                <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,4.93l.71.71A1,1,0,0,0,5.64,7.05Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-                            </svg>
-                            <svg class="swap-off fill-current w-5 h-5"
-                                 xmlns="http://www.w3.org/2000/svg"
-                                 viewBox="0 0 24 24">
-                                <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-                            </svg>
-                        </label>
-                        {% if user.is_authenticated %}
-                            <div class="dropdown dropdown-end">
-                                <div tabindex="0"
-                                     role="button"
-                                     class="btn btn-ghost btn-circle avatar indicator {% if not user.imagen %}placeholder bg-primary text-primary-content{% endif %}">
-                                    {% if notification_count > 0 %}
-                                        <span class="indicator-item badge badge-error badge-xs w-2 h-2 p-0 border-none top-1 right-1"></span>
-                                    {% endif %}
-                                    <div class="w-9 rounded-full">
-                                        {% if user.imagen %}
-                                            <img src="{{ user.imagen.url }}"
-                                                 alt="{{ user.nombre }}"
-                                                 class="object-cover w-full h-full rounded-full"
-                                                 width="36"
-                                                 height="36" />
-                                        {% else %}
-                                            <span>{{ user.nombre|slice:":1"|upper }}</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <ul tabindex="0"
-                                    class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64 border border-base-200">
-                                    <li class="menu-title opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box truncate block"
-                                        title="{{ user.email }}">{{ user.email }}</li>
-                                    {% if pending_invitations_count > 0 %}
-                                        <li>
-                                            <a href="{% url 'accounts:perfil' %}"
-                                               class="flex justify-between text-warning font-bold">
-                                                Invitaciones
-                                                <span class="badge badge-warning badge-sm">{{ pending_invitations_count }}</span>
-                                            </a>
-                                        </li>
-                                    {% endif %}
-                                    {% if upcoming_matches_count > 0 %}
-                                        <li>
-                                            <a href="{% url 'accounts:perfil' %}"
-                                               class="flex justify-between text-info font-bold">
-                                                Prox. Partidos
-                                                <span class="badge badge-info badge-sm">{{ upcoming_matches_count }}</span>
-                                            </a>
-                                        </li>
-                                    {% endif %}
-                                    <li>
-                                        <a href="{% url 'accounts:perfil' %}" class="py-3">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                 class="h-5 w-5 opacity-70"
-                                                 fill="none"
-                                                 viewBox="0 0 24 24"
-                                                 stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                            Mi Perfil
-                                        </a>
-                                    </li>
-                                    <li class="mt-1 border-t border-base-200">
-                                        <form action="{% url 'accounts:logout' %}" method="post" class="w-full p-0">
-                                            {% csrf_token %}
-                                            <button type="submit"
-                                                    class="w-full text-left text-error font-medium py-3 px-4 hover:bg-error/10 rounded-b-box flex gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg"
-                                                     class="h-5 w-5"
-                                                     fill="none"
-                                                     viewBox="0 0 24 24"
-                                                     stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                </svg>
-                                                Cerrar Sesión
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        {% else %}
-                            <div class="flex items-center gap-2">
-                                <a href="{% url 'accounts:login' %}"
-                                   class="btn btn-sm btn-outline text-primary normal-case">Acceder</a>
-                                <a href="{% url 'accounts:registro' %}"
-                                   class="btn btn-sm btn-primary rounded-lg hidden md:inline-flex !bg-[#10b981] !border-[#10b981] hover:!bg-[#059669] !text-white shadow-sm transition-all">Registrarse</a>
-                            </div>
-                        {% endif %}
+                {% else %}
+                    <div class="flex items-center gap-2">
+                        <a href="{% url 'accounts:login' %}"
+                           class="btn btn-sm btn-outline text-primary normal-case font-bold border-2 hover:bg-primary/10">Acceder</a>
+                        <a href="{% url 'accounts:registro' %}"
+                           class="btn btn-sm btn-primary rounded-lg hidden md:inline-flex !bg-[#10b981] !border-[#10b981] hover:!bg-[#059669] !text-white shadow-md transition-all font-bold">Registrarse</a>
                     </div>
-                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="drawer lg:drawer-open flex-grow mt-0">
+            <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+            <div class="drawer-content flex flex-col">
                 <!-- Content Area -->
                 <div class="flex flex-grow w-full max-w-[1920px]">
                     <!-- Max width container -->
@@ -565,25 +567,17 @@
                         </div>
                     </aside>
                 </div>
+                <!-- Footer (Aligned with Sidebar) -->
+                <footer class="footer footer-center p-4 bg-base-200/50 text-base-content/60 mt-auto text-sm border-t border-base-200">
+                    <aside>
+                        <p class="font-medium">TodoPadel © {% now "Y" %}</p>
+                    </aside>
+                </footer>
             </div>
             <!-- Sidebar -->
             <div class="drawer-side z-50">
                 <label for="my-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
                 <div class="menu p-4 w-80 min-h-full bg-base-100 border-r border-base-200 text-base-content flex flex-col gap-2">
-                    <!-- Logo / Brand -->
-                    <div class="mb-6 px-2 mt-2">
-                        <a href="{% url 'core:home' %}"
-                           class="flex items-center gap-1 text-2xl font-black tracking-tight hover:opacity-80 transition-opacity">
-                            <span class="w-12 h-12 flex items-center justify-center">
-                                <img src="{% static 'img/logo.png' %}"
-                                     alt="TodoPadel Logo"
-                                     class="h-10 w-10 object-contain"
-                                     width="40"
-                                     height="40" />
-                            </span>
-                            <span class="text-base-content font-semibold opacity-70">Todo</span><span class="text-base-content font-black brightness-[1.8] dark:brightness-[2.5]">Padel</span>
-                        </a>
-                    </div>
                     <!-- Sidebar Navigation -->
                     <ul class="menu menu-md gap-1 font-medium">
                         <li>
@@ -760,12 +754,6 @@
                 </div>
             </div>
         </div>
-        <!-- Footer (Full Width, below Sidebar) -->
-        <footer class="footer footer-center p-4 bg-base-200/50 text-base-content/60 mt-auto text-sm border-t border-base-200">
-            <aside>
-                <p class="font-medium">TodoPadel © {% now "Y" %}</p>
-            </aside>
-        </footer>
         {% block extra_js %}
             {% if form.media %}{{ form.media.js }}{% endif %}
         {% endblock extra_js %}
