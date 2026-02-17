@@ -1,40 +1,41 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-
 {% block content %}
-<div class="flex justify-center items-center py-10">
-    <div class="card w-full max-w-md shadow-2xl bg-base-100">
-        <div class="card-body">
-            <h2 class="card-title justify-center text-2xl font-bold mb-4">Crear Cuenta</h2>
-            <form method="post">
-                {% csrf_token %}
-                <div class="space-y-4">
-                    {% for field in form %}
-                    <div class="form-control w-full">
-                        <label class="label">
-                            <span class="label-text text-base-content">{{ field.label }}</span>
-                        </label>
-                        {% if field.errors %}
-                        {{ field }}
-                        {% for error in field.errors %}
-                        <span class="text-error text-sm mt-1">{{ error }}</span>
+    <div class="flex justify-center items-center py-6 md:py-10">
+        <div class="card w-full max-w-2xl shadow-2xl bg-base-100">
+            <div class="card-body p-6 md:p-10">
+                <h2 class="card-title justify-center text-2xl font-bold mb-6">Crear Cuenta</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                        {% for field in form %}
+                            <div class="form-control w-full">
+                                <label class="label py-1">
+                                    <span class="label-text text-base-content font-medium">{{ field.label }}</span>
+                                </label>
+                                {% if field.errors %}
+                                    {{ field }}
+                                    {% for error in field.errors %}<span class="text-error text-[10px] mt-0.5 leading-none">{{ error }}</span>{% endfor %}
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                                {% if field.help_text %}
+                                    <label class="label py-0 mt-0.5">
+                                        <span class="label-text-alt text-base-content/60 text-[10px]">{{ field.help_text }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
                         {% endfor %}
-                        {% else %}
-                        {{ field }}
-                        {% endif %}
-                        {% if field.help_text %}
-                        <label class="label">
-                            <span class="label-text-alt text-base-content/70">{{ field.help_text }}</span>
-                        </label>
-                        {% endif %}
                     </div>
-                    {% endfor %}
-                </div>
-                <div class="form-control mt-6">
-                    <button class="btn btn-primary">Registrarse</button>
-                </div>
-            </form>
+                    <div class="form-control mt-8">
+                        <button class="btn btn-primary w-full">Registrarse</button>
+                        <div class="text-center mt-4">
+                            <a href="{% url 'accounts:login' %}"
+                               class="link link-hover text-sm opacity-70">¿Ya tienes cuenta? Ingresa aquí</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}
