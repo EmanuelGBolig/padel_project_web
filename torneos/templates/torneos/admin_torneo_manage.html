@@ -133,9 +133,9 @@
                 </div>
                 <div class="space-y-2" id="groupsContainer">
                     {% for grupo in grupos %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item">
+                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item overflow-visible">
                             <input type="checkbox" class="group-checkbox" />
-                            <div class="collapse-title text-xl font-medium flex justify-between items-center">
+                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
                                 <div class="flex items-center gap-2">
                                     <button class="btn btn-sm btn-ghost text-warning z-10"
