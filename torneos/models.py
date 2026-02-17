@@ -29,8 +29,9 @@ class Torneo(models.Model):
     fecha_limite_inscripcion = models.DateTimeField()
     cupos_totales = models.PositiveIntegerField(default=16)
 
-    # Campo para definir cuántos pasan por grupo a la siguiente fase
-    equipos_por_grupo = models.PositiveIntegerField(default=2)
+    # Campo para definir cuántos pasan por grupo a la siguiente fase (Si no hay formato manual)
+    # Por defecto, el sistema intentará grupos de 3 o 4 según el total de inscritos.
+    equipos_por_grupo = models.PositiveIntegerField(default=3)
 
     estado = models.CharField(
         max_length=2, choices=Estado.choices, default=Estado.ABIERTO

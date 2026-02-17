@@ -11,7 +11,6 @@ class TorneoAdminForm(forms.ModelForm):
             'fecha_limite_inscripcion',
             'fecha_inicio',
             'cupos_totales',
-            'equipos_por_grupo',
             'tipo_torneo',
             'categoria',
         ]

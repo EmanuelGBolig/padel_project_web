@@ -10,7 +10,7 @@
                 {% load widget_tweaks %}
                 <div class="grid grid-cols-2 gap-x-4 md:gap-x-8 gap-y-2">
                     {% for field in form %}
-                        <div class="form-control w-full {% if field.name == 'nombre' or field.name == 'descripcion' or field.name == 'division' or field.name == 'estado' or field.name == 'tipo_torneo' or field.name == 'categoria' %}col-span-2{% endif %}">
+                        <div class="form-control w-full {% if field.name == 'nombre' or field.name == 'descripcion' %}col-span-2{% endif %}">
                             <label class="label py-1">
                                 <span class="label-text text-base-content font-medium text-[10px] md:text-sm">{{ field.label }}</span>
                             </label>
