@@ -41,7 +41,7 @@
 {% block content %}
     <div class="space-y-12">
         <!-- HERO -->
-        <div class="hero bg-base-200/50 rounded-3xl border border-base-300/50">
+        <div class="hero bg-base-100 rounded-3xl border border-base-300 shadow-sm">
             <div class="hero-content flex-col text-center py-12 w-full">
                 <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
                 <div class="max-w-md w-full">
@@ -295,7 +295,7 @@
         {% endif %}
         <!-- GRUPOS -->
         {% if grupos %}
-            <details class="collapse collapse-arrow bg-base-200/50 border border-base-300/50 rounded-3xl mt-8"
+            <details class="collapse collapse-arrow bg-base-100 border border-base-300 rounded-3xl mt-8 shadow-sm"
                      open>
                 <summary class="collapse-title text-xl font-medium cursor-pointer relative text-base-content">
                     <div class="flex items-center gap-4">
@@ -319,7 +319,7 @@
                         {% for grupo in grupos %}
                             <div class="card bg-base-100 shadow-sm border border-base-content/5 compact h-full overflow-hidden">
                                 <div class="card-body p-0">
-                                    <div class="bg-base-200/50 text-base-content p-3 text-center font-bold uppercase tracking-wider rounded-t-xl border-b border-base-content/5">
+                                    <div class="bg-base-200 text-base-content p-3 text-center font-bold uppercase tracking-wider rounded-t-xl border-b border-base-content/10">
                                         {{ grupo.nombre }}
                                     </div>
                                     <table class="table table-zebra table-xs w-full table-fixed">
@@ -396,7 +396,7 @@
         {% endif %}
         <!-- BRACKET -->
         {% if partidos_eliminacion %}
-            <details class="collapse collapse-arrow bg-base-200/50 border border-base-300/50 rounded-3xl mt-12"
+            <details class="collapse collapse-arrow bg-base-100 border border-base-300 rounded-3xl mt-12 shadow-sm"
                      open>
                 <summary class="collapse-title text-xl font-medium cursor-pointer relative text-base-content">
                     <div class="flex items-center gap-4">
