@@ -232,20 +232,25 @@
             background: oklch(var(--bc) / 0.3);
         }
 
-        /* Force mobile drawer between lg (1024px) and 2xl (1536px) */
-        /* DaisyUI only supports lg:drawer-open natively, so we override it */
-        @media (min-width: 1024px) and (max-width: 1535.98px) {
-            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side {
-                position: fixed !important;
-                pointer-events: none !important;
-                visibility: hidden !important;
+        /* Force 2xl:drawer-open behavior since DaisyUI 4.7.2 doesn't have it built-in */
+        @media (min-width: 1536px) {
+            .drawer.2xl\:drawer-open {
+                display: grid;
+                grid-auto-columns: max-content auto;
             }
-            .drawer.lg\:drawer-open > .drawer-toggle:checked ~ .drawer-side {
-                pointer-events: auto !important;
+            .drawer.2xl\:drawer-open > .drawer-toggle ~ .drawer-side {
+                grid-column-start: 1;
+                grid-row-start: 1;
                 visibility: visible !important;
+                opacity: 1 !important;
+                position: sticky !important;
+                top: 0;
+                height: 100vh;
+                transform: none !important;
+                pointer-events: auto !important;
             }
-            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side > .drawer-overlay {
-                cursor: pointer !important;
+            .drawer.2xl\:drawer-open > .drawer-toggle ~ .drawer-content {
+                grid-column-start: 2;
             }
         }
         </style>
@@ -308,7 +313,7 @@
                         </div>
                         <!-- Brand (Mobile & Desktop) -->
                         <a href="{% url 'core:home' %}"
-                           class="btn btn-ghost normal-case text-xl gap-1 px-2 xl:hidden">
+                           class="btn btn-ghost normal-case text-xl gap-1 px-2 2xl:hidden">
                             <span class="w-8 h-8 flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      viewBox="0 0 24 24"
@@ -362,7 +367,7 @@
                     <!-- ... inside sidebar ... -->
                     <li>
                         <a href="{% url 'core:search' %}"
-                           class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl hidden sm:flex xl:hidden">
+                           class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl hidden sm:flex 2xl:hidden">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                  class="h-5 w-5"
                                  fill="none"
