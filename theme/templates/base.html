@@ -79,11 +79,15 @@
         :root, [data-theme="corporate"] {
             --p: 0.72 0.16 163; /* Primary Emerald */
             --pc: 0.98 0.01 163; /* Primary Content (White) */
+            --su: 0.72 0.16 163; /* Success Emerald */
+            --suc: 0.98 0.01 163;
         }
         
         [data-theme="business"] {
             --p: 0.72 0.16 163;
             --pc: 0.15 0.02 163; /* Primary Content (Dark) */
+            --su: 0.72 0.16 163;
+            --suc: 0.98 0.01 163;
         }
 
         /* Override corporate theme defaults for rounded corners */
@@ -423,7 +427,7 @@
                                 <a href="{% url 'accounts:login' %}"
                                    class="btn btn-sm btn-outline text-primary normal-case">Acceder</a>
                                 <a href="{% url 'accounts:registro' %}"
-                                   class="btn btn-sm btn-primary rounded-lg hidden md:inline-flex">Registrarse</a>
+                                   class="btn btn-sm btn-primary rounded-lg hidden md:inline-flex !bg-[#10b981] !border-[#10b981] hover:!bg-[#059669] !text-white shadow-sm transition-all">Registrarse</a>
                             </div>
                         {% endif %}
                     </div>
@@ -485,7 +489,7 @@
                     <ul class="menu menu-md gap-1 font-medium">
                         <li>
                             <a href="{% url 'core:home' %}"
-                               class="{% if request.resolver_match.url_name == 'home' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl">
+                               class="{% if request.resolver_match.url_name == 'home' %}active !bg-base-200/50 !text-primary border-l-4 border-primary shadow-sm{% endif %} rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
@@ -498,7 +502,7 @@
                         </li>
                         <li>
                             <a href="{% url 'torneos:en_juego_list' %}"
-                               class="{% if request.resolver_match.url_name == 'en_juego_list' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl">
+                               class="{% if request.resolver_match.url_name == 'en_juego_list' %}active !bg-base-200/50 !text-primary border-l-4 border-primary shadow-sm{% endif %} rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
