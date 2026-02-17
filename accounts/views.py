@@ -194,23 +194,34 @@ class RankingJugadoresListView(ListView):
         # Obtener división seleccionada del parámetro GET
         division_id = self.request.GET.get('division')
         
-        # Filtrar divisiones
+        # Si no hay división seleccionada, usar la del usuario o la primera
+        if not division_id:
+            if self.request.user.is_authenticated and self.request.user.division:
+                division_id = self.request.user.division.id
+            else:
+                first_div = Division.objects.first()
+                if first_div:
+                    division_id = first_div.id
+
+        # Filtrar divisiones (Solo UNA a la vez)
         if division_id:
             divisiones = Division.objects.filter(id=division_id)
         else:
-            divisiones = Division.objects.all().order_by('nombre')
+            # Fallback: si no hay divisiones en absoluto
+            divisiones = Division.objects.none()
         
         rankings_por_division = []
         
         for division in divisiones:
+            # Ahora la función get_division_rankings debe traer a todos los de esa división
             jugadores_con_puntos = get_division_rankings(division)
             
-            # Solo agregar división si tiene jugadores con actividad
-            if jugadores_con_puntos:
-                rankings_por_division.append({
-                    'division': division,
-                    'jugadores': jugadores_con_puntos
-                })
+            # Mostrar tabla incluso si está vacía (para que se vea que no hay nadie)
+            # O si preferimos ocultar: if jugadores_con_puntos:
+            rankings_por_division.append({
+                'division': division,
+                'jugadores': jugadores_con_puntos
+            })
         
         return rankings_por_division
     
@@ -218,9 +229,20 @@ class RankingJugadoresListView(ListView):
         from equipos.models import Division
         context = super().get_context_data(**kwargs)
         
-        # Agregar todas las divisiones para el filtro
+        # Agregar todas las divisiones para el filtro (Dropdown)
         context['divisiones'] = Division.objects.all().order_by('nombre')
-        context['division_seleccionada'] = self.request.GET.get('division')
+        
+        # Determinar la división seleccionada para marcar en el select
+        division_id = self.request.GET.get('division')
+        if not division_id:
+             if self.request.user.is_authenticated and self.request.user.division:
+                division_id = str(self.request.user.division.id)
+             else:
+                first = Division.objects.first()
+                if first:
+                    division_id = str(first.id)
+        
+        context['division_seleccionada'] = division_id
         
         # Agregar información del usuario autenticado
         if self.request.user.is_authenticated:

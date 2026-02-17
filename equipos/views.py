@@ -394,30 +394,37 @@ class RankingListView(ListView):
         from django.core.cache import cache
         
         # Obtener división seleccionada del parámetro GET
+        # Obtener división seleccionada del parámetro GET
         division_id = self.request.GET.get('division')
         
-        # Crear clave de cache única
-        cache_key = f'rankings_v2_{"all" if not division_id else f"div_{division_id}"}'
-        
-        # Intentar obtener del cache
-        cached_rankings = cache.get(cache_key)
-        if cached_rankings is not None:
-            return cached_rankings
-        
-        # Filtrar divisiones
+        # Si no hay división seleccionada, usar la del usuario o la primera
+        if not division_id:
+            if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
+                 division_id = self.request.user.equipo.division.id
+            elif self.request.user.is_authenticated and self.request.user.division:
+                 division_id = self.request.user.division.id
+            else:
+                first_div = Division.objects.first()
+                if first_div:
+                    division_id = first_div.id
+
+        # Filtrar divisiones (Solo UNA a la vez)
         if division_id:
             divisiones = Division.objects.filter(id=division_id)
         else:
-            divisiones = Division.objects.all().order_by('nombre')
-        
+            divisiones = Division.objects.none()
+
         rankings_por_division = []
         
         for division in divisiones:
-            # --- LÓGICA DE RANKING POR DIVISIÓN ---
-            # Ahora iteramos sobre TODOS los equipos, pero calculamos sus puntos
-            # basándonos ÚNICAMENTE en su desempeño en torneos de ESTA división.
+            # --- LÓGICA DE RANKING POR DIVISIÓN (OPTIMIZADA) ---
+            # Filtrar equipos que PERTENECEN a esta división
+            # (Opcional: Si quisiéramos incluir equipos de OTRAS divisiones que jugaron aquí, 
+            #  deberíamos usar un filtro Q más complejo como en jugadores, pero por reglas de negocio
+            #  los equipos suelen competir en su división asignada).
+            #  Por ahora filtramos por división asignada para simplificar y limpiar la vista.
             
-            equipos_con_stats = Equipo.objects.all().select_related(
+            equipos_con_stats = Equipo.objects.filter(division=division).select_related(
                 'jugador1', 'jugador2', 'division'
             ).annotate(
                 # 1. Victorias en Eliminación (Solo torneos de esta división)
@@ -489,10 +496,9 @@ class RankingListView(ListView):
                                  equipo.partidos_grupo_1 + equipo.partidos_grupo_2)
                 
                 # Calcular win rate
+                win_rate = 0
                 if partidos_total > 0:
                     win_rate = round((victorias_total / partidos_total) * 100, 1)
-                else:
-                    win_rate = 0
                 
                 # Calcular puntos de ranking
                 puntos = victorias_total * 3  # 3 puntos por victoria
@@ -502,17 +508,15 @@ class RankingListView(ListView):
                 if win_rate >= 75 and partidos_total >= 5:
                     puntos += 20
                 
-                # Include all teams
-                # if puntos > 0:
-                if True: # Allow 0 points
-                    equipos_con_puntos.append({
-                        'equipo': equipo,
-                        'puntos': puntos,
-                        'victorias': victorias_total,
-                        'win_rate': win_rate,
-                        'torneos_ganados': equipo.torneos_ganados_count,
-                        'partidos_jugados': partidos_total # Útil para debug
-                    })
+                # Mostrar el equipo SIEMPRE que sea de esta división (ya filtrado por query)
+                equipos_con_puntos.append({
+                    'equipo': equipo,
+                    'puntos': puntos,
+                    'victorias': victorias_total,
+                    'win_rate': win_rate,
+                    'torneos_ganados': equipo.torneos_ganados_count,
+                    'partidos_jugados': partidos_total
+                })
             
             # Ordenar por puntos
             equipos_con_puntos.sort(key=lambda x: x['puntos'], reverse=True)
@@ -521,24 +525,38 @@ class RankingListView(ListView):
             for i, item in enumerate(equipos_con_puntos, 1):
                 item['posicion'] = i
             
-            # Solo agregar división si tiene equipos con actividad
-            if equipos_con_puntos:
-                rankings_por_division.append({
-                    'division': division,
-                    'equipos': equipos_con_puntos
-                })
+            # Agregar a la lista final
+            rankings_por_division.append({
+                'division': division,
+                'equipos': equipos_con_puntos
+            })
         
-        # Guardar en cache por 5 minutos
-        cache.set(cache_key, rankings_por_division, 300)
+        # Guardar en cache por 5 minutos (solo para esta vista específica)
+        # Nota: La cache key debería cambiar si se usa paginación/filtros distintos, 
+        # pero aquí estamos filtrando por división.
+        # cache.set(cache_key, rankings_por_division, 300) 
         
         return rankings_por_division
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Agregar todas las divisiones para el filtro
+        # Agregar todas las divisiones para el filtro (Dropdown)
         context['divisiones'] = Division.objects.all().order_by('nombre')
-        context['division_seleccionada'] = self.request.GET.get('division')
+        
+        # Determinar la división seleccionada para marcar en el select
+        division_id = self.request.GET.get('division')
+        if not division_id:
+             if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
+                 division_id = str(self.request.user.equipo.division.id)
+             elif self.request.user.is_authenticated and self.request.user.division:
+                 division_id = str(self.request.user.division.id)
+             else:
+                first = Division.objects.first()
+                if first:
+                    division_id = str(first.id)
+        
+        context['division_seleccionada'] = division_id
         
         # Agregar información del equipo del usuario si está autenticado
         if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:

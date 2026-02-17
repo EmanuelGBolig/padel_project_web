@@ -18,9 +18,13 @@ def get_division_rankings(division):
 
     from .models import CustomUser
 
-    # Obtener jugadores que tienen equipo en esta división
+    # Obtener jugadores que:
+    # 1. Pertenecen a esta división (aunque no hayan jugado)
+    # 2. O Han jugado en un equipo de esta división (aunque sean de otra, si eso fuera posible)
     jugadores_con_stats = CustomUser.objects.filter(
-        Q(equipos_como_jugador1__division=division) | Q(equipos_como_jugador2__division=division)
+        Q(division=division) |
+        Q(equipos_como_jugador1__division=division) | 
+        Q(equipos_como_jugador2__division=division)
     ).distinct().annotate(
         # Victorias como jugador1 en partidos de eliminación
         victorias_j1_elim=Count(
