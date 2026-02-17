@@ -165,9 +165,10 @@
         }
 
         /* Asegurar hover en todos los botones del sidebar, especialmente en Competición */
-        .drawer-side .menu li a:hover {
-            background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 92%);
-            color: #10b981;
+        .drawer-side .menu li a:not(.active):hover,
+        .drawer-side .menu li summary:hover {
+            background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 92%) !important;
+            color: #10b981 !important;
         }
 
         /* Texto seleccionado en Select2 */
