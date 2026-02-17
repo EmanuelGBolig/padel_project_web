@@ -133,12 +133,12 @@
                 </div>
                 <div class="space-y-2" id="groupsContainer">
                     {% for grupo in grupos %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item overflow-visible">
+                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm">
                             <input type="checkbox" class="group-checkbox" />
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
                                 <div class="flex items-center gap-2">
-                                    <button class="btn btn-sm btn-ghost text-warning z-10"
+                                    <button class="btn btn-sm btn-square btn-ghost text-warning z-10"
                                             hx-get="{% url 'torneos:swap_group_teams' grupo.pk %}"
                                             hx-target="#schedule_modal_content"
                                             onclick="event.stopPropagation(); schedule_modal.showModal()"
