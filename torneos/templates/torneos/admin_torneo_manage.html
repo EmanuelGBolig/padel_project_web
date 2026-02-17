@@ -133,7 +133,7 @@
                 </div>
                 <div class="space-y-2" id="groupsContainer">
                     {% for grupo in grupos %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm overflow-hidden md:overflow-visible">
+                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm">
                             <input type="checkbox" class="group-checkbox" />
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
@@ -264,7 +264,7 @@
                 <div class="space-y-4" id="bracketContainer">
                     {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                     {% for ronda in rondas_list %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item shadow-sm overflow-hidden md:overflow-visible">
+                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item shadow-sm">
                             <input type="checkbox" class="round-checkbox" />
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
                                 <span class="round-name flex items-center gap-2">{% nombre_ronda_dinamico ronda.grouper total_rondas %}</span>
