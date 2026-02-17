@@ -55,21 +55,33 @@
         <!-- Columna Derecha: Estadísticas y Torneos -->
         <div class="lg:col-span-2 space-y-8">
             <!-- Tarjeta de Ranking -->
-            {% if ranking_info %}
-                <div class="card bg-base-100 shadow-xl border border-base-200">
-                    <div class="card-body flex-row items-center gap-4 py-4">
-                        <div class="flex flex-col items-center">
-                            <span class="text-xs uppercase font-bold opacity-70">Posición</span>
+            <div class="card bg-base-100 shadow-xl border border-base-200">
+                <div class="card-body flex-row items-center gap-4 py-4">
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs uppercase font-bold opacity-70">Posición</span>
+                        {% if ranking_info %}
                             <span class="text-4xl font-black text-primary">#{{ ranking_info.posicion }}</span>
-                        </div>
-                        <div class="divider divider-horizontal my-0"></div>
-                        <div class="flex-1">
+                        {% else %}
+                            <span class="text-4xl font-black text-base-content/20">-</span>
+                        {% endif %}
+                    </div>
+                    <div class="divider divider-horizontal my-0"></div>
+                    <div class="flex-1">
+                        {% if user.division %}
                             <h3 class="font-bold text-lg">Ranking {{ user.division.nombre }}</h3>
-                            <p class="text-sm opacity-70">
+                        {% else %}
+                            <h3 class="font-bold text-lg text-base-content/50">Sin División</h3>
+                        {% endif %}
+                        <p class="text-sm opacity-70">
+                            {% if ranking_info %}
                                 Puntos: <span class="font-bold">{{ ranking_info.puntos }}</span>
                                 • Victorias: {{ ranking_info.victorias }}
-                            </p>
-                        </div>
+                            {% else %}
+                                <span class="italic">Sin actividad registrada</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if user.division %}
                         <a href="{% url 'accounts:ranking_jugadores' %}?division={{ user.division.pk }}"
                            class="btn btn-ghost btn-sm text-primary">
                             Ver Tabla
@@ -81,9 +93,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </a>
-                    </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
             <!-- Grid de Estadísticas -->
             <div class="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200">
