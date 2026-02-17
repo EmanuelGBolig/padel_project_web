@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
+<html lang="es" data-theme="business">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -63,10 +63,10 @@
                 }
             }
         }
-        if (localStorage.getItem('theme') === 'business' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.setAttribute('data-theme', 'business');
-        } else {
+        if (localStorage.getItem('theme') === 'corporate' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
             document.documentElement.setAttribute('data-theme', 'corporate');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'business');
         }
         </script>
         <!-- Estilos extra para contraste y botones -->
