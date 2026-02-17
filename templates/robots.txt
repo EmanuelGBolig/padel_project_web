@@ -3,4 +3,4 @@ Disallow: /admin/
 Disallow: /accounts/
 Allow: /
 
-Sitemap: https://padel-project-web.onrender.com/sitemap.xml
+Sitemap: https://todopadel.club/sitemap.xml
