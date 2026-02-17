@@ -1,0 +1,81 @@
+<div class="flex flex-col items-center justify-center py-12 px-4 text-center animate-fade-in">
+    <!-- SVG illustration -->
+    <div class="relative mb-8 group">
+        <!-- Background Glow -->
+        <div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 opacity-50 group-hover:opacity-80 transition-opacity duration-700">
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             viewBox="0 0 400 300"
+             class="w-64 h-auto relative z-10 drop-shadow-2xl">
+            <!-- Padel Court stylised -->
+            <rect x="50" y="50" width="300" height="200" rx="10" fill="currentColor" class="text-base-300" />
+            <path d="M50 150 L350 150" stroke="currentColor" stroke-width="2" class="text-base-content/10" />
+            <path d="M200 50 L200 250" stroke="currentColor" stroke-width="2" class="text-base-content/10" />
+            <!-- Padel Racket 1 -->
+            <g transform="translate(180, 140) rotate(-15)">
+            <ellipse cx="0" cy="0" rx="40" ry="50" fill="url(#racketGradient)" />
+            <rect x="-5" y="45" width="10" height="40" rx="5" fill="#374151" />
+            <!-- Racket holes -->
+            <circle cx="-15" cy="-10" r="3" fill="black" fill-opacity="0.1" />
+            <circle cx="15" cy="-10" r="3" fill="black" fill-opacity="0.1" />
+            <circle cx="0" cy="10" r="3" fill="black" fill-opacity="0.1" />
+            </g>
+            <!-- Padel Ball -->
+            <circle cx="230" cy="180" r="10" fill="url(#ballGradient)" class="animate-bounce" style="animation-duration: 3s;" />
+            <!-- Gradients -->
+            <defs>
+            <linearGradient id="racketGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#fef08a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#eab308;stop-opacity:1" />
+            </linearGradient>
+            </defs>
+        </svg>
+    </div>
+    <!-- Text content -->
+    <h3 class="text-2xl font-black text-base-content mb-3">
+        {% if title %}
+            {{ title }}
+        {% else %}
+            ¡Vaya! Parece que la cancha está vacía
+        {% endif %}
+    </h3>
+    <p class="text-base-content/60 max-w-md mx-auto mb-8 font-medium">
+        {% if message %}
+            {{ message }}
+        {% else %}
+            No encontramos lo que buscas en este momento. ¡Pero el próximo partido está por comenzar!
+        {% endif %}
+    </p>
+    <!-- Action Button -->
+    {% if action_url %}
+        <a href="{{ action_url }}"
+           class="btn btn-primary gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+            {% if action_icon %}
+                {{ action_icon|safe }}
+            {% else %}
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="2"
+                     stroke="currentColor"
+                     class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+            {% endif %}
+            {{ action_text|default:"Explorar" }}
+        </a>
+    {% endif %}
+</div>
+<style>
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fade-in 0.8s ease-out forwards;
+}
+</style>

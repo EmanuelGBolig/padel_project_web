@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}
-    Inicio - TodoPadel
+    Inicio | TodoPadel
 {% endblock title %}
 {% block meta_description %}
     Únete a TodoPadel, la plataforma líder para gestionar torneos de pádel amateur y profesional. Inscríbete en torneos abiertos, sigue partidos en vivo y consulta rankings actualizados.
-{% endblock %}
+{% endblock meta_description %}
+{% block extra_head %}
+{% endblock extra_head %}
 {% block meta_keywords %}
     padel, torneos padel, inscripciones padel, ranking jugadores, resultados en vivo, padel amateur, gestion deportiva
-{% endblock %}
+{% endblock meta_keywords %}
 {% block structured_data %}
     {
     "@context": "https://schema.org",
@@ -22,7 +24,7 @@
     "https://www.facebook.com/todopadelArg"
     ]
     }
-{% endblock %}
+{% endblock structured_data %}
 {% block content %}
     <div class="flex flex-col gap-12">
         <!-- Hero -->
@@ -190,7 +192,7 @@
                              stroke-width="2"
                              stroke="currentColor"
                              class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52 6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0a6.772 6.772 0 0 1-3.044 0" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
                         </svg>
                     </div>
                     <div>
@@ -262,15 +264,8 @@
         {% endif %}
         <!-- Estado Vacío -->
         {% if not torneos_abiertos and not torneos_en_juego %}
-            <div class="hero bg-base-200 rounded-box py-12">
-                <div class="hero-content text-center">
-                    <div class="max-w-md">
-                        <h1 class="text-3xl font-bold text-base-content/50">No hay torneos activos</h1>
-                        {% if user.is_staff %}
-                            <a href="{% url 'torneos:admin_crear' %}" class="btn btn-primary mt-4">Crear Torneo</a>
-                        {% endif %}
-                    </div>
-                </div>
+            <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-8">
+                {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay torneos activos o en inscripción en este momento. ¡Vuelve pronto para el próximo saque!" action_url="/torneos/" action_text="Ver histórico de torneos" %}
             </div>
         {% endif %}
     </div>

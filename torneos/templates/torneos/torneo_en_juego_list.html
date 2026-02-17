@@ -1,5 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Torneos en Juego{% endblock %}
+{% block title %}
+    Torneos en Juego
+{% endblock title %}
 {% block content %}
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div class="flex items-center justify-center gap-3 mb-6">
@@ -41,9 +43,8 @@
                     </div>
                 </div>
             {% empty %}
-                <div class="text-center py-10">
-                    <p class="text-base-content/70 mb-4">No hay torneos jugándose en este momento.</p>
-                    <a href="{% url 'core:home' %}" class="btn btn-outline">Volver al Inicio</a>
+                <div class="col-span-full">
+                    {% include "partials/empty_state.html" with title="¡Canchas libres!" message="No hay torneos jugándose en este momento. ¡Suscríbete a uno pronto!" action_url="/torneos/" action_text="Ver torneos abiertos" %}
                 </div>
             {% endfor %}
         </div>

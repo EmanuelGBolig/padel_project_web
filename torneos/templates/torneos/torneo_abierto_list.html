@@ -1,5 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Inscripciones Abiertas{% endblock %}
+{% block title %}
+    Inscripciones Abiertas
+{% endblock title %}
 {% block content %}
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div class="flex items-center justify-center gap-3 mb-6">
@@ -90,12 +92,11 @@
                     </div>
                 </div>
             {% empty %}
-                <div class="text-center py-10">
+                <div class="col-span-full">
                     {% if mis_torneos %}
-                        <p class="text-base-content/70 mb-4">No hay otros torneos disponibles por ahora.</p>
+                        {% include "partials/empty_state.html" with title="No hay otros torneos" message="Ya estás inscrito en todos los torneos disponibles o no hay nuevas convocatorias abiertas." action_url="/torneos/" action_text="Ver todos los torneos" %}
                     {% else %}
-                        <p class="text-base-content/70 mb-4">No hay inscripciones abiertas en este momento.</p>
-                        <a href="{% url 'core:home' %}" class="btn btn-outline">Volver al Inicio</a>
+                        {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay inscripciones abiertas en este momento. ¡El próximo gran evento está por llegar!" action_url="/torneos/" action_text="Ver histórico de torneos" %}
                     {% endif %}
                 </div>
             {% endfor %}

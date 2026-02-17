@@ -52,97 +52,103 @@
             </form>
         </div>
         {% if query %}
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- 1. JUGADORES -->
-                <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50 h-fit">
-                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6 text-secondary"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        Jugadores
-                        <span class="badge badge-sm badge-secondary">{{ jugadores|length }}</span>
-                    </h2>
-                    {% if jugadores %}
-                        <ul class="space-y-2">
-                            {% for jugador in jugadores %}
-                                <li class="bg-base-100 p-0 rounded-xl border border-base-content/5 hover:border-primary/30 transition-colors overflow-hidden">
-                                    <a href="{% url 'accounts:detalle' jugador.pk %}"
-                                       class="block p-3 w-full h-full hover:bg-base-200/50 transition-colors">
-                                        <div class="font-bold">{{ jugador.full_name }}</div>
-                                        <div class="text-xs opacity-60">{{ jugador.email }}</div>
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-sm opacity-50 italic">Sin resultados.</p>
-                    {% endif %}
-                </section>
-                <!-- 2. TORNEOS -->
-                <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50 h-fit">
-                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6 text-primary"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        Torneos
-                        <span class="badge badge-sm badge-primary">{{ torneos|length }}</span>
-                    </h2>
-                    {% if torneos %}
-                        <ul class="space-y-2">
-                            {% for torneo in torneos %}
-                                <li>
-                                    <a href="{% url 'torneos:detail' torneo.pk %}"
-                                       class="block bg-base-100 p-3 rounded-xl border border-base-content/5 hover:border-primary hover:shadow-sm transition-all group">
-                                        <div class="font-bold group-hover:text-primary transition-colors">{{ torneo.nombre }}</div>
-                                        <div class="text-xs opacity-60 flex justify-between mt-1">
-                                            <span>{{ torneo.fecha_inicio|date:"d/m/Y" }}</span>
-                                            <span class="badge badge-xs {% if torneo.estado == 'AB' %}badge-success{% elif torneo.estado == 'EJ' %}badge-info{% else %}badge-ghost{% endif %}">
-                                                {{ torneo.get_estado_display }}
-                                            </span>
-                                        </div>
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-sm opacity-50 italic">Sin resultados.</p>
-                    {% endif %}
-                </section>
-                <!-- 3. EQUIPOS -->
-                <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50 h-fit">
-                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6 text-accent"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Equipos
-                        <span class="badge badge-sm badge-accent">{{ equipos|length }}</span>
-                    </h2>
-                    {% if equipos %}
-                        <ul class="space-y-2">
-                            {% for equipo in equipos %}
-                                <li class="bg-base-100 p-3 rounded-xl border border-base-content/5 hover:border-accent/30 transition-colors">
-                                    <div class="font-bold">{{ equipo.nombre }}</div>
-                                    <div class="text-xs opacity-60">{{ equipo.jugador1.full_name }} / {{ equipo.jugador2.full_name }}</div>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-sm opacity-50 italic">Sin resultados.</p>
-                    {% endif %}
-                </section>
-            </div>
-        {% endif %}
-    </div>
-{% endblock content %}
+            {% if not jugadores and not torneos and not equipos %}
+                <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-12">
+                    {% include "partials/empty_state.html" with title="No encontramos coincidencias" message="No hay jugadores, torneos o equipos que coincidan con tu búsqueda. ¡Intenta con otros términos!" action_url="/torneos/" action_text="Ver todos los torneos" %}
+                </div>
+            {% else %}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- ... rest of the grid ... -->
+                    <!-- 1. JUGADORES -->
+                    <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50 h-fit">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6 text-secondary"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Jugadores
+                            <span class="badge badge-sm badge-secondary">{{ jugadores|length }}</span>
+                        </h2>
+                        {% if jugadores %}
+                            <ul class="space-y-2">
+                                {% for jugador in jugadores %}
+                                    <li class="bg-base-100 p-0 rounded-xl border border-base-content/5 hover:border-primary/30 transition-colors overflow-hidden">
+                                        <a href="{% url 'accounts:detalle' jugador.pk %}"
+                                           class="block p-3 w-full h-full hover:bg-base-200/50 transition-colors">
+                                            <div class="font-bold">{{ jugador.full_name }}</div>
+                                            <div class="text-xs opacity-60">{{ jugador.email }}</div>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm opacity-50 italic">Sin resultados.</p>
+                        {% endif %}
+                    </section>
+                    <!-- 2. TORNEOS -->
+                    <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50 h-fit">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6 text-primary"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            Torneos
+                            <span class="badge badge-sm badge-primary">{{ torneos|length }}</span>
+                        </h2>
+                        {% if torneos %}
+                            <ul class="space-y-2">
+                                {% for torneo in torneos %}
+                                    <li>
+                                        <a href="{% url 'torneos:detail' torneo.pk %}"
+                                           class="block bg-base-100 p-3 rounded-xl border border-base-content/5 hover:border-primary hover:shadow-sm transition-all group">
+                                            <div class="font-bold group-hover:text-primary transition-colors">{{ torneo.nombre }}</div>
+                                            <div class="text-xs opacity-60 flex justify-between mt-1">
+                                                <span>{{ torneo.fecha_inicio|date:"d/m/Y" }}</span>
+                                                <span class="badge badge-xs {% if torneo.estado == 'AB' %}badge-success{% elif torneo.estado == 'EJ' %}badge-info{% else %}badge-ghost{% endif %}">
+                                                    {{ torneo.get_estado_display }}
+                                                </span>
+                                            </div>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm opacity-50 italic">Sin resultados.</p>
+                        {% endif %}
+                    </section>
+                    <!-- 3. EQUIPOS -->
+                    <section class="bg-base-200/50 p-6 rounded-3xl border border-base-300/50 h-fit">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6 text-accent"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Equipos
+                            <span class="badge badge-sm badge-accent">{{ equipos|length }}</span>
+                        </h2>
+                        {% if equipos %}
+                            <ul class="space-y-2">
+                                {% for equipo in equipos %}
+                                    <li class="bg-base-100 p-3 rounded-xl border border-base-content/5 hover:border-accent/30 transition-colors">
+                                        <div class="font-bold">{{ equipo.nombre }}</div>
+                                        <div class="text-xs opacity-60">{{ equipo.jugador1.full_name }} / {{ equipo.jugador2.full_name }}</div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm opacity-50 italic">Sin resultados.</p>
+                        {% endif %}
+                    </section>
+                </div>
+            {% endif %}
+        </div>
+    {% endblock content %}

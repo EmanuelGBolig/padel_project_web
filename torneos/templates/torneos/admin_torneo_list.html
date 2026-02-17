@@ -96,7 +96,9 @@
                     </div>
                 </div>
             {% empty %}
-                <p class="text-center text-base-content dark:text-base-content">No hay torneos.</p>
+                <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-12">
+                    {% include "partials/empty_state.html" with title="Aún no has creado torneos" message="Empieza hoy mismo a organizar tu liga de pádel. Es rápido y sencillo." action_url="/torneos/admin/crear/" action_text="Crear mi primer torneo" %}
+                </div>
             {% endfor %}
         </div>
         <!-- Delete Confirmation Modal -->
