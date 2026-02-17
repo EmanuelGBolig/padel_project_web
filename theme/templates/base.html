@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+        <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
         <!-- SEO Meta Tags -->
         <title>
             {% block title %}
@@ -275,21 +275,9 @@
         <div id="global-loader"
              class="fixed inset-0 z-[9999] bg-base-100 flex flex-col items-center justify-center transition-opacity duration-500 ease-out">
             <div class="relative w-24 h-24 animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     viewBox="0 0 24 24"
-                     class="w-full h-full drop-shadow-2xl">
-                    <g transform="rotate(-45 12 12)">
-                    <path d="M12 2C7.5 2 4 5.5 4 10c0 2.5 1.5 4.5 3.5 5.5L8.5 17h7l1-1.5c2-1 3.5-3 3.5-5.5 0-4.5-3.5-8-8-8z" fill="#10b981" stroke="#000" stroke-width="0.8" />
-                    <path d="M12 14.5l-2-2.5h4z" fill="white" stroke="#000" stroke-width="0.3" />
-                    <path d="M10 17h4l0.5 5h-5z" fill="#1f2937" stroke="#000" stroke-width="0.5" />
-                    <g fill="white">
-                    <circle cx="10" cy="6" r="0.4" /> <circle cx="12" cy="6" r="0.4" /> <circle cx="14" cy="6" r="0.4" />
-                    <circle cx="9" cy="8" r="0.4" /> <circle cx="11" cy="8" r="0.4" /> <circle cx="13" cy="8" r="0.4" /> <circle cx="15" cy="8" r="0.4" />
-                    <circle cx="8" cy="10" r="0.4" /> <circle cx="10" cy="10" r="0.4" /> <circle cx="12" cy="10" r="0.4" /> <circle cx="14" cy="10" r="0.4" /> <circle cx="16" cy="10" r="0.4" />
-                    <circle cx="9" cy="12" r="0.4" /> <circle cx="11" cy="12" r="0.4" /> <circle cx="13" cy="12" r="0.4" /> <circle cx="15" cy="12" r="0.4" />
-                    </g>
-                    </g>
-                </svg>
+                <img src="{% static 'img/logo.png' %}"
+                     alt="TodoPadel"
+                     class="w-full h-full object-contain drop-shadow-2xl">
             </div>
         </div>
         <div class="drawer lg:drawer-open flex-grow">
@@ -315,21 +303,9 @@
                         <a href="{% url 'core:home' %}"
                            class="btn btn-ghost btn-circle sm:btn-square normal-case text-xl 2xl:hidden">
                             <span class="w-8 h-8 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     viewBox="0 0 24 24"
-                                     class="w-7 h-7">
-                                    <g transform="rotate(-45 12 12)">
-                                    <path d="M12 2C7.5 2 4 5.5 4 10c0 2.5 1.5 4.5 3.5 5.5L8.5 17h7l1-1.5c2-1 3.5-3 3.5-5.5 0-4.5-3.5-8-8-8z" fill="#10b981" stroke="#000" stroke-width="0.8" />
-                                    <path d="M12 14.5l-2-2.5h4z" fill="white" stroke="#000" stroke-width="0.3" />
-                                    <path d="M10 17h4l0.5 5h-5z" fill="#1f2937" stroke="#000" stroke-width="0.5" />
-                                    <g fill="white">
-                                    <circle cx="10" cy="6" r="0.4" /> <circle cx="12" cy="6" r="0.4" /> <circle cx="14" cy="6" r="0.4" />
-                                    <circle cx="9" cy="8" r="0.4" /> <circle cx="11" cy="8" r="0.4" /> <circle cx="13" cy="8" r="0.4" /> <circle cx="15" cy="8" r="0.4" />
-                                    <circle cx="8" cy="10" r="0.4" /> <circle cx="10" cy="10" r="0.4" /> <circle cx="12" cy="10" r="0.4" /> <circle cx="14" cy="10" r="0.4" /> <circle cx="16" cy="10" r="0.4" />
-                                    <circle cx="9" cy="12" r="0.4" /> <circle cx="11" cy="12" r="0.4" /> <circle cx="13" cy="12" r="0.4" /> <circle cx="15" cy="12" r="0.4" />
-                                    </g>
-                                    </g>
-                                </svg>
+                                <img src="{% static 'img/logo.png' %}"
+                                     alt="Logo"
+                                     class="w-7 h-7 object-contain">
                             </span>
                         </a>
                         <!-- Search Bar (Desktop - Visible only on 2xl+) -->
@@ -495,23 +471,11 @@
                         <a href="{% url 'core:home' %}"
                            class="flex items-center gap-1 text-2xl font-black tracking-tight hover:opacity-80 transition-opacity">
                             <span class="w-10 h-10 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     viewBox="0 0 24 24"
-                                     class="w-9 h-9">
-                                    <g transform="rotate(-45 12 12)">
-                                    <path d="M12 2C7.5 2 4 5.5 4 10c0 2.5 1.5 4.5 3.5 5.5L8.5 17h7l1-1.5c2-1 3.5-3 3.5-5.5 0-4.5-3.5-8-8-8z" fill="#10b981" stroke="#000" stroke-width="0.8" />
-                                    <path d="M12 14.5l-2-2.5h4z" fill="white" stroke="#000" stroke-width="0.3" />
-                                    <path d="M10 17h4l0.5 5h-5z" fill="#1f2937" stroke="#000" stroke-width="0.5" />
-                                    <g fill="white">
-                                    <circle cx="10" cy="6" r="0.4" /> <circle cx="12" cy="6" r="0.4" /> <circle cx="14" cy="6" r="0.4" />
-                                    <circle cx="9" cy="8" r="0.4" /> <circle cx="11" cy="8" r="0.4" /> <circle cx="13" cy="8" r="0.4" /> <circle cx="15" cy="8" r="0.4" />
-                                    <circle cx="8" cy="10" r="0.4" /> <circle cx="10" cy="10" r="0.4" /> <circle cx="12" cy="10" r="0.4" /> <circle cx="14" cy="10" r="0.4" /> <circle cx="16" cy="10" r="0.4" />
-                                    <circle cx="9" cy="12" r="0.4" /> <circle cx="11" cy="12" r="0.4" /> <circle cx="13" cy="12" r="0.4" /> <circle cx="15" cy="12" r="0.4" />
-                                    </g>
-                                    </g>
-                                </svg>
+                                <img src="{% static 'img/logo.png' %}"
+                                     alt="Logo"
+                                     class="w-9 h-9 object-contain">
                             </span>
-                            <span class="text-base-content/80">Todo</span><span class="text-base-content font-black brightness-150">Padel</span>
+                            <span class="text-base-content font-semibold opacity-70">Todo</span><span class="text-base-content font-black brightness-[1.8] dark:brightness-[2.5]">Padel</span>
                         </a>
                     </div>
                     <!-- Sidebar Navigation -->
