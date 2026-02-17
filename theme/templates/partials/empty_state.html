@@ -1,81 +1,110 @@
 <div class="flex flex-col items-center justify-center py-12 px-4 text-center animate-fade-in">
-    <!-- SVG illustration -->
-    <div class="relative mb-8 group">
+    <!-- Padel Animation Container -->
+    <div class="relative w-64 h-48 mb-6 flex items-center justify-center">
         <!-- Background Glow -->
-        <div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 opacity-50 group-hover:opacity-80 transition-opacity duration-700">
+        <div class="absolute inset-0 bg-primary/10 blur-3xl rounded-full scale-110"></div>
+        <!-- Padel Scene -->
+        <div class="relative w-40 h-40">
+            <!-- Ball Shadow -->
+            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/10 rounded-full animate-shadow"></div>
+            <!-- Racket -->
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-24 h-32 origin-bottom animate-racket-swing"
+                 style="transform-box: fill-box">
+                <svg viewBox="0 0 100 140" class="w-full h-full drop-shadow-lg">
+                    <!-- Handle -->
+                    <rect x="42" y="90" width="16" height="40" rx="4" fill="#374151" />
+                    <!-- Grip details -->
+                    <path d="M42 100 H58 M42 110 H58 M42 120 H58" stroke="#4B5563" stroke-width="2" />
+                    <!-- Head -->
+                    <path d="M15 10 C 15 -10, 85 -10, 85 10 L 85 60 C 85 85, 65 95, 50 95 C 35 95, 15 85, 15 60 Z" fill="currentColor" class="text-primary" stroke="#065f46" stroke-width="3" />
+                    <!-- Holes pattern -->
+                    <g fill="rgba(0,0,0,0.1)">
+                    <circle cx="50" cy="30" r="3" />
+                    <circle cx="35" cy="40" r="3" />
+                    <circle cx="65" cy="40" r="3" />
+                    <circle cx="50" cy="50" r="3" />
+                    <circle cx="35" cy="60" r="3" />
+                    <circle cx="65" cy="60" r="3" />
+                    <circle cx="50" cy="70" r="3" />
+                    </g>
+                </svg>
+            </div>
+            <!-- Ball -->
+            <div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-yellow-400 border-2 border-yellow-500 shadow-md animate-ball-bounce z-10 flex items-center justify-center">
+                <div class="w-full h-[1px] bg-yellow-600/30 rotate-45 transform"></div>
+            </div>
+            <!-- Sweat drops (optional, adding life) -->
+            <div class="absolute top-10 right-0 animate-ping opacity-75 hidden">
+                <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
+            </div>
         </div>
-        <svg xmlns="http://www.w3.org/2000/svg"
-             viewBox="0 0 400 300"
-             class="w-64 h-auto relative z-10 drop-shadow-2xl">
-            <!-- Padel Court stylised -->
-            <rect x="50" y="50" width="300" height="200" rx="10" fill="currentColor" class="text-base-300" />
-            <path d="M50 150 L350 150" stroke="currentColor" stroke-width="2" class="text-base-content/10" />
-            <path d="M200 50 L200 250" stroke="currentColor" stroke-width="2" class="text-base-content/10" />
-            <!-- Padel Racket 1 -->
-            <g transform="translate(180, 140) rotate(-15)">
-            <ellipse cx="0" cy="0" rx="40" ry="50" fill="url(#racketGradient)" />
-            <rect x="-5" y="45" width="10" height="40" rx="5" fill="#374151" />
-            <!-- Racket holes -->
-            <circle cx="-15" cy="-10" r="3" fill="black" fill-opacity="0.1" />
-            <circle cx="15" cy="-10" r="3" fill="black" fill-opacity="0.1" />
-            <circle cx="0" cy="10" r="3" fill="black" fill-opacity="0.1" />
-            </g>
-            <!-- Padel Ball -->
-            <circle cx="230" cy="180" r="10" fill="url(#ballGradient)" class="animate-bounce" style="animation-duration: 3s;" />
-            <!-- Gradients -->
-            <defs>
-            <linearGradient id="racketGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
-            </linearGradient>
-            <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#fef08a;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#eab308;stop-opacity:1" />
-            </linearGradient>
-            </defs>
-        </svg>
     </div>
     <!-- Text content -->
     <h3 class="text-2xl font-black text-base-content mb-3">
         {% if title %}
             {{ title }}
         {% else %}
-            ¡Vaya! Parece que la cancha está vacía
+            ¡Cancha Libre!
         {% endif %}
     </h3>
-    <p class="text-base-content/60 max-w-md mx-auto mb-8 font-medium">
+    <p class="text-base-content/60 max-w-md mx-auto mb-8 font-medium leading-relaxed">
         {% if message %}
             {{ message }}
         {% else %}
-            No encontramos lo que buscas en este momento. ¡Pero el próximo partido está por comenzar!
+            No hay partidos en este momento.
+            <br>
+            ¡Es tu oportunidad de reservar y jugar!
         {% endif %}
     </p>
     <!-- Action Button -->
     {% if action_url %}
         <a href="{{ action_url }}"
-           class="btn btn-primary gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+           class="btn btn-primary gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 hover:scale-105">
             {% if action_icon %}
                 {{ action_icon|safe }}
             {% else %}
                 <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5"
                      fill="none"
                      viewBox="0 0 24 24"
-                     stroke-width="2"
-                     stroke="currentColor"
-                     class="w-5 h-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
             {% endif %}
-            {{ action_text|default:"Explorar" }}
+            {{ action_text|default:"Crear Acción" }}
         </a>
     {% endif %}
 </div>
 <style>
+@keyframes ball-bounce {
+    0%, 100% { transform: translate(-50%, 0); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+    50% { transform: translate(-50%, -60px); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
+@keyframes racket-swing {
+    0%, 100% { transform: translate(-50%, 0) rotate(0deg); }
+    25% { transform: translate(-50%, 0) rotate(-10deg); }
+    50% { transform: translate(-50%, -5px) rotate(15deg); } /* Hit point */
+    75% { transform: translate(-50%, 0) rotate(-5deg); }
+}
+@keyframes shadow {
+    0%, 100% { width: 32px; opacity: 0.2; }
+    50% { width: 16px; opacity: 0.1; }
+}
 @keyframes fade-in {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+.animate-ball-bounce {
+    animation: ball-bounce 1.2s infinite;
+}
+.animate-racket-swing {
+    animation: racket-swing 1.2s infinite;
+}
+.animate-shadow {
+    animation: shadow 1.2s infinite;
+}
 .animate-fade-in {
-    animation: fade-in 0.8s ease-out forwards;
+    animation: fade-in 0.6s ease-out forwards;
 }
 </style>
