@@ -191,12 +191,12 @@
                                             <input type="checkbox" />
                                             <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8 min-h-[3rem] py-2">
                                                 <div class="flex flex-col w-full">
-                                                    <div class="flex justify-between items-center w-full filter-text">
-                                                        <span class="{% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %}">
+                                                    <div class="flex justify-between items-center w-full filter-text gap-2">
+                                                        <span class="flex-1 w-0 text-right break-words leading-tight {% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %}">
                                                             {% get_team_display partido.equipo1 torneo %}
                                                         </span>
-                                                        <span class="text-xs opacity-50 mx-2">vs</span>
-                                                        <span class="text-right {% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %}">
+                                                        <span class="text-xs opacity-50 shrink-0">vs</span>
+                                                        <span class="flex-1 w-0 text-left break-words leading-tight {% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %}">
                                                             {% get_team_display partido.equipo2 torneo %}
                                                         </span>
                                                     </div>
@@ -277,12 +277,12 @@
                                             <input type="checkbox" />
                                             <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8">
                                                 <div class="flex flex-col w-full">
-                                                    <div class="flex justify-between items-center w-full filter-text">
-                                                        <span class="{% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %} truncate w-1/2 text-right pr-2">
+                                                    <div class="flex justify-between items-center w-full filter-text gap-2">
+                                                        <span class="flex-1 w-0 text-right break-words leading-tight {% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %}">
                                                             {% get_team_display partido.equipo1 torneo %}
                                                         </span>
-                                                        <span class="text-xs opacity-50">vs</span>
-                                                        <span class="{% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %} truncate w-1/2 text-left pl-2">
+                                                        <span class="text-xs opacity-50 shrink-0">vs</span>
+                                                        <span class="flex-1 w-0 text-left break-words leading-tight {% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %}">
                                                             {% get_team_display partido.equipo2 torneo %}
                                                         </span>
                                                     </div>
