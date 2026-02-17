@@ -24,9 +24,10 @@ class TorneoAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Agregar help text para división
-        self.fields['division'].help_text = "Dejar vacío para crear un torneo libre (cualquier división puede participar)"
+        # Opción "Libre" para división
+        self.fields['division'].empty_label = "Libre / General"
         self.fields['division'].required = False
+        self.fields['division'].help_text = ""
         
         # Estilo DaisyUI para todos los campos
         estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
@@ -40,7 +41,8 @@ class TorneoAdminForm(forms.ModelForm):
             
             # Label para categoria
             if field_name == 'categoria':
-                field.label = "Categoría (Masculino/Femenino/Mixto)"
+                field.label = "Categoría"
+                field.help_text = ""
             
             # Mantener los tipos de fecha si ya existen
             if field_name == 'fecha_limite_inscripcion':
