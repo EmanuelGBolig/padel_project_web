@@ -502,7 +502,7 @@
                                 <form action="{% url 'accounts:logout' %}" method="post" class="w-full p-0">
                                     {% csrf_token %}
                                     <button type="submit"
-                                            class="w-full text-left text-error font-medium py-3 px-4 hover:bg-error/10 rounded-b-box flex gap-2">
+                                            class="w-full text-left text-error font-medium py-3 px-4 hover:bg-error/10 rounded-b-box flex gap-2 no-loader">
                                         <svg xmlns="http://www.w3.org/2000/svg"
                                              class="h-5 w-5"
                                              fill="none"
