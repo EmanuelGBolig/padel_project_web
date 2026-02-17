@@ -407,26 +407,26 @@
                         <span class="text-base-content font-semibold opacity-70">Todo</span><span class="text-base-content font-black brightness-[1.8] dark:brightness-[2.5]">Padel</span>
                     </span>
                 </a>
-                <!-- Search Bar (Visible on 2xl+) -->
-                <div class="hidden 2xl:flex w-full max-w-md">
-                    <form action="{% url 'core:search' %}" method="get" class="w-full">
-                        <div class="relative w-full">
-                            <input type="text"
-                                   name="q"
-                                   placeholder="Buscar torneos, jugadores..."
-                                   class="input input-bordered w-full h-10 pl-10 bg-base-200/50 focus:bg-base-100 transition-colors rounded-xl text-sm" />
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     class="h-5 w-5 opacity-50"
-                                     fill="none"
-                                     viewBox="0 0 24 24"
-                                     stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
+            </div>
+            <!-- Navbar Center (Search Bar) -->
+            <div class="navbar-center hidden md:flex flex-1 max-w-2xl px-2">
+                <form action="{% url 'core:search' %}" method="get" class="w-full">
+                    <div class="relative w-full">
+                        <input type="text"
+                               name="q"
+                               placeholder="Buscar torneos, jugadores..."
+                               class="input input-bordered w-full h-10 pl-10 bg-base-200/50 focus:bg-base-100 transition-colors rounded-xl text-sm" />
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5 opacity-50"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
             <!-- Navbar End (Right) -->
             <div class="navbar-end w-auto flex-none gap-2">
