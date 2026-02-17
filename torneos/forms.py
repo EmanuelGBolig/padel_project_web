@@ -12,7 +12,6 @@ class TorneoAdminForm(forms.ModelForm):
             'fecha_inicio',
             'cupos_totales',
             'equipos_por_grupo',
-            'estado',
             'tipo_torneo',
             'categoria',
         ]
