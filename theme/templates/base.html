@@ -155,7 +155,9 @@
         }
 
         /* Refinar estado activo en sidebar (Menos bloque, más indicación lateral) */
-        .drawer-side .menu a.active {
+        .drawer-side .menu a.active,
+        .drawer-side .menu details[open] > summary,
+        .drawer-side .menu details > summary.active {
             background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 90%) !important;
             color: #10b981 !important;
             border-left: 4px solid #10b981 !important;
@@ -164,11 +166,12 @@
             box-shadow: none !important;
         }
 
-        /* Asegurar hover en todos los botones del sidebar, especialmente en Competición */
+        /* Asegurar hover en todos los botones del sidebar */
         .drawer-side .menu li a:not(.active):hover,
-        .drawer-side .menu li summary:hover {
+        .drawer-side .menu li summary:not(.active):hover {
             background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 92%) !important;
             color: #10b981 !important;
+            border-left: 4px solid color-mix(in oklch, #10b981, transparent 60%) !important;
         }
 
         /* Texto seleccionado en Select2 */
@@ -575,7 +578,8 @@
                             <li class="menu-title mt-4 opacity-70">Tu Gestión</li>
                             {% if user.tipo_usuario == 'PLAYER' or user.tipo_usuario == 'ADMIN' %}
                                 <li>
-                                    <a href="{% url 'equipos:mi_equipo' %}" class="rounded-xl">
+                                    <a href="{% url 'equipos:mi_equipo' %}"
+                                       class="{% if request.resolver_match.url_name == 'mi_equipo' %}active{% endif %} rounded-xl">
                                         <svg xmlns="http://www.w3.org/2000/svg"
                                              class="h-5 w-5"
                                              fill="none"
@@ -588,7 +592,8 @@
                                 </li>
                             {% endif %}
                             <li>
-                                <a href="{% url 'accounts:perfil' %}" class="rounded-xl">
+                                <a href="{% url 'accounts:perfil' %}"
+                                   class="{% if request.resolver_match.url_name == 'perfil' %}active{% endif %} rounded-xl">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                          class="h-5 w-5"
                                          fill="none"
@@ -619,8 +624,8 @@
                             </li>
                             {% if user.tipo_usuario == 'ADMIN' or user.tipo_usuario == 'ORGANIZER' %}
                                 <li>
-                                    <details {% if 'equipos' in request.path or 'torneos' in request.path %}open{% endif %}>
-                                        <summary class="rounded-xl">
+                                    <details {% if 'equipos/admin' in request.path or 'torneos/admin' in request.path %}open{% endif %}>
+                                        <summary class="{% if 'equipos/admin' in request.path or 'torneos/admin' in request.path %}active{% endif %} rounded-xl">
                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                  class="h-5 w-5"
                                                  fill="none"
@@ -633,13 +638,16 @@
                                         </summary>
                                         <ul>
                                             <li>
-                                                <a href="{% url 'equipos:admin_list' %}" class="rounded-xl">Equipos</a>
+                                                <a href="{% url 'equipos:admin_list' %}"
+                                                   class="{% if request.resolver_match.url_name == 'admin_list' and 'equipos' in request.path %}active{% endif %} rounded-xl">Equipos</a>
                                             </li>
                                             <li>
-                                                <a href="{% url 'torneos:admin_list' %}" class="rounded-xl">Listar Torneos</a>
+                                                <a href="{% url 'torneos:admin_list' %}"
+                                                   class="{% if request.resolver_match.url_name == 'admin_list' and 'torneos' in request.path %}active{% endif %} rounded-xl">Listar Torneos</a>
                                             </li>
                                             <li>
-                                                <a href="{% url 'torneos:admin_crear' %}" class="rounded-xl">Crear Torneo</a>
+                                                <a href="{% url 'torneos:admin_crear' %}"
+                                                   class="{% if request.resolver_match.url_name == 'admin_crear' %}active{% endif %} rounded-xl">Crear Torneo</a>
                                             </li>
                                         </ul>
                                     </details>
@@ -648,7 +656,8 @@
                         {% endif %}
                         <li class="menu-title mt-4 opacity-70">Competición</li>
                         <li>
-                            <a href="{% url 'torneos:finalizado_list' %}" class="rounded-xl">
+                            <a href="{% url 'torneos:finalizado_list' %}"
+                               class="{% if request.resolver_match.url_name == 'finalizado_list' %}active{% endif %} rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
@@ -660,8 +669,8 @@
                             </a>
                         </li>
                         <li>
-                            <details {% if 'ranking' in request.path %}open{% endif %}>
-                                <summary class="rounded-xl">
+                            <details {% if 'rankings' in request.path %}open{% endif %}>
+                                <summary class="{% if 'rankings' in request.path %}active{% endif %} rounded-xl">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                          class="h-5 w-5"
                                          fill="none"
@@ -673,10 +682,12 @@
                                 </summary>
                                 <ul>
                                     <li>
-                                        <a href="{% url 'accounts:rankings_jugadores' %}" class="rounded-xl">Jugadores</a>
+                                        <a href="{% url 'accounts:rankings_jugadores' %}"
+                                           class="{% if request.resolver_match.url_name == 'rankings_jugadores' %}active{% endif %} rounded-xl">Jugadores</a>
                                     </li>
                                     <li>
-                                        <a href="{% url 'equipos:rankings' %}" class="rounded-xl">Equipos</a>
+                                        <a href="{% url 'equipos:rankings' %}"
+                                           class="{% if request.resolver_match.url_name == 'rankings' %}active{% endif %} rounded-xl">Equipos</a>
                                     </li>
                                 </ul>
                             </details>
