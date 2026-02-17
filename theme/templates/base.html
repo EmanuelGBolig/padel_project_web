@@ -139,7 +139,17 @@
             border-radius: var(--rounded-btn, 0.5rem);
         }
 
-        /* Texto seleccionado */
+        /* Refinar estado activo en sidebar (Menos bloque, más indicación lateral) */
+        .drawer-side .menu a.active {
+            background-color: oklch(var(--bc) / 0.1) !important;
+            color: oklch(var(--p)) !important;
+            border-left: 4px solid oklch(var(--p)) !important;
+            border-radius: 0.75rem !important;
+            font-weight: 700 !important;
+            box-shadow: none !important;
+        }
+
+        /* Texto seleccionado en Select2 */
         .select2-container--default .select2-selection--single .select2-selection__rendered {
             color: var(--fallback-bc, oklch(var(--bc)/1));
             line-height: normal !important;
@@ -489,7 +499,7 @@
                     <ul class="menu menu-md gap-1 font-medium">
                         <li>
                             <a href="{% url 'core:home' %}"
-                               class="{% if request.resolver_match.url_name == 'home' %}active !bg-base-200/50 !text-primary border-l-4 border-primary shadow-sm{% endif %} rounded-xl">
+                               class="{% if request.resolver_match.url_name == 'home' %}active{% endif %} rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
@@ -502,7 +512,7 @@
                         </li>
                         <li>
                             <a href="{% url 'torneos:en_juego_list' %}"
-                               class="{% if request.resolver_match.url_name == 'en_juego_list' %}active !bg-base-200/50 !text-primary border-l-4 border-primary shadow-sm{% endif %} rounded-xl">
+                               class="{% if request.resolver_match.url_name == 'en_juego_list' %}active{% endif %} rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
@@ -515,7 +525,7 @@
                         </li>
                         <li>
                             <a href="{% url 'torneos:abierto_list' %}"
-                               class="{% if request.resolver_match.url_name == 'abierto_list' %}active !bg-base-200/50 !text-primary border-l-4 border-primary shadow-sm{% endif %} rounded-xl">
+                               class="{% if request.resolver_match.url_name == 'abierto_list' %}active{% endif %} rounded-xl">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
@@ -528,7 +538,7 @@
                         </li>
                         <li>
                             <a href="{% url 'core:search' %}"
-                               class="{% if request.resolver_match.url_name == 'search' %}active !bg-primary !text-primary-content shadow-md shadow-primary/20{% endif %} rounded-xl 2xl:hidden">
+                               class="{% if request.resolver_match.url_name == 'search' %}active{% endif %} rounded-xl 2xl:hidden">
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-5 w-5"
                                      fill="none"
