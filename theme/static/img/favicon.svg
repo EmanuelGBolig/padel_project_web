@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <g transform="rotate(-45 12 12)">
+        <path d="M12 2C7.58 2 4 5.58 4 10c0 2.42 1.09 4.58 2.8 6.09L9 22h6l2.2-5.91A9.96 9.96 0 0 0 20 10c0-4.42-3.58-8-8-8z" fill="#10b981" stroke="#000" stroke-width="0.5"/>
+        <circle cx="10" cy="7" r="0.7" fill="white"/>
+        <circle cx="12" cy="7" r="0.7" fill="white"/>
+        <circle cx="14" cy="7" r="0.7" fill="white"/>
+        <circle cx="9" cy="9.5" r="0.7" fill="white"/>
+        <circle cx="11" cy="9.5" r="0.7" fill="white"/>
+        <circle cx="13" cy="9.5" r="0.7" fill="white"/>
+        <circle cx="15" cy="9.5" r="0.7" fill="white"/>
+        <circle cx="10" cy="12" r="0.7" fill="white"/>
+        <circle cx="12" cy="12" r="0.7" fill="white"/>
+        <circle cx="14" cy="12" r="0.7" fill="white"/>
+        <circle cx="12" cy="14.5" r="0.7" fill="white"/>
+    </g>
+</svg>

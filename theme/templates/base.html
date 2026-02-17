@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+        <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
         <!-- SEO Meta Tags -->
         <title>
             {% block title %}
@@ -72,6 +72,17 @@
         </script>
         <!-- Estilos extra para contraste y botones -->
         <style>
+        /* Forzar Verde Esmeralda como color primario en ambos temas */
+        :root, [data-theme="corporate"] {
+            --p: 161 71% 43%; /* Primary Emerald */
+            --pc: 161 71% 95%;
+        }
+        
+        [data-theme="business"] {
+            --p: 161 71% 43%;
+            --pc: 161 71% 10%;
+        }
+
         /* Override corporate theme defaults for rounded corners */
         [data-theme="corporate"] {
             --rounded-box: 1rem;
@@ -527,7 +538,7 @@
                                     </g>
                                 </svg>
                             </span>
-                            TodoPadel
+                            Todo<span class="text-primary brightness-125 saturate-150">Padel</span>
                         </a>
                     </div>
                     <!-- Sidebar Navigation -->
