@@ -135,10 +135,10 @@
                     {% for grupo in grupos %}
                         <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm">
                             <input type="checkbox" class="group-checkbox" />
-                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
+                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-9 sm:pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
                                 <div class="flex items-center gap-2">
-                                    <button class="btn btn-sm btn-square btn-ghost text-warning z-10"
+                                    <button class="btn btn-sm btn-square btn-ghost text-warning z-20"
                                             hx-get="{% url 'torneos:swap_group_teams' grupo.pk %}"
                                             hx-target="#schedule_modal_content"
                                             onclick="event.stopPropagation(); schedule_modal.showModal()"
@@ -266,7 +266,7 @@
                     {% for ronda in rondas_list %}
                         <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item shadow-sm">
                             <input type="checkbox" class="round-checkbox" />
-                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
+                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-9 sm:pr-12">
                                 <span class="round-name flex items-center gap-2">{% nombre_ronda_dinamico ronda.grouper total_rondas %}</span>
                                 <span class="text-sm font-normal opacity-70 hidden sm:inline">Ver Partidos</span>
                             </div>
