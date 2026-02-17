@@ -369,13 +369,13 @@
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         <!-- Global Loader -->
         <div id="global-loader"
-             class="fixed inset-0 z-[9999] bg-base-100 flex flex-col items-center justify-center transition-opacity duration-500 ease-out">
-            <div class="relative w-32 h-32 animate-pulse">
+             class="fixed inset-0 z-[9999] bg-base-100 flex items-center justify-center transition-opacity duration-500 ease-out">
+            <div class="animate-pulse flex items-center justify-center">
                 <img src="{% static 'img/logo.png' %}"
                      alt="TodoPadel Logo"
-                     class="h-10 w-10 sm:h-12 sm:w-12 transition-transform hover:scale-105"
-                     width="48"
-                     height="48" />
+                     class="h-20 w-20 sm:h-24 sm:w-24 transition-transform"
+                     width="96"
+                     height="96" />
             </div>
         </div>
         <div class="drawer lg:drawer-open flex-grow">
@@ -402,8 +402,10 @@
                            class="btn btn-ghost btn-circle sm:btn-square normal-case text-xl 2xl:hidden">
                             <span class="w-10 h-10 flex items-center justify-center">
                                 <img src="{% static 'img/logo.png' %}"
-                                     alt="Logo"
-                                     class="w-9 h-9 object-contain">
+                                     alt="TodoPadel Logo"
+                                     class="h-8 w-8 sm:h-10 sm:w-10 object-contain"
+                                     width="40"
+                                     height="40" />
                             </span>
                         </a>
                         <!-- Search Bar (Desktop - Visible only on 2xl+) -->
@@ -455,7 +457,9 @@
                                         {% if user.imagen %}
                                             <img src="{{ user.imagen.url }}"
                                                  alt="{{ user.nombre }}"
-                                                 class="object-cover w-full h-full rounded-full" />
+                                                 class="object-cover w-full h-full rounded-full"
+                                                 width="36"
+                                                 height="36" />
                                         {% else %}
                                             <span>{{ user.nombre|slice:":1"|upper }}</span>
                                         {% endif %}
@@ -572,8 +576,10 @@
                            class="flex items-center gap-1 text-2xl font-black tracking-tight hover:opacity-80 transition-opacity">
                             <span class="w-12 h-12 flex items-center justify-center">
                                 <img src="{% static 'img/logo.png' %}"
-                                     alt="Logo"
-                                     class="w-11 h-11 object-contain">
+                                     alt="TodoPadel Logo"
+                                     class="h-10 w-10 object-contain"
+                                     width="40"
+                                     height="40" />
                             </span>
                             <span class="text-base-content font-semibold opacity-70">Todo</span><span class="text-base-content font-black brightness-[1.8] dark:brightness-[2.5]">Padel</span>
                         </a>
