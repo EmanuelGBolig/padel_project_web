@@ -322,7 +322,7 @@
                     </div>
                 </summary>
                 <div class="collapse-content px-2 md:px-8 pb-4 md:pb-8 pt-0 min-w-0">
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6 w-full mt-4">
                         {% for grupo in grupos %}
                             <div class="card bg-base-100 shadow-sm border border-base-content/5 compact h-full overflow-hidden">
                                 <div class="card-body p-0">
@@ -365,8 +365,8 @@
                                                 {% endif %}
                                                 <div class="flex flex-wrap justify-between items-center gap-x-2">
                                                     <!-- EQUIPOS -->
-                                                    <div class="flex items-center gap-1 text-center min-w-0 flex-1 justify-center">
-                                                        <span class="break-words leading-tight text-[10px] sm:text-xs {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                                    <div class="flex items-center gap-1 text-center min-w-0 flex-1 justify-center w-full">
+                                                        <span class="break-words leading-tight text-[10px] sm:text-xs flex-1 w-0 text-right {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo1 %}
                                                                 {{ partido.equipo1.nombre }}
                                                             {% else %}
@@ -374,7 +374,7 @@
                                                             {% endif %}
                                                         </span>
                                                         <span class="mx-0.5 opacity-50 text-[9px] shrink-0">vs</span>
-                                                        <span class="break-words leading-tight text-[10px] sm:text-xs {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="break-words leading-tight text-[10px] sm:text-xs flex-1 w-0 text-left {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo2 %}
                                                                 {{ partido.equipo2.nombre }}
                                                             {% else %}
