@@ -365,7 +365,7 @@
             {% if form.media %}{{ form.media.css }}{% endif %}
         {% endblock extra_head %}
     </head>
-    <body class="min-h-screen bg-base-200 font-sans text-base-content overflow-x-hidden antialiased selection:bg-primary selection:text-white"
+    <body class="min-h-screen bg-base-200 font-sans text-base-content overflow-x-hidden antialiased selection:bg-primary selection:text-white flex flex-col"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         <!-- Global Loader -->
         <div id="global-loader"
