@@ -76,18 +76,33 @@
         <!-- Estilos extra para contraste y botones -->
         <style>
         /* Forzar Verde Esmeralda como color primario en ambos temas (DaisyUI 4 Oklch) */
-        :root, [data-theme="corporate"] {
-            --p: 0.72 0.16 163; /* Primary Emerald */
-            --pc: 0.98 0.01 163; /* Primary Content (White) */
-            --su: 0.72 0.16 163; /* Success Emerald */
-            --suc: 0.98 0.01 163;
+        :root, html[data-theme="corporate"], [data-theme="corporate"] {
+            --p: 72% 0.16 163 !important; /* Primary Emerald */
+            --pc: 98% 0.01 163 !important; /* Primary Content (White) */
+            --su: 72% 0.16 163 !important; /* Success Emerald */
+            --suc: 98% 0.01 163 !important;
         }
         
-        [data-theme="business"] {
-            --p: 0.72 0.16 163;
-            --pc: 0.15 0.02 163; /* Primary Content (Dark) */
-            --su: 0.72 0.16 163;
-            --suc: 0.98 0.01 163;
+        html[data-theme="business"], [data-theme="business"] {
+            --p: 72% 0.16 163 !important;
+            --pc: 15% 0.02 163 !important; /* Primary Content (Dark) */
+            --su: 72% 0.16 163 !important;
+            --suc: 98% 0.01 163 !important;
+        }
+
+        /* Forzar colores Emerald en botones clave para evitar residuales de temas */
+        .btn-primary, .btn-success {
+            background-color: #10b981 !important;
+            border-color: #10b981 !important;
+            color: white !important;
+        }
+        [data-theme="business"] .btn-primary,
+        [data-theme="business"] .btn-success {
+            color: #1a1a1a !important;
+        }
+        .btn-primary:hover, .btn-success:hover {
+            background-color: #059669 !important;
+            border-color: #059669 !important;
         }
 
         /* Override corporate theme defaults for rounded corners */
@@ -141,12 +156,18 @@
 
         /* Refinar estado activo en sidebar (Menos bloque, más indicación lateral) */
         .drawer-side .menu a.active {
-            background-color: oklch(var(--bc) / 0.1) !important;
-            color: oklch(var(--p)) !important;
-            border-left: 4px solid oklch(var(--p)) !important;
+            background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 90%) !important;
+            color: #10b981 !important;
+            border-left: 4px solid #10b981 !important;
             border-radius: 0.75rem !important;
             font-weight: 700 !important;
             box-shadow: none !important;
+        }
+
+        /* Asegurar hover en todos los botones del sidebar, especialmente en Competición */
+        .drawer-side .menu li a:hover {
+            background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 92%);
+            color: #10b981;
         }
 
         /* Texto seleccionado en Select2 */
