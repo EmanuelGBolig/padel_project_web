@@ -111,6 +111,13 @@ class JugadorAutocomplete(autocomplete.Select2QuerySetView):
 
         return qs
 
+    def get_result_label(self, item):
+        """
+        Personalizar la etiqueta que se muestra en el dropdown.
+        Mostrar: Nombre Apellido (email)
+        """
+        return f"{item.full_name} ({item.email})"
+
 
 # --- Vistas de Jugador ---
 
