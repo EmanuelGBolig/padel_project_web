@@ -27,12 +27,12 @@
     <div class="flex flex-col gap-12">
         <!-- Hero -->
         <!-- Hero -->
-        <div class="text-center py-12 bg-base-200/30 rounded-3xl border border-base-300/30">
+        <div class="text-center py-12 bg-base-100 rounded-3xl border border-base-300 shadow-sm transition-all duration-300">
             <div class="max-w-3xl mx-auto">
                 <h1 class="text-5xl md:text-6xl font-black text-base-content mb-6 tracking-tight">
                     Torneos de <span class="text-primary">Pádel</span>
                 </h1>
-                <p class="text-xl md:text-2xl text-base-content/60 font-medium mb-8 leading-relaxed">
+                <p class="text-xl md:text-2xl text-base-content/80 font-medium mb-8 leading-relaxed">
                     Gestiona tus equipos, inscríbete y sigue los resultados en tiempo real.
                 </p>
                 {% if user.is_authenticated and user.tipo_usuario == 'ADMIN' %}
@@ -67,7 +67,7 @@
         </div>
         <!-- Torneos Abiertos -->
         {% if torneos_abiertos %}
-            <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50 overflow-hidden">
+            <section class="bg-base-100 p-6 md:p-8 rounded-3xl border border-base-300 shadow-sm overflow-hidden">
                 <div class="flex items-center gap-4 mb-6 md:mb-8">
                     <div class="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -83,7 +83,7 @@
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-base-content">Inscripciones Abiertas</h2>
-                        <p class="text-sm text-base-content/60">Únete a los próximos torneos disponibles</p>
+                        <p class="text-sm text-base-content/80">Únete a los próximos torneos disponibles</p>
                     </div>
                 </div>
                 <!-- Carousel Container -->
@@ -105,7 +105,7 @@
                          class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:gap-6 hide-scrollbar relative scroll-smooth">
                         {% for torneo in torneos_abiertos %}
                             <div class="carousel-item w-[85%] shrink-0 md:w-[calc((100%-48px)/3)] snap-center h-full transition-transform duration-300">
-                                <div class="card bg-base-100 shadow hover:shadow-xl transition-all duration-300 border border-base-content/5 h-full hover:-translate-y-1 w-full">
+                                <div class="card bg-base-200/50 dark:bg-base-100 shadow hover:shadow-xl transition-all duration-300 border border-base-content/5 h-full hover:-translate-y-1 w-full">
                                     <div class="card-body p-4 md:p-6 flex flex-col h-full">
                                         <div class="flex justify-between items-start mb-2 md:mb-4">
                                             <h3 class="card-title text-lg md:text-xl font-bold line-clamp-2 min-h-[3rem] md:min-h-[3.5rem]">
@@ -179,7 +179,7 @@
         {% endif %}
         <!-- Torneos en Juego -->
         {% if torneos_en_juego %}
-            <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50 overflow-hidden">
+            <section class="bg-base-100 p-6 md:p-8 rounded-3xl border border-base-300 shadow-sm overflow-hidden">
                 <div class="flex items-center gap-4 mb-6 md:mb-8">
                     <div class="w-12 h-12 rounded-2xl bg-info/10 flex items-center justify-center text-info shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -195,7 +195,7 @@
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-base-content">Jugando Ahora</h2>
-                        <p class="text-sm text-base-content/60">Sigue los resultados y clasificaciones en vivo</p>
+                        <p class="text-sm text-base-content/80">Sigue los resultados y clasificaciones en vivo</p>
                     </div>
                 </div>
                 <!-- Carousel Container -->
