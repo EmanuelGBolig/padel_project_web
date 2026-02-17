@@ -567,12 +567,6 @@
                         </div>
                     </aside>
                 </div>
-                <!-- Footer (Moved Inside Drawer Content) -->
-                <footer class="footer footer-center p-4 bg-base-200/95 backdrop-blur-md border-t border-base-300 text-base-content/50 text-sm z-[55] w-full">
-                    <aside>
-                        <p class="font-medium">TodoPadel © {% now "Y" %}</p>
-                    </aside>
-                </footer>
             </div>
             <!-- Sidebar -->
             <div class="drawer-side z-50">
@@ -754,6 +748,12 @@
                 </div>
             </div>
         </div>
+        <!-- Footer (Full Width, Sticky Bottom) -->
+        <footer class="footer footer-center p-4 bg-base-200/95 backdrop-blur-md border-t border-base-300 text-base-content/50 text-sm z-[55]">
+            <aside>
+                <p class="font-medium">TodoPadel © {% now "Y" %}</p>
+            </aside>
+        </footer>
         {% block extra_js %}
             {% if form.media %}{{ form.media.js }}{% endif %}
         {% endblock extra_js %}
