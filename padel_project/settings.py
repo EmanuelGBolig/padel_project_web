@@ -28,6 +28,9 @@ if RENDER_EXTERNAL_HOSTNAME:
 CUSTOM_DOMAIN = os.environ.get('CUSTOM_DOMAIN')
 if CUSTOM_DOMAIN:
     ALLOWED_HOSTS.append(CUSTOM_DOMAIN)
+    # También permitir la versión www si no está ya incluida
+    if not CUSTOM_DOMAIN.startswith('www.'):
+        ALLOWED_HOSTS.append(f"www.{CUSTOM_DOMAIN}")
 
 if not RENDER_EXTERNAL_HOSTNAME and not CUSTOM_DOMAIN:
     # Permitir local
