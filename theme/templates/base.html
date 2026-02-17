@@ -255,7 +255,39 @@
             {% if form.media %}{{ form.media.css }}{% endif %}
         {% endblock extra_head %}
     </head>
-    <body class="min-h-screen font-sans transition-colors duration-200 bg-base-100 flex flex-col">
+    <body class="min-h-screen bg-base-200 font-sans text-base-content overflow-x-hidden antialiased selection:bg-primary selection:text-white"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        <!-- Global Loader -->
+        <div id="global-loader"
+             class="fixed inset-0 z-[9999] bg-base-100 flex flex-col items-center justify-center transition-opacity duration-500 ease-out">
+            <div class="relative w-24 h-24 animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     viewBox="0 0 24 24"
+                     class="w-full h-full text-emerald-500 fill-current drop-shadow-2xl"
+                     stroke="black"
+                     stroke-width="1">
+                    <g transform="rotate(-45 12 12)">
+                    <path d="M12 2C7.58 2 4 5.58 4 10c0 2.42 1.09 4.58 2.8 6.09L9 22h6l2.2-5.91A9.96 9.96 0 0 0 20 10c0-4.42-3.58-8-8-8z" />
+                    <!-- Row 1 -->
+                    <circle cx="10" cy="7" r="0.7" fill="white" stroke="none" />
+                    <circle cx="12" cy="7" r="0.7" fill="white" stroke="none" />
+                    <circle cx="14" cy="7" r="0.7" fill="white" stroke="none" />
+                    <!-- Row 2 -->
+                    <circle cx="9" cy="9.5" r="0.7" fill="white" stroke="none" />
+                    <circle cx="11" cy="9.5" r="0.7" fill="white" stroke="none" />
+                    <circle cx="13" cy="9.5" r="0.7" fill="white" stroke="none" />
+                    <circle cx="15" cy="9.5" r="0.7" fill="white" stroke="none" />
+                    <!-- Row 3 -->
+                    <circle cx="10" cy="12" r="0.7" fill="white" stroke="none" />
+                    <circle cx="12" cy="12" r="0.7" fill="white" stroke="none" />
+                    <circle cx="14" cy="12" r="0.7" fill="white" stroke="none" />
+                    <!-- Row 4 -->
+                    <circle cx="12" cy="14.5" r="0.7" fill="white" stroke="none" />
+                    </g>
+                </svg>
+            </div>
+            <p class="mt-4 text-lg font-bold text-emerald-600 animate-pulse tracking-widest">TODOPADEL</p>
+        </div>
         <div class="drawer lg:drawer-open flex-grow">
             <input id="my-drawer" type="checkbox" class="drawer-toggle" />
             <div class="drawer-content flex flex-col">
@@ -733,6 +765,20 @@
                     }, 500);
                 }, 3000);
             });
+        });
+        </script>
+        <!-- Loader Logic -->
+        <script>
+        document.addEventListener("DOMContentLoaded", function () {
+             // Create a minimum timeout to ensure the logo is seen
+            setTimeout(function() {
+                const loader = document.getElementById('global-loader');
+                if (loader) {
+                    loader.classList.add('opacity-0', 'pointer-events-none');
+                    // Optional: remove from DOM after transition
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, 800); // 800ms minimum display time
         });
         </script>
     </body>
