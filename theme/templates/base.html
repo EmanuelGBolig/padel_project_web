@@ -154,10 +154,10 @@
             border-radius: var(--rounded-btn, 0.5rem);
         }
 
-        /* Refinar estado activo en sidebar (Menos bloque, más indicación lateral) */
-        .drawer-side .menu a.active,
-        .drawer-side .menu details[open] > summary,
-        .drawer-side .menu details > summary.active {
+        /* Estado activo en items principales (Con indicador lateral grueso) */
+        .drawer-side .menu > li > a.active,
+        .drawer-side .menu > li > details[open] > summary,
+        .drawer-side .menu > li > details > summary.active {
             background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 90%) !important;
             color: #10b981 !important;
             border-left: 4px solid #10b981 !important;
@@ -166,11 +166,23 @@
             box-shadow: none !important;
         }
 
+        /* Estado activo en sub-items (Más sutil, sin indicador lateral doble) */
+        .drawer-side .menu ul a.active {
+            background-color: transparent !important;
+            color: #10b981 !important;
+            font-weight: 700 !important;
+            border-left: none !important;
+        }
+
         /* Asegurar hover en todos los botones del sidebar */
         .drawer-side .menu li a:not(.active):hover,
         .drawer-side .menu li summary:not(.active):hover {
             background-color: color-mix(in oklch, var(--fallback-bc, oklch(var(--bc)/1)), transparent 92%) !important;
             color: #10b981 !important;
+        }
+        
+        .drawer-side .menu > li > a:not(.active):hover,
+        .drawer-side .menu > li > details:not([open]) > summary:not(.active):hover {
             border-left: 4px solid color-mix(in oklch, #10b981, transparent 60%) !important;
         }
 
