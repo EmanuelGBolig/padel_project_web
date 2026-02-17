@@ -341,11 +341,12 @@
                                         <tbody>
                                             {% for item in grupo.tabla.all %}
                                                 <tr class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
-                                                    <td class="pl-4 font-medium overflow-hidden">
-                                                        <div class="flex items-center gap-0.5">
+                                                    <td class="pl-4 font-medium">
+                                                        <div class="flex items-start gap-0.5">
                                                             <span class="mr-0.5 opacity-70 shrink-0">{{ forloop.counter }}.</span>
                                                             {% get_team_info item.equipo torneo as team_info %}
-                                                            <span class="truncate" title="{{ team_info.name }}">{{ team_info.code }}</span>
+                                                            <span class="break-words min-w-0 leading-tight text-xs sm:text-sm"
+                                                                  title="{{ team_info.name }}">{{ team_info.code }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="text-center font-bold">{{ item.partidos_ganados }}</td>
