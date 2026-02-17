@@ -133,7 +133,7 @@
                 </div>
                 <div class="space-y-2" id="groupsContainer">
                     {% for grupo in grupos %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm">
+                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm overflow-hidden md:overflow-visible">
                             <input type="checkbox" class="group-checkbox" />
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
@@ -184,12 +184,12 @@
                                     </table>
                                 </div>
                                 <!-- Partidos del Grupo -->
-                                <div class="space-y-2">
+                                <div class="flex flex-col gap-2 w-full">
                                     <h4 class="text-sm font-bold mb-2 opacity-70">Partidos</h4>
                                     {% for partido in grupo.partidos_grupo.all %}
-                                        <div class="collapse collapse-plus bg-base-200 border border-base-300 match-item">
+                                        <div class="collapse collapse-plus bg-base-200 border border-base-300 match-item w-full">
                                             <input type="checkbox" />
-                                            <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8">
+                                            <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8 min-h-[3rem] py-2">
                                                 <div class="flex flex-col w-full">
                                                     <div class="flex justify-between items-center w-full filter-text">
                                                         <span class="{% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %}">
@@ -264,11 +264,11 @@
                 <div class="space-y-4" id="bracketContainer">
                     {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                     {% for ronda in rondas_list %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item">
+                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item shadow-sm overflow-hidden md:overflow-visible">
                             <input type="checkbox" class="round-checkbox" />
-                            <div class="collapse-title text-xl font-medium flex justify-between items-center">
+                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-12">
                                 <span class="round-name flex items-center gap-2">{% nombre_ronda_dinamico ronda.grouper total_rondas %}</span>
-                                <span class="text-sm font-normal opacity-70">Ver Partidos</span>
+                                <span class="text-sm font-normal opacity-70 hidden sm:inline">Ver Partidos</span>
                             </div>
                             <div class="collapse-content">
                                 <div class="space-y-2 mt-2">
