@@ -366,17 +366,17 @@
                                                 <div class="flex flex-wrap justify-between items-center gap-x-2">
                                                     <!-- EQUIPOS -->
                                                     <div class="flex items-center gap-1 text-center min-w-0 flex-1 justify-center">
-                                                        <span class="truncate {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="break-words leading-tight text-[10px] sm:text-xs {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo1 %}
-                                                                {{ partido.equipo1.nombre|short_name:12 }}
+                                                                {{ partido.equipo1.nombre }}
                                                             {% else %}
                                                                 -
                                                             {% endif %}
                                                         </span>
                                                         <span class="mx-0.5 opacity-50 text-[9px] shrink-0">vs</span>
-                                                        <span class="truncate {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="break-words leading-tight text-[10px] sm:text-xs {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo2 %}
-                                                                {{ partido.equipo2.nombre|short_name:12 }}
+                                                                {{ partido.equipo2.nombre }}
                                                             {% else %}
                                                                 -
                                                             {% endif %}
