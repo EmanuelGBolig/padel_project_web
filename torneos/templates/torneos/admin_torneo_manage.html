@@ -6,7 +6,7 @@
 {% block content %}
     <div class="space-y-8">
         <!-- 1. HEADER DEL TORNEO -->
-        <div class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50">
+        <div class="bg-base-200/50 p-4 md:p-8 rounded-3xl border border-base-300/50">
             <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                 <div>
                     <h1 class="text-3xl font-black text-base-content">{{ torneo.nombre }}</h1>
@@ -117,7 +117,7 @@
         {% endif %}
         <!-- 2. FASE DE GRUPOS -->
         {% if torneo.estado == 'EJ' and grupos %}
-            <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50">
+            <section class="bg-base-200/50 p-4 md:p-8 rounded-3xl border border-base-300/50">
                 <div class="flex items-center gap-4 mb-6">
                     <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -247,7 +247,7 @@
         {% endif %}
         <!-- 3. BRACKET -->
         {% if fase_eliminatoria_existente %}
-            <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-base-300/50">
+            <section class="bg-base-200/50 p-4 md:p-8 rounded-3xl border border-base-300/50">
                 <div class="flex items-center gap-4 mb-6">
                     <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg"
