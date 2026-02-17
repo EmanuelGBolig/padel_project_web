@@ -9,3 +9,25 @@
   * the scope of this path.
   */
 @source "../../../**/*.{html,py,js}";
+
+/* Light Theme */
+:root, :root[data-theme="light"] {
+    --color-base-100: #ffffff; /* White cards */
+    --color-base-200: #e2e8f0; /* Slate-200 background (darker than default) */
+    --color-base-300: #cbd5e1; /* Slate-300 borders */
+    --color-base-content: #1e293b; /* Slate-800 text */
+    
+    background-color: var(--color-base-200);
+    color: var(--color-base-content);
+}
+
+/* Dark Theme */
+:root[data-theme="dark"] {
+    --color-base-100: #1e293b; /* Slate-800 cards */
+    --color-base-200: #0f172a; /* Slate-900 background (very dark) */
+    --color-base-300: #020617; /* Slate-950 borders */
+    --color-base-content: #f8fafc; /* Slate-50 text */
+    
+    background-color: var(--color-base-200);
+    color: var(--color-base-content);
+}
