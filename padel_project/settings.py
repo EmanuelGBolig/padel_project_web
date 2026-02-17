@@ -37,6 +37,14 @@ if not RENDER_EXTERNAL_HOSTNAME and not CUSTOM_DOMAIN:
     ALLOWED_HOSTS.append('127.0.0.1')
     ALLOWED_HOSTS.append('localhost')
 
+# Confianza en el header de Render para HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Forzar HTTPS en redirects al estar en producción
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 import platform
