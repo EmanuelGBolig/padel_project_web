@@ -2,10 +2,7 @@ from django.contrib import admin
 from .models import Division, Equipo
 
 
-@admin.register(Division)
-class DivisionAdmin(admin.ModelAdmin):
-    list_display = ('nombre',)
-    search_fields = ('nombre',)
+
 
 
 @admin.register(Equipo)

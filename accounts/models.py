@@ -160,3 +160,36 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         if not equipo:
             equipo = self.equipos_como_jugador2.first()
         return equipo
+
+class OrganizadorProfile(models.Model):
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='perfil_organizador'
+    )
+    descripcion = models.TextField(blank=True, help_text="Descripción del organizador o sede.")
+    direccion = models.CharField(max_length=255, blank=True)
+    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    logo = models.ImageField(upload_to='organizadores/logos/', blank=True, null=True)
+
+    def __str__(self):
+        return f"Perfil de {self.user.full_name}"
+
+
+class Sponsor(models.Model):
+    organizador = models.ForeignKey(
+        OrganizadorProfile,
+        on_delete=models.CASCADE,
+        related_name='sponsors'
+    )
+    nombre = models.CharField(max_length=100)
+    imagen = models.ImageField(upload_to='sponsors/')
+    link = models.URLField(blank=True)
+    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición en el carrusel")
+
+    class Meta:
+        ordering = ['orden']
+
+    def __str__(self):
+        return f"{self.nombre} (Sponsor de {self.organizador.user.full_name})"

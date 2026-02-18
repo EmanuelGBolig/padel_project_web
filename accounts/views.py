@@ -278,6 +278,46 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
             if not visitante.equipo and not usuario.equipo:
                 if visitante.division == usuario.division:
                     can_invite = True
+
+        context['can_invite'] = can_invite
+        
+        # Separar inscripciones por estado para la vista
+        inscripciones = stats['inscripciones']
+        context['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
+        context['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
+        
+        return context
+
+
+class OrganizadorDetailView(DetailView):
+    model = CustomUser
+    template_name = 'accounts/organizador_detail.html'
+    context_object_name = 'organizador'
+
+    def get_queryset(self):
+        # Solo usuarios organizadores
+        return CustomUser.objects.filter(tipo_usuario=CustomUser.TipoUsuario.ORGANIZER)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        organizador = self.object
+        
+        # 1. Perfil extendido
+        if hasattr(organizador, 'perfil_organizador'):
+            context['perfil_detalle'] = organizador.perfil_organizador
+            context['sponsors'] = organizador.perfil_organizador.sponsors.all().order_by('orden')
+        else:
+            context['perfil_detalle'] = None
+            context['sponsors'] = []
+
+        # 2. Torneos
+        # Asumiendo que añadimos related_name='torneos_organizados' en Torneo
+        torneos = organizador.torneos_organizados.all().order_by('-fecha_inicio')
+        
+        context['torneos_activos'] = torneos.filter(estado__in=['AB', 'EJ'])
+        context['torneos_historial'] = torneos.filter(estado='FN')
+        
+        return context
         
         context['can_invite'] = can_invite
         

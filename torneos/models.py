@@ -64,6 +64,15 @@ class Torneo(models.Model):
         blank=True,
         related_name="torneos_ganados",
     )
+    
+    organizador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="torneos_organizados",
+        null=True,
+        blank=True,
+        limit_choices_to={'tipo_usuario': 'ORGANIZER'}
+    )
 
     # Relación inversa para acceder a inscripciones fácilmente
     equipos_inscritos = models.ManyToManyField(

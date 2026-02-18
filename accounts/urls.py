@@ -13,7 +13,7 @@ urlpatterns = [
     path('perfil/', views.PerfilView.as_view(), name='perfil'),
     path('jugador/<int:pk>/', views.PublicProfileView.as_view(), name='detalle'),
     path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
-    path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
+    path('organizador/<int:pk>/', views.OrganizadorDetailView.as_view(), name='organizador_detalle'),
     
     # Rutas de recuperación de contraseña (Django Auth)
     # Rutas de recuperación de contraseña (Explícitas para corregir namespace)

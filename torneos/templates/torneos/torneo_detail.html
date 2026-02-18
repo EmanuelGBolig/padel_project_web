@@ -6,10 +6,10 @@
 {% endblock title %}
 {% block meta_description %}
     Detalles del torneo {{ torneo.nombre }} en TodoPadel. Categoría {{ torneo.division }}, fecha de inicio {{ torneo.fecha_inicio|date:"d F Y" }}. Inscríbete y sigue los resultados.
-{% endblock %}
+{% endblock meta_description %}
 {% block meta_keywords %}
     {{ torneo.nombre }}, torneo padel, {{ torneo.division }}, padel, {{ torneo.ubicacion }}
-{% endblock %}
+{% endblock meta_keywords %}
 {% block structured_data %}
     {
     "@context": "https://schema.org",
@@ -37,7 +37,7 @@
     "{{ request.scheme }}://{{ request.get_host }}{% static 'img/og-image.jpg' %}"
     ]
     }
-{% endblock %}
+{% endblock structured_data %}
 {% block content %}
     <div class="space-y-12">
         <!-- HERO -->
@@ -62,6 +62,40 @@
                             {{ torneo.get_categoria_display }}
                         </div>
                     </div>
+                    {% if torneo.organizador %}
+                        <div class="mt-6 p-4 bg-base-200/50 rounded-xl border border-base-content/5">
+                            <div class="text-sm uppercase tracking-widest opacity-60 font-bold mb-2">Organizado por</div>
+                            <a href="{% url 'accounts:organizador_detalle' torneo.organizador.pk %}"
+                               class="flex items-center justify-center gap-4 group hover:opacity-80 transition-opacity">
+                                <div class="avatar">
+                                    <div class="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                                        {% if torneo.organizador.perfil_organizador.logo %}
+                                            <img src="{{ torneo.organizador.perfil_organizador.logo.url }}"
+                                                 alt="{{ torneo.organizador.full_name }}"
+                                                 width="48"
+                                                 height="48" />
+                                        {% else %}
+                                            <span class="text-lg font-bold flex items-center justify-center h-full w-full bg-neutral text-neutral-content">
+                                                {{ torneo.organizador.nombre|slice:":1" }}{{ torneo.organizador.apellido|slice:":1" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-bold text-lg group-hover:text-primary transition-colors flex items-center gap-1">
+                                        {{ torneo.organizador.full_name }}
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             class="h-4 w-4 text-primary"
+                                             viewBox="0 0 20 20"
+                                             fill="currentColor">
+                                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="text-xs opacity-60">Ver perfil completo</div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
                     {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
                         <div class="mt-4">
                             <p class="text-success font-semibold text-lg">Ganador: {{ torneo.ganador_del_torneo.nombre }}</p>
@@ -425,13 +459,9 @@
                 </summary>
                 <!-- Force overflow visible for horizontal scroll -->
                 <!-- Force overflow visible for horizontal scroll -->
-                <div class="collapse-content px-2 md:px-8 pb-4 md:pb-8 pt-0 min-w-0"
-                     style="overflow: visible !important">
+                <div class="collapse-content px-2 md:px-8 pb-4 md:pb-8 pt-0 min-w-0 !overflow-visible">
                     <!-- BRACKET: Horizontal bracket for all screens -->
-                    <!-- BRACKET: Horizontal bracket for all screens -->
-                    <div class="overflow-x-auto w-full pb-6"
-                         style="overflow-x: auto !important;
-                                max-width: 100vw">
+                    <div class="overflow-x-auto w-full pb-6 !overflow-x-auto max-w-[100vw]">
                         <style>
                 /* Bracket Connector Styles */
                 /* Force collapse arrow visibility when open */
