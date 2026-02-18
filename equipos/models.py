@@ -11,11 +11,15 @@ class Equipo(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="equipos_como_jugador1",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
     jugador2 = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="equipos_como_jugador2",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
     division = models.ForeignKey(Division, on_delete=models.PROTECT)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -36,9 +40,22 @@ class Equipo(models.Model):
         verbose_name="Categoría del Equipo"
     )
 
+    es_dummy = models.BooleanField(
+        default=False,
+        verbose_name="Es Pareja Libre (Dummy)",
+        help_text="Equipo creado automáticamente para rellenar grupos."
+    )
+
     def save(self, *args, **kwargs):
         # Lógica adaptada de tu proyecto anterior:
-        if self.jugador1 and self.jugador2:
+        if self.es_dummy:
+            if not self.nombre:
+                 # Nombre base para dummy, se puede refinar con un contador si es necesario, 
+                 # pero idealmente el nombre debe ser único, así que usaremos un UUID o similar si choca,
+                 # O mejor, lo manejamos en la creación. 
+                 # Por ahora, dejemos que quien lo cree asigne el nombre o usamos un default.
+                 pass
+        elif self.jugador1 and self.jugador2:
             # 1. Usamos 'apellido' (nuestro campo) en lugar de 'last_name'
             # Si no tienen apellido, usamos el email como fallback
             j1_nombre = self.jugador1.apellido or self.jugador1.email.split('@')[0]

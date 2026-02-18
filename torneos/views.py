@@ -120,6 +120,27 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         if action == 'iniciar_torneo':
             return self.iniciar_torneo_logica(request, torneo)
+        
+        elif action == 'agregar_dummy':
+            # Crear o buscar equipo dummy (o crear uno nuevo siempre)
+            # Para evitar flood de dummies, intentaremos usar uno si existe y no está en este torneo,
+            # pero lo más simple es crear uno nuevo exclusivo para este torneo o permitir múltiples.
+            # Dado que 'nombre' es unique, necesitamos nombres únicos.
+            count_dummies = Equipo.objects.filter(es_dummy=True).count()
+            nombre_dummy = f"Pareja Libre {count_dummies + 1}"
+            
+            # Crear el equipo dummy
+            equipo_dummy = Equipo.objects.create(
+                nombre=nombre_dummy,
+                es_dummy=True,
+                division=torneo.division, # Asignar división del torneo para consistencia
+                categoria=torneo.categoria or Equipo.Categoria.MIXTO
+            )
+            
+            # Inscribirlo
+            Inscripcion.objects.create(torneo=torneo, equipo=equipo_dummy)
+            messages.success(request, f"Se agregó '{nombre_dummy}' al torneo.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
 
         elif action == 'generar_octavos':
             return self.generar_octavos_logica(request, torneo)
@@ -199,9 +220,37 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         else:
             # --- LÓGICA POR DEFECTO ---
-            # Usar el tamaño de grupo configurado en el torneo
-            equipos_por_grupo = torneo.equipos_por_grupo
-            num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
+            # --- LÓGICA POR DEFECTO ---
+            
+            # NUEVO: Lógica Forzar grupos de 3
+            if torneo.forzar_grupos_de_3:
+                teams_per_group = 3
+                num_equipos = len(equipos)
+                
+                # Calcular número de grupos necesarios
+                # Si tenemos 6 equipos: 6/3 = 2 grupos (perfecto)
+                # Si tenemos 7 equipos: 7/3 = 2 grupos y sobra 1 -> Error o Dummy?
+                # Si tenemos 8 equipos: 8/3 = 2 grupos y sobran 2 -> Error o Dummy?
+                
+                # La lógica deseada es forzar grupos de 3. Si no es divisible, NO se puede iniciar
+                # a menos que se hayan agregado dummies previamente.
+                if num_equipos % 3 != 0:
+                    faltantes = 3 - (num_equipos % 3)
+                    messages.error(
+                        request, 
+                        f"Para forzar grupos de 3, el número de equipos ({num_equipos}) debe ser divisible por 3. "
+                        f"Faltan {faltantes} equipos (o 'Parejas Libres') para completar los grupos."
+                    )
+                    return redirect('torneos:admin_manage', pk=torneo.pk)
+                
+                num_grupos = num_equipos // 3
+                equipos_por_grupo = 3
+                
+            else:
+                # Usar el tamaño de grupo configurado en el torneo (Lógica Legacy)
+                equipos_por_grupo = torneo.equipos_por_grupo
+                num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
+
             letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
             for i in range(num_grupos):

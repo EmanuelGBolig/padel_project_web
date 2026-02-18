@@ -11,6 +11,8 @@ class TorneoAdminForm(forms.ModelForm):
             'fecha_limite_inscripcion',
             'fecha_inicio',
             'cupos_totales',
+            'equipos_por_grupo',
+            'forzar_grupos_de_3',
             'tipo_torneo',
             'categoria',
         ]
@@ -38,6 +40,8 @@ class TorneoAdminForm(forms.ModelForm):
                 field.widget.attrs['class'] = estilo_input
             elif isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select
+            elif isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = 'checkbox checkbox-primary'
             
             # Label para categoria
             if field_name == 'categoria':
