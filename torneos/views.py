@@ -878,10 +878,12 @@ class TorneoDetailView(DetailView):
         context['partidos_eliminacion'] = torneo.partidos.all().order_by(
             'ronda', 'orden_partido'
         )
-        if context['partidos_eliminacion'].exists():
+        context['fase_eliminatoria_existente'] = context['partidos_eliminacion'].exists()
+        
+        if context['fase_eliminatoria_existente']:
             from django.db.models import Max
             max_ronda = context['partidos_eliminacion'].aggregate(Max('ronda'))['ronda__max']
-            context['total_rondas'] = max_ronda if max_ronda else 0
+            context['total_rondas'] = max_ronda if max_ronda is not None else 0
         else:
             context['total_rondas'] = 0
         
