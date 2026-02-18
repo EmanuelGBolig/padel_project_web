@@ -23,7 +23,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('email', 'password')}),
         (
             'Información Personal',
-            {'fields': ('nombre', 'apellido', 'numero_telefono', 'genero', 'division')},
+            {'fields': ('nombre', 'apellido', 'numero_telefono', 'genero', 'division', 'organizacion')},
         ),
         (
             'Permisos',
@@ -57,6 +57,7 @@ class CustomUserAdmin(UserAdmin):
                     'genero',
                     'division',
                     'tipo_usuario',
+                    'organizacion',
                 ),
             },
         ),
