@@ -619,12 +619,12 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
     def avanzar_grupo_logica(self, request, torneo, grupo):
         """Manda a los que pasaron del grupo a sus lugares correspondientes en el bracket."""
         # VALIDACIÓN: Verificar que todos los partidos del grupo estén terminados
-    partidos_pendientes = grupo.partidos_grupo.filter(ganador__isnull=True).exists()
-    if partidos_pendientes:
-        messages.error(request, f"No se pueden avanzar los clasificados del {grupo.nombre} porque aún hay partidos pendientes de resultado.")
-        return redirect('torneos:admin_manage', pk=torneo.pk)
+        partidos_pendientes = grupo.partidos_grupo.filter(ganador__isnull=True).exists()
+        if partidos_pendientes:
+            messages.error(request, f"No se pueden avanzar los clasificados del {grupo.nombre} porque aún hay partidos pendientes de resultado.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
 
-    tabla = grupo.tabla.all() # Ordenada por PG, DS, DG
+        tabla = grupo.tabla.all() # Ordenada por PG, DS, DG
         if not tabla.exists():
             messages.error(request, f"No hay clasificados en {grupo.nombre}.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
