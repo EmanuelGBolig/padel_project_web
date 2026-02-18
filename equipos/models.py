@@ -21,7 +21,7 @@ class Equipo(models.Model):
         null=True,
         blank=True
     )
-    division = models.ForeignKey(Division, on_delete=models.PROTECT)
+    division = models.ForeignKey(Division, on_delete=models.PROTECT, null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -67,7 +67,7 @@ class Equipo(models.Model):
 
             # 3. Asignar división automáticamente basada en el jugador 1 (si no se pasó)
             # Esto mantiene la integridad de datos
-            if not self.division_id:
+            if not self.division_id and self.jugador1:
                 self.division = self.jugador1.division
 
         super().save(*args, **kwargs)
