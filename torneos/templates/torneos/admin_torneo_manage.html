@@ -238,21 +238,23 @@
                                                 {% setvar grupo_terminado = False %}
                                             {% endif %}
                                         {% endfor %}
-                                        <button type="submit"
-                                                onclick="event.stopPropagation();"
-                                                class="btn btn-sm {% if grupo_terminado %}btn-success{% else %}btn-disabled{% endif %} gap-2 relative z-30"
-                                                {% if not grupo_terminado %}disabled{% endif %}
-                                                title="Mandar ganadores al cuadro">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                 fill="none"
-                                                 viewBox="0 0 24 24"
-                                                 stroke-width="1.5"
-                                                 stroke="currentColor"
-                                                 class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25V18a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18V8.25m-18 0V6a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 6v2.25m-18 0h18M5.25 9.75h13.5m-13.5 3h13.5m-13.5 3h13.5" />
-                                            </svg>
-                                            <span class="hidden md:inline">Avanzar Clasificados</span>
-                                        </button>
+                                        <div class="tooltip tooltip-left"
+                                             data-tip="{% if grupo_terminado %}Mandar ganadores al cuadro{% else %}Faltan resultados por cargar en el grupo{% endif %}">
+                                            <button type="submit"
+                                                    onclick="event.stopPropagation();"
+                                                    class="btn btn-sm {% if grupo_terminado %}btn-success{% else %}btn-disabled{% endif %} gap-2 relative z-30"
+                                                    {% if not grupo_terminado %}disabled{% endif %}>
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke-width="1.5"
+                                                     stroke="currentColor"
+                                                     class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25V18a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18V8.25m-18 0V6a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 6v2.25m-18 0h18M5.25 9.75h13.5m-13.5 3h13.5m-13.5 3h13.5" />
+                                                </svg>
+                                                <span class="hidden md:inline">Avanzar Clasificados</span>
+                                            </button>
+                                        </div>
                                     </form>
                                     <button class="btn btn-sm btn-square btn-ghost text-warning z-20"
                                             hx-get="{% url 'torneos:swap_group_teams' grupo.pk %}"
