@@ -60,6 +60,16 @@
         background-color: oklch(var(--b1)) !important;
         color: oklch(var(--bc)) !important;
     }
+
+    /* Force Select2 to respect parent width on all screens */
+    .select2-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .select2-search__field {
+        width: 100% !important;
+    }
     </style>
     <div class="flex justify-center items-center py-6 md:py-12 px-2 md:px-4 min-h-[calc(100vh-4rem)]">
         <div class="w-full max-w-4xl bg-base-200/30 rounded-3xl border border-base-300/30 p-2 md:p-10 flex justify-center items-center">
@@ -83,7 +93,7 @@
                                 <span class="label-text font-bold text-base-content">Selecciona tu compañero ({{ user.division.nombre }})</span>
                             </label>
                             <!-- Contenedor con ancho forzado para Select2 -->
-                            <div class="w-full select2-full-width">{{ form.jugador2 }}</div>
+                            <div class="w-full max-w-full overflow-hidden select2-wrapper">{{ form.jugador2 }}</div>
                             {% if form.jugador2.errors %}<div class="text-error text-xs mt-2 pl-1">{{ form.jugador2.errors.0 }}</div>{% endif %}
                         </div>
                         <div class="form-control w-full mb-6">
