@@ -2,6 +2,8 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils import timezone
+from django.contrib import messages
 from .models import CustomUser, Organizacion, Sponsor
 from .forms import CustomUserCreationForm, CustomUserProfileForm, CustomLoginForm, OrganizacionForm, SponsorForm
 
