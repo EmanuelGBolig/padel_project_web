@@ -131,23 +131,29 @@
                         Equipos Inscritos ({{ inscripciones.count }})
                     </h2>
                     {% if torneo.forzar_grupos_de_3 %}
-                        <form method="post" action="">
+                        <form method="post" action="" class="flex gap-2">
                             {% csrf_token %}
-                            <button type="submit"
-                                    name="action"
-                                    value="agregar_dummy"
-                                    class="btn btn-sm btn-outline gap-2"
-                                    title="Agregar un equipo 'dummy' para completar grupos">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     fill="none"
-                                     viewBox="0 0 24 24"
-                                     stroke-width="1.5"
-                                     stroke="currentColor"
-                                     class="w-4 h-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                </svg>
-                                Agregar Pareja Libre
-                            </button>
+                            <div class="join">
+                                <input type="text"
+                                       name="nombre_dummy_custom"
+                                       placeholder="Nombre personalizado (opcional)"
+                                       class="input input-sm input-bordered join-item w-48 md:w-64" />
+                                <button type="submit"
+                                        name="action"
+                                        value="agregar_dummy"
+                                        class="btn btn-sm btn-primary join-item gap-2"
+                                        title="Agregar un equipo 'dummy' para completar grupos">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         fill="none"
+                                         viewBox="0 0 24 24"
+                                         stroke-width="1.5"
+                                         stroke="currentColor"
+                                         class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    Agregar Pareja Libre
+                                </button>
+                            </div>
                         </form>
                     {% endif %}
                 </div>

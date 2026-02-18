@@ -129,12 +129,18 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return self.iniciar_torneo_logica(request, torneo)
         
         elif action == 'agregar_dummy':
-            # Crear o buscar equipo dummy (o crear uno nuevo siempre)
-            # Para evitar flood de dummies, intentaremos usar uno si existe y no está en este torneo,
-            # pero lo más simple es crear uno nuevo exclusivo para este torneo o permitir múltiples.
-            # Dado que 'nombre' es unique, necesitamos nombres únicos.
-            count_dummies = Equipo.objects.filter(es_dummy=True).count()
-            nombre_dummy = f"Pareja Libre {count_dummies + 1}"
+            # Intentar obtener nombre personalizado del POST
+            nombre_custom = request.POST.get('nombre_dummy_custom', '').strip()
+            
+            if nombre_custom:
+                nombre_dummy = nombre_custom
+                # Verificar si ya existe un equipo con ese nombre para evitar el unique constraint error
+                if Equipo.objects.filter(nombre=nombre_dummy).exists():
+                    messages.error(request, f"Ya existe un equipo con el nombre '{nombre_dummy}'.")
+                    return redirect('torneos:admin_manage', pk=torneo.pk)
+            else:
+                count_dummies = Equipo.objects.filter(es_dummy=True).count()
+                nombre_dummy = f"Pareja Libre {count_dummies + 1}"
             
             # Crear el equipo dummy
             equipo_dummy = Equipo.objects.create(
