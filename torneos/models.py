@@ -33,6 +33,11 @@ class Torneo(models.Model):
     # Por defecto, el sistema intentará grupos de 3 o 4 según el total de inscritos.
     equipos_por_grupo = models.PositiveIntegerField(default=3)
 
+    forzar_grupos_de_3 = models.BooleanField(
+        default=False,
+        help_text="Si se activa, el sistema exigirá que el total de equipos sea divisible por 3."
+    )
+
     estado = models.CharField(
         max_length=2, choices=Estado.choices, default=Estado.ABIERTO
     )
