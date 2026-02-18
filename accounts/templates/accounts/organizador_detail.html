@@ -16,7 +16,7 @@
                                 {% if organizacion.logo %}
                                     <img src="{{ organizacion.logo.url }}"
                                          alt="{{ organizacion.nombre }}"
-                                         class="object-contain"
+                                         class="object-cover w-full h-full"
                                          width="128"
                                          height="128" />
                                 {% else %}
@@ -90,16 +90,16 @@
                             {% if sponsor.link %}
                                 <a href="{{ sponsor.link }}"
                                    target="_blank"
-                                   class="card w-64 bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-base-200">
+                                   class="card w-32 h-32 md:w-48 md:h-48 aspect-square bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-base-200 overflow-hidden">
                                 {% else %}
-                                    <div class="card w-64 bg-base-100 shadow-md border border-base-200">
+                                    <div class="card w-32 h-32 md:w-48 md:h-48 aspect-square bg-base-100 shadow-md border border-base-200 overflow-hidden">
                                     {% endif %}
-                                    <figure class="h-48 w-full overflow-hidden">
+                                    <figure class="w-full h-full">
                                         <img src="{{ sponsor.imagen.url }}"
                                              alt="{{ sponsor.nombre }}"
                                              class="w-full h-full object-cover"
                                              width="256"
-                                             height="192" />
+                                             height="256" />
                                     </figure>
                                     {% if sponsor.link %}
                                     </a>

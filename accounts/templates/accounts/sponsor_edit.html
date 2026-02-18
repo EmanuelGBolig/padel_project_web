@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Editar Sponsor - TodoPadel{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="flex items-center gap-4 mb-8">
+                <a href="{% url 'accounts:organizacion_sponsors' %}"
+                   class="btn btn-ghost btn-circle">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke-width="1.5"
+                         stroke="currentColor"
+                         class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                </a>
+                <h1 class="text-3xl font-bold">Editar Sponsor</h1>
+            </div>
+            <div class="card bg-base-100 shadow-xl border border-base-200">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="space-y-6">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text font-medium">{{ field.label }}</span>
+                                </label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <label class="label">
+                                        <span class="label-text-alt opacity-70">{{ field.help_text }}</span>
+                                    </label>
+                                {% endif %}
+                                {% if field.errors %}<span class="text-error text-xs">{{ field.errors.0 }}</span>{% endif %}
+                            </div>
+                        {% endfor %}
+                        <div class="flex gap-4 mt-8">
+                            <button type="submit" class="btn btn-primary flex-1">Guardar Cambios</button>
+                            <a href="{% url 'accounts:organizacion_sponsors' %}"
+                               class="btn btn-ghost">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -371,3 +371,16 @@ class SponsorDeleteView(LoginRequiredMixin, DeleteView):
         # Asegurar que solo pueda borrar sponsors de su organización
         from .models import Sponsor
         return Sponsor.objects.filter(organizacion=self.request.user.organizacion)
+
+class SponsorUpdateView(LoginRequiredMixin, UpdateView):
+    model = Sponsor
+    form_class = SponsorForm
+    template_name = 'accounts/sponsor_edit.html'
+
+    def get_success_url(self):
+        return reverse('accounts:organizacion_sponsors')
+
+    def get_queryset(self):
+        # Asegurar que solo pueda editar sponsors de su organización
+        from .models import Sponsor
+        return Sponsor.objects.filter(organizacion=self.request.user.organizacion)

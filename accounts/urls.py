@@ -18,6 +18,7 @@ urlpatterns = [
     # Gestión de Organización
     path('organizacion/ajustes/', views.OrganizacionSettingsView.as_view(), name='organizacion_settings'),
     path('organizacion/sponsors/', views.OrganizacionSponsorsView.as_view(), name='organizacion_sponsors'),
+    path('organizacion/sponsors/<int:pk>/editar/', views.SponsorUpdateView.as_view(), name='editar_sponsor'),
     path('organizacion/sponsors/<int:pk>/delete/', views.SponsorDeleteView.as_view(), name='eliminar_sponsor'),
     
     # Rutas de recuperación de contraseña (Django Auth)
