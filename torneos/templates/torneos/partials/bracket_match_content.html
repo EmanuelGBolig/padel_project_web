@@ -10,6 +10,8 @@
         {% if partido.equipo1 %}
             {% get_team_info partido.equipo1 torneo as team_info %}
             <span title="{{ team_info.name }}">{{ team_info.code|short_name:12 }}</span>
+        {% elif partido.placeholder_e1 %}
+            <span class="opacity-30 italic">{{ partido.placeholder_e1 }}</span>
         {% else %}
             ...
         {% endif %}
@@ -22,6 +24,8 @@
         {% if partido.equipo2 %}
             {% get_team_info partido.equipo2 torneo as team_info %}
             <span title="{{ team_info.name }}">{{ team_info.code|short_name:12 }}</span>
+        {% elif partido.placeholder_e2 %}
+            <span class="opacity-30 italic">{{ partido.placeholder_e2 }}</span>
         {% else %}
             ...
         {% endif %}

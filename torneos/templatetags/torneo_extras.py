@@ -131,4 +131,36 @@ def short_name(value, max_length=20):
     """
     if len(str(value)) > max_length:
         return str(value)[:max_length] + "..."
-    return str(value)
+@register.tag(name="setvar")
+def do_setvar(parser, token):
+    """
+    Asigna un valor a una variable en el contexto del template.
+    Uso: {% setvar variable_name = value %}
+    """
+    parts = token.split_contents()
+    if len(parts) < 4:
+        raise template.TemplateSyntaxError("'setvar' tag requires at least 3 arguments")
+    
+    # Soporta {% setvar var = value %}
+    return SetVarNode(parts[1], parts[3])
+
+class SetVarNode(template.Node):
+    def __init__(self, var_name, var_value):
+        self.var_name = var_name
+        self.var_value = var_value
+
+    def render(self, context):
+        # Intentar resolver el valor (si es una variable o un literal)
+        try:
+            val = template.Variable(self.var_value).resolve(context)
+        except template.VariableDoesNotExist:
+            # Si no se puede resolver, tratar como string literal (si corresponde) o booleano
+            if self.var_value.lower() == 'true':
+                val = True
+            elif self.var_value.lower() == 'false':
+                val = False
+            else:
+                val = self.var_value
+        
+        context[self.var_name] = val
+        return ""

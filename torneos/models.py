@@ -258,6 +258,10 @@ class Partido(models.Model):
     sets_local = models.JSONField(default=list, blank=True)
     sets_visitante = models.JSONField(default=list, blank=True)
 
+    # Identificadores de cruce (Ej: "1A", "2B") para mostrar antes de que clasifiquen
+    placeholder_e1 = models.CharField(max_length=50, blank=True, null=True)
+    placeholder_e2 = models.CharField(max_length=50, blank=True, null=True)
+
     # Enlace al siguiente partido en el bracket
     siguiente_partido = models.ForeignKey(
         'self',

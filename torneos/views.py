@@ -158,6 +158,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         elif action == 'generar_octavos':
             return self.generar_octavos_logica(request, torneo)
         
+        elif action == 'avanzar_grupo':
+            grupo_id = request.POST.get('grupo_id')
+            grupo = get_object_or_404(Grupo, pk=grupo_id, torneo=torneo)
+            return self.avanzar_grupo_logica(request, torneo, grupo)
+        
         elif action == 'reset_bracket':
             # Eliminar todos los partidos de eliminación
             torneo.partidos.all().delete()
@@ -284,9 +289,13 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         torneo.estado = Torneo.Estado.EN_JUEGO
         torneo.save()
+
+        # NUEVO: Generar estructura de bracket inmediatamente
+        self.generar_octavos_logica(request, torneo, solo_estructura=True)
+        
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
-    def generar_octavos_logica(self, request, torneo):
+    def generar_octavos_logica(self, request, torneo, solo_estructura=False):
         inscripciones = torneo.inscripciones.all()
         count = inscripciones.count()
         custom_format = get_format(count)
@@ -298,8 +307,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             grupos_map = {}
             grupos = torneo.grupos.all()
             for g in grupos:
-                # Asumimos formato "Zona A" o "Grupo A"
-                letra = g.nombre.split(' ')[-1]
+                # Asumimos formato "Zona A", "Grupo A" o "A"
+                if ' ' in g.nombre:
+                    letra = g.nombre.split(' ')[-1]
+                else:
+                    letra = g.nombre
                 grupos_map[letra] = g
 
             # NUEVO: Soporte para estructura explícita (Brackets asimétricos)
@@ -317,27 +329,31 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                     
                     # Resolver Equipo 1
                     e1 = None
+                    p1_label = None
                     t1_def = m_def.get('t1')
                     if t1_def:
                         if isinstance(t1_def, tuple): # ('A', 1)
                             g_letra, g_pos = t1_def
-                            if g_letra in grupos_map:
-                                tabla = grupos_map[g_letra].tabla.all()
-                                if len(tabla) >= g_pos:
-                                    e1 = tabla[g_pos-1].equipo
-                        # Si es int, es un ID de partido previo, pero aquí solo asignamos equipos iniciales.
-                        # Los ganadores de partidos previos se asignan vía 'siguiente_partido' en el paso de enlace.
+                            p1_label = f"{g_pos}{g_letra}" # Ej: 1A
+                            if not solo_estructura:
+                                if g_letra in grupos_map:
+                                    tabla = grupos_map[g_letra].tabla.all()
+                                    if len(tabla) >= g_pos:
+                                        e1 = tabla[g_pos-1].equipo
 
                     # Resolver Equipo 2
                     e2 = None
+                    p2_label = None
                     t2_def = m_def.get('t2')
                     if t2_def:
                         if isinstance(t2_def, tuple):
                             g_letra, g_pos = t2_def
-                            if g_letra in grupos_map:
-                                tabla = grupos_map[g_letra].tabla.all()
-                                if len(tabla) >= g_pos:
-                                    e2 = tabla[g_pos-1].equipo
+                            p2_label = f"{g_pos}{g_letra}" # Ej: 2B
+                            if not solo_estructura:
+                                if g_letra in grupos_map:
+                                    tabla = grupos_map[g_letra].tabla.all()
+                                    if len(tabla) >= g_pos:
+                                        e2 = tabla[g_pos-1].equipo
 
                     # Crear Partido
                     p = Partido.objects.create(
@@ -346,6 +362,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                         orden_partido=match_id, # Usamos el ID interno como orden por simplicidad
                         equipo1=e1,
                         equipo2=e2,
+                        placeholder_e1=p1_label,
+                        placeholder_e2=p2_label
                     )
                     created_matches[match_id] = p
                 
@@ -386,17 +404,22 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 g1_letra, g1_pos = cruce1
                 g2_letra, g2_pos = cruce2
                 
+                p1_label = f"{g1_pos}{g1_letra}"
+                p2_label = f"{g2_pos}{g2_letra}"
+                
                 e1 = None
-                if g1_letra in grupos_map:
-                    tabla = grupos_map[g1_letra].tabla.all() # Ordenada por mérito
-                    if len(tabla) >= g1_pos:
-                        e1 = tabla[g1_pos-1].equipo
+                if not solo_estructura:
+                    if g1_letra in grupos_map:
+                        tabla = grupos_map[g1_letra].tabla.all()
+                        if len(tabla) >= g1_pos:
+                            e1 = tabla[g1_pos-1].equipo
                 
                 e2 = None
-                if g2_letra in grupos_map:
-                    tabla = grupos_map[g2_letra].tabla.all()
-                    if len(tabla) >= g2_pos:
-                        e2 = tabla[g2_pos-1].equipo
+                if not solo_estructura:
+                    if g2_letra in grupos_map:
+                        tabla = grupos_map[g2_letra].tabla.all()
+                        if len(tabla) >= g2_pos:
+                            e2 = tabla[g2_pos-1].equipo
 
                 p = Partido.objects.create(
                     torneo=torneo,
@@ -404,6 +427,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                     orden_partido=i + 1,
                     equipo1=e1,
                     equipo2=e2,
+                    placeholder_e1=p1_label,
+                    placeholder_e2=p2_label
                 )
                 partidos_por_ronda[ronda_inicio].append(p)
 
@@ -476,9 +501,46 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         # 2. Calcular tamaño del bracket (Potencia de 2)
         import math
-        bracket_size = 2 ** math.ceil(math.log2(num_equipos))
-        num_byes = bracket_size - num_equipos
-        slots = clasificados + [None] * num_byes
+        
+        if not solo_estructura:
+            bracket_size = 2 ** math.ceil(math.log2(num_equipos))
+            num_byes = bracket_size - num_equipos
+            slots = clasificados + [None] * num_byes
+        else:
+            # Si es solo estructura, calculamos clasificados teóricos (1ro y 2do de cada grupo)
+            grupos_all = list(torneo.grupos.all().order_by('nombre'))
+            num_grupos_count = len(grupos_all)
+            num_equipos_teorico = num_grupos_count * 2
+            if num_equipos_teorico < 4:
+                num_equipos_teorico = 4
+            
+            bracket_size = 2 ** math.ceil(math.log2(num_equipos_teorico))
+            
+            # Slots con labels (1A, 2B, 1B, 2A...)
+            slots_labels = []
+            letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            
+            # Generar lista teórica de primeros y segundos
+            teoricos_1 = []
+            teoricos_2 = []
+            for i in range(num_grupos_count):
+                teoricos_1.append(f"1{letras[i]}")
+                teoricos_2.append(f"2{letras[i]}")
+            
+            # Rotar segundos (igual que arriba)
+            if teoricos_2:
+                teoricos_2 = teoricos_2[1:] + teoricos_2[:1]
+            
+            # Intercalar
+            from itertools import zip_longest
+            for p, s in zip_longest(teoricos_1, teoricos_2):
+                if p: slots_labels.append(p)
+                if s: slots_labels.append(s)
+            
+            # Byes
+            num_byes = bracket_size - len(slots_labels)
+            slots_labels += [None] * num_byes
+            slots = slots_labels
 
         # 3. Calcular número de rondas
         # bracket_size = 4 -> 2 rondas (Semifinal=1, Final=2)
@@ -495,8 +557,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         partidos_por_ronda[ronda_inicio] = []
         
         for i in range(cant_partidos_r1):
-            e1 = slots.pop(0) if slots else None
-            e2 = slots.pop(0) if slots else None
+            s1 = slots.pop(0) if slots else None
+            s2 = slots.pop(0) if slots else None
+            
+            e1, p1_label = (None, s1) if solo_estructura else (s1, None)
+            e2, p2_label = (None, s2) if solo_estructura else (s2, None)
 
             p = Partido.objects.create(
                 torneo=torneo,
@@ -504,21 +569,24 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 orden_partido=i + 1,
                 equipo1=e1,
                 equipo2=e2,
+                placeholder_e1=p1_label,
+                placeholder_e2=p2_label
             )
             partidos_por_ronda[ronda_inicio].append(p)
 
-            # MANEJO DE BYES
-            if e1 and not e2:
-                p.ganador = e1
-                p.resultado = "Bye"
-                p.save()
-            elif not e1 and e2:
-                p.ganador = e2
-                p.resultado = "Bye"
-                p.save()
-            elif not e1 and not e2:
-                p.resultado = "Bye"
-                p.save()
+            # MANEJO DE BYES (Solo si no es estructura vacía)
+            if not solo_estructura:
+                if e1 and not e2:
+                    p.ganador = e1
+                    p.resultado = "Bye"
+                    p.save()
+                elif not e1 and e2:
+                    p.ganador = e2
+                    p.resultado = "Bye"
+                    p.save()
+                elif not e1 and not e2:
+                    p.resultado = "Bye"
+                    p.save()
 
         # 5. Generar las rondas superiores (vacías por ahora)
         for ronda_num in range(2, num_rondas + 1):
@@ -544,8 +612,50 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                     partido.save()
 
         messages.success(
-            request, f"Bracket de {bracket_size} generado con {num_equipos} equipos."
+            request, f"Estructura de bracket generada ({bracket_size} slots)." if solo_estructura else f"Bracket de {bracket_size} generado con {num_equipos} equipos."
         )
+        return redirect('torneos:admin_manage', pk=torneo.pk)
+
+    def avanzar_grupo_logica(self, request, torneo, grupo):
+        """Manda a los que pasaron del grupo a sus lugares correspondientes en el bracket."""
+        tabla = grupo.tabla.all() # Ordenada por PG, DS, DG
+        if not tabla.exists():
+            messages.error(request, f"No hay clasificados en {grupo.nombre}.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+        
+        # Identificar la letra del grupo (ej: "Grupo A" -> "A")
+        if ' ' in grupo.nombre:
+            letra = grupo.nombre.split(' ')[-1]
+        else:
+            letra = grupo.nombre
+            
+        # Equipos clasificados (1ro y 2do)
+        c1 = tabla[0].equipo
+        c2 = tabla[1].equipo if len(tabla) >= 2 else None
+        
+        # Buscar partidos del bracket donde correspondan (labels 1A y 2A)
+        label1 = f"1{letra}"
+        label2 = f"2{letra}"
+        
+        # Actualizar Equipo 1
+        Partido.objects.filter(torneo=torneo, placeholder_e1=label1).update(equipo1=c1)
+        Partido.objects.filter(torneo=torneo, placeholder_e2=label1).update(equipo2=c1)
+        
+        # Actualizar Equipo 2 (si existe)
+        if c2:
+            # NOTA: En la lógica genérica fallback, el label 2A podría estar en un partido distinto
+            # por el cruce intercalado. update() se encarga de buscarlo en todo el torneo.
+            Partido.objects.filter(torneo=torneo, placeholder_e1=label2).update(equipo1=c2)
+            Partido.objects.filter(torneo=torneo, placeholder_e2=label2).update(equipo2=c2)
+        
+        # Revisar si hay partidos que ahora tengan ambos equipos para manejo de BYES automáticos
+        # (Aunque usualmente los BYES se setean al generar, aquí si un equipo se mueve y su oponente es None...)
+        for p in torneo.partidos.filter(Q(equipo1=c1) | Q(equipo2=c1) | Q(equipo1=c2) | Q(equipo2=c2)):
+            if p.equipo1 and not p.equipo2 and not p.siguiente_partido:
+                 # Quizás es una ronda de entrada con Bye? Por ahora dejamos que el admin vea el bracket
+                 pass
+
+        messages.success(request, f"¡Clasificados del {grupo.nombre} avanzados al cuadro!")
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
 
