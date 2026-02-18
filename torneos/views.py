@@ -805,6 +805,8 @@ class TorneoDetailView(DetailView):
                 and not context['inscripcion_cerrada']
                 and context['hay_cupos']
                 and not context['ya_inscrito']
+                and user.is_authenticated
+                and user.tipo_usuario == 'PLAYER'
                 and not user.is_staff
                 and context['division_correcta']  # Validación de división
                 and context['categoria_correcta'] # Validación de categoría
