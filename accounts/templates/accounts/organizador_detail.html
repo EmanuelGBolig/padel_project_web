@@ -94,16 +94,13 @@
                                 {% else %}
                                     <div class="card w-64 bg-base-100 shadow-md border border-base-200">
                                     {% endif %}
-                                    <figure class="h-32 bg-white p-4">
+                                    <figure class="h-48 w-full overflow-hidden">
                                         <img src="{{ sponsor.imagen.url }}"
                                              alt="{{ sponsor.nombre }}"
-                                             class="h-full object-contain"
+                                             class="w-full h-full object-cover"
                                              width="256"
-                                             height="128" />
+                                             height="192" />
                                     </figure>
-                                    <div class="card-body p-4 text-center">
-                                        <h4 class="font-bold text-sm">{{ sponsor.nombre }}</h4>
-                                    </div>
                                     {% if sponsor.link %}
                                     </a>
                                 {% else %}
