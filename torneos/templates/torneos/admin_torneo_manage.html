@@ -131,18 +131,17 @@
                         Equipos Inscritos ({{ inscripciones.count }})
                     </h2>
                     {% if torneo.forzar_grupos_de_3 %}
-                        <form method="post" action="" class="flex gap-2">
+                        <form method="post" action="" class="w-full md:w-auto">
                             {% csrf_token %}
-                            <div class="join">
+                            <div class="flex flex-col sm:flex-row gap-2 w-full">
                                 <input type="text"
                                        name="nombre_dummy_custom"
                                        placeholder="Nombre personalizado (opcional)"
-                                       class="input input-sm input-bordered join-item w-48 md:w-64" />
+                                       class="input input-sm input-bordered w-full sm:w-64" />
                                 <button type="submit"
                                         name="action"
                                         value="agregar_dummy"
-                                        class="btn btn-sm btn-primary join-item gap-2"
-                                        title="Agregar un equipo 'dummy' para completar grupos">
+                                        class="btn btn-sm btn-primary gap-2 whitespace-nowrap">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                          fill="none"
                                          viewBox="0 0 24 24"
