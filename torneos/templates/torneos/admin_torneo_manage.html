@@ -226,7 +226,7 @@
                                 <span class="group-name">{{ grupo.nombre }}</span>
                                 <div class="flex items-center gap-2">
                                     <form method="post"
-                                          class="inline-block"
+                                          class="inline-block relative z-30"
                                           onclick="event.stopPropagation();"
                                           onsubmit="return confirm('¿Avanzar clasificados del {{ grupo.nombre }} al cuadro final?')">
                                         {% csrf_token %}
@@ -239,7 +239,8 @@
                                             {% endif %}
                                         {% endfor %}
                                         <button type="submit"
-                                                class="btn btn-sm {% if grupo_terminado %}btn-success{% else %}btn-disabled{% endif %} gap-2"
+                                                onclick="event.stopPropagation();"
+                                                class="btn btn-sm {% if grupo_terminado %}btn-success{% else %}btn-disabled{% endif %} gap-2 relative z-30"
                                                 {% if not grupo_terminado %}disabled{% endif %}
                                                 title="Mandar ganadores al cuadro">
                                             <svg xmlns="http://www.w3.org/2000/svg"
