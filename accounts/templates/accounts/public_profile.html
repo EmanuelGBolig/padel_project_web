@@ -206,7 +206,7 @@
                                                 <td class="whitespace-nowrap">{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
                                                 <td class="truncate max-w-[120px]" title="{{ torneo.division.nombre }}">{{ torneo.division.nombre }}</td>
                                                 <td>
-                                                    {% if torneo.ganador_del_torneo and (torneo.ganador_del_torneo.jugador1 == perfil_usuario or torneo.ganador_del_torneo.jugador2 == perfil_usuario) %}
+                                                    {% if torneo.ganador_del_torneo and torneo.ganador_del_torneo.jugador1 == perfil_usuario or torneo.ganador_del_torneo and torneo.ganador_del_torneo.jugador2 == perfil_usuario %}
                                                         <span class="badge badge-warning gap-1">
                                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                                  class="h-3 w-3"
