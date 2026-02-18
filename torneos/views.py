@@ -624,10 +624,12 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return redirect('torneos:admin_manage', pk=torneo.pk)
         
         # Identificar la letra del grupo (ej: "Grupo A" -> "A")
-        if ' ' in grupo.nombre:
-            letra = grupo.nombre.split(' ')[-1]
+        # Limpiamos espacios y convertimos a mayúsculas para evitar fallos de matching
+        nombre_grupo = grupo.nombre.strip()
+        if ' ' in nombre_grupo:
+            letra = nombre_grupo.split(' ')[-1].upper()
         else:
-            letra = grupo.nombre
+            letra = nombre_grupo.upper()
             
         # Equipos clasificados (1ro y 2do)
         c1 = tabla[0].equipo
@@ -637,25 +639,25 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         label1 = f"1{letra}"
         label2 = f"2{letra}"
         
+        updates_count = 0
+        
         # Actualizar Equipo 1
-        Partido.objects.filter(torneo=torneo, placeholder_e1=label1).update(equipo1=c1)
-        Partido.objects.filter(torneo=torneo, placeholder_e2=label1).update(equipo2=c1)
+        # Usamos update() y contamos si realmente cambió algo
+        up1 = Partido.objects.filter(torneo=torneo, placeholder_e1=label1).update(equipo1=c1)
+        up2 = Partido.objects.filter(torneo=torneo, placeholder_e2=label1).update(equipo2=c1)
+        updates_count += (up1 + up2)
         
         # Actualizar Equipo 2 (si existe)
         if c2:
-            # NOTA: En la lógica genérica fallback, el label 2A podría estar en un partido distinto
-            # por el cruce intercalado. update() se encarga de buscarlo en todo el torneo.
-            Partido.objects.filter(torneo=torneo, placeholder_e1=label2).update(equipo1=c2)
-            Partido.objects.filter(torneo=torneo, placeholder_e2=label2).update(equipo2=c2)
+            up3 = Partido.objects.filter(torneo=torneo, placeholder_e1=label2).update(equipo1=c2)
+            up4 = Partido.objects.filter(torneo=torneo, placeholder_e2=label2).update(equipo2=c2)
+            updates_count += (up3 + up4)
         
-        # Revisar si hay partidos que ahora tengan ambos equipos para manejo de BYES automáticos
-        # (Aunque usualmente los BYES se setean al generar, aquí si un equipo se mueve y su oponente es None...)
-        for p in torneo.partidos.filter(Q(equipo1=c1) | Q(equipo2=c1) | Q(equipo1=c2) | Q(equipo2=c2)):
-            if p.equipo1 and not p.equipo2 and not p.siguiente_partido:
-                 # Quizás es una ronda de entrada con Bye? Por ahora dejamos que el admin vea el bracket
-                 pass
+        if updates_count > 0:
+            messages.success(request, f"¡Clasificados del {grupo.nombre} avanzados al cuadro ({updates_count} posiciones actualizadas)!")
+        else:
+            messages.warning(request, f"Se procesó el {grupo.nombre}, pero no se encontraron posiciones libres con etiquetas '{label1}' o '{label2}' en el cuadro.")
 
-        messages.success(request, f"¡Clasificados del {grupo.nombre} avanzados al cuadro!")
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
 

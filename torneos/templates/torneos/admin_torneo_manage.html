@@ -227,6 +227,7 @@
                                 <div class="flex items-center gap-2">
                                     <form method="post"
                                           class="inline-block"
+                                          onclick="event.stopPropagation();"
                                           onsubmit="return confirm('¿Avanzar clasificados del {{ grupo.nombre }} al cuadro final?')">
                                         {% csrf_token %}
                                         <input type="hidden" name="action" value="avanzar_grupo">
