@@ -129,54 +129,96 @@ class PerfilView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from .utils import get_player_stats, get_user_ranking
+        user = self.request.user
         
-        # Obtener estadísticas completas
-        stats = get_player_stats(self.request.user)
-        context['stats'] = stats
-
-        # Obtener Ranking
-        ranking_info = get_user_ranking(self.request.user)
-        context['ranking_info'] = ranking_info
-
-        # --- Invitaciones (Fix: Pasar al contexto) ---
-        from equipos.models import Invitation
-        context['invitaciones_enviadas'] = self.request.user.sent_invitations.filter(status=Invitation.Status.PENDING)
-        context['invitaciones_recibidas'] = self.request.user.received_invitations.filter(status=Invitation.Status.PENDING)
-
-        # --- Próximos Partidos ---
-        equipo = self.request.user.equipo
-        if equipo:
-            from django.db.models import Q
-            from torneos.models import Partido, PartidoGrupo
+        # --- LÓGICA DE DASHBOARD DE GESTIÓN (ADMIN/ORGANIZADOR) ---
+        if user.tipo_usuario in ['ADMIN', 'ORGANIZER']:
+            from torneos.models import Torneo, Inscripcion
             
-            # 1. Partidos de Eliminatoria Pendientes
-            partidos_elim = Partido.objects.filter(
-                Q(equipo1=equipo) | Q(equipo2=equipo),
-                ganador__isnull=True,
-                torneo__estado__in=['AB', 'EJ'] # Solo torneos activos
-            ).select_related('torneo', 'equipo1', 'equipo2')
+            # 1. Obtener organización
+            organizacion = user.organizacion
+            
+            # 2. Torneos gestionados
+            if user.tipo_usuario == 'ADMIN':
+                torneos_gestionados = Torneo.objects.all().order_by('-fecha_inicio')
+            else:
+                torneos_gestionados = Torneo.objects.filter(organizacion=organizacion).order_by('-fecha_inicio')
+            
+            context['torneos_gestionados'] = torneos_gestionados
+            
+            # 3. Inscripciones recientes para estos torneos
+            inscripciones_recientes = Inscripcion.objects.filter(
+                torneo__in=torneos_gestionados
+            ).select_related('torneo', 'equipo', 'equipo__division', 'torneo__division').order_by('-fecha_inscripcion')[:15]
+            
+            # Procesar inscripciones para detectar saltos de división
+            for ins in inscripciones_recientes:
+                ins.alerta_division = None
+                if ins.torneo.division and ins.equipo.division:
+                    # Comparar órdenes: 1 es superior a 8
+                    if ins.equipo.division.orden < ins.torneo.division.orden:
+                        ins.alerta_division = 'SUPERIOR' # El equipo es de una división más competitiva
+                    elif ins.equipo.division.orden > ins.torneo.division.orden:
+                        ins.alerta_division = 'INFERIOR' # El equipo es de una división menos competitiva
+            
+            context['inscripciones_recientes'] = inscripciones_recientes
+            
+            # Resumen rápido para el dashboard
+            context['total_torneos_activos'] = torneos_gestionados.filter(estado__in=['AB', 'EJ']).count()
+            context['total_inscripciones_hoy'] = Inscripcion.objects.filter(
+                torneo__in=torneos_gestionados,
+                fecha_inscripcion__date=timezone.now().date()
+            ).count()
 
-            # 2. Partidos de Fase de Grupos Pendientes
-            partidos_grupo = PartidoGrupo.objects.filter(
-                Q(equipo1=equipo) | Q(equipo2=equipo),
-                ganador__isnull=True,
-                grupo__torneo__estado__in=['AB', 'EJ']
-            ).select_related('grupo__torneo', 'equipo1', 'equipo2')
+        # --- LÓGICA DE JUGADOR (STATS) ---
+        # Solo calculamos stats pesadas si el usuario es jugador
+        if user.tipo_usuario == 'PLAYER':
+            from .utils import get_player_stats, get_user_ranking
+            
+            # Obtener estadísticas completas
+            stats = get_player_stats(user)
+            context['stats'] = stats
 
-            # Combinar y ordenar por fecha (los que no tienen fecha van al final)
-            proximos = sorted(
-                list(partidos_elim) + list(partidos_grupo),
-                key=lambda x: x.fecha_hora.timestamp() if x.fecha_hora else 9999999999
-            )
-            context['proximos_partidos'] = proximos
-        else:
-            context['proximos_partidos'] = []
-        
-        # Separar inscripciones por estado para la vista
-        inscripciones = stats['inscripciones']
-        context['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
-        context['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
+            # Obtener Ranking
+            ranking_info = get_user_ranking(user)
+            context['ranking_info'] = ranking_info
+
+            # Separar inscripciones por estado para la vista
+            inscripciones_stats = stats['inscripciones']
+            context['torneos_activos'] = [i.torneo for i in inscripciones_stats if i.torneo.estado in ['AB', 'EJ']]
+            context['torneos_finalizados'] = [i.torneo for i in inscripciones_stats if i.torneo.estado == 'FN']
+
+        # --- Invitaciones (Común para todos si son jugadores activos, pero prioritario para PLAYER) ---
+        from equipos.models import Invitation
+        context['invitaciones_enviadas'] = user.sent_invitations.filter(status=Invitation.Status.PENDING)
+        context['invitaciones_recibidas'] = user.received_invitations.filter(status=Invitation.Status.PENDING)
+
+        # --- Próximos Partidos (Solo para Jugadores) ---
+        if user.tipo_usuario == 'PLAYER':
+            equipo = user.equipo
+            if equipo:
+                from django.db.models import Q
+                from torneos.models import Partido, PartidoGrupo
+                
+                partidos_elim = Partido.objects.filter(
+                    Q(equipo1=equipo) | Q(equipo2=equipo),
+                    ganador__isnull=True,
+                    torneo__estado__in=['AB', 'EJ']
+                ).select_related('torneo', 'equipo1', 'equipo2')
+
+                partidos_grupo = PartidoGrupo.objects.filter(
+                    Q(equipo1=equipo) | Q(equipo2=equipo),
+                    ganador__isnull=True,
+                    grupo__torneo__estado__in=['AB', 'EJ']
+                ).select_related('grupo__torneo', 'equipo1', 'equipo2')
+
+                proximos = sorted(
+                    list(partidos_elim) + list(partidos_grupo),
+                    key=lambda x: x.fecha_hora.timestamp() if x.fecha_hora else 9999999999
+                )
+                context['proximos_partidos'] = proximos
+            else:
+                context['proximos_partidos'] = []
         
         return context
 

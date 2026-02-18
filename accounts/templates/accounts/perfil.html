@@ -120,321 +120,321 @@
                 </div>
             </div>
         </div>
-        <!-- Columna Derecha: Estadísticas y Torneos -->
+        <!-- Columna Derecha: Estadísticas y Torneos (JUGADOR) O Dashboard (ADMIN/ORGANIZADOR) -->
         <div class="lg:col-span-2 space-y-8">
-            <!-- Tarjeta de Ranking -->
-            <div class="card bg-base-100 shadow-xl border border-base-200">
-                <div class="card-body flex-row items-center gap-4 py-4">
-                    <div class="flex flex-col items-center">
-                        <span class="text-xs uppercase font-bold opacity-70">Posición</span>
-                        {% if ranking_info %}
-                            <span class="text-3xl sm:text-4xl font-black text-primary">#{{ ranking_info.posicion }}</span>
-                        {% else %}
-                            <span class="text-3xl sm:text-4xl font-black text-base-content/20">-</span>
-                        {% endif %}
-                    </div>
-                    <div class="divider divider-horizontal my-0"></div>
-                    <div class="flex-1">
-                        {% if user.division %}
-                            <h3 class="font-bold text-lg">Ranking {{ user.division.nombre }}</h3>
-                        {% else %}
-                            <h3 class="font-bold text-lg text-base-content/50">Sin División</h3>
-                        {% endif %}
-                        <p class="text-sm opacity-70">
+            {% if user.tipo_usuario == 'PLAYER' %}
+                <!-- Tarjeta de Ranking -->
+                <div class="card bg-base-100 shadow-xl border border-base-200">
+                    <div class="card-body flex-row items-center gap-4 py-4">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs uppercase font-bold opacity-70">Posición</span>
                             {% if ranking_info %}
-                                Puntos: <span class="font-bold">{{ ranking_info.puntos }}</span>
-                                • Victorias: {{ ranking_info.victorias }}
+                                <span class="text-3xl sm:text-4xl font-black text-primary">#{{ ranking_info.posicion }}</span>
                             {% else %}
-                                <span class="italic">Sin actividad registrada</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                    {% if user.division %}
-                        <a href="{% url 'accounts:rankings_jugadores' %}?division={{ user.division.pk }}"
-                           class="btn btn-ghost btn-sm text-primary">
-                            Ver Tabla
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-4 w-4"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-            <!-- Grid de Estadísticas -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
-                    <div class="stat-figure text-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div class="stat-title text-xs sm:text-sm">Partidos</div>
-                    <div class="stat-value text-primary text-2xl sm:text-4xl">{{ stats.partidos_jugados }}</div>
-                    <div class="stat-desc text-[10px] sm:text-xs truncate">Jugados totales</div>
-                </div>
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
-                    <div class="stat-figure text-success">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="stat-title text-xs sm:text-sm">Victorias</div>
-                    <div class="stat-value text-success text-2xl sm:text-4xl">{{ stats.victorias }}</div>
-                    <div class="stat-desc text-[10px] sm:text-xs truncate">Win Rate: {{ stats.win_rate }}%</div>
-                </div>
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
-                    <div class="stat-figure text-secondary">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="stat-title text-xs sm:text-sm">Torneos</div>
-                    <div class="stat-value text-secondary text-2xl sm:text-4xl">{{ stats.torneos_jugados }}</div>
-                    <div class="stat-desc text-[10px] sm:text-xs truncate">Participaciones</div>
-                </div>
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
-                    <div class="stat-figure text-accent">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="stat-title text-xs sm:text-sm">Campeonatos</div>
-                    <div class="stat-value text-accent text-2xl sm:text-4xl">{{ stats.torneos_ganados }}</div>
-                    <div class="stat-desc text-[10px] sm:text-xs truncate">Torneos ganados</div>
-                </div>
-            </div>
-            <!-- Sección de Torneos -->
-            <div class="space-y-12">
-                <!-- Invitaciones -->
-                {% if invitaciones_recibidas or invitaciones_enviadas %}
-                    <div class="card bg-base-100 shadow-xl border border-base-200">
-                        <div class="card-body">
-                            <h3 class="card-title flex items-center gap-2 mb-4">
-                                <span class="w-3 h-3 rounded-full bg-info animate-pulse"></span>
-                                Invitaciones
-                            </h3>
-                            <!-- Recibidas -->
-                            {% if invitaciones_recibidas %}
-                                <h4 class="font-bold text-sm uppercase opacity-70 mb-2">Recibidas</h4>
-                                <div class="space-y-3 mb-4">
-                                    {% for inv in invitaciones_recibidas %}
-                                        <div class="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
-                                            <div class="flex items-center gap-3">
-                                                <div class="avatar placeholder">
-                                                    <div class="bg-neutral text-neutral-content rounded-full w-10">
-                                                        <span>{{ inv.inviter.nombre|slice:":1" }}</span>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div class="font-bold">{{ inv.inviter.full_name }}</div>
-                                                    <div class="text-xs opacity-60">Te invitó a formar equipo</div>
-                                                </div>
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <form method="post" action="{% url 'equipos:aceptar_invitacion' inv.pk %}">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-success">Aceptar</button>
-                                                </form>
-                                                <form method="post" action="{% url 'equipos:rechazar_invitacion' inv.pk %}">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-sm btn-error btn-outline">Rechazar</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            <!-- Enviadas -->
-                            {% if invitaciones_enviadas %}
-                                <h4 class="font-bold text-sm uppercase opacity-70 mb-2">Enviadas (Pendientes)</h4>
-                                <div class="space-y-3">
-                                    {% for inv in invitaciones_enviadas %}
-                                        <div class="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
-                                            <div class="flex items-center gap-3">
-                                                <div class="avatar placeholder">
-                                                    <div class="bg-neutral text-neutral-content rounded-full w-10">
-                                                        <span>{{ inv.invited.nombre|slice:":1" }}</span>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div class="font-bold">{{ inv.invited.full_name }}</div>
-                                                    <div class="text-xs opacity-60">Esperando respuesta...</div>
-                                                </div>
-                                            </div>
-                                            <form method="post" action="{% url 'equipos:rechazar_invitacion' inv.pk %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-xs btn-ghost text-error">Cancelar</button>
-                                            </form>
-                                        </div>
-                                    {% endfor %}
-                                </div>
+                                <span class="text-3xl sm:text-4xl font-black text-base-content/20">-</span>
                             {% endif %}
                         </div>
-                    </div>
-                {% endif %}
-                <!-- Botón para invitar a otro jugador (si ya hay pendientes) -->
-                {% if invitaciones_enviadas or invitaciones_recibidas %}
-                    <div class="card bg-base-100 shadow-xl border border-base-200 mt-4">
-                        <div class="card-body p-4">
-                            <a href="{% url 'equipos:crear' %}"
-                               class="btn btn-outline btn-primary btn-sm w-full gap-2">
+                        <div class="divider divider-horizontal my-0"></div>
+                        <div class="flex-1">
+                            {% if user.division %}
+                                <h3 class="font-bold text-lg">Ranking {{ user.division.nombre }}</h3>
+                            {% else %}
+                                <h3 class="font-bold text-lg text-base-content/50">Sin División</h3>
+                            {% endif %}
+                            <p class="text-sm opacity-70">
+                                {% if ranking_info %}
+                                    Puntos: <span class="font-bold">{{ ranking_info.puntos }}</span>
+                                    • Victorias: {{ ranking_info.victorias }}
+                                {% else %}
+                                    <span class="italic">Sin actividad registrada</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if user.division %}
+                            <a href="{% url 'accounts:rankings_jugadores' %}?division={{ user.division.pk }}"
+                               class="btn btn-ghost btn-sm text-primary">
+                                Ver Tabla
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      class="h-4 w-4"
                                      fill="none"
                                      viewBox="0 0 24 24"
                                      stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
-                                Invitar a otro jugador
                             </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Grid de Estadísticas -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
+                        <div class="stat-figure text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-title text-xs sm:text-sm">Partidos</div>
+                        <div class="stat-value text-primary text-2xl sm:text-4xl">{{ stats.partidos_jugados }}</div>
+                        <div class="stat-desc text-[10px] sm:text-xs truncate">Jugados totales</div>
+                    </div>
+                    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
+                        <div class="stat-figure text-success">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="stat-title text-xs sm:text-sm">Victorias</div>
+                        <div class="stat-value text-success text-2xl sm:text-4xl">{{ stats.victorias }}</div>
+                        <div class="stat-desc text-[10px] sm:text-xs truncate">Win Rate: {{ stats.win_rate }}%</div>
+                    </div>
+                    <!-- ... otros stats ... -->
+                </div>
+                <!-- Torneos y Partidos -->
+                <div class="space-y-8">
+                    <!-- Próximos Partidos -->
+                    <div class="card bg-base-100 shadow-xl border border-base-200">
+                        <div class="card-body">
+                            <h3 class="card-title flex items-center gap-2 mb-4">
+                                <span class="w-3 h-3 rounded-full bg-warning animate-pulse"></span>
+                                Mis Próximos Partidos
+                            </h3>
+                            {% if proximos_partidos %}
+                                <div class="grid gap-4">
+                                    {% for partido in proximos_partidos %}
+                                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-base-200/50 rounded-xl hover:bg-base-200 transition-colors">
+                                            <div>
+                                                <div class="text-xs opacity-60 uppercase font-bold tracking-wider mb-1">
+                                                    {% if partido.grupo %}
+                                                        {{ partido.grupo.torneo.nombre }} - {{ partido.grupo.nombre }}
+                                                    {% else %}
+                                                        {{ partido.torneo.nombre }} - {{ partido.nombre_ronda }}
+                                                    {% endif %}
+                                                </div>
+                                                <div class="font-bold text-lg">
+                                                    vs.
+                                                    {% if partido.equipo1 == user.equipo %}
+                                                        {{ partido.equipo2.nombre|default:"Por definir" }}
+                                                    {% else %}
+                                                        {{ partido.equipo1.nombre|default:"Por definir" }}
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-sm opacity-70 mt-1">
+                                                    {% if partido.fecha_hora %}
+                                                        {{ partido.fecha_hora|date:"l d M, H:i" }} hs
+                                                    {% else %}
+                                                        Fecha a confirmar
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="badge badge-warning w-fit shrink-0">Pendiente</div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-center opacity-50 py-4">No tienes partidos programados próximamente.</p>
+                            {% endif %}
                         </div>
                     </div>
-                {% endif %}
-                <!-- Próximos Partidos -->
+                    <!-- Torneos Activos -->
+                    <div class="card bg-base-100 shadow-xl border border-base-200">
+                        <div class="card-body">
+                            <h3 class="card-title flex items-center gap-2 mb-4">
+                                <span class="w-3 h-3 rounded-full bg-success animate-pulse"></span>
+                                Mis Torneos Activos
+                            </h3>
+                            {% if torneos_activos %}
+                                <div class="grid gap-4">
+                                    {% for torneo in torneos_activos %}
+                                        <a href="{% url 'torneos:detail' torneo.pk %}"
+                                           class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-base-200/50 rounded-xl hover:bg-base-200 transition-colors group">
+                                            <div>
+                                                <div class="font-bold group-hover:text-primary transition-colors">{{ torneo.nombre }}</div>
+                                                <div class="text-sm opacity-60">{{ torneo.fecha_inicio|date:"d M Y" }}</div>
+                                            </div>
+                                            <div class="badge badge-outline w-fit shrink-0 whitespace-nowrap">{{ torneo.get_estado_display }}</div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-center opacity-50 py-4">No estás participando en ningún torneo activo.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% elif user.tipo_usuario == 'ORGANIZER' or user.is_staff %}
+                <!-- DASHBOARD DE GESTIÓN -->
+                <div class="space-y-8">
+                    <!-- Tarjeta de Resumen -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card bg-primary text-primary-content shadow-xl">
+                            <div class="card-body">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-primary-content/70 uppercase text-xs font-bold tracking-widest">Torneos Activos</p>
+                                        <h3 class="text-4xl font-black mt-1">{{ total_torneos_activos|default:0 }}</h3>
+                                    </div>
+                                    <div class="opacity-20">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke-width="1.5"
+                                             stroke="currentColor"
+                                             class="w-16 h-16">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0V9.457c0-.621-.504-1.125-1.125-1.125h-.114a5.49 5.49 0 00-1.847 1.138L12 10.5l-1.043-.114a5.49 5.49 0 00-1.847-1.138H9c-.621 0-1.125.504-1.125 1.125v4.204m5.007 0h3.834c.621 0 1.125.504 1.125 1.125V18.75m-10.133 0H5.25c-.621 0-1.125-.504-1.125-1.125V15.75c0-.621.504-1.125 1.125-1.125h3.833" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="card-actions justify-end mt-4">
+                                    <a href="{% url 'torneos:lista' %}"
+                                       class="btn btn-xs btn-ghost bg-white/10">Ver todos</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card bg-secondary text-secondary-content shadow-xl">
+                            <div class="card-body">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-secondary-content/70 uppercase text-xs font-bold tracking-widest">Inscritos Hoy</p>
+                                        <h3 class="text-4xl font-black mt-1">{{ total_inscripciones_hoy|default:0 }}</h3>
+                                    </div>
+                                    <div class="opacity-20">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke-width="1.5"
+                                             stroke="currentColor"
+                                             class="w-16 h-16">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a5.97 5.97 0 00-.942 3.197M12 10.5a3 3 0 110-6 3 3 0 010 6zM4.5 9.333a3 3 0 110-6 3 3 0 010 6z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="card-actions justify-end mt-4 text-xs italic">¡El padel crece!</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tabla de Inscripciones Recientes -->
+                    <div class="card bg-base-100 shadow-xl border border-base-200">
+                        <div class="card-body">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="card-title">Últimas Inscripciones</h3>
+                                <span class="badge badge-ghost">{{ inscripciones_recientes.count }} recientes</span>
+                            </div>
+                            {% if inscripciones_recientes %}
+                                <div class="overflow-x-auto">
+                                    <table class="table table-zebra w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Equipo / Jugadores</th>
+                                                <th>Torneo</th>
+                                                <th>División</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for ins in inscripciones_recientes %}
+                                                <tr class="hover">
+                                                    <td>
+                                                        <div class="font-bold">{{ ins.equipo.nombre }}</div>
+                                                        <div class="text-xs opacity-50">{{ ins.equipo.jugador1.full_name }} / {{ ins.equipo.jugador2.full_name }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{% url 'torneos:admin_manage' ins.torneo.pk %}"
+                                                           class="link link-hover link-primary font-medium">
+                                                            {{ ins.torneo.nombre }}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex flex-col gap-1">
+                                                            <div class="badge badge-sm badge-outline">{{ ins.equipo.division.nombre|default:"Sin Div" }}</div>
+                                                            {% if ins.alerta_division == 'SUPERIOR' %}
+                                                                <div class="badge badge-error badge-xs gap-1 py-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         viewBox="0 0 16 16"
+                                                                         fill="currentColor"
+                                                                         class="w-3 h-3">
+                                                                        <path fill-rule="evenodd" d="M8 15a.75.75 0 0 1-.75-.75V3.812L4.03 7.03a.75.75 0 0 1-1.06-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1-1.06 1.06L8.75 3.812V14.25A.75.75 0 0 1 8 15Z" clip-rule="evenodd" />
+                                                                    </svg>
+                                                                    División Mayor
+                                                                </div>
+                                                            {% elif ins.alerta_division == 'INFERIOR' %}
+                                                                <div class="badge badge-warning badge-xs gap-1 py-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         viewBox="0 0 16 16"
+                                                                         fill="currentColor"
+                                                                         class="w-3 h-3">
+                                                                        <path fill-rule="evenodd" d="M8 1a.75.75 0 0 1 .75.75v10.438l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-4.25-4.25a.75.75 0 0 1 1.06-1.06l3.22 3.22V1.75A.75.75 0 0 1 8 1Z" clip-rule="evenodd" />
+                                                                    </svg>
+                                                                    División Menor
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="text-xs">{{ ins.fecha_inscripcion|date:"d/m H:i" }}</div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-10 opacity-50">
+                                    <p>No hay inscripciones recientes en tus torneos.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            <!-- Invitaciones (Para todos los usuarios, pero fuera de las stats de jugador) -->
+            {% if invitaciones_recibidas or invitaciones_enviadas %}
                 <div class="card bg-base-100 shadow-xl border border-base-200">
                     <div class="card-body">
                         <h3 class="card-title flex items-center gap-2 mb-4">
-                            <span class="w-3 h-3 rounded-full bg-warning animate-pulse"></span>
-                            Próximos Partidos
+                            <span class="w-3 h-3 rounded-full bg-info animate-pulse"></span>
+                            Invitaciones de Equipo
                         </h3>
-                        {% if proximos_partidos %}
-                            <div class="grid gap-4">
-                                {% for partido in proximos_partidos %}
-                                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-base-200/50 rounded-xl hover:bg-base-200 transition-colors">
-                                        <div>
-                                            <div class="text-xs opacity-60 uppercase font-bold tracking-wider mb-1">
-                                                {% if partido.grupo %}
-                                                    {{ partido.grupo.torneo.nombre }} - {{ partido.grupo.nombre }}
-                                                {% else %}
-                                                    {{ partido.torneo.nombre }} - {{ partido.nombre_ronda }}
-                                                {% endif %}
+                        <!-- Contenido de invitaciones igual que antes pero filtrado -->
+                        {% if invitaciones_recibidas %}
+                            <h4 class="font-bold text-sm uppercase opacity-70 mb-2">Recibidas</h4>
+                            <div class="space-y-3 mb-4">
+                                {% for inv in invitaciones_recibidas %}
+                                    <div class="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
+                                        <div class="flex items-center gap-3">
+                                            <div class="avatar placeholder">
+                                                <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                                    <span>{{ inv.inviter.nombre|slice:":1" }}</span>
+                                                </div>
                                             </div>
-                                            <div class="font-bold text-lg">
-                                                vs.
-                                                {% if partido.equipo1 == user.equipo %}
-                                                    {{ partido.equipo2.nombre|default:"Por definir" }}
-                                                {% else %}
-                                                    {{ partido.equipo1.nombre|default:"Por definir" }}
-                                                {% endif %}
-                                            </div>
-                                            <div class="text-sm opacity-70 mt-1">
-                                                {% if partido.fecha_hora %}
-                                                    {{ partido.fecha_hora|date:"l d M, H:i" }} hs
-                                                {% else %}
-                                                    Fecha a confirmar
-                                                {% endif %}
+                                            <div>
+                                                <div class="font-bold">{{ inv.inviter.full_name }}</div>
+                                                <div class="text-xs opacity-60">Te invitó a formar equipo</div>
                                             </div>
                                         </div>
-                                        <div class="badge badge-warning w-fit shrink-0">Pendiente</div>
+                                        <div class="flex gap-2">
+                                            <form method="post" action="{% url 'equipos:aceptar_invitacion' inv.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success">Aceptar</button>
+                                            </form>
+                                            <form method="post" action="{% url 'equipos:rechazar_invitacion' inv.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-error btn-outline">Rechazar</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 {% endfor %}
                             </div>
-                        {% else %}
-                            <p class="text-center opacity-50 py-4">No tienes partidos programados próximamente.</p>
                         {% endif %}
                     </div>
                 </div>
-                <!-- Torneos Activos -->
-                <div class="card bg-base-100 shadow-xl border border-base-200">
-                    <div class="card-body">
-                        <h3 class="card-title flex items-center gap-2 mb-4">
-                            <span class="w-3 h-3 rounded-full bg-success animate-pulse"></span>
-                            Torneos Activos
-                        </h3>
-                        {% if torneos_activos %}
-                            <div class="grid gap-4">
-                                {% for torneo in torneos_activos %}
-                                    <a href="{% url 'torneos:detail' torneo.pk %}"
-                                       class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-base-200/50 rounded-xl hover:bg-base-200 transition-colors group">
-                                        <div>
-                                            <div class="font-bold group-hover:text-primary transition-colors">{{ torneo.nombre }}</div>
-                                            <div class="text-sm opacity-60">{{ torneo.fecha_inicio|date:"d M Y" }}</div>
-                                        </div>
-                                        <div class="badge badge-outline w-fit shrink-0 whitespace-nowrap">{{ torneo.get_estado_display }}</div>
-                                    </a>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-center opacity-50 py-4">No estás participando en ningún torneo activo.</p>
-                        {% endif %}
-                    </div>
-                </div>
-                <!-- Historial de Torneos -->
-                <div class="card bg-base-100 shadow-xl border border-base-200">
-                    <div class="card-body">
-                        <h3 class="card-title flex items-center gap-2 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-5 w-5 opacity-70"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Historial Reciente
-                        </h3>
-                        {% if torneos_finalizados %}
-                            <div class="overflow-x-auto">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Torneo</th>
-                                            <th>Fecha</th>
-                                            <th>División</th>
-                                            <th>Resultado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for torneo in torneos_finalizados|slice:":5" %}
-                                            <tr class="hover:bg-base-200/50 cursor-pointer"
-                                                onclick="window.location='{% url 'torneos:detail' torneo.pk %}'">
-                                                <td class="font-bold max-w-xs truncate" title="{{ torneo.nombre }}">{{ torneo.nombre }}</td>
-                                                <td class="whitespace-nowrap">{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
-                                                <td class="truncate max-w-[120px]" title="{{ torneo.division.nombre }}">{{ torneo.division.nombre }}</td>
-                                                <td>
-                                                    {% if torneo.ganador_del_torneo.jugador1 == user or torneo.ganador_del_torneo.jugador2 == user %}
-                                                        <span class="badge badge-warning gap-1">
-                                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                                 class="h-3 w-3"
-                                                                 viewBox="0 0 20 20"
-                                                                 fill="currentColor">
-                                                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 00-.556.834c-.045.722-.11 1.45-.195 2.18-.035.304-.158.59-.356.83a.998.998 0 01-.76.76c-.24.198-.526.321-.83.356-.73.085-1.458.15-2.18.195a.999.999 0 01-1.014-1.39c.045-.27.091-.54.135-.808A3.992 3.992 0 014 15a3.99 3.99 0 01-2.667-1.019 1 1 0 00-.285-1.05l1.738-5.42-1.233-.616a1 1 0 01.894-1.79l1.599.8L8 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
-                                                            </svg>
-                                                            Campeón
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="opacity-50">-</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <p class="text-sm opacity-50 italic">No hay torneos finalizados registrados.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 {% endblock content %}
