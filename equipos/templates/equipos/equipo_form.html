@@ -61,10 +61,10 @@
         color: oklch(var(--bc)) !important;
     }
     </style>
-    <div class="flex justify-center items-center py-12 px-4 min-h-[calc(100vh-4rem)]">
-        <div class="w-full max-w-3xl bg-base-200/30 rounded-3xl border border-base-300/30 p-6 md:p-10 flex justify-center items-center">
-            <div class="card w-full max-w-lg shadow-xl bg-base-100 border border-base-300">
-                <div class="card-body">
+    <div class="flex justify-center items-center py-6 md:py-12 px-2 md:px-4 min-h-[calc(100vh-4rem)]">
+        <div class="w-full max-w-4xl bg-base-200/30 rounded-3xl border border-base-300/30 p-2 md:p-10 flex justify-center items-center">
+            <div class="card w-full max-w-2xl shadow-xl bg-base-100 border border-base-300">
+                <div class="card-body p-5 md:p-8">
                     <h2 class="card-title text-center justify-center mb-6 text-2xl font-bold text-base-content">Crear Nuevo Equipo</h2>
                     <div role="alert" class="alert alert-info text-sm mb-6 shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -82,8 +82,8 @@
                             <label class="label">
                                 <span class="label-text font-bold text-base-content">Selecciona tu compañero ({{ user.division.nombre }})</span>
                             </label>
-                            <!-- Renderizado manual del widget DAL -->
-                            <div class="w-full">{{ form.jugador2 }}</div>
+                            <!-- Contenedor con ancho forzado para Select2 -->
+                            <div class="w-full select2-full-width">{{ form.jugador2 }}</div>
                             {% if form.jugador2.errors %}<div class="text-error text-xs mt-2 pl-1">{{ form.jugador2.errors.0 }}</div>{% endif %}
                         </div>
                         <div class="form-control w-full mb-6">
