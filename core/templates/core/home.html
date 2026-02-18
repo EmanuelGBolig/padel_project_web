@@ -179,6 +179,87 @@
                 <div id="dots-abiertos" class="flex justify-center gap-2 mt-2 md:hidden"></div>
             </section>
         {% endif %}
+        <!-- Organizadores -->
+        {% if organizadores %}
+            <section class="bg-base-100 p-6 md:p-8 rounded-3xl border border-base-300 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-4 mb-6 md:mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-base-content">Organizadores Destacados</h2>
+                        <p class="text-sm text-base-content/80">Conoce a los organizadores y sus torneos</p>
+                    </div>
+                </div>
+                <!-- Carousel Container -->
+                <div class="relative group">
+                    <!-- Prev Button -->
+                    <button class="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 z-10 flex items-center justify-center w-8 h-8 md:w-12 md:h-12 rounded-full cursor-pointer bg-base-100/80 hover:bg-base-100 text-base-content backdrop-blur-sm shadow-sm border border-base-200 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex"
+                            id="prev-organizadores">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <!-- Carousel -->
+                    <div id="carousel-organizadores"
+                         class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:gap-6 hide-scrollbar relative scroll-smooth">
+                        {% for org in organizadores %}
+                            <div class="carousel-item w-[85%] md:w-[calc((100%-48px)/3)] shrink-0 snap-center h-full transition-transform duration-300">
+                                <a href="{% url 'accounts:organizador_detalle' org.pk %}"
+                                   class="card bg-base-100 shadow hover:shadow-xl transition-all duration-300 border border-base-content/5 h-full hover:-translate-y-1 w-full group">
+                                    <div class="card-body p-6 flex flex-col items-center text-center h-full">
+                                        <div class="avatar mb-4">
+                                            <div class="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 bg-base-200 flex items-center justify-center overflow-hidden">
+                                                {% if org.perfil_organizador.logo %}
+                                                    <img src="{{ org.perfil_organizador.logo.url }}"
+                                                         alt="{{ org.full_name }}"
+                                                         class="object-cover w-full h-full"
+                                                         width="96"
+                                                         height="96" />
+                                                {% else %}
+                                                    <span class="text-3xl font-bold text-base-content/50">{{ org.nombre|slice:":1" }}{{ org.apellido|slice:":1" }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <h3 class="card-title text-lg md:text-xl font-bold mb-1 group-hover:text-primary transition-colors">
+                                            {{ org.full_name }}
+                                        </h3>
+                                        <p class="text-sm opacity-70 line-clamp-2 mb-4">
+                                            {{ org.perfil_organizador.descripcion|default:"Organizador verificado en TodoPadel." }}
+                                        </p>
+                                        <button class="btn btn-primary btn-sm btn-outline w-full mt-auto">Ver Perfil</button>
+                                    </div>
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <!-- Next Button -->
+                    <button class="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 z-10 flex items-center justify-center w-8 h-8 md:w-12 md:h-12 rounded-full cursor-pointer bg-base-100/80 hover:bg-base-100 text-base-content backdrop-blur-sm shadow-sm border border-base-200 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex"
+                            id="next-organizadores">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- Dots -->
+                <div id="dots-organizadores"
+                     class="flex justify-center gap-2 mt-2 md:hidden"></div>
+            </section>
+        {% endif %}
         <!-- Torneos en Juego -->
         {% if torneos_en_juego %}
             <section class="bg-base-100 p-6 md:p-8 rounded-3xl border border-base-300 shadow-sm overflow-hidden">
@@ -276,6 +357,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const carousels = [
             { id: 'carousel-abiertos', dotsId: 'dots-abiertos', prevId: 'prev-abiertos', nextId: 'next-abiertos' },
+            { id: 'carousel-organizadores', dotsId: 'dots-organizadores', prevId: 'prev-organizadores', nextId: 'next-organizadores' },
             { id: 'carousel-juego', dotsId: 'dots-juego', prevId: 'prev-juego', nextId: 'next-juego' }
         ];
 

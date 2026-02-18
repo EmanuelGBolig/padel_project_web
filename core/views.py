@@ -14,10 +14,19 @@ def home(request):
     torneos_en_juego = Torneo.objects.filter(estado=Torneo.Estado.EN_JUEGO).order_by(
         'fecha_inicio'
     )
+    
+    # Importar CustomUser aquí o arriba para evitar circular imports si fuera necesario, 
+    # pero mejor mover la importación arriba si es posible.
+    from accounts.models import CustomUser
+    organizadores = CustomUser.objects.filter(
+        tipo_usuario=CustomUser.TipoUsuario.ORGANIZER,
+        perfil_organizador__isnull=False
+    ).select_related('perfil_organizador')
 
     context = {
         'torneos_abiertos': torneos_abiertos,
         'torneos_en_juego': torneos_en_juego,
+        'organizadores': organizadores,
     }
 
     if request.user.is_authenticated and hasattr(request.user, 'equipo') and request.user.equipo:
