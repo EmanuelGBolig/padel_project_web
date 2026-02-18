@@ -131,6 +131,7 @@ def short_name(value, max_length=20):
     """
     if len(str(value)) > max_length:
         return str(value)[:max_length] + "..."
+    return value
 @register.tag(name="setvar")
 def do_setvar(parser, token):
     """

@@ -522,7 +522,7 @@
                         <div class="flex gap-8 min-w-max px-4 pr-32">
                             {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                             {% for ronda in rondas_list %}
-                                <div class="flex flex-col min-w-[200px] gap-6 {% if forloop.last %}last-round{% endif %}">
+                                <div class="flex flex-col min-w-[240px] gap-6 {% if forloop.last %}last-round{% endif %}">
                                     <!-- NOMBRE DE LA RONDA -->
                                     <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
                                         {% nombre_ronda_dinamico ronda.grouper total_rondas %}
