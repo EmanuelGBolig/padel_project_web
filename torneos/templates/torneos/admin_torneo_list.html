@@ -38,60 +38,82 @@
         </div>
         <div class="grid gap-4">
             {% for torneo in torneos %}
-                <div class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-300 border border-base-content/5">
-                    <div class="card-body p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                        <!-- Info del torneo -->
-                        <div class="flex-1">
-                            <div class="flex flex-wrap items-center gap-3 mb-2">
-                                <h3 class="font-bold text-xl text-base-content truncate">{{ torneo.nombre }}</h3>
-                                {% if torneo.estado == 'AB' %}
-                                    <div class="badge badge-success text-white shrink-0">Abierto</div>
-                                {% elif torneo.estado == 'EJ' %}
-                                    <div class="badge badge-info text-white shrink-0">En Juego</div>
-                                {% else %}
-                                    <div class="badge badge-ghost opacity-60 shrink-0">Finalizado</div>
+                <div class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-300 border border-base-content/5 overflow-hidden">
+                    <div class="card-body p-0 flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-base-200">
+                        <!-- Organizador Branding (Left Col) -->
+                        <div class="p-6 flex flex-row sm:flex-col items-center justify-center gap-4 bg-base-200/30 sm:w-48 shrink-0">
+                            <div class="avatar">
+                                <div class="w-16 h-16 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 bg-base-100 flex items-center justify-center overflow-hidden shadow-sm">
+                                    {% if torneo.organizacion.logo %}
+                                        <img src="{{ torneo.organizacion.logo.url }}"
+                                             alt="{{ torneo.organizacion.nombre }}"
+                                             class="object-cover w-full h-full"
+                                             width="128"
+                                             height="128" />
+                                    {% else %}
+                                        <span class="text-xl font-bold text-base-content/40">{{ torneo.organizacion.nombre|slice:":2"|upper }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <span class="text-[10px] uppercase tracking-widest opacity-50 block mb-1">Organizado por</span>
+                                <span class="text-xs font-black text-base-content truncate block max-w-[120px]">{{ torneo.organizacion.nombre }}</span>
+                            </div>
+                        </div>
+                        <!-- Info del torneo (Main Content) -->
+                        <div class="p-6 flex-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                            <div class="flex-1">
+                                <div class="flex flex-wrap items-center gap-3 mb-2">
+                                    <h3 class="font-bold text-xl text-base-content truncate">{{ torneo.nombre }}</h3>
+                                    {% if torneo.estado == 'AB' %}
+                                        <div class="badge badge-success text-white shrink-0">Abierto</div>
+                                    {% elif torneo.estado == 'EJ' %}
+                                        <div class="badge badge-info text-white shrink-0">En Juego</div>
+                                    {% else %}
+                                        <div class="badge badge-ghost opacity-60 shrink-0">Finalizado</div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
+                                    <span class="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             viewBox="0 0 20 20"
+                                             fill="currentColor"
+                                             class="w-4 h-4 opacity-70">
+                                            <path fill-rule="evenodd" d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.5.5 0 01.479.425c.069.52.104 1.05.104 1.59 0 5.162-3.26 9.563-7.834 11.256a.48.48 0 01-.332 0C5.26 16.564 2 12.163 2 7c0-.538.035-1.069.104-1.589a.5.5 0 01.48-.425 11.947 11.947 0 007.077-2.75zm4.196 5.954a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                        </svg>
+                                        División: <span class="font-medium text-base-content">{{ torneo.division.nombre }}</span>
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             viewBox="0 0 20 20"
+                                             fill="currentColor"
+                                             class="w-4 h-4 opacity-70">
+                                            <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 18a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z" />
+                                        </svg>
+                                        Inscritos: <span class="font-medium text-base-content">{{ torneo.inscripciones.count }}/{{ torneo.cupos_totales }}</span>
+                                    </span>
+                                </div>
+                                {% if torneo.ganador %}
+                                    <div class="mt-3 flex items-center gap-2 text-success font-semibold px-3 py-1 bg-success/10 rounded-lg w-fit">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             viewBox="0 0 24 24"
+                                             fill="currentColor"
+                                             class="w-5 h-5 text-yellow-500">
+                                            <path fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 6.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z" clip-rule="evenodd" />
+                                        </svg>
+                                        Ganador: {{ torneo.ganador }}
+                                    </div>
                                 {% endif %}
                             </div>
-                            <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
-                                <span class="flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         viewBox="0 0 20 20"
-                                         fill="currentColor"
-                                         class="w-4 h-4 opacity-70">
-                                        <path fill-rule="evenodd" d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.5.5 0 01.479.425c.069.52.104 1.05.104 1.59 0 5.162-3.26 9.563-7.834 11.256a.48.48 0 01-.332 0C5.26 16.564 2 12.163 2 7c0-.538.035-1.069.104-1.589a.5.5 0 01.48-.425 11.947 11.947 0 007.077-2.75zm4.196 5.954a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-                                    </svg>
-                                    División: <span class="font-medium text-base-content">{{ torneo.division.nombre }}</span>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         viewBox="0 0 20 20"
-                                         fill="currentColor"
-                                         class="w-4 h-4 opacity-70">
-                                        <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 18a9.953 9.953 0 01-5.385-1.572zM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16z" />
-                                    </svg>
-                                    Inscritos: <span class="font-medium text-base-content">{{ torneo.inscripciones.count }}/{{ torneo.cupos_totales }}</span>
-                                </span>
+                            <!-- Acciones -->
+                            <div class="flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                                <a href="{% url 'torneos:admin_manage' torneo.pk %}"
+                                   class="btn btn-primary btn-sm w-full md:w-32 shadow-sm">Gestionar</a>
+                                <a href="{% url 'torneos:admin_editar' torneo.pk %}"
+                                   class="btn btn-outline btn-sm w-full md:w-32 hover:bg-base-200">Editar</a>
+                                <a href="{% url 'torneos:admin_eliminar' torneo.pk %}"
+                                   class="btn btn-ghost btn-xs text-error opacity-70 hover:opacity-100 hover:bg-error/10 w-full md:w-32">Eliminar</a>
                             </div>
-                            {% if torneo.ganador %}
-                                <div class="mt-3 flex items-center gap-2 text-success font-semibold px-3 py-1 bg-success/10 rounded-lg w-fit">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         viewBox="0 0 24 24"
-                                         fill="currentColor"
-                                         class="w-5 h-5 text-yellow-500">
-                                        <path fill-rule="evenodd" d="M5.166 2.621v.858c-1.035.148-2.059.33-3.071.543a.75.75 0 00-.584.859 6.753 6.753 0 006.138 5.6 6.73 6.73 0 002.743 1.346A6.707 6.707 0 019.279 15H8.54c-1.036 0-1.875.84-1.875 1.875V19.5h-.75a2.25 2.25 0 00-2.25 2.25c0 .414.336.75.75.75h15a.75.75 0 00.75-.75 2.25 2.25 0 00-2.25-2.25h-.75v-2.625c0-1.036-.84-1.875-1.875-1.875h-.739a6.706 6.706 0 01-1.612-3.125 6.73 6.73 0 002.743-1.347 6.753 6.753 0 006.139-5.6.75.75 0 00-.585-.858 47.077 47.077 0 00-3.07-.543V2.62a.75.75 0 00-.658-.744 49.22 49.22 0 00-6.093-.377c-2.063 0-4.096.128-6.093.377a.75.75 0 00-.657.744zm0 2.629c0 1.196.312 2.32.857 3.294A5.266 5.266 0 013.16 5.337a45.6 45.6 0 012.006-.348zm7.92 2.828a.75.75 0 01.707-.129 4.455 4.455 0 002.586.193 3.096 3.096 0 002.423-1.149.75.75 0 00-.475-1.161 4.485 4.485 0 00-2.586-.193 3.096 3.096 0 00-2.423 1.148.75.75 0 01-.232.391zM18.834 6.337a5.266 5.266 0 01.857 3.293c.521-.067 1.018-.186 1.495-.348a45.6 45.6 0 012.006.348z" clip-rule="evenodd" />
-                                    </svg>
-                                    Ganador: {{ torneo.ganador }}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <!-- Acciones -->
-                        <div class="flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-                            <a href="{% url 'torneos:admin_manage' torneo.pk %}"
-                               class="btn btn-primary btn-sm w-full md:w-32 shadow-sm">Gestionar</a>
-                            <a href="{% url 'torneos:admin_editar' torneo.pk %}"
-                               class="btn btn-outline btn-sm w-full md:w-32 hover:bg-base-200">Editar</a>
-                            <a href="{% url 'torneos:admin_eliminar' torneo.pk %}"
-                               class="btn btn-ghost btn-xs text-error opacity-70 hover:opacity-100 hover:bg-error/10 w-full md:w-32">Eliminar</a>
                         </div>
                     </div>
                 </div>
@@ -132,17 +154,16 @@
             </form>
         </dialog>
         <script>
-        function confirmDelete(pk, nombre) {
-            const modal = document.getElementById('delete_modal');
-            const form = document.getElementById('delete_form');
-            const nameSpan = document.getElementById('delete_torneo_name');
-
-            // Construct the delete URL dynamically
-            const baseUrl = "{% url 'torneos:admin_eliminar' 0 %}".replace('0', pk);
-
-            form.action = baseUrl;
-            nameSpan.textContent = nombre;
-            modal.showModal();
-        }
+function confirmDelete(pk, nombre) {
+const modal = document.getElementById('delete_modal');
+const form = document.getElementById('delete_form');
+const nameSpan = document.getElementById('delete_torneo_name');
+// Construct the delete URL dynamically
+const baseUrl = "{% url 'torneos:admin_eliminar' 0 %}".replace('0', pk);
+form.action = baseUrl;
+nameSpan.textContent = nombre;
+modal.showModal();
+}
         </script>
-    {% endblock content %}
+    </div>
+{% endblock content %}
