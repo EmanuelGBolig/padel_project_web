@@ -220,22 +220,22 @@
                                     <div class="card-body p-6 flex flex-col items-center text-center h-full">
                                         <div class="avatar mb-4">
                                             <div class="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 bg-base-200 flex items-center justify-center overflow-hidden">
-                                                {% if org.perfil_organizador.logo %}
-                                                    <img src="{{ org.perfil_organizador.logo.url }}"
-                                                         alt="{{ org.full_name }}"
+                                                {% if org.logo %}
+                                                    <img src="{{ org.logo.url }}"
+                                                         alt="{{ org.nombre }}"
                                                          class="object-cover w-full h-full"
                                                          width="96"
                                                          height="96" />
                                                 {% else %}
-                                                    <span class="text-3xl font-bold text-base-content/50">{{ org.nombre|slice:":1" }}{{ org.apellido|slice:":1" }}</span>
+                                                    <span class="text-3xl font-bold text-base-content/50">{{ org.nombre|slice:":2"|upper }}</span>
                                                 {% endif %}
                                             </div>
                                         </div>
                                         <h3 class="card-title text-lg md:text-xl font-bold mb-1 group-hover:text-primary transition-colors">
-                                            {{ org.full_name }}
+                                            {{ org.nombre }}
                                         </h3>
                                         <p class="text-sm opacity-70 line-clamp-2 mb-4">
-                                            {{ org.perfil_organizador.descripcion|default:"Organizador verificado en TodoPadel." }}
+                                            {{ org.descripcion|default:"Organización verificada en TodoPadel." }}
                                         </p>
                                         <button class="btn btn-primary btn-sm btn-outline w-full mt-auto">Ver Perfil</button>
                                     </div>

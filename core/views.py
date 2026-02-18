@@ -15,13 +15,9 @@ def home(request):
         'fecha_inicio'
     )
     
-    # Importar CustomUser aquí o arriba para evitar circular imports si fuera necesario, 
-    # pero mejor mover la importación arriba si es posible.
-    from accounts.models import CustomUser
-    organizadores = CustomUser.objects.filter(
-        tipo_usuario=CustomUser.TipoUsuario.ORGANIZER,
-        perfil_organizador__isnull=False
-    ).select_related('perfil_organizador')
+    # Importar Organizacion
+    from accounts.models import Organizacion
+    organizadores = Organizacion.objects.all()
 
     context = {
         'torneos_abiertos': torneos_abiertos,

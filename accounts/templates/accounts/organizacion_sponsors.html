@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Gestionar Sponsors - TodoPadel{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold mb-8">Gestionar Sponsors</h1>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Formulario de Añadir Sponsor -->
+                <div class="lg:col-span-1">
+                    <div class="card bg-base-100 shadow-xl border border-base-200 sticky top-24">
+                        <div class="card-body">
+                            <h2 class="card-title text-lg mb-4">Añadir Nuevo Sponsor</h2>
+                            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                                {% csrf_token %}
+                                {% for field in form %}
+                                    <div class="form-control w-full">
+                                        <label class="label">
+                                            <span class="label-text font-medium">{{ field.label }}</span>
+                                        </label>
+                                        {{ field }}
+                                        {% if field.errors %}<span class="text-error text-xs">{{ field.errors.0 }}</span>{% endif %}
+                                    </div>
+                                {% endfor %}
+                                <button type="submit" class="btn btn-primary w-full mt-4">Añadir Sponsor</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!-- Lista de Sponsors -->
+                <div class="lg:col-span-2">
+                    <div class="card bg-base-100 shadow-xl border border-base-200">
+                        <div class="card-body">
+                            <h2 class="card-title text-lg mb-4">Sponsors Activos</h2>
+                            {% if sponsors %}
+                                <div class="overflow-x-auto">
+                                    <table class="table w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Orden</th>
+                                                <th>Imagen</th>
+                                                <th>Nombre</th>
+                                                <th>Link</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for sponsor in sponsors %}
+                                                <tr class="hover:bg-base-200/50">
+                                                    <td class="font-mono">{{ sponsor.orden }}</td>
+                                                    <td>
+                                                        <div class="avatar">
+                                                            <div class="w-12 h-12 rounded">
+                                                                {% if sponsor.imagen %}
+                                                                    <img src="{{ sponsor.imagen.url }}"
+                                                                         alt="{{ sponsor.nombre }}"
+                                                                         class="object-contain" />
+                                                                {% else %}
+                                                                    <div class="bg-base-300 w-full h-full flex items-center justify-center text-xs">Sin img</div>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="font-bold">{{ sponsor.nombre }}</td>
+                                                    <td>
+                                                        {% if sponsor.link %}
+                                                            <a href="{{ sponsor.link }}"
+                                                               target="_blank"
+                                                               class="link link-primary text-xs truncate max-w-[100px] block">{{ sponsor.link }}</a>
+                                                        {% else %}
+                                                            <span class="text-xs opacity-50">-</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <form method="post"
+                                                              action="{% url 'accounts:eliminar_sponsor' sponsor.pk %}"
+                                                              onsubmit="return confirm('¿Estás seguro de eliminar este sponsor?');">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                     fill="none"
+                                                                     viewBox="0 0 24 24"
+                                                                     stroke-width="1.5"
+                                                                     stroke="currentColor"
+                                                                     class="w-4 h-4">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                                </svg>
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-8 opacity-50">
+                                    <p>No has añadido sponsors aún.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-6">
+                        <a href="{% url 'accounts:perfil' %}" class="btn btn-outline">Volver al Perfil</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -65,13 +65,12 @@ class Torneo(models.Model):
         related_name="torneos_ganados",
     )
     
-    organizador = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    organizacion = models.ForeignKey(
+        'accounts.Organizacion',
         on_delete=models.CASCADE,
-        related_name="torneos_organizados",
+        related_name="torneos",
         null=True,
-        blank=True,
-        limit_choices_to={'tipo_usuario': 'ORGANIZER'}
+        blank=True
     )
 
     # Relación inversa para acceder a inscripciones fácilmente

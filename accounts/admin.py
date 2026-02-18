@@ -67,7 +67,7 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(CustomUser, CustomUserAdmin)
 
-from .models import Division, OrganizadorProfile, Sponsor
+from .models import Division, Organizacion, Sponsor
 
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
@@ -78,7 +78,7 @@ class SponsorInline(admin.TabularInline):
     model = Sponsor
     extra = 1
 
-@admin.register(OrganizadorProfile)
-class OrganizadorProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'direccion')
+@admin.register(Organizacion)
+class OrganizacionAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'alias', 'direccion')
     inlines = [SponsorInline]

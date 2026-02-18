@@ -289,41 +289,103 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
         return context
 
 
-class OrganizadorDetailView(DetailView):
-    model = CustomUser
-    template_name = 'accounts/organizador_detail.html'
-    context_object_name = 'organizador'
+class OrganizacionDetailView(DetailView):
+    # model = Organizacion (Dynamic import in dispatch/queryset to avoid circular imports if needed)
+    template_name = 'accounts/organizador_detail.html' # Mantengo el nombre del template por ahora
+    context_object_name = 'organizacion'
 
     def get_queryset(self):
-        # Solo usuarios organizadores
-        return CustomUser.objects.filter(tipo_usuario=CustomUser.TipoUsuario.ORGANIZER)
+        from .models import Organizacion
+        return Organizacion.objects.all()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        organizador = self.object
+        organizacion = self.object
         
-        # 1. Perfil extendido
-        if hasattr(organizador, 'perfil_organizador'):
-            context['perfil_detalle'] = organizador.perfil_organizador
-            context['sponsors'] = organizador.perfil_organizador.sponsors.all().order_by('orden')
-        else:
-            context['perfil_detalle'] = None
-            context['sponsors'] = []
+        # 1. Sponsors
+        context['sponsors'] = organizacion.sponsors.all().order_by('orden')
 
         # 2. Torneos
-        # Asumiendo que añadimos related_name='torneos_organizados' en Torneo
-        torneos = organizador.torneos_organizados.all().order_by('-fecha_inicio')
+        # Torneo ahora tiene FK 'organizacion'
+        torneos = organizacion.torneos.all().order_by('-fecha_inicio')
         
         context['torneos_activos'] = torneos.filter(estado__in=['AB', 'EJ'])
         context['torneos_historial'] = torneos.filter(estado='FN')
         
         return context
+
+
+from .forms import OrganizacionForm, SponsorForm
+
+class OrganizacionSettingsView(LoginRequiredMixin, UpdateView):
+    # model = Organizacion # Dynamic to avoid circular imports
+    form_class = OrganizacionForm
+    template_name = 'accounts/organizacion_settings.html'
+    success_url = reverse_lazy('accounts:organizacion_settings')
+
+    def get_object(self, queryset=None):
+        # Obtener la organización del usuario actual
+        user = self.request.user
+        if not user.organizacion:
+             from django.http import Http404
+             raise Http404("No tienes una organización asignada.")
+        return user.organizacion
+    
+    def get_queryset(self):
+         from .models import Organizacion
+         return Organizacion.objects.all()
+
+
+class OrganizacionCreateView(LoginRequiredMixin, CreateView):
+    form_class = OrganizacionForm
+    template_name = 'accounts/organizacion_form.html'
+    success_url = reverse_lazy('accounts:perfil')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Asignar la organización creada al usuario actual
+        user = self.request.user
+        user.organizacion = self.object
+        user.save()
+        return response
+
+    def dispatch(self, request, *args, **kwargs):
+        # Si ya tiene organización, redirigir a ajustes
+        if request.user.organizacion:
+             return redirect('accounts:organizacion_settings')
+        return super().dispatch(request, *args, **kwargs)
+
+class OrganizacionSponsorsView(LoginRequiredMixin, CreateView):
+    model = Sponsor
+    form_class = SponsorForm
+    template_name = 'accounts/organizacion_sponsors.html'
+
+    def get_success_url(self):
+        return reverse('accounts:organizacion_sponsors')
+
+    def form_valid(self, form):
+        user = self.request.user
+        if not user.organizacion:
+             from django.http import Http404
+             raise Http404("No tienes una organización asignada.")
         
-        context['can_invite'] = can_invite
-        
-        # Separar inscripciones por estado para la vista
-        inscripciones = stats['inscripciones']
-        context['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
-        context['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
-        
+        form.instance.organizacion = user.organizacion
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if user.organizacion:
+            context['sponsors'] = user.organizacion.sponsors.all().order_by('orden')
         return context
+
+class SponsorDeleteView(LoginRequiredMixin, DeleteView):
+    model = Sponsor
+    
+    def get_success_url(self):
+        return reverse('accounts:organizacion_sponsors')
+        
+    def get_queryset(self):
+        # Asegurar que solo pueda borrar sponsors de su organización
+        from .models import Sponsor
+        return Sponsor.objects.filter(organizacion=self.request.user.organizacion)

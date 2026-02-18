@@ -88,6 +88,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     tipo_usuario = models.CharField(
         max_length=10, choices=TipoUsuario.choices, default=TipoUsuario.PLAYER
     )
+    
+    # Organización a la que pertenece (para organizadores)
+    organizacion = models.ForeignKey(
+        'accounts.Organizacion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='miembros'
+    )
 
     # Campos de Django
     is_active = models.BooleanField(default=True)
@@ -161,27 +170,30 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             equipo = self.equipos_como_jugador2.first()
         return equipo
 
-class OrganizadorProfile(models.Model):
-    user = models.OneToOneField(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name='perfil_organizador'
-    )
+class Organizacion(models.Model):
+    nombre = models.CharField(max_length=150, unique=True)
+    alias = models.SlugField(max_length=150, unique=True, help_text="URL amigable (ej: club-padel-mdq)")
     descripcion = models.TextField(blank=True, help_text="Descripción del organizador o sede.")
     direccion = models.CharField(max_length=255, blank=True)
     latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     logo = models.ImageField(upload_to='organizadores/logos/', blank=True, null=True)
 
+    class Meta:
+        verbose_name = "Organización"
+        verbose_name_plural = "Organizaciones"
+
     def __str__(self):
-        return f"Perfil de {self.user.full_name}"
+        return self.nombre
 
 
 class Sponsor(models.Model):
-    organizador = models.ForeignKey(
-        OrganizadorProfile,
+    organizacion = models.ForeignKey(
+        Organizacion,
         on_delete=models.CASCADE,
-        related_name='sponsors'
+        related_name='sponsors',
+        null=True,
+        blank=True
     )
     nombre = models.CharField(max_length=100)
     imagen = models.ImageField(upload_to='sponsors/')
@@ -192,4 +204,4 @@ class Sponsor(models.Model):
         ordering = ['orden']
 
     def __str__(self):
-        return f"{self.nombre} (Sponsor de {self.organizador.user.full_name})"
+        return f"{self.nombre} (Sponsor de {self.organizacion.nombre})"

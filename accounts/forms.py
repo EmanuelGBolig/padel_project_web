@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
-from .models import CustomUser, Division
+from .models import CustomUser, Division, Organizacion, Sponsor
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -96,3 +96,36 @@ class CustomLoginForm(AuthenticationForm):
         
         for field_name, field in self.fields.items():
             field.widget.attrs['class'] = estilo_input
+class OrganizacionForm(forms.ModelForm):
+    class Meta:
+        model = Organizacion
+        fields = ('nombre', 'alias', 'descripcion', 'direccion', 'latitud', 'longitud', 'logo')
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        estilo_textarea = 'textarea textarea-bordered w-full bg-base-100 text-base-content h-24'
+        
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.Textarea):
+                field.widget.attrs['class'] = estilo_textarea
+            elif isinstance(field.widget, forms.FileInput):
+                field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
+            else:
+                field.widget.attrs['class'] = estilo_input
+
+
+class SponsorForm(forms.ModelForm):
+    class Meta:
+        model = Sponsor
+        fields = ('nombre', 'imagen', 'link', 'orden')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.FileInput):
+                field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
+            else:
+                field.widget.attrs['class'] = estilo_input
