@@ -50,17 +50,17 @@
                                 {{ organizacion.descripcion|default:"Esta organización no ha añadido una descripción aún." }}
                             </p>
                         </div>
-                        {% if organizacion.latitud and organizacion.longitud %}
+                        {% if organizacion.direccion %}
                             <div class="rounded-xl overflow-hidden border border-base-300 h-64 bg-base-200 relative group">
-                                <!-- Google Maps Embed Simple -->
+                                <!-- Google Maps Embed por Dirección -->
                                 <iframe width="100%"
                                         height="100%"
                                         frameborder="0"
                                         style="border:0"
-                                        src="https://maps.google.com/maps?q={{ organizacion.latitud|stringformat:"f" }},{{ organizacion.longitud|stringformat:"f" }}&z=15&output=embed"
+                                        src="https://maps.google.com/maps?q={{ organizacion.direccion|urlencode }}&z=15&output=embed"
                                         allowfullscreen>
                                 </iframe>
-                                <a href="https://www.google.com/maps/search/?api=1&query={{ organizacion.latitud|stringformat:"f" }},{{ organizacion.longitud|stringformat:"f" }}"
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ organizacion.direccion|urlencode }}"
                                    target="_blank"
                                    class="absolute bottom-4 right-4 btn btn-sm btn-primary shadow-lg opacity-90 hover:opacity-100">
                                     Ver en Google Maps
@@ -135,10 +135,10 @@
                                 <div class="card-body p-4 items-center text-center">
                                     <div class="avatar placeholder mb-2">
                                         <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 ring ring-primary ring-offset-base-100 ring-offset-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                            <span class="text-xl">{{ miembro.first_name|slice:":1" }}{{ miembro.last_name|slice:":1" }}</span>
+                                            <span class="text-xl">{{ miembro.nombre|slice:":1" }}{{ miembro.apellido|slice:":1" }}</span>
                                         </div>
                                     </div>
-                                    <span class="text-xs font-bold truncate w-full">{{ miembro.get_full_name|default:miembro.username }}</span>
+                                    <span class="text-xs font-bold truncate w-full">{{ miembro.full_name|default:miembro.email }}</span>
                                     <span class="text-[10px] opacity-60 uppercase tracking-wider">Organizador</span>
                                 </div>
                             </a>
