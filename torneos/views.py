@@ -70,6 +70,13 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
     template_name = 'torneos/admin_torneo_manage.html'
     context_object_name = 'torneo'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(organizacion=user.organizacion)
+        return qs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         torneo = self.object
@@ -544,6 +551,13 @@ class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
     form_class = CargarResultadoGrupoForm
     template_name = 'torneos/cargar_resultado_grupo.html'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(grupo__torneo__organizacion=user.organizacion)
+        return qs
+
     def get_success_url(self):
         return reverse_lazy(
             'torneos:admin_manage', kwargs={'pk': self.object.grupo.torneo.pk}
@@ -561,6 +575,13 @@ class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
     form_class = PartidoResultadoForm
     template_name = 'torneos/admin_partido_form.html'
     context_object_name = 'partido'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(torneo__organizacion=user.organizacion)
+        return qs
 
     def get_success_url(self):
         return reverse_lazy(
@@ -580,6 +601,13 @@ class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
     form_class = PartidoGrupoScheduleForm
     template_name = 'torneos/schedule_form.html'
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(grupo__torneo__organizacion=user.organizacion)
+        return qs
+
     def get_success_url(self):
         return reverse_lazy(
             'torneos:admin_manage', kwargs={'pk': self.object.grupo.torneo.pk}
@@ -596,6 +624,13 @@ class SchedulePartidoView(AdminRequiredMixin, UpdateView):
     model = Partido
     form_class = PartidoScheduleForm
     template_name = 'torneos/schedule_form.html'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(torneo__organizacion=user.organizacion)
+        return qs
 
     def get_success_url(self):
         return reverse_lazy(
@@ -616,7 +651,13 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
     model = Torneo
     template_name = 'torneos/admin_torneo_list.html'
     context_object_name = 'torneos'
-    queryset = Torneo.objects.select_related('division').order_by('-fecha_inicio')
+    
+    def get_queryset(self):
+        qs = Torneo.objects.select_related('division').order_by('-fecha_inicio')
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(organizacion=user.organizacion)
+        return qs
 
 
 class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
@@ -630,6 +671,13 @@ class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
         context['titulo'] = "Crear Nuevo Torneo"
         return context
 
+    def form_valid(self, form):
+        user = self.request.user
+        # Si el usuario es un organizador, asignar automáticamente su organización
+        if user.tipo_usuario == 'ORGANIZER' and user.organizacion:
+            form.instance.organizacion = user.organizacion
+        return super().form_valid(form)
+
 
 
 class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
@@ -639,6 +687,13 @@ class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': self.object.pk})
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(organizacion=user.organizacion)
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -650,6 +705,13 @@ class AdminTorneoDeleteView(AdminRequiredMixin, DeleteView):
     model = Torneo
     success_url = reverse_lazy('torneos:admin_list')
     template_name = 'torneos/admin_torneo_confirm_delete.html'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            return qs.filter(organizacion=user.organizacion)
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

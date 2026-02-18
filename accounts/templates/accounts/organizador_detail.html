@@ -114,6 +114,39 @@
                 </div>
             </div>
         {% endif %}
+        <!-- MIEMBROS DE LA ORGANIZACIÓN -->
+        {% with miembros=organizacion.miembros.all %}
+            {% if miembros %}
+                <div class="space-y-4">
+                    <h3 class="text-xl font-bold px-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6 text-primary"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Nuestro Equipo
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {% for miembro in miembros %}
+                            <a href="{% url 'accounts:detalle' miembro.pk %}"
+                               class="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition-shadow group">
+                                <div class="card-body p-4 items-center text-center">
+                                    <div class="avatar placeholder mb-2">
+                                        <div class="bg-neutral text-neutral-content rounded-full w-12 h-12 ring ring-primary ring-offset-base-100 ring-offset-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                            <span class="text-xl">{{ miembro.first_name|slice:":1" }}{{ miembro.last_name|slice:":1" }}</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-bold truncate w-full">{{ miembro.get_full_name|default:miembro.username }}</span>
+                                    <span class="text-[10px] opacity-60 uppercase tracking-wider">Organizador</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
         <!-- SECCIÓN DE TORNEOS -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Torneos Activos -->

@@ -336,24 +336,6 @@ class OrganizacionSettingsView(LoginRequiredMixin, UpdateView):
          return Organizacion.objects.all()
 
 
-class OrganizacionCreateView(LoginRequiredMixin, CreateView):
-    form_class = OrganizacionForm
-    template_name = 'accounts/organizacion_form.html'
-    success_url = reverse_lazy('accounts:perfil')
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        # Asignar la organización creada al usuario actual
-        user = self.request.user
-        user.organizacion = self.object
-        user.save()
-        return response
-
-    def dispatch(self, request, *args, **kwargs):
-        # Si ya tiene organización, redirigir a ajustes
-        if request.user.organizacion:
-             return redirect('accounts:organizacion_settings')
-        return super().dispatch(request, *args, **kwargs)
 
 class OrganizacionSponsorsView(LoginRequiredMixin, CreateView):
     model = Sponsor
