@@ -64,15 +64,32 @@
     .select2-container {
         width: 100% !important;
         max-width: 100% !important;
+        display: block !important;
+    }
+    
+    .select2-container .selection {
+        width: 100% !important;
+        display: block !important;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
     }
 
     .select2-search__field {
         width: 100% !important;
+        max-width: 100% !important;
         box-sizing: border-box !important;
+        margin-left: 0 !important;
     }
-
-    .select2-selection--multiple {
-        box-sizing: border-box !important;
+    
+    .select2-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden; /* Prevent horizontal scroll just in case */
     }
     </style>
     <div class="flex justify-center items-center py-6 md:py-12 px-4 md:px-4 min-h-[calc(100vh-4rem)]">
