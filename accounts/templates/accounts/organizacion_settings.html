@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Ajustes de Organización - TodoPadel{% endblock %}
+{% block title %}
+    Ajustes de Organización - TodoPadel
+{% endblock title %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-3xl mx-auto">
@@ -31,21 +33,35 @@
                             </div>
                         </div>
                         <!-- Logo -->
-                        <div class="form-control w-full">
+                        <div class="form-control w-full p-4 bg-base-200/50 rounded-2xl border border-base-300 transition-all hover:bg-base-200/80">
                             <label class="label">
-                                <span class="label-text font-medium">Logo</span>
+                                <span class="label-text font-bold text-lg">Logo de la Organización</span>
                             </label>
-                            <div class="flex items-center gap-4">
+                            <div class="flex flex-col sm:flex-row items-center gap-6 mt-2">
                                 {% if form.instance.logo %}
-                                    <div class="avatar">
-                                        <div class="w-16 h-16 rounded-xl ring ring-primary ring-offset-base-100 ring-offset-2">
-                                            <img src="{{ form.instance.logo.url }}" alt="Logo actual" />
+                                    <div class="avatar shadow-lg">
+                                        <div class="w-24 h-24 rounded-2xl ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
+                                            <img src="{{ form.instance.logo.url }}"
+                                                 alt="Logo actual"
+                                                 width="96"
+                                                 height="96"
+                                                 class="object-cover" />
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="avatar placeholder shadow-lg">
+                                        <div class="bg-neutral text-neutral-content rounded-2xl w-24 h-24 ring ring-base-300 ring-offset-base-100 ring-offset-2">
+                                            <span class="text-3xl font-bold">{{ form.instance.nombre|slice:":2"|upper }}</span>
                                         </div>
                                     </div>
                                 {% endif %}
-                                {{ form.logo }}
+                                <div class="flex-1 w-full space-y-2 text-center sm:text-left">
+                                    <p class="text-xs font-medium opacity-60 uppercase tracking-wider">Subir nuevo logo</p>
+                                    {{ form.logo }}
+                                    <p class="text-[10px] opacity-40">Formatos recomendados: PNG, JPG o WEBP. Tamaño sugerido: 512x512px.</p>
+                                </div>
                             </div>
-                            {% if form.logo.errors %}<span class="text-error text-xs">{{ form.logo.errors.0 }}</span>{% endif %}
+                            {% if form.logo.errors %}<span class="text-error text-xs mt-2 block">{{ form.logo.errors.0 }}</span>{% endif %}
                         </div>
                         <!-- Descripción -->
                         <div class="form-control w-full">
@@ -90,7 +106,7 @@
                             <span>Las coordenadas se usarán para mostrar el mapa en tu perfil público. Puedes obtenerlas de Google Maps.</span>
                         </div>
                         <div class="flex justify-end gap-3 pt-4">
-                            <a href="{% url 'accounts:perfil' %}" class="btn btn-ghost">Cancelar</a>
+                            <a href="{% url 'accounts:perfil' %}" class="btn btn-ghost">Volver a Mi Perfil</a>
                             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                         </div>
                     </form>
@@ -98,4 +114,4 @@
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}

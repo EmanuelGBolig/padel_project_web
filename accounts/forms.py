@@ -100,6 +100,9 @@ class OrganizacionForm(forms.ModelForm):
     class Meta:
         model = Organizacion
         fields = ('nombre', 'alias', 'descripcion', 'direccion', 'latitud', 'longitud', 'logo')
+        widgets = {
+            'logo': forms.FileInput(),
+        }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -119,6 +122,9 @@ class SponsorForm(forms.ModelForm):
     class Meta:
         model = Sponsor
         fields = ('nombre', 'imagen', 'link', 'orden')
+        widgets = {
+            'imagen': forms.FileInput(),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
