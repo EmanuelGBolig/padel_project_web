@@ -24,6 +24,7 @@ from .forms import (
     PartidoScheduleForm,
     PartidoReplaceTeamsForm,
     PartidoGrupoReplaceTeamsForm,
+    GrupoDateForm,
 )
 from .formats import get_format
 from equipos.models import Equipo
@@ -173,6 +174,17 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             torneo.estado = Torneo.Estado.FINALIZADO
             torneo.save()
             messages.success(request, "Torneo finalizado.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+            
+        elif action == 'set_grupo_date':
+            grupo_id = request.POST.get('grupo_id')
+            grupo = get_object_or_404(Grupo, pk=grupo_id, torneo=torneo)
+            form = GrupoDateForm(request.POST, instance=grupo)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Fecha predeterminada actualizada para {grupo.nombre}.")
+            else:
+                 messages.error(request, "Fecha inválida.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         return redirect('torneos:admin_manage', pk=torneo.pk)

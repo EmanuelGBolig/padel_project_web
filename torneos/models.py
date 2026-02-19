@@ -113,6 +113,11 @@ class Inscripcion(models.Model):
 class Grupo(models.Model):
     torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name="grupos")
     nombre = models.CharField(max_length=100)  # Ej: "Grupo A"
+    fecha_inicio_default = models.DateField(
+        null=True, 
+        blank=True,
+        help_text="Fecha predeterminada para los partidos de este grupo"
+    )
 
     # Relación muchos a muchos para saber qué equipos están en el grupo
     equipos = models.ManyToManyField(

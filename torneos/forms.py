@@ -1,5 +1,5 @@
 from django import forms
-from .models import Torneo, Partido, PartidoGrupo, Inscripcion, Equipo
+from .models import Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo
 
 
 class TorneoAdminForm(forms.ModelForm):
@@ -409,6 +409,26 @@ class PartidoGrupoScheduleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.fecha_hora:
             self.initial['fecha_hora'] = self.instance.fecha_hora.strftime('%Y-%m-%dT%H:%M')
+        elif self.instance.grupo.fecha_inicio_default:
+            # Si no hay fecha, sugerir la del grupo + 09:00 AM
+            default_date = self.instance.grupo.fecha_inicio_default
+            self.initial['fecha_hora'] = f"{default_date.strftime('%Y-%m-%d')}T09:00"
+
+
+class GrupoDateForm(forms.ModelForm):
+    class Meta:
+        model = Grupo
+        fields = ['fecha_inicio_default']
+        widgets = {
+            'fecha_inicio_default': forms.DateInput(
+                attrs={'type': 'date', 'class': 'input input-bordered input-sm w-full'},
+                format='%Y-%m-%d'
+            ),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fecha_inicio_default'].label = ""
 
 
 class PartidoScheduleForm(forms.ModelForm):
