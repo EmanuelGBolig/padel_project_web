@@ -333,6 +333,13 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
         return context
 
 
+class OrganizacionListView(ListView):
+    model = Organizacion
+    template_name = 'accounts/organizacion_list.html'
+    context_object_name = 'organizaciones'
+    ordering = ['nombre']
+
+
 class OrganizacionDetailView(DetailView):
     # model = Organizacion (Dynamic import in dispatch/queryset to avoid circular imports if needed)
     template_name = 'accounts/organizador_detail.html' # Mantengo el nombre del template por ahora
