@@ -319,77 +319,88 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Tabla de Inscripciones Recientes -->
-                    <div class="card bg-base-100 shadow-xl border border-base-200">
-                        <div class="card-body">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="card-title">Últimas Inscripciones</h3>
-                                <span class="badge badge-ghost">{{ inscripciones_recientes.count }} recientes</span>
-                            </div>
-                            {% if inscripciones_recientes %}
-                                <div class="overflow-x-auto">
-                                    <table class="table table-zebra w-full">
-                                        <thead>
-                                            <tr>
-                                                <th>Equipo / Jugadores</th>
-                                                <th>Torneo</th>
-                                                <th>División</th>
-                                                <th>Estado</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for ins in inscripciones_recientes %}
-                                                <tr class="hover">
-                                                    <td>
-                                                        <div class="font-bold">{{ ins.equipo.nombre }}</div>
-                                                        <div class="text-xs opacity-50">{{ ins.equipo.jugador1.full_name }} / {{ ins.equipo.jugador2.full_name }}</div>
-                                                    </td>
-                                                    <td>
-                                                        <a href="{% url 'torneos:admin_manage' ins.torneo.pk %}"
-                                                           class="link link-hover link-primary font-medium">
-                                                            {{ ins.torneo.nombre }}
-                                                        </a>
-                                                    </td>
-                                                    <td>
-                                                        <div class="flex flex-col gap-1">
-                                                            <div class="badge badge-sm badge-outline">{{ ins.equipo.division.nombre|default:"Sin Div" }}</div>
-                                                            {% if ins.alerta_division == 'SUPERIOR' %}
-                                                                <div class="badge badge-error badge-xs gap-1 py-2">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                                         viewBox="0 0 16 16"
-                                                                         fill="currentColor"
-                                                                         class="w-3 h-3">
-                                                                        <path fill-rule="evenodd" d="M8 15a.75.75 0 0 1-.75-.75V3.812L4.03 7.03a.75.75 0 0 1-1.06-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1-1.06 1.06L8.75 3.812V14.25A.75.75 0 0 1 8 15Z" clip-rule="evenodd" />
-                                                                    </svg>
-                                                                    División Mayor
-                                                                </div>
-                                                            {% elif ins.alerta_division == 'INFERIOR' %}
-                                                                <div class="badge badge-warning badge-xs gap-1 py-2">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                                         viewBox="0 0 16 16"
-                                                                         fill="currentColor"
-                                                                         class="w-3 h-3">
-                                                                        <path fill-rule="evenodd" d="M8 1a.75.75 0 0 1 .75.75v10.438l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-4.25-4.25a.75.75 0 0 1 1.06-1.06l3.22 3.22V1.75A.75.75 0 0 1 8 1Z" clip-rule="evenodd" />
-                                                                    </svg>
-                                                                    División Menor
-                                                                </div>
-                                                            {% endif %}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="text-xs">{{ ins.fecha_inscripcion|date:"d/m H:i" }}</div>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="text-center py-10 opacity-50">
-                                    <p>No hay inscripciones recientes en tus torneos.</p>
-                                </div>
-                            {% endif %}
+                    <!-- Inscripciones por Torneo (Collapsible) -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="card-title text-lg">Inscripciones por Torneo</h3>
                         </div>
+                        {% if torneos_con_inscripciones %}
+                            {% for torneo in torneos_con_inscripciones %}
+                                {% if torneo.inscripciones_list %}
+                                    <div class="collapse collapse-plus bg-base-200/50 border border-base-300 rounded-xl">
+                                        <input type="checkbox" {% if forloop.first %}checked{% endif %} />
+                                        <div class="collapse-title flex items-center justify-between pr-12">
+                                            <div class="flex items-center gap-3">
+                                                <div class="font-bold text-md">{{ torneo.nombre }}</div>
+                                                <div class="badge badge-sm badge-outline opacity-70">{{ torneo.get_estado_display }}</div>
+                                            </div>
+                                            <div class="badge badge-primary badge-sm">{{ torneo.inscripciones_list|length }} equipos</div>
+                                        </div>
+                                        <div class="collapse-content px-0">
+                                            <div class="overflow-x-auto">
+                                                <table class="table table-zebra w-full">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Equipo / Jugadores</th>
+                                                            <th>División</th>
+                                                            <th>Fecha</th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for ins in torneo.inscripciones_list %}
+                                                            <tr class="hover">
+                                                                <td>
+                                                                    <div class="font-bold">{{ ins.equipo.nombre }}</div>
+                                                                    <div class="text-xs opacity-50">{{ ins.equipo.jugador1.full_name }} / {{ ins.equipo.jugador2.full_name }}</div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="flex flex-col gap-1">
+                                                                        <div class="badge badge-sm badge-outline">{{ ins.equipo.division.nombre|default:"Sin Div" }}</div>
+                                                                        {% if ins.alerta_division == 'SUPERIOR' %}
+                                                                            <div class="badge badge-error badge-xs gap-1 py-2">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                     viewBox="0 0 16 16"
+                                                                                     fill="currentColor"
+                                                                                     class="w-3 h-3">
+                                                                                    <path fill-rule="evenodd" d="M8 15a.75.75 0 0 1-.75-.75V3.812L4.03 7.03a.75.75 0 0 1-1.06-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1-1.06 1.06L8.75 3.812V14.25A.75.75 0 0 1 8 15Z" clip-rule="evenodd" />
+                                                                                </svg>
+                                                                                División Mayor
+                                                                            </div>
+                                                                        {% elif ins.alerta_division == 'INFERIOR' %}
+                                                                            <div class="badge badge-warning badge-xs gap-1 py-2">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                                     viewBox="0 0 16 16"
+                                                                                     fill="currentColor"
+                                                                                     class="w-3 h-3">
+                                                                                    <path fill-rule="evenodd" d="M8 1a.75.75 0 0 1 .75.75v10.438l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0l-4.25-4.25a.75.75 0 0 1 1.06-1.06l3.22 3.22V1.75A.75.75 0 0 1 8 1Z" clip-rule="evenodd" />
+                                                                                </svg>
+                                                                                División Menor
+                                                                            </div>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="text-xs opacity-70">{{ ins.fecha_inscripcion|date:"d/m H:i" }}</div>
+                                                                </td>
+                                                                <td>
+                                                                    <a href="{% url 'torneos:admin_manage' torneo.pk %}"
+                                                                       class="btn btn-ghost btn-xs text-primary">Gestionar</a>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-10 opacity-50 border-2 border-dashed border-base-300 rounded-2xl">
+                                <p>No hay inscripciones registradas en tus torneos.</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}

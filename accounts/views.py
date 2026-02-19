@@ -148,22 +148,29 @@ class PerfilView(LoginRequiredMixin, UpdateView):
             
             context['torneos_gestionados'] = torneos_gestionados
             
-            # 3. Inscripciones recientes para estos torneos
-            inscripciones_recientes = Inscripcion.objects.filter(
-                torneo__in=torneos_gestionados
-            ).select_related('torneo', 'equipo', 'equipo__division', 'torneo__division').order_by('-fecha_inscripcion')[:15]
+            # 3. Torneos gestionados con sus inscripciones
+            from django.db.models import Prefetch
             
-            # Procesar inscripciones para detectar saltos de división
-            for ins in inscripciones_recientes:
-                ins.alerta_division = None
-                if ins.torneo.division and ins.equipo.division:
-                    # Comparar órdenes: 1 es superior a 8
-                    if ins.equipo.division.orden < ins.torneo.division.orden:
-                        ins.alerta_division = 'SUPERIOR' # El equipo es de una división más competitiva
-                    elif ins.equipo.division.orden > ins.torneo.division.orden:
-                        ins.alerta_division = 'INFERIOR' # El equipo es de una división menos competitiva
+            # Prefetch de inscripciones optimizado
+            inscripciones_qs = Inscripcion.objects.select_related(
+                'equipo', 'equipo__division'
+            ).order_by('-fecha_inscripcion')
+
+            torneos_con_inscripciones = torneos_gestionados.prefetch_related(
+                Prefetch('inscripciones', queryset=inscripciones_qs, to_attr='inscripciones_list')
+            )
             
-            context['inscripciones_recientes'] = inscripciones_recientes
+            # Procesar alertas de división para cada inscripción
+            for torneo in torneos_con_inscripciones:
+                for ins in torneo.inscripciones_list:
+                    ins.alerta_division = None
+                    if torneo.division and ins.equipo.division:
+                        if ins.equipo.division.orden < torneo.division.orden:
+                            ins.alerta_division = 'SUPERIOR'
+                        elif ins.equipo.division.orden > torneo.division.orden:
+                            ins.alerta_division = 'INFERIOR'
+            
+            context['torneos_con_inscripciones'] = torneos_con_inscripciones
             
             # Resumen rápido para el dashboard
             context['total_torneos_activos'] = torneos_gestionados.filter(estado__in=['AB', 'EJ']).count()

@@ -321,6 +321,25 @@
                             <div class="carousel-item w-[85%] md:w-[calc((100%-48px)/3)] shrink-0 snap-center h-full transition-transform duration-300">
                                 <div class="card bg-base-100 shadow hover:shadow-xl transition-all duration-300 border border-base-content/5 h-full hover:-translate-y-1 w-full">
                                     <div class="card-body p-4 md:p-6 flex flex-col h-full">
+                                        <!-- Organizador Header -->
+                                        <div class="flex items-center gap-3 mb-4 p-2 bg-base-200/50 rounded-xl border border-base-content/5">
+                                            <div class="avatar">
+                                                <div class="w-8 h-8 rounded-full ring ring-primary ring-offset-base-100 ring-offset-1 bg-base-100 overflow-hidden">
+                                                    {% if torneo.organizacion.logo %}
+                                                        <img src="{{ torneo.organizacion.logo.url }}"
+                                                             alt="{{ torneo.organizacion.nombre }}"
+                                                             width="32"
+                                                             height="32" />
+                                                    {% else %}
+                                                        <span class="text-[10px] font-bold text-base-content/40 flex items-center justify-center h-full">{{ torneo.organizacion.nombre|slice:":2"|upper }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-[8px] uppercase tracking-wider opacity-50">Organiza</span>
+                                                <span class="text-[10px] font-black leading-tight">{{ torneo.organizacion.nombre }}</span>
+                                            </div>
+                                        </div>
                                         <div class="flex justify-between items-start mb-2 md:mb-4">
                                             <h3 class="card-title text-lg md:text-xl font-bold line-clamp-2 min-h-[3rem] md:min-h-[3.5rem]">
                                                 {{ torneo.nombre }}
