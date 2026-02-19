@@ -225,24 +225,8 @@
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-14 sm:pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
                                 <div class="flex items-center gap-2">
-                                    <!-- FORM SET DATE -->
-                                    <form method="post"
-                                          class="flex items-center gap-2 mr-2"
-                                          onclick="event.stopPropagation();">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="set_grupo_date">
-                                        <input type="hidden" name="grupo_id" value="{{ grupo.pk }}">
-                                        <div class="tooltip"
-                                             data-tip="Establecer fecha estándar para partidos del grupo">
-                                            <input type="date"
-                                                   name="fecha_inicio_default"
-                                                   value="{{ grupo.fecha_inicio_default|date:'Y-m-d'|default:'' }}"
-                                                   class="input input-xs input-bordered w-32"
-                                                   onchange="this.form.submit()"
-                                                   title="Fecha estándar del grupo">
-                                        </div>
-                                    </form>
                                     <div class="flex items-center gap-2">
+                                        <!-- Botones y Acciones existentes -->
                                         <form method="post"
                                               class="inline-block relative z-30"
                                               onclick="event.stopPropagation();"
@@ -292,6 +276,21 @@
                                     </div>
                                 </div>
                                 <div class="collapse-content">
+                                    <!-- Configuración de Grupo (Fecha Default) -->
+                                    <div class="flex justify-between items-center bg-base-200/50 p-3 rounded-lg mb-4 mt-2">
+                                        <span class="text-xs font-bold uppercase opacity-50 tracking-wider">Configuración del Grupo</span>
+                                        <form method="post" class="flex items-center gap-2">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="set_grupo_date">
+                                            <input type="hidden" name="grupo_id" value="{{ grupo.pk }}">
+                                            <label class="label-text text-xs whitespace-nowrap">Fecha Estándar:</label>
+                                            <input type="date"
+                                                   name="fecha_inicio_default"
+                                                   value="{{ grupo.fecha_inicio_default|date:'Y-m-d'|default:'' }}"
+                                                   class="input input-xs input-bordered w-auto"
+                                                   onchange="this.form.submit()">
+                                        </form>
+                                    </div>
                                     <!-- Tabla Posiciones (Compacta) -->
                                     <div class="overflow-x-auto mb-4 bg-base-200 rounded-lg p-2">
                                         <h4 class="text-sm font-bold mb-2 opacity-70">Tabla de Posiciones</h4>
