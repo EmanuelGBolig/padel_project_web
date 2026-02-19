@@ -337,9 +337,11 @@
                                             </div>
                                             <div class="badge badge-primary badge-sm whitespace-nowrap">{{ torneo.inscripciones_list|length }} equipos</div>
                                         </div>
-                                        <div class="collapse-content px-0 overflow-visible">
-                                            <div class="overflow-x-auto w-full">
-                                                <table class="table table-zebra w-full min-w-[500px]">
+                                        <div class="collapse-content px-0">
+                                            <!-- Contenedor con Scroll Horizontal Forzado -->
+                                            <div class="overflow-x-auto w-full cursor-grab active:cursor-grabbing select-none"
+                                                 style="-webkit-overflow-scrolling: touch">
+                                                <table class="table table-zebra w-full min-w-[650px]">
                                                     <thead>
                                                         <tr>
                                                             <th>Equipo / Jugadores</th>
