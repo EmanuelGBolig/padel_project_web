@@ -96,6 +96,33 @@ class CustomLoginForm(AuthenticationForm):
         
         for field_name, field in self.fields.items():
             field.widget.attrs['class'] = estilo_input
+
+    def clean(self):
+        from django.contrib.auth import authenticate, get_user_model
+        from django.core.exceptions import ValidationError
+        
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username is not None and password:
+            self.user_cache = authenticate(self.request, username=username, password=password)
+            if self.user_cache is None:
+                # Revisar si el usuario existe, tiene password correcta pero está inactivo (no verificado)
+                User = get_user_model()
+                try:
+                    user = User.objects.get(email=username)
+                    if user.check_password(password) and not user.is_active:
+                        if self.request:
+                            self.request.session['verification_user_id'] = user.id
+                        raise ValidationError("Debes verificar tu cuenta primero.", code='unverified')
+                except User.DoesNotExist:
+                    pass
+                
+                raise self.get_invalid_login_error()
+            else:
+                self.confirm_login_allowed(self.user_cache)
+
+        return self.cleaned_data
 class OrganizacionForm(forms.ModelForm):
     class Meta:
         model = Organizacion

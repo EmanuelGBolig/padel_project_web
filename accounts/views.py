@@ -13,6 +13,14 @@ class CustomLoginView(LoginView):
     authentication_form = CustomLoginForm
     redirect_authenticated_user = True
 
+    def form_invalid(self, form):
+        from django.shortcuts import redirect
+        if form.errors.get('__all__'):
+            for error in form.errors.as_data().get('__all__', []):
+                if getattr(error, 'code', None) == 'unverified':
+                    return redirect('accounts:verificar_email')
+        return super().form_invalid(form)
+
 
 class CustomLogoutView(LogoutView):
     next_page = reverse_lazy('core:home')
