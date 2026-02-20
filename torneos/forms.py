@@ -446,3 +446,77 @@ class PartidoScheduleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.fecha_hora:
             self.initial['fecha_hora'] = self.instance.fecha_hora.strftime('%Y-%m-%dT%H:%M')
+
+
+class TorneoReplaceTeamForm(forms.Form):
+    equipo_a_reemplazar = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        label="Equipo Actual",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'})
+    )
+    nuevo_equipo = forms.ModelChoiceField(
+        queryset=Equipo.objects.none(),
+        label="Reemplazar por (Equipo Existente)",
+        required=False,
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'})
+    )
+    crear_dummy = forms.BooleanField(
+        label="Crear Pareja Libre (Dummy)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'checkbox checkbox-primary w-5 h-5'})
+    )
+    nombre_dummy = forms.CharField(
+        label="Nombre del Dummy (Opcional)",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'input input-bordered w-full bg-base-100 text-base-content', 'placeholder': 'Ej: Pareja Libre X'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.torneo = kwargs.pop('torneo', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.torneo:
+            from .models import PartidoGrupo, Partido
+            
+            # Equipos inscritos en el torneo
+            equipos_inscritos = self.torneo.equipos_inscritos.all()
+            
+            # Identificar equipos que ya jugaron partidos
+            played_group_matches = PartidoGrupo.objects.filter(
+                grupo__torneo=self.torneo,
+                ganador__isnull=False
+            ).values_list('equipo1_id', 'equipo2_id')
+            
+            played_bracket_matches = Partido.objects.filter(
+                torneo=self.torneo,
+                ganador__isnull=False
+            ).values_list('equipo1_id', 'equipo2_id')
+            
+            played_ids = set()
+            for e1, e2 in played_group_matches:
+                if e1: played_ids.add(e1)
+                if e2: played_ids.add(e2)
+            for e1, e2 in played_bracket_matches:
+                if e1: played_ids.add(e1)
+                if e2: played_ids.add(e2)
+                
+            editable_equipos = equipos_inscritos.exclude(id__in=played_ids)
+            self.fields['equipo_a_reemplazar'].queryset = editable_equipos
+            
+            # Equipos fuera del torneo
+            from equipos.models import Equipo
+            equipos_fuera = Equipo.objects.exclude(id__in=equipos_inscritos.values_list('id', flat=True))
+            self.fields['nuevo_equipo'].queryset = equipos_fuera
+
+    def clean(self):
+        cleaned_data = super().clean()
+        nuevo_equipo = cleaned_data.get("nuevo_equipo")
+        crear_dummy = cleaned_data.get("crear_dummy")
+        
+        if not nuevo_equipo and not crear_dummy:
+            raise forms.ValidationError("Debes seleccionar un equipo existente o tildar 'Crear Pareja Libre'.")
+            
+        if nuevo_equipo and crear_dummy:
+            raise forms.ValidationError("No puedes seleccionar un equipo existente y crear uno nuevo a la vez.")
+            
+        return cleaned_data

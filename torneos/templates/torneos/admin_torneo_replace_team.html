@@ -1,0 +1,99 @@
+<div class="p-2 sm:p-6">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke-width="2"
+                 stroke="currentColor"
+                 class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+        </div>
+        <h3 class="font-black text-xl text-base-content leading-tight">Reemplazar Equipo</h3>
+    </div>
+    <form method="post"
+          action="{% url 'torneos:torneo_reemplazar_equipo' torneo.pk %}"
+          class="space-y-6">
+        {% csrf_token %}
+        {% if form.errors %}
+            <div class="alert alert-error shadow-sm mb-4 py-2">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="stroke-current shrink-0 h-6 w-6"
+                     fill="none"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Por favor, corrige los errores debajo.</span>
+            </div>
+        {% endif %}
+        <div class="alert alert-info py-2 text-sm shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 class="stroke-current shrink-0 w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+            </svg>
+            <span>Solo puedes reemplazar equipos que <strong>no hayan jugado</strong> ningún partido con resultado en este torneo.</span>
+        </div>
+        <div class="form-control w-full space-y-1">
+            <label class="label pt-0">
+                <span class="label-text font-bold">{{ form.equipo_a_reemplazar.label }}</span>
+            </label>
+            {{ form.equipo_a_reemplazar }}
+            {% if form.equipo_a_reemplazar.errors %}
+                <label class="label pb-0">
+                    <span class="label-text-alt text-error font-medium">{{ form.equipo_a_reemplazar.errors.0 }}</span>
+                </label>
+            {% endif %}
+        </div>
+        <div class="divider text-xs font-bold opacity-50 uppercase tracking-widest my-2">Nuevo Equipo</div>
+        <div class="form-control w-full space-y-1">
+            <label class="label pt-0">
+                <span class="label-text font-bold">{{ form.nuevo_equipo.label }}</span>
+            </label>
+            {{ form.nuevo_equipo }}
+            {% if form.nuevo_equipo.errors %}
+                <label class="label pb-0">
+                    <span class="label-text-alt text-error font-medium">{{ form.nuevo_equipo.errors.0 }}</span>
+                </label>
+            {% endif %}
+            <label class="label pb-0">
+                <span class="label-text-alt opacity-70">Elige un equipo registrado que no esté en el torneo.</span>
+            </label>
+        </div>
+        <div class="divider text-xs font-bold opacity-50 uppercase tracking-widest my-2">O bien</div>
+        <div class="form-control bg-base-200/50 p-4 rounded-xl border border-base-300">
+            <label class="cursor-pointer label justify-start gap-3 w-fit mb-2">
+                {{ form.crear_dummy }}
+                <span class="label-text font-bold">{{ form.crear_dummy.label }}</span>
+            </label>
+            <div class="pl-8 w-full mt-1">
+                {{ form.nombre_dummy }}
+                {% if form.nombre_dummy.errors %}
+                    <label class="label pb-0">
+                        <span class="label-text-alt text-error font-medium">{{ form.nombre_dummy.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+            {% if form.crear_dummy.errors %}
+                <label class="label pb-0">
+                    <span class="label-text-alt text-error font-medium">{{ form.crear_dummy.errors.0 }}</span>
+                </label>
+            {% endif %}
+        </div>
+        {% if form.non_field_errors %}
+            <div class="alert alert-error shadow-sm py-2">
+                <span class="text-sm">{{ form.non_field_errors.0 }}</span>
+            </div>
+        {% endif %}
+        <div class="modal-action mt-8 flex flex-col sm:flex-row gap-2 border-t border-base-300 pt-4">
+            <button type="button"
+                    class="btn btn-ghost order-last sm:order-first w-full sm:w-auto"
+                    onclick="document.getElementById('schedule_modal').close()">Cancelar</button>
+            <button type="submit"
+                    class="btn btn-warning text-white gap-2 w-full sm:w-auto shadow-sm">Guardar Reemplazo</button>
+        </div>
+    </form>
+</div>

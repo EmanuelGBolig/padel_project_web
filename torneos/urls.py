@@ -43,6 +43,11 @@ urlpatterns = [
         views.AdminTorneoManageView.as_view(),
         name='admin_manage',
     ),
+    path(
+        'admin/<int:pk>/reemplazar-equipo/',
+        views.TorneoReplaceTeamView.as_view(),
+        name='torneo_reemplazar_equipo',
+    ),
     # Carga de resultados (HTMX Modals)
     path(
         'admin/partido/<int:pk>/resultado/',

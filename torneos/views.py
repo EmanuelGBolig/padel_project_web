@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -12,6 +12,7 @@ from collections import defaultdict
 import math
 from itertools import combinations
 from django.http import HttpResponse
+from django.db import transaction
 
 from .models import Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo
 from .forms import (
@@ -25,6 +26,7 @@ from .forms import (
     PartidoReplaceTeamsForm,
     PartidoGrupoReplaceTeamsForm,
     GrupoDateForm,
+    TorneoReplaceTeamForm,
 )
 from .formats import get_format
 from equipos.models import Equipo
@@ -680,6 +682,82 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
 
 # --- OTRAS VISTAS (Carga de Resultados, etc.) ---
+
+class TorneoReplaceTeamView(AdminRequiredMixin, FormView):
+    template_name = 'torneos/admin_torneo_replace_team.html'
+    
+    def get_form_class(self):
+        return TorneoReplaceTeamForm
+        
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.torneo = get_object_or_404(Torneo, pk=self.kwargs['pk'])
+        
+        # Security check: verify organization if user is ORGANIZER
+        user = self.request.user
+        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            from django.core.exceptions import PermissionDenied
+            if self.torneo.organizacion != user.organizacion:
+                 raise PermissionDenied
+                 
+        kwargs['torneo'] = self.torneo
+        return kwargs
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['torneo'] = self.torneo
+        return context
+        
+    def form_valid(self, form):
+        torneo = self.torneo
+        equipo_viejo = form.cleaned_data['equipo_a_reemplazar']
+        nuevo_equipo = form.cleaned_data['nuevo_equipo']
+        crear_dummy = form.cleaned_data['crear_dummy']
+        nombre_dummy = form.cleaned_data['nombre_dummy']
+        
+        try:
+            with transaction.atomic():
+                if crear_dummy:
+                    if not nombre_dummy:
+                        count_dummies = Equipo.objects.filter(es_dummy=True).count()
+                        nombre_dummy = f"Pareja Libre {count_dummies + 1}"
+                    # Check if already exists to avoid unique constraint 
+                    if Equipo.objects.filter(nombre=nombre_dummy).exists():
+                         messages.error(self.request, f"Ya existe un equipo con ese nombre.")
+                         return self.form_invalid(form)
+                         
+                    nuevo_equipo = Equipo.objects.create(
+                        nombre=nombre_dummy,
+                        es_dummy=True,
+                        division=torneo.division,
+                        categoria=torneo.categoria or Equipo.Categoria.MIXTO
+                    )
+                
+                # Ejecutar el reemplazo
+                # 1. Eliminar inscripción vieja y crear la nueva
+                Inscripcion.objects.filter(torneo=torneo, equipo=equipo_viejo).delete()
+                # Create the new inscription if it does not exist already
+                Inscripcion.objects.get_or_create(torneo=torneo, equipo=nuevo_equipo)
+                
+                # 2. Reemplazar en EquipoGrupo
+                EquipoGrupo.objects.filter(grupo__torneo=torneo, equipo=equipo_viejo).update(equipo=nuevo_equipo)
+                
+                # 3. Reemplazar en PartidoGrupo 
+                PartidoGrupo.objects.filter(grupo__torneo=torneo, equipo1=equipo_viejo).update(equipo1=nuevo_equipo)
+                PartidoGrupo.objects.filter(grupo__torneo=torneo, equipo2=equipo_viejo).update(equipo2=nuevo_equipo)
+                
+                # 4. Reemplazar en Partido (Bracket)
+                Partido.objects.filter(torneo=torneo, equipo1=equipo_viejo).update(equipo1=nuevo_equipo)
+                Partido.objects.filter(torneo=torneo, equipo2=equipo_viejo).update(equipo2=nuevo_equipo)
+                
+            messages.success(self.request, f"Se reemplazó a {equipo_viejo.nombre} por {nuevo_equipo.nombre}.")
+            if self.request.headers.get('HX-Request'):
+                return HttpResponse('<script>window.location.reload();</script>')
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+            
+        except Exception as e:
+            messages.error(self.request, f"Ocurrió un error al reemplazar: {str(e)}")
+            return self.form_invalid(form)
 
 
 class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
