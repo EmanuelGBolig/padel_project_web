@@ -107,15 +107,21 @@ class CustomLoginForm(AuthenticationForm):
         if username is not None and password:
             self.user_cache = authenticate(self.request, username=username, password=password)
             if self.user_cache is None:
-                # Revisar si el usuario existe, tiene password correcta pero está inactivo (no verificado)
+                # Revisar si el usuario existe, tiene password correcta pero está inactivo (o error de mayúsculas)
                 User = get_user_model()
                 try:
-                    user = User.objects.get(email=username)
-                    if user.check_password(password) and not user.is_active:
-                        if self.request:
-                            self.request.session['verification_user_id'] = user.id
-                        raise ValidationError("Debes verificar tu cuenta primero.", code='unverified')
-                except User.DoesNotExist:
+                    user = User.objects.get(email__iexact=username)
+                    if user.check_password(password):
+                        if not user.is_active:
+                            if self.request:
+                                self.request.session['verification_user_id'] = user.id
+                            raise ValidationError("Debes verificar tu cuenta primero.", code='unverified')
+                        else:
+                            # Autenticación exitosa (el problema eran las mayúsculas en el email)
+                            self.user_cache = user
+                            self.confirm_login_allowed(self.user_cache)
+                            return self.cleaned_data
+                except (User.DoesNotExist, User.MultipleObjectsReturned):
                     pass
                 
                 raise self.get_invalid_login_error()
