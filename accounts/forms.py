@@ -21,8 +21,8 @@ class CustomUserCreationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
-        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
+        estilo_input = 'input input-bordered input-sm md:input-md w-full bg-base-100 text-base-content'
+        estilo_select = 'select select-bordered select-sm md:select-md w-full bg-base-100 text-base-content'
         
         for field_name, field in self.fields.items():
             field.help_text = None # Eliminar textos de ayuda (requisitos de contraseña)
