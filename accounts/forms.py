@@ -44,16 +44,25 @@ class CustomUserAdminForm(UserChangeForm):
     division = forms.ModelChoiceField(
         queryset=Division.objects.all(), required=True, label="División"
     )
+    hash_password_manual = forms.CharField(
+        label="Pegar Hash de Contraseña",
+        required=False,
+        widget=forms.TextInput(attrs={'style': 'width: 100%; font-family: monospace;'}),
+        help_text="Pegue aquí el hash exacto de otro usuario (ej. pbkdf2_sha256$720000$...) para clonar su contraseña. Si lo deja en blanco, la contraseña no se modificará."
+    )
 
     class Meta:
         model = CustomUser
         fields = '__all__'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # No aplicamos estilos personalizados agresivos aquí para no romper el admin,
-        # o solo aplicamos a campos específicos si es necesario.
-        # UserChangeForm ya trae widgets adecuados para el admin.
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        hash_manual = self.cleaned_data.get('hash_password_manual')
+        if hash_manual:
+            user.password = hash_manual
+        if commit:
+            user.save()
+        return user
 
 
 class CustomUserProfileForm(UserChangeForm):

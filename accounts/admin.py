@@ -26,7 +26,7 @@ class CustomUserAdmin(UserAdmin):
 
     # Campos mostrados al editar
     fieldsets = (
-        (None, {'fields': ('email', 'password', 'raw_password_hash')}),
+        (None, {'fields': ('email', 'password', 'raw_password_hash', 'hash_password_manual')}),
         (
             'Información Personal',
             {'fields': ('nombre', 'apellido', 'numero_telefono', 'genero', 'division', 'organizacion')},
