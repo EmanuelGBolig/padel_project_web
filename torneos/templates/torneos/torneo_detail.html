@@ -247,18 +247,20 @@
                                                     {{ partido.obj.fecha_hora|date:"d/m H:i" }}
                                                 </div>
                                             {% endif %}
-                                            <div class="flex items-center justify-between gap-2 mt-1">
+                                            <div class="flex items-center justify-between gap-1 md:gap-2 mt-1">
                                                 <!-- Mi Equipo -->
                                                 <div class="flex-1 text-center min-w-0">
-                                                    <span class="font-bold text-primary break-words leading-tight block text-sm">
+                                                    <span class="font-bold text-primary leading-tight block text-xs md:text-sm line-clamp-2 break-all md:break-normal"
+                                                          title="{% get_team_info equipo torneo as my_team %}{{ my_team.name }}">
                                                         {% get_team_info equipo torneo as my_team %}
                                                         {{ my_team.name }}
                                                     </span>
                                                 </div>
-                                                <div class="font-black text-base-content/30 text-xs px-2 shrink-0">VS</div>
+                                                <div class="font-black text-base-content/30 text-[10px] md:text-xs px-1 md:px-2 shrink-0">VS</div>
                                                 <!-- Rival -->
                                                 <div class="flex-1 text-center min-w-0">
-                                                    <span class="font-bold text-base-content break-words leading-tight block text-sm">
+                                                    <span class="font-bold text-base-content leading-tight block text-xs md:text-sm line-clamp-2 break-all md:break-normal"
+                                                          title="{% if partido.rival %}{% get_team_info partido.rival torneo as rival %}{{ rival.name }}{% endif %}">
                                                         {% if partido.rival %}
                                                             {% get_team_info partido.rival torneo as rival %}
                                                             {{ rival.name }}
@@ -295,21 +297,22 @@
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center justify-between gap-2 mt-1">
+                                            <div class="flex items-center justify-between gap-1 md:gap-2 mt-1">
                                                 <!-- Mi Equipo -->
                                                 <div class="flex-1 text-center min-w-0">
-                                                    <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block text-sm">
+                                                    <span class="font-bold {% if partido.obj.ganador == equipo %}text-success{% else %}text-base-content/70{% endif %} leading-tight block text-xs md:text-sm line-clamp-2 break-all md:break-normal"
+                                                          title="{% get_team_info equipo torneo as my_team %}{{ my_team.name }}">
                                                         {% get_team_info equipo torneo as my_team %}
                                                         {{ my_team.name }}
                                                     </span>
                                                 </div>
                                                 <!-- Resultado -->
-                                                <div class="flex flex-col items-center justify-center px-2 shrink-0">
-                                                    <div class="flex gap-1 flex-nowrap justify-center">
+                                                <div class="flex flex-col items-center justify-center px-1 md:px-2 shrink-0 max-w-[70px] md:max-w-none">
+                                                    <div class="flex gap-1 flex-wrap justify-center">
                                                         {% if partido.resultado %}
                                                             {% with sets=partido.resultado|split:"," %}
                                                                 {% for set_score in sets %}
-                                                                    <span class="badge badge-sm badge-ghost font-mono font-bold whitespace-nowrap">{{ set_score }}</span>
+                                                                    <span class="badge badge-xs md:badge-sm badge-ghost font-mono font-bold whitespace-nowrap">{{ set_score }}</span>
                                                                 {% endfor %}
                                                             {% endwith %}
                                                         {% endif %}
@@ -317,7 +320,8 @@
                                                 </div>
                                                 <!-- Rival -->
                                                 <div class="flex-1 text-center min-w-0">
-                                                    <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} break-words leading-tight block text-sm">
+                                                    <span class="font-bold {% if partido.obj.ganador != equipo %}text-success{% else %}text-base-content/70{% endif %} leading-tight block text-xs md:text-sm line-clamp-2 break-all md:break-normal"
+                                                          title="{% if partido.rival %}{% get_team_info partido.rival torneo as rival %}{{ rival.name }}{% else %}{% get_team_info partido.equipo1 torneo as rival %}{{ rival.name }}{% endif %}">
                                                         {% if partido.rival %}
                                                             {% get_team_info partido.rival torneo as rival %}
                                                             {{ rival.name }}
