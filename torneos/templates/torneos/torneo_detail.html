@@ -485,116 +485,112 @@
                 </summary>
                 <!-- Force overflow visible for horizontal scroll -->
                 <!-- Force overflow visible for horizontal scroll -->
-                <div class="collapse-content px-2 md:px-8 pb-4 md:pb-8 pt-0 min-w-0 !overflow-visible">
+                <div class="collapse-content px-2 md:px-8 pb-4 md:pb-8 pt-0 min-w-0 !overflow-visible relative">
                     <!-- BRACKET: Horizontal bracket for all screens -->
-                    <div class="overflow-x-auto w-full pb-6 !overflow-x-auto max-w-[100vw]">
-                        <style>
-                /* Bracket Connector Styles */
-                /* Force collapse arrow visibility when open */
-                details[open] > .collapse-title::after {
-                    color: oklch(var(--p)) !important;
-                    opacity: 1 !important;
-                    display: block !important;
-                }
-                .bracket-pair {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-around;
-                flex-grow: 1;
-                }
-                /* Vertical line connecting the pair */
-                .bracket-pair::before {
-                content: '';
-                position: absolute;
-                right: 0;
-                top: 25%;
-                bottom: 25%;
-                width: 2px;
-                background-color: oklch(var(--bc) / 0.2);
-                border-radius: 1px;
-                }
-                /* Horizontal line to the next round */
-                .bracket-pair::after {
-                content: '';
-                position: absolute;
-                right: -2rem; /* Matches gap-8 (2rem) */
-                top: 50%;
-                width: 2rem;
-                height: 2px;
-                background-color: oklch(var(--bc) / 0.2);
-                }
-                /* Connectors for individual matches to the vertical line */
-                .bracket-match-connector {
-                position: relative;
-                }
-                .bracket-match-connector::after {
-                content: '';
-                position: absolute;
-                right: 0; /* Fixed: Connects to the vertical line */
-                top: 50%;
-                width: 1rem;
-                height: 2px;
-                background-color: oklch(var(--bc) / 0.2);
-                z-index: 10;
-                }
-                /* Remove connectors for the last round */
-                .last-round .bracket-pair::before,
-                .last-round .bracket-pair::after,
-                .last-round .bracket-match-connector::after {
-                display: none;
-                }
-                        </style>
-                        <div class="flex gap-8 min-w-max px-4 pr-32">
+                    <div class="overflow-x-auto w-full pb-6 !overflow-x-auto max-w-[100vw] relative"
+                         id="bracket-container">
+                        <svg id="bracket-lines-svg"
+                             class="absolute top-0 left-0 w-full h-full pointer-events-none"
+                             style="z-index: 0;
+                                    min-width: 100%;
+                                    min-height: 100%">
+                        </svg>
+                        <div class="flex gap-12 min-w-max px-4 pr-32 relative z-10">
                             {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                             {% for ronda in rondas_list %}
-                                <div class="flex flex-col min-w-[240px] gap-6 {% if forloop.last %}last-round{% endif %}">
+                                <div class="flex flex-col min-w-[260px] max-w-[260px] gap-6 {% if forloop.last %}last-round{% endif %}">
                                     <!-- NOMBRE DE LA RONDA -->
-                                    <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content">
+                                    <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content mb-4">
                                         {% nombre_ronda_dinamico ronda.grouper total_rondas %}
                                     </div>
                                     <!-- PARTIDOS -->
-                                    <div class="flex flex-col justify-around flex-grow">
-                                        {% if forloop.last %}
-                                            <!-- Final Round -->
-                                            {% for partido in ronda.list %}
-                                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative my-4">
+                                    <div class="flex flex-col justify-around flex-grow gap-4">
+                                        {% for partido in ronda.list %}
+                                            <div class="w-full relative flex items-center justify-center">
+                                                <div class="card bg-base-100 shadow-md border border-base-200 p-2 text-xs relative bracket-match-card w-full"
+                                                     id="match-{{ partido.id }}"
+                                                     data-next-match="{% if partido.siguiente_partido %}match-{{ partido.siguiente_partido.id }}{% endif %}">
                                                     {% include "torneos/partials/bracket_match_content.html" %}
                                                 </div>
-                                            {% endfor %}
-                                        {% else %}
-                                            <!-- Other Rounds -->
-                                            <!-- Check if we can pair them (even number of matches) -->
-                                            {% if ronda.list|length|divisibleby:2 %}
-                                                {% for group in ronda.list|batch:2 %}
-                                                    <div class="bracket-pair">
-                                                        {% for partido in group %}
-                                                            <div class="bracket-match-connector w-full pr-4 my-2">
-                                                                <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-                                                                    {% include "torneos/partials/bracket_match_content.html" %}
-                                                                </div>
-                                                            </div>
-                                                        {% endfor %}
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                <!-- Odd number of matches (Asymmetric): Don't use bracket-pair connectors -->
-                                                {% for partido in ronda.list %}
-                                                    <div class="w-full my-4 relative">
-                                                        <!-- Draw a simple line to right if it's not the last round -->
-                                                        <div class="absolute right-0 top-1/2 w-4 h-[2px] bg-base-content/20 translate-x-full"></div>
-                                                        <div class="card bg-base-100 shadow border border-base-200 p-2 text-xs relative">
-                                                            {% include "torneos/partials/bracket_match_content.html" %}
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            {% endif %}
-                                        {% endif %}
+                                            </div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             {% endfor %}
                         </div>
                     </div>
+                    <script>
+                        function drawBracketLines() {
+                            const svg = document.getElementById('bracket-lines-svg');
+                            const container = document.getElementById('bracket-container');
+                            if (!svg || !container) return;
+                            
+                            // Check if details is open
+                            const details = svg.closest('details');
+                            if (details && !details.open) return;
+                            
+                            svg.innerHTML = '';
+                            
+                            // Make SVG cover entire scrollable area
+                            svg.style.width = container.scrollWidth + 'px';
+                            svg.style.height = container.scrollHeight + 'px';
+                            
+                            const containerRect = container.getBoundingClientRect();
+                            const cards = container.querySelectorAll('.bracket-match-card');
+                            
+                            cards.forEach(card => {
+                                const nextId = card.getAttribute('data-next-match');
+                                if (!nextId) return;
+                                
+                                const nextCard = document.getElementById(nextId);
+                                if (!nextCard) return;
+                                
+                                const rect1 = card.getBoundingClientRect();
+                                const rect2 = nextCard.getBoundingClientRect();
+                                
+                                // Calculate center-right of current card and center-left of next card
+                                // Absolute positioning within the scrolling container
+                                const startX = rect1.right - containerRect.left + container.scrollLeft;
+                                const startY = rect1.top + (rect1.height / 2) - containerRect.top + container.scrollTop;
+                                
+                                const endX = rect2.left - containerRect.left + container.scrollLeft;
+                                const endY = rect2.top + (rect2.height / 2) - containerRect.top + container.scrollTop;
+                                
+                                // Control points for cubic bezier curve
+                                const curveOffset = (endX - startX) / 2;
+                                
+                                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                path.setAttribute('d', `M ${startX} ${startY} C ${startX + curveOffset} ${startY}, ${endX - curveOffset} ${endY}, ${endX} ${endY}`);
+                                path.setAttribute('fill', 'none');
+                                path.setAttribute('stroke', 'oklch(var(--bc) / 0.15)'); // Subtle stroke
+                                path.setAttribute('stroke-width', '2.5');
+                                path.setAttribute('stroke-linecap', 'round');
+                                
+                                svg.appendChild(path);
+                            });
+                        }
+
+                        document.addEventListener('DOMContentLoaded', () => {
+                            // Initial draw with slight delay to ensure fonts/layout are ready
+                            setTimeout(drawBracketLines, 100);
+                            
+                            window.addEventListener('resize', drawBracketLines);
+                            
+                            const detailsEls = document.querySelectorAll('details');
+                            detailsEls.forEach(d => {
+                                d.addEventListener('toggle', () => {
+                                    if (d.open) {
+                                        setTimeout(drawBracketLines, 50);
+                                    }
+                                });
+                            });
+                            
+                            // HTMX support if matches are reloaded
+                            document.body.addEventListener('htmx:afterSwap', () => {
+                                setTimeout(drawBracketLines, 100);
+                            });
+                        });
+                    </script>
                 </div>
             </details>
         {% endif %}
