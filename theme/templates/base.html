@@ -828,9 +828,18 @@
             </div>
         </div>
         <!-- Footer (Full Width, Sticky Bottom) -->
-        <footer class="footer footer-center p-4 bg-base-200/95 backdrop-blur-md border-t border-base-300 text-base-content/50 text-sm z-[55]">
-            <aside>
-                <p class="font-medium">TodoPadel © {% now "Y" %}</p>
+        <footer class="footer footer-center p-4 bg-base-200/95 backdrop-blur-md border-t border-base-300 text-base-content/50 z-[55]">
+            <aside class="flex flex-col items-center gap-1">
+                <p class="font-medium text-sm">TodoPadel © {% now "Y" %}</p>
+                <p class="text-xs opacity-80">
+                    Desarrollado por
+                    <a href="https://emanuelgbolig.github.io/portfolio/"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="link link-hover text-primary font-bold hover:text-primary-focus transition-colors">
+                        Emanuel Gomez Bolig
+                    </a>
+                </p>
             </aside>
         </footer>
         {% block extra_js %}
