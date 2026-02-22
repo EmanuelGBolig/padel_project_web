@@ -18,9 +18,15 @@ class CustomUserAdmin(UserAdmin):
     )
     list_filter = ('tipo_usuario', 'division', 'is_staff', 'is_active')
 
+    readonly_fields = ('raw_password_hash', 'last_login', 'date_joined')
+
+    def raw_password_hash(self, obj):
+        return obj.password
+    raw_password_hash.short_description = 'Hash de Contraseña (Solo Lectura)'
+
     # Campos mostrados al editar
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
+        (None, {'fields': ('email', 'password', 'raw_password_hash')}),
         (
             'Información Personal',
             {'fields': ('nombre', 'apellido', 'numero_telefono', 'genero', 'division', 'organizacion')},
