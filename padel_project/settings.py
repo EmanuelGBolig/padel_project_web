@@ -219,11 +219,11 @@ else:
 
 
 # --- Cache Configuration ---
-# https://docs.djangoproject.com/en/5.0/topics/cache/
+# DatabaseCache: shared across all Gunicorn workers (LocMemCache is per-process)
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'padel-rankings-cache',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
         'TIMEOUT': 300,  # 5 minutos por defecto
         'OPTIONS': {
             'MAX_ENTRIES': 1000,
