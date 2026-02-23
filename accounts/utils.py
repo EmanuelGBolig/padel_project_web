@@ -252,7 +252,16 @@ def get_player_stats(jugador):
     # 4. Inscripciones (consulta única con select_related)
     inscripciones = Inscripcion.objects.filter(
         Q(equipo__jugador1=jugador) | Q(equipo__jugador2=jugador)
-    ).select_related('torneo', 'equipo', 'equipo__division').order_by('-fecha_inscripcion')
+    ).select_related(
+        'torneo', 
+        'torneo__division',
+        'torneo__ganador_del_torneo',
+        'torneo__ganador_del_torneo__jugador1',
+        'torneo__ganador_del_torneo__jugador2',
+        'equipo', 
+        'equipo__division'
+    ).order_by('-fecha_inscripcion')
+
 
     torneos_jugados = inscripciones.count()
 

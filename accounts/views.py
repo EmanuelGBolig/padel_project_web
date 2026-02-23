@@ -211,53 +211,63 @@ class PerfilView(LoginRequiredMixin, UpdateView):
         # Solo calculamos stats pesadas si el usuario es jugador
         if user.tipo_usuario == 'PLAYER':
             from .utils import get_player_stats, get_user_ranking
+            from django.core.cache import cache as dj_cache
             
-            # Obtener estadísticas completas
-            stats = get_player_stats(user)
-            context['stats'] = stats
+            cache_key = f'perfil_stats_ctx_{user.id}'
+            cached_ctx = dj_cache.get(cache_key)
+            
+            if cached_ctx:
+                context.update(cached_ctx)
+            else:
+                # Obtener estadísticas completas
+                stats = get_player_stats(user)
+                stats_ctx = {}
+                stats_ctx['stats'] = stats
 
-            # Obtener Ranking
-            ranking_info = get_user_ranking(user)
-            context['ranking_info'] = ranking_info
+                # Obtener Ranking
+                ranking_info = get_user_ranking(user)
+                stats_ctx['ranking_info'] = ranking_info
 
-            # Separar inscripciones por estado para la vista
-            inscripciones_stats = stats['inscripciones']
-            context['torneos_activos'] = [i.torneo for i in inscripciones_stats if i.torneo.estado in ['AB', 'EJ']]
-            context['torneos_finalizados'] = [i.torneo for i in inscripciones_stats if i.torneo.estado == 'FN']
+                # Separar inscripciones por estado para la vista
+                inscripciones_stats = stats['inscripciones']
+                stats_ctx['torneos_activos'] = [i.torneo for i in inscripciones_stats if i.torneo.estado in ['AB', 'EJ']]
+                stats_ctx['torneos_finalizados'] = [i.torneo for i in inscripciones_stats if i.torneo.estado == 'FN']
+                
+                # Próximos Partidos (Solo para Jugadores)
+                equipo = user.equipo
+                proximos = []
+                if equipo:
+                    from django.db.models import Q
+                    from torneos.models import Partido, PartidoGrupo
+                    
+                    partidos_elim = list(Partido.objects.filter(
+                        Q(equipo1=equipo) | Q(equipo2=equipo),
+                        ganador__isnull=True,
+                        torneo__estado__in=['AB', 'EJ']
+                    ).select_related('torneo', 'equipo1', 'equipo2'))
+
+                    partidos_grupo = list(PartidoGrupo.objects.filter(
+                        Q(equipo1=equipo) | Q(equipo2=equipo),
+                        ganador__isnull=True,
+                        grupo__torneo__estado__in=['AB', 'EJ']
+                    ).select_related('grupo__torneo', 'equipo1', 'equipo2'))
+                    
+                    proximos = sorted(
+                        partidos_elim + partidos_grupo,
+                        key=lambda x: x.fecha_hora.timestamp() if x.fecha_hora else 9999999999
+                    )
+                stats_ctx['proximos_partidos'] = proximos
+                
+                dj_cache.set(cache_key, stats_ctx, 300)
+                context.update(stats_ctx)
 
         # --- Invitaciones (Común para todos si son jugadores activos, pero prioritario para PLAYER) ---
         from equipos.models import Invitation
         context['invitaciones_enviadas'] = user.sent_invitations.filter(status=Invitation.Status.PENDING)
         context['invitaciones_recibidas'] = user.received_invitations.filter(status=Invitation.Status.PENDING)
-
-        # --- Próximos Partidos (Solo para Jugadores) ---
-        if user.tipo_usuario == 'PLAYER':
-            equipo = user.equipo
-            if equipo:
-                from django.db.models import Q
-                from torneos.models import Partido, PartidoGrupo
-                
-                partidos_elim = Partido.objects.filter(
-                    Q(equipo1=equipo) | Q(equipo2=equipo),
-                    ganador__isnull=True,
-                    torneo__estado__in=['AB', 'EJ']
-                ).select_related('torneo', 'equipo1', 'equipo2')
-
-                partidos_grupo = PartidoGrupo.objects.filter(
-                    Q(equipo1=equipo) | Q(equipo2=equipo),
-                    ganador__isnull=True,
-                    grupo__torneo__estado__in=['AB', 'EJ']
-                ).select_related('grupo__torneo', 'equipo1', 'equipo2')
-
-                proximos = sorted(
-                    list(partidos_elim) + list(partidos_grupo),
-                    key=lambda x: x.fecha_hora.timestamp() if x.fecha_hora else 9999999999
-                )
-                context['proximos_partidos'] = proximos
-            else:
-                context['proximos_partidos'] = []
         
         return context
+
 
 
 class RankingJugadoresListView(ListView):
@@ -335,37 +345,51 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
     template_name = 'accounts/public_profile.html'
     context_object_name = 'perfil_usuario'
 
+    def get_object(self, queryset=None):
+        return CustomUser.objects.select_related('division').get(pk=self.kwargs.get('pk'))
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from .utils import get_player_stats, get_user_ranking
+        from django.core.cache import cache as dj_cache
         
         # El objeto usuario ya está en self.object o context['perfil_usuario']
         usuario = self.object
         
-        # Obtener estadísticas completas
-        stats = get_player_stats(usuario)
-        context['stats'] = stats
+        cache_key = f'public_profile_ctx_{usuario.id}'
+        cached_ctx = dj_cache.get(cache_key)
+        
+        if cached_ctx:
+            context.update(cached_ctx)
+        else:
+            # Obtener estadísticas completas
+            stats = get_player_stats(usuario)
+            public_ctx = {}
+            public_ctx['stats'] = stats
 
-        # Obtener Ranking
-        ranking_info = get_user_ranking(usuario)
-        context['ranking_info'] = ranking_info
+            # Obtener Ranking
+            ranking_info = get_user_ranking(usuario)
+            public_ctx['ranking_info'] = ranking_info
+            
+            # Separar inscripciones por estado para la vista
+            inscripciones = stats['inscripciones']
+            public_ctx['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
+            public_ctx['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
+            
+            dj_cache.set(cache_key, public_ctx, 300)
+            context.update(public_ctx)
 
-        # --- Lógica de Invitación ---
+        # --- LÓGICA DE INVITACIÓN (No se cachea porque depende del visitante) ---
         can_invite = False
         if self.request.user.is_authenticated and self.request.user != usuario:
             visitante = self.request.user
             if not visitante.equipo and not usuario.equipo:
-                if visitante.division == usuario.division:
+                if visitante.division_id == usuario.division_id:
                     can_invite = True
 
         context['can_invite'] = can_invite
-        
-        # Separar inscripciones por estado para la vista
-        inscripciones = stats['inscripciones']
-        context['torneos_activos'] = [i.torneo for i in inscripciones if i.torneo.estado in ['AB', 'EJ']]
-        context['torneos_finalizados'] = [i.torneo for i in inscripciones if i.torneo.estado == 'FN']
-        
         return context
+
 
 
 class OrganizacionListView(ListView):
