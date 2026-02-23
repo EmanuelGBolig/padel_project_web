@@ -289,7 +289,7 @@ class RankingJugadoresListView(ListView):
         context = super().get_context_data(**kwargs)
         
         # Agregar todas las divisiones para el filtro (Dropdown)
-        context['divisiones'] = Division.objects.all().order_by('nombre')
+        context['divisiones'] = Division.objects.all().order_by('orden')
         
         # Determinar la división seleccionada para marcar en el select
         division_id = self.request.GET.get('division')
