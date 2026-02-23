@@ -1259,6 +1259,10 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         try:
             response = super().form_valid(form)
             messages.success(self.request, "¡Inscripción confirmada!")
+            # Invalidar caché del perfil del organizador del torneo
+            from django.core.cache import cache as dj_cache
+            if torneo.organizacion and torneo.organizacion.usuario:
+                dj_cache.delete(f'perfil_gestion_{torneo.organizacion.usuario.id}')
             return response
         except IntegrityError:
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
@@ -1266,6 +1270,7 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             messages.error(self.request, f"Error al inscribirse: {e}")
             return redirect('torneos:detail', pk=torneo.pk)
+
 
 
 class InscripcionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DetailView):

@@ -1,12 +1,31 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Q
-from .models import PartidoGrupo, EquipoGrupo
+from django.core.cache import cache
+from .models import PartidoGrupo, EquipoGrupo, Partido
+
+
+def invalidar_cache_division(division):
+    """Borra el caché de rankings cuando cambia algo en una división."""
+    if division:
+        cache.delete(f'rankings_jugadores_div_{division.id}')
+        cache.delete(f'rankings_equipos_div_{division.id}')
+
+
+def invalidar_cache_jugadores_equipo(equipo):
+    """Borra el caché de stats de los jugadores de un equipo."""
+    if equipo:
+        if equipo.jugador1_id:
+            cache.delete(f'player_stats_{equipo.jugador1_id}')
+        if equipo.jugador2_id:
+            cache.delete(f'player_stats_{equipo.jugador2_id}')
+
 
 @receiver(post_save, sender=PartidoGrupo)
 def actualizar_tabla_de_posiciones(sender, instance, **kwargs):
     """
     Recalcula las estadísticas de un grupo CADA VEZ que un partido se guarda.
+    También invalida el caché de rankings si hay ganador asignado.
     """
     grupo = instance.grupo
 
@@ -49,3 +68,20 @@ def actualizar_tabla_de_posiciones(sender, instance, **kwargs):
 
         # Guardamos la tabla de posiciones actualizada
         equipo_grupo.save()
+
+    # Invalidar caché de rankings si hay ganador
+    if instance.ganador:
+        division = grupo.torneo.division if grupo and grupo.torneo else None
+        invalidar_cache_division(division)
+        invalidar_cache_jugadores_equipo(instance.equipo1)
+        invalidar_cache_jugadores_equipo(instance.equipo2)
+
+
+@receiver(post_save, sender=Partido)
+def invalidar_cache_partido_bracket(sender, instance, **kwargs):
+    """Invalida caché de rankings cuando se guarda un resultado de partido de bracket."""
+    if instance.ganador:
+        division = instance.torneo.division if instance.torneo else None
+        invalidar_cache_division(division)
+        invalidar_cache_jugadores_equipo(instance.equipo1)
+        invalidar_cache_jugadores_equipo(instance.equipo2)
