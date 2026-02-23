@@ -9,6 +9,8 @@ python manage.py tailwind build
 
 python manage.py collectstatic --no-input
 python manage.py migrate
+python manage.py createcachetable
+
 
 # Scripts de automatización
 python scripts/seed_divisions.py
