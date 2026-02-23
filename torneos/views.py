@@ -101,13 +101,32 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         )
         context['grupos'] = grupos
 
+        # ¿Los grupos ya tienen partidos generados?
+        partidos_grupo_total = PartidoGrupo.objects.filter(grupo__torneo=torneo).count()
         context['partidos_grupo_pendientes'] = PartidoGrupo.objects.filter(
             grupo__torneo=torneo, ganador__isnull=True
         ).count()
 
+        # Fase de asignación: grupos creados pero sin partidos todavía
+        context['fase_asignacion_grupos'] = grupos.exists() and partidos_grupo_total == 0
+
+        # Equipos inscritos que no están en ningún grupo de este torneo todavía
+        equipos_en_grupos = EquipoGrupo.objects.filter(
+            grupo__torneo=torneo
+        ).values_list('equipo_id', flat=True)
+        context['equipos_sin_grupo'] = [
+            i.equipo for i in context['inscripciones']
+            if i.equipo_id not in equipos_en_grupos
+        ]
+        context['todos_equipos_asignados'] = (
+            grupos.exists() and len(context['equipos_sin_grupo']) == 0
+        )
+
         context['todos_grupos_cargados'] = (
-            context['partidos_grupo_pendientes'] == 0
-        ) and grupos.exists()
+            partidos_grupo_total > 0
+            and context['partidos_grupo_pendientes'] == 0
+            and grupos.exists()
+        )
 
         # Fase Eliminatoria
         context['fase_eliminatoria_existente'] = torneo.partidos.exists()
@@ -132,30 +151,35 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         if action == 'iniciar_torneo':
             return self.iniciar_torneo_logica(request, torneo)
+
+        elif action == 'auto_distribuir':
+            return self.auto_distribuir_logica(request, torneo)
+
+        elif action == 'asignar_equipo':
+            return self.asignar_equipo_logica(request, torneo)
+
+        elif action == 'quitar_equipo':
+            return self.quitar_equipo_logica(request, torneo)
+
+        elif action == 'confirmar_grupos':
+            return self.confirmar_grupos_logica(request, torneo)
         
         elif action == 'agregar_dummy':
-            # Intentar obtener nombre personalizado del POST
             nombre_custom = request.POST.get('nombre_dummy_custom', '').strip()
-            
             if nombre_custom:
                 nombre_dummy = nombre_custom
-                # Verificar si ya existe un equipo con ese nombre para evitar el unique constraint error
                 if Equipo.objects.filter(nombre=nombre_dummy).exists():
                     messages.error(request, f"Ya existe un equipo con el nombre '{nombre_dummy}'.")
                     return redirect('torneos:admin_manage', pk=torneo.pk)
             else:
                 count_dummies = Equipo.objects.filter(es_dummy=True).count()
                 nombre_dummy = f"Pareja Libre {count_dummies + 1}"
-            
-            # Crear el equipo dummy
             equipo_dummy = Equipo.objects.create(
                 nombre=nombre_dummy,
                 es_dummy=True,
-                division=torneo.division, # Asignar división del torneo para consistencia
+                division=torneo.division,
                 categoria=torneo.categoria or Equipo.Categoria.MIXTO
             )
-            
-            # Inscribirlo
             Inscripcion.objects.create(torneo=torneo, equipo=equipo_dummy)
             messages.success(request, f"Se agregó '{nombre_dummy}' al torneo.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
@@ -169,7 +193,6 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return self.avanzar_grupo_logica(request, torneo, grupo)
         
         elif action == 'reset_bracket':
-            # Eliminar todos los partidos de eliminación
             torneo.partidos.all().delete()
             messages.success(request, "Bracket eliminado. Puedes generar uno nuevo.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
@@ -188,127 +211,166 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 form.save()
                 messages.success(request, f"Fecha predeterminada actualizada para {grupo.nombre}.")
             else:
-                 messages.error(request, "Fecha inválida.")
+                messages.error(request, "Fecha inválida.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
     # --- LÓGICA DE NEGOCIO INTERNA ---
 
+    def _calcular_estructura_grupos(self, torneo, count):
+        """Retorna (num_grupos, sizes, prefijo_nombre, custom_format) sin crear nada en DB."""
+        custom_format = get_format(count)
+        letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        if custom_format:
+            num_grupos = custom_format.groups
+            teams_per_group_config = custom_format.teams_per_group
+            if isinstance(teams_per_group_config, int):
+                sizes = [teams_per_group_config] * num_grupos
+            else:
+                sizes = list(teams_per_group_config)
+            nombres = [f"Zona {letras[i]}" for i in range(num_grupos)]
+            return num_grupos, sizes, nombres, custom_format
+        else:
+            if torneo.forzar_grupos_de_3:
+                equipos_por_grupo = 3
+                num_grupos = count // 3
+            else:
+                equipos_por_grupo = torneo.equipos_por_grupo
+                num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
+            # Distribuir equipos equitativamente
+            sizes = []
+            resto = count
+            for i in range(num_grupos):
+                s = min(equipos_por_grupo, resto)
+                sizes.append(s)
+                resto -= s
+            nombres = [f"Grupo {letras[i]}" for i in range(num_grupos)]
+            return num_grupos, sizes, nombres, None
+
     def iniciar_torneo_logica(self, request, torneo):
+        """PASO 1: Crea los grupos vacíos. El organizador asignará los equipos manualmente."""
         if torneo.estado != Torneo.Estado.ABIERTO:
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         inscripciones = torneo.inscripciones.all()
         count = inscripciones.count()
 
-        # Limpiar grupos anteriores si existen (para evitar duplicados al reiniciar)
-        if torneo.grupos.exists():
-            torneo.grupos.all().delete()
-
         if count < 4:
             messages.error(request, f"Se necesitan al menos 4 equipos. Hay {count}.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
-        equipos = [i.equipo for i in inscripciones]
-        shuffle(equipos)
-
-        # --- LÓGICA DE FORMATOS PERSONALIZADOS ---
-        custom_format = get_format(count)
-        
-        if custom_format:
-            # Usar formato definido
-            num_grupos = custom_format.groups
-            teams_per_group_config = custom_format.teams_per_group
-            letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-            
-            # Validar si teams_per_group es int o list
-            if isinstance(teams_per_group_config, int):
-                sizes = [teams_per_group_config] * num_grupos
-            else:
-                sizes = teams_per_group_config
-                
-            # Validar que la suma de sizes coincida con count
-            if sum(sizes) != count:
-                # Fallback o error si la configuración está mal
-                messages.error(request, f"Error en formato: {sum(sizes)} plazas definidas para {count} equipos.")
-                return redirect('torneos:admin_manage', pk=torneo.pk)
-
-            current_team_idx = 0
-            for i in range(num_grupos):
-                group_size = sizes[i]
-                grupo = Grupo.objects.create(torneo=torneo, nombre=f"Zona {letras[i]}")
-                
-                equipos_del_grupo = []
-                for _ in range(group_size):
-                    if current_team_idx < len(equipos):
-                        equipos_del_grupo.append(equipos[current_team_idx])
-                        current_team_idx += 1
-                
-                for idx, eq in enumerate(equipos_del_grupo, start=1):
-                    EquipoGrupo.objects.create(grupo=grupo, equipo=eq, numero=idx)
-
-                generar_partidos_grupos(torneo, equipos_del_grupo, grupo)
-                
-            messages.success(request, f"Torneo iniciado con formato especial: {count} parejas.")
-
-        else:
-            # --- LÓGICA POR DEFECTO ---
-            # --- LÓGICA POR DEFECTO ---
-            
-            # NUEVO: Lógica Forzar grupos de 3
-            if torneo.forzar_grupos_de_3:
-                teams_per_group = 3
-                num_equipos = len(equipos)
-                
-                # Calcular número de grupos necesarios
-                # Si tenemos 6 equipos: 6/3 = 2 grupos (perfecto)
-                # Si tenemos 7 equipos: 7/3 = 2 grupos y sobra 1 -> Error o Dummy?
-                # Si tenemos 8 equipos: 8/3 = 2 grupos y sobran 2 -> Error o Dummy?
-                
-                # La lógica deseada es forzar grupos de 3. Si no es divisible, NO se puede iniciar
-                # a menos que se hayan agregado dummies previamente.
-                if num_equipos % 3 != 0:
-                    faltantes = 3 - (num_equipos % 3)
-                    messages.error(
-                        request, 
-                        f"Para forzar grupos de 3, el número de equipos ({num_equipos}) debe ser divisible por 3. "
-                        f"Faltan {faltantes} equipos (o 'Parejas Libres') para completar los grupos."
-                    )
-                    return redirect('torneos:admin_manage', pk=torneo.pk)
-                
-                num_grupos = num_equipos // 3
-                equipos_por_grupo = 3
-                
-            else:
-                # Usar el tamaño de grupo configurado en el torneo (Lógica Legacy)
-                equipos_por_grupo = torneo.equipos_por_grupo
-                num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
-
-            letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
-            for i in range(num_grupos):
-                grupo = Grupo.objects.create(torneo=torneo, nombre=f"Grupo {letras[i]}")
-                equipos_del_grupo = []
-                for _ in range(equipos_por_grupo):
-                    if equipos:
-                        equipos_del_grupo.append(equipos.pop())
-
-                for idx, eq in enumerate(equipos_del_grupo, start=1):
-                    EquipoGrupo.objects.create(grupo=grupo, equipo=eq, numero=idx)
-
-                generar_partidos_grupos(torneo, equipos_del_grupo, grupo)
-            
-            messages.success(
-                request, f"Fase de Grupos generada: {num_grupos} grupos creados."
+        if torneo.forzar_grupos_de_3 and count % 3 != 0:
+            faltantes = 3 - (count % 3)
+            messages.error(
+                request,
+                f"Para forzar grupos de 3, el número de equipos ({count}) debe ser divisible por 3. "
+                f"Faltan {faltantes} equipos (o 'Parejas Libres') para completar los grupos."
             )
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        # Limpiar grupos anteriores si existen
+        if torneo.grupos.exists():
+            torneo.grupos.all().delete()
+
+        num_grupos, sizes, nombres, _ = self._calcular_estructura_grupos(torneo, count)
+
+        # Crear grupos VACÍOS
+        for i in range(num_grupos):
+            Grupo.objects.create(torneo=torneo, nombre=nombres[i])
 
         torneo.estado = Torneo.Estado.EN_JUEGO
         torneo.save()
 
-        # NUEVO: Generar estructura de bracket inmediatamente
+        # Generar estructura de bracket (con placeholders)
         self.generar_octavos_logica(request, torneo, solo_estructura=True)
-        
+
+        messages.success(
+            request,
+            f"{num_grupos} grupos creados. Ahora asigná los equipos manualmente (o usá Auto-distribuir)."
+        )
+        return redirect('torneos:admin_manage', pk=torneo.pk)
+
+    def auto_distribuir_logica(self, request, torneo):
+        """Asigna equipos a grupos aleatoriamente, respetando tamaños configurados."""
+        if not torneo.grupos.exists():
+            messages.error(request, "Primero debes crear los grupos.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        # Limpiar asignaciones previas (pero NO los partidos si ya existen)
+        if PartidoGrupo.objects.filter(grupo__torneo=torneo).exists():
+            messages.error(request, "Los partidos ya fueron generados. No se puede redistribuir.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        EquipoGrupo.objects.filter(grupo__torneo=torneo).delete()
+
+        count = torneo.inscripciones.count()
+        equipos = [i.equipo for i in torneo.inscripciones.all()]
+        shuffle(equipos)
+
+        grupos = list(torneo.grupos.all().order_by('nombre'))
+        _, sizes, _, _ = self._calcular_estructura_grupos(torneo, count)
+
+        idx = 0
+        for i, grupo in enumerate(grupos):
+            cap = sizes[i] if i < len(sizes) else 0
+            for n in range(1, cap + 1):
+                if idx < len(equipos):
+                    EquipoGrupo.objects.create(grupo=grupo, equipo=equipos[idx], numero=n)
+                    idx += 1
+
+        messages.success(request, "Equipos distribuidos aleatoriamente. Revisá y confirmá cuando estés listo.")
+        return redirect('torneos:admin_manage', pk=torneo.pk)
+
+    def asignar_equipo_logica(self, request, torneo):
+        """Mueve un equipo a un grupo específico."""
+        equipo_id = request.POST.get('equipo_id')
+        grupo_id = request.POST.get('grupo_id')
+        equipo = get_object_or_404(Equipo, pk=equipo_id)
+        grupo = get_object_or_404(Grupo, pk=grupo_id, torneo=torneo)
+
+        # Quitar de grupo anterior si estaba en otro
+        EquipoGrupo.objects.filter(grupo__torneo=torneo, equipo=equipo).delete()
+
+        # Calcular número de posición
+        siguiente_num = grupo.tabla.count() + 1
+        EquipoGrupo.objects.create(grupo=grupo, equipo=equipo, numero=siguiente_num)
+        messages.success(request, f"{equipo.nombre} asignado a {grupo.nombre}.")
+        return redirect('torneos:admin_manage', pk=torneo.pk)
+
+    def quitar_equipo_logica(self, request, torneo):
+        """Quita un equipo de su grupo, devolviéndolo al pool sin asignar."""
+        equipo_id = request.POST.get('equipo_id')
+        equipo = get_object_or_404(Equipo, pk=equipo_id)
+        deleted, _ = EquipoGrupo.objects.filter(grupo__torneo=torneo, equipo=equipo).delete()
+        if deleted:
+            messages.success(request, f"{equipo.nombre} quitado del grupo.")
+        return redirect('torneos:admin_manage', pk=torneo.pk)
+
+    def confirmar_grupos_logica(self, request, torneo):
+        """PASO 2: Valida que todos los equipos estén asignados y genera los PartidoGrupo."""
+        if PartidoGrupo.objects.filter(grupo__torneo=torneo).exists():
+            messages.warning(request, "Los partidos ya fueron generados.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        # Verificar que no queden equipos sin asignar
+        equipos_en_grupos = EquipoGrupo.objects.filter(
+            grupo__torneo=torneo
+        ).values_list('equipo_id', flat=True)
+        sin_asignar = torneo.inscripciones.exclude(equipo_id__in=equipos_en_grupos)
+        if sin_asignar.exists():
+            nombres = ', '.join([i.equipo.nombre for i in sin_asignar])
+            messages.error(request, f"Faltan asignar a un grupo: {nombres}")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        # Generar partidos para cada grupo
+        grupos = torneo.grupos.all()
+        for grupo in grupos:
+            equipos_grupo = [eg.equipo for eg in grupo.tabla.all()]
+            if len(equipos_grupo) >= 2:
+                generar_partidos_grupos(torneo, equipos_grupo, grupo)
+
+        messages.success(request, "¡Partidos de grupos generados! El torneo está en marcha.")
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
     def generar_octavos_logica(self, request, torneo, solo_estructura=False):
