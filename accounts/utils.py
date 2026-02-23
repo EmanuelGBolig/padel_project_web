@@ -70,8 +70,8 @@ def get_division_rankings(division):
 
     # 6. Torneos ganados
     torneos_ganados_data = (
-        Torneo.objects.filter(id__in=torneo_ids, campeon__isnull=False)
-        .values('campeon__jugador1', 'campeon__jugador2')
+        Torneo.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False)
+        .values('ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2')
     )
 
     # Agregar datos por jugador en Python (más rápido que múltiples JOINs en SQL)
@@ -112,8 +112,8 @@ def get_division_rankings(division):
         add_partidos(p['equipo2__jugador2'])
 
     for t in torneos_ganados_data:
-        add_torneo(t['campeon__jugador1'])
-        add_torneo(t['campeon__jugador2'])
+        add_torneo(t['ganador_del_torneo__jugador1'])
+        add_torneo(t['ganador_del_torneo__jugador2'])
 
     # Obtener todos los jugadores relevantes: de la división O que hayan participado
     jugador_ids_con_datos = (

@@ -468,8 +468,8 @@ class RankingListView(ListView):
             )
             # Torneos ganados
             t_ganados = (
-                TorneoModel.objects.filter(id__in=torneo_ids, campeon__isnull=False)
-                .values('campeon_id')
+                TorneoModel.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False)
+                .values('ganador_del_torneo_id')
             )
 
             # Agregar en Python
@@ -496,7 +496,7 @@ class RankingListView(ListView):
                         partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + 1
 
             for t in t_ganados:
-                eid = t['campeon_id']
+                eid = t['ganador_del_torneo_id']
                 if eid:
                     torneos_por_equipo[eid] = torneos_por_equipo.get(eid, 0) + 1
 
