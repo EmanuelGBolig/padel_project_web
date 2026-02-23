@@ -425,12 +425,12 @@ class RankingListView(ListView):
         for division in divisiones:
             # --- LÓGICA DE RANKING POR DIVISIÓN (OPTIMIZADA) ---
             # Filtrar equipos que PERTENECEN a esta división
-            # (Opcional: Si quisiéramos incluir equipos de OTRAS divisiones que jugaron aquí, 
-            #  deberíamos usar un filtro Q más complejo como en jugadores, pero por reglas de negocio
-            #  los equipos suelen competir en su división asignada).
-            #  Por ahora filtramos por división asignada para simplificar y limpiar la vista.
-            
-            equipos_con_stats = Equipo.objects.filter(division=division).select_related(
+            # Filtrar equipos que PERTENECEN a esta división O que hayan jugado en un torneo de esta división
+            equipos_con_stats = Equipo.objects.filter(
+                Q(division=division) |
+                Q(partidos_bracket_e1__torneo__division=division) |
+                Q(partidos_grupo_e1__grupo__torneo__division=division)
+            ).distinct().select_related(
                 'jugador1', 'jugador2', 'division'
             ).annotate(
                 # 1. Victorias en Eliminación (Solo torneos de esta división)
