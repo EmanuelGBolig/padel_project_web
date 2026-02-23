@@ -31,7 +31,7 @@
                         <p class="text-base-content/90 mt-1 text-sm sm:text-base">
                             <span class="font-medium">División:</span> {{ torneo.division.nombre }}
                             <br>
-                            <span class="font-medium">Finalizado el:</span> {{ torneo.fecha_inicio|date:"d M Y" }}
+                            <span class="font-medium">Finalizado el:</span> {{ torneo.fecha_fin|default:torneo.fecha_inicio|date:"d M Y" }}
                             {% if torneo.ganador_del_torneo %}
                                 <br>
                                 <span class="font-medium text-success">Ganador:</span> <span class="text-success">{{ torneo.ganador_del_torneo.nombre }}</span>

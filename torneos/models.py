@@ -93,6 +93,18 @@ class Torneo(models.Model):
         from django.urls import reverse
         return reverse('torneos:detail', kwargs={'pk': self.pk})
 
+    @property
+    def fecha_fin(self):
+        """Devuelve la fecha del último partido jugado (la final), o None."""
+        if self.estado == self.Estado.FINALIZADO:
+            # Buscar el último partido de eliminación directa (Final)
+            ultimo_partido = self.partidos.filter(ganador__isnull=False).order_by('-fecha_hora').first()
+            if ultimo_partido and ultimo_partido.fecha_hora:
+                return ultimo_partido.fecha_hora.date()
+            # Si no hay partidos de bracket o fecha, fallback a fecha inicio
+            return self.fecha_inicio
+        return None
+
 
 class Inscripcion(models.Model):
     equipo = models.ForeignKey(
