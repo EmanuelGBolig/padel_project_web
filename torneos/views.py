@@ -87,7 +87,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         # Inscripciones
         context['inscripciones'] = (
             torneo.inscripciones.all()
-            .select_related('equipo')
+            .select_related('equipo', 'equipo__jugador1', 'equipo__jugador2', 'equipo__division')
             .order_by('fecha_inscripcion')
         )
 
@@ -111,9 +111,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         # Fase Eliminatoria
         context['fase_eliminatoria_existente'] = torneo.partidos.exists()
-        context['partidos_eliminacion'] = torneo.partidos.all().order_by(
-            'ronda', 'orden_partido'
-        )
+        context['partidos_eliminacion'] = torneo.partidos.select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2',
+            'ganador__jugador1', 'ganador__jugador2',
+        ).order_by('ronda', 'orden_partido')
 
         if context['partidos_eliminacion'].exists():
             from django.db.models import Max
@@ -968,14 +970,20 @@ class TorneoDetailView(DetailView):
         torneo = self.object
         user = self.request.user
         grupos = torneo.grupos.all().prefetch_related(
-            'tabla__equipo',
-            'partidos_grupo__equipo1',
-            'partidos_grupo__equipo2'
+            'tabla__equipo__jugador1',
+            'tabla__equipo__jugador2',
+            'partidos_grupo__equipo1__jugador1',
+            'partidos_grupo__equipo1__jugador2',
+            'partidos_grupo__equipo2__jugador1',
+            'partidos_grupo__equipo2__jugador2',
+            'partidos_grupo__ganador',
         )
         context['grupos'] = grupos
-        context['partidos_eliminacion'] = torneo.partidos.all().order_by(
-            'ronda', 'orden_partido'
-        )
+        context['partidos_eliminacion'] = torneo.partidos.select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2',
+            'ganador__jugador1', 'ganador__jugador2',
+        ).order_by('ronda', 'orden_partido')
         context['fase_eliminatoria_existente'] = context['partidos_eliminacion'].exists()
         
         if context['fase_eliminatoria_existente']:
