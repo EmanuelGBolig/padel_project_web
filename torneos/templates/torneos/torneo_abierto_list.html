@@ -112,7 +112,7 @@
                         {% include "partials/empty_state.html" with title="No hay otros torneos" message="Ya estás inscrito en todos los torneos disponibles o no hay nuevas convocatorias abiertas." action_url=finalizado_url action_text="Ver todos los torneos" %}
                     {% else %}
                         {% url 'torneos:finalizado_list' as finalizado_url %}
-                        {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay inscripciones abiertas en este momento. ¡El próximo gran evento está por llegar!" action_url=finalizado_url action_text="Ver histórico de torneos" %}
+                        {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay inscripciones abiertas en este momento. ¡El próximo gran evento está por llegar!" action_url=finalizado_url action_text="Ver historial de torneos" %}
                     {% endif %}
                 </div>
             {% endfor %}
