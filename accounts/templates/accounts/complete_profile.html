@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="flex justify-center items-center min-h-[70vh] py-8">
+        <div class="card w-full max-w-md shadow-2xl bg-base-100">
+            <div class="card-body gap-4">
+                <!-- Header con ícono de Google -->
+                <div class="text-center">
+                    <div class="flex justify-center mb-3">
+                        <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 text-primary"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-bold">¡Hola, {{ user.nombre }}!</h2>
+                    <p class="text-base-content/60 text-sm mt-1">Completá tu perfil para poder participar en torneos</p>
+                </div>
+                {% if messages %}
+                    {% for message in messages %}<div class="alert alert-{{ message.tags }} text-sm">{{ message }}</div>{% endfor %}
+                {% endif %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <!-- Teléfono -->
+                    <div class="form-control">
+                        <label class="label" for="id_numero_telefono">
+                            <span class="label-text font-medium">Número de teléfono</span>
+                            <span class="label-text-alt text-error">*obligatorio</span>
+                        </label>
+                        {{ form.numero_telefono }}
+                        {% if form.numero_telefono.errors %}
+                            <span class="text-error text-xs mt-1">{{ form.numero_telefono.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    <!-- División -->
+                    <div class="form-control mt-3">
+                        <label class="label" for="id_division">
+                            <span class="label-text font-medium">División</span>
+                            <span class="label-text-alt text-error">*obligatorio</span>
+                        </label>
+                        {{ form.division }}
+                        {% if form.division.errors %}<span class="text-error text-xs mt-1">{{ form.division.errors.0 }}</span>{% endif %}
+                        <label class="label">
+                            <span class="label-text-alt text-base-content/50">Tu categoría de juego en pádel</span>
+                        </label>
+                    </div>
+                    <!-- Género -->
+                    <div class="form-control mt-3">
+                        <label class="label" for="id_genero">
+                            <span class="label-text font-medium">Género</span>
+                        </label>
+                        {{ form.genero }}
+                        {% if form.genero.errors %}<span class="text-error text-xs mt-1">{{ form.genero.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-control mt-6">
+                        <button type="submit" class="btn btn-primary w-full">Guardar y empezar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

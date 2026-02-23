@@ -67,15 +67,16 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django.contrib.staticfiles',
     'whitenoise.runserver_nostatic',
-    # --- Apps de terceros (¡AHORA ACTIVAS!) ---
+    # --- Apps de terceros ---
     'theme',
     'tailwind',
     'crispy_forms',
     'crispy_tailwind',
     'dal',
     'dal_select2',
-    "widget_tweaks",
-    # --- Mis Apps (¡AHORA AÑADIDAS!) ---
+    'widget_tweaks',
+    'social_django',  # Google OAuth2
+    # --- Mis Apps ---
     'core.apps.CoreConfig',
     'accounts.apps.AccountsConfig',
     'equipos.apps.EquiposConfig',
@@ -91,6 +92,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',  # Google OAuth2
 ]
 
 ROOT_URLCONF = 'padel_project.urls'
@@ -106,7 +108,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'padel_project.context_processors.notifications', # Notificaciones Globales
+                'padel_project.context_processors.notifications',  # Notificaciones Globales
+                'social_django.context_processors.backends',       # Google OAuth2
+                'social_django.context_processors.login_redirect',  # Google OAuth2
             ],
         },
     },
@@ -254,6 +258,47 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:home'
 LOGOUT_REDIRECT_URL = 'core:home'
+
+# --- Autenticación Backends (Google OAuth2 + Django clásico) ---
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# --- Google OAuth2 (social-auth-app-django) ---
+SOCIAL_AUTH_URL_NAMESPACE = 'social'
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('GOOGLE_CLIENT_ID', '')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    'openid',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+]
+SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['first_name', 'last_name', 'picture']
+
+# --- Pipeline personalizado para Google OAuth2 ---
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'accounts.pipeline.save_google_profile',           # Guarda nombre/apellido de Google
+    'accounts.pipeline.require_profile_completion',    # Redirige si faltan campos
+    'social_core.pipeline.user.user_details',
+)
+
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/accounts/completar-perfil/'
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/accounts/login/'
+
+# Forzar HTTPS en las URLs de OAuth (necesario para Render en producción)
+if not DEBUG:
+    SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+
 
 # --- Configuración de Tailwind y Crispy Forms ---
 TAILWIND_APP_NAME = 'theme'

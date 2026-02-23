@@ -10,6 +10,7 @@ urlpatterns = [
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
     path('registro/', views.RegistroView.as_view(), name='registro'),
     path('verificar-email/', views.VerifyEmailView.as_view(), name='verificar_email'),
+    path('completar-perfil/', views.CompleteGoogleProfileView.as_view(), name='complete_google_profile'),
     path('perfil/', views.PerfilView.as_view(), name='perfil'),
     path('jugador/<int:pk>/', views.PublicProfileView.as_view(), name='detalle'),
     path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),

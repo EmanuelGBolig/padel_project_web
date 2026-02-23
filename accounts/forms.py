@@ -138,7 +138,42 @@ class CustomLoginForm(AuthenticationForm):
                 self.confirm_login_allowed(self.user_cache)
 
         return self.cleaned_data
+
+
+class GoogleProfileCompletionForm(forms.ModelForm):
+    """
+    Formulario para que los usuarios que se registran con Google completen
+    los campos que Google no provee: teléfono, división y género.
+    """
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.all(),
+        required=True,
+        label='División',
+        empty_label='Seleccioná tu división',
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('numero_telefono', 'genero', 'division')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
+
+        self.fields['numero_telefono'].required = True
+        self.fields['numero_telefono'].label = 'Número de teléfono'
+        self.fields['genero'].label = 'Género'
+
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = estilo_select
+            else:
+                field.widget.attrs['class'] = estilo_input
+
+
 class OrganizacionForm(forms.ModelForm):
+
     class Meta:
         model = Organizacion
         fields = ('nombre', 'alias', 'descripcion', 'direccion', 'latitud', 'longitud', 'logo')

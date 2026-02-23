@@ -25,7 +25,10 @@ urlpatterns = [
     path('equipos/', include('equipos.urls')),
     # URLs de Torneos
     path('torneos/', include('torneos.urls')),
+    # URLs de Google OAuth2
+    path('social-auth/', include('social_django.urls', namespace='social')),
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

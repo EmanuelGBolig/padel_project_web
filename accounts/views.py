@@ -5,7 +5,35 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.contrib import messages
 from .models import CustomUser, Organizacion, Sponsor
-from .forms import CustomUserCreationForm, CustomUserProfileForm, CustomLoginForm, OrganizacionForm, SponsorForm
+from .forms import CustomUserCreationForm, CustomUserProfileForm, CustomLoginForm, OrganizacionForm, SponsorForm, GoogleProfileCompletionForm
+
+
+class CompleteGoogleProfileView(LoginRequiredMixin, UpdateView):
+    """
+    Vista para que los usuarios nuevos de Google completen su perfil.
+    Solo permite acceder si le faltan campos obligatorios.
+    """
+    model = CustomUser
+    form_class = GoogleProfileCompletionForm
+    template_name = 'accounts/complete_profile.html'
+    success_url = reverse_lazy('core:home')
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def dispatch(self, request, *args, **kwargs):
+        # Si el perfil ya está completo, redirigir al home
+        if request.user.is_authenticated:
+            if request.user.division_id and request.user.numero_telefono:
+                from django.shortcuts import redirect
+                return redirect('core:home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(self.request, '¡Perfil completado! Bienvenido/a a TodoPadel.')
+        return super().form_valid(form)
+
+
 
 
 class CustomLoginView(LoginView):
