@@ -20,7 +20,36 @@
                                 {{ field|add_class:"input-error" }}
                                 {% for error in field.errors %}<span class="text-error text-[10px] mt-0.5 leading-none">{{ error }}</span>{% endfor %}
                             {% else %}
-                                {{ field }}
+                                {% if field.name == 'foto_campeones' %}
+                                    <div class="flex flex-col gap-2 w-full">
+                                        {% if torneo.foto_campeones or object.foto_campeones %}
+                                            <div class="rounded-xl border border-base-300 overflow-hidden mb-2 relative group w-32 h-32 flex-shrink-0">
+                                                <img src="{{ torneo.foto_campeones.url|default:object.foto_campeones.url }}"
+                                                     alt="Campeones"
+                                                     class="w-full h-full object-cover">
+                                                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <span class="text-white text-xs font-bold text-center px-2">Imagen Actual</span>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        <input type="file"
+                                               name="{{ field.html_name }}"
+                                               id="{{ field.id_for_label }}"
+                                               class="file-input file-input-bordered file-input-primary w-full bg-base-100 text-base-content"
+                                               accept="image/*">
+                                        {% if torneo.foto_campeones or object.foto_campeones %}
+                                            <label class="label cursor-pointer justify-start gap-2 mt-1">
+                                                <input type="checkbox"
+                                                       name="{{ field.html_name }}-clear"
+                                                       id="{{ field.html_name }}-clear_id"
+                                                       class="checkbox checkbox-error checkbox-sm">
+                                                <span class="label-text text-error font-medium">Eliminar imagen actual</span>
+                                            </label>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
                             {% endif %}
                             {% if field.help_text %}
                                 <label class="label py-0 mt-0.5">
