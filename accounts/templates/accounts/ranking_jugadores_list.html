@@ -103,11 +103,7 @@
                                                         {% for equipo in item.equipos %}<span class="badge badge-xs badge-ghost">{{ equipo.nombre }}</span>{% endfor %}
                                                     </div>
                                                 {% else %}
-                                                    {% if item.jugador.equipo %}
-                                                        <span class="badge badge-xs badge-ghost">{{ item.jugador.equipo.nombre }}</span>
-                                                    {% else %}
-                                                        <span class="opacity-70 italic">Sin equipo</span>
-                                                    {% endif %}
+                                                    <span class="opacity-70 italic">Sin equipo</span>
                                                 {% endif %}
                                             </div>
                                         </div>

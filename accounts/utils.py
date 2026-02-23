@@ -125,7 +125,7 @@ def get_division_rankings(division):
     jugadores = CustomUser.objects.filter(
         Q(division=division) | Q(id__in=jugador_ids_con_datos),
         tipo_usuario='PLAYER'
-    ).distinct().select_related('division')
+    ).distinct().select_related('division').prefetch_related('equipos_como_jugador1', 'equipos_como_jugador2')
 
     # Construir lista de ranking en Python
     jugadores_con_puntos = []
@@ -139,9 +139,21 @@ def get_division_rankings(division):
         if win_rate >= 75 and partidos >= 10:
             puntos += 20
 
+        # Optimización: No usar la propiedad .equipo que dispara queries extras
+        # Buscamos en los prefetched equipos
+        equipos_j1 = list(jugador.equipos_como_jugador1.all())
+        equipos_j2 = list(jugador.equipos_como_jugador2.all())
+        
+        primer_equipo = None
+        if equipos_j1:
+            primer_equipo = equipos_j1[0]
+        elif equipos_j2:
+            primer_equipo = equipos_j2[0]
+
         equipos_actuales = []
-        if hasattr(jugador, 'equipo') and jugador.equipo and jugador.equipo.division == division:
-            equipos_actuales.append(jugador.equipo)
+        if primer_equipo and primer_equipo.division_id == division.id:
+            equipos_actuales.append(primer_equipo)
+
 
         jugadores_con_puntos.append({
             'jugador': jugador,
