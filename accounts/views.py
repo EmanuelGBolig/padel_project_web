@@ -144,48 +144,68 @@ class PerfilView(LoginRequiredMixin, UpdateView):
         # --- LÓGICA DE DASHBOARD DE GESTIÓN (ADMIN/ORGANIZADOR) ---
         if user.tipo_usuario in ['ADMIN', 'ORGANIZER']:
             from torneos.models import Torneo, Inscripcion
-            
-            # 1. Obtener organización
-            organizacion = user.organizacion
-            
-            # 2. Torneos gestionados
-            if user.tipo_usuario == 'ADMIN':
-                torneos_gestionados = Torneo.objects.all().order_by('-fecha_inicio')
-            else:
-                torneos_gestionados = Torneo.objects.filter(organizacion=organizacion).order_by('-fecha_inicio')
-            
-            context['torneos_gestionados'] = torneos_gestionados
-            
-            # 3. Torneos gestionados con sus inscripciones
-            from django.db.models import Prefetch
-            
-            # Prefetch de inscripciones optimizado
-            inscripciones_qs = Inscripcion.objects.select_related(
-                'equipo', 'equipo__division'
-            ).order_by('-fecha_inscripcion')
+            from django.core.cache import cache as dj_cache
+            from django.db.models import Prefetch, Count, Q
 
-            torneos_con_inscripciones = torneos_gestionados.prefetch_related(
-                Prefetch('inscripciones', queryset=inscripciones_qs, to_attr='inscripciones_list')
-            )
-            
-            # Procesar alertas de división para cada inscripción
-            for torneo in torneos_con_inscripciones:
-                for ins in torneo.inscripciones_list:
-                    ins.alerta_division = None
-                    if torneo.division and ins.equipo.division:
-                        if ins.equipo.division.orden < torneo.division.orden:
-                            ins.alerta_division = 'SUPERIOR'
-                        elif ins.equipo.division.orden > torneo.division.orden:
-                            ins.alerta_division = 'INFERIOR'
-            
-            context['torneos_con_inscripciones'] = torneos_con_inscripciones
-            
-            # Resumen rápido para el dashboard
-            context['total_torneos_activos'] = torneos_gestionados.filter(estado__in=['AB', 'EJ']).count()
-            context['total_inscripciones_hoy'] = Inscripcion.objects.filter(
-                torneo__in=torneos_gestionados,
-                fecha_inscripcion__date=timezone.now().date()
-            ).count()
+            cache_key = f'perfil_gestion_{user.id}'
+            cached_ctx = dj_cache.get(cache_key)
+
+            if cached_ctx:
+                context.update(cached_ctx)
+            else:
+                organizacion = user.organizacion
+
+                # Torneos gestionados con select_related para evitar queries extra
+                if user.tipo_usuario == 'ADMIN':
+                    torneos_gestionados = Torneo.objects.all().select_related(
+                        'division', 'organizacion'
+                    ).order_by('-fecha_inicio')
+                else:
+                    torneos_gestionados = Torneo.objects.filter(
+                        organizacion=organizacion
+                    ).select_related('division', 'organizacion').order_by('-fecha_inicio')
+
+                # Prefetch de inscripciones optimizado
+                inscripciones_qs = Inscripcion.objects.select_related(
+                    'equipo', 'equipo__division', 'equipo__jugador1', 'equipo__jugador2'
+                ).order_by('-fecha_inscripcion')
+
+                torneos_con_inscripciones = list(
+                    torneos_gestionados.prefetch_related(
+                        Prefetch('inscripciones', queryset=inscripciones_qs, to_attr='inscripciones_list')
+                    )
+                )
+
+                # Alertas de división y contadores en un solo paso
+                total_torneos_activos = 0
+                for torneo in torneos_con_inscripciones:
+                    if torneo.estado in ['AB', 'EJ']:
+                        total_torneos_activos += 1
+                    for ins in torneo.inscripciones_list:
+                        ins.alerta_division = None
+                        if torneo.division and ins.equipo.division:
+                            if ins.equipo.division.orden < torneo.division.orden:
+                                ins.alerta_division = 'SUPERIOR'
+                            elif ins.equipo.division.orden > torneo.division.orden:
+                                ins.alerta_division = 'INFERIOR'
+
+                # Inscripciones de hoy (una sola query)
+                hoy = timezone.now().date()
+                torneo_ids = [t.id for t in torneos_con_inscripciones]
+                total_inscripciones_hoy = Inscripcion.objects.filter(
+                    torneo_id__in=torneo_ids,
+                    fecha_inscripcion__date=hoy
+                ).count() if torneo_ids else 0
+
+                to_cache = {
+                    'torneos_gestionados': torneos_con_inscripciones,
+                    'torneos_con_inscripciones': torneos_con_inscripciones,
+                    'total_torneos_activos': total_torneos_activos,
+                    'total_inscripciones_hoy': total_inscripciones_hoy,
+                }
+                dj_cache.set(cache_key, to_cache, 300)
+                context.update(to_cache)
+
 
         # --- LÓGICA DE JUGADOR (STATS) ---
         # Solo calculamos stats pesadas si el usuario es jugador
