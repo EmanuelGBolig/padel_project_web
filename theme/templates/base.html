@@ -546,12 +546,11 @@
                     <main class="flex-grow p-4 md:p-8 space-y-8 content-fade-in min-w-0">
                         <!-- min-w-0 prevents flex overflow -->
                         {% if messages %}
-                            <div class="toast toast-top toast-center z-[100] w-full max-w-md p-4 space-y-2">
+                            <div class="toast toast-top toast-center z-[100] w-[90vw] max-w-md p-4 space-y-2">
                                 {% for message in messages %}
                                     <div role="alert"
                                          class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg border-none text-white animate-in slide-in-from-top-2 fade-in duration-300">
-                                        <!-- Icons remain same -->
-                                        <span class="text-sm font-medium">{{ message }}</span>
+                                        <span class="text-sm font-medium break-words min-w-0">{{ message }}</span>
                                     </div>
                                 {% endfor %}
                             </div>
