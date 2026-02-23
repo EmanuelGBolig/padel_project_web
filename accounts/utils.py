@@ -183,105 +183,78 @@ def get_user_ranking(user):
 def get_player_stats(jugador):
     """
     Calcula las estadísticas completas de un jugador.
-    Retorna un diccionario con:
-    - partidos_jugados
-    - partidos_ganados
-    - partidos_perdidos
-    - win_rate
-    - torneos_jugados (incluye finalizados y en juego)
-    - torneos_ganados
-    - racha_actual (si se implementa)
+    Usa consultas directas (sin N+1) y caché.
     """
-    
-    # 1. Calcular Victorias
-    victorias_j1_elim = jugador.equipos_como_jugador1.filter(
-        partidos_bracket_ganados__isnull=False
+    cache_key = f'player_stats_{jugador.id}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    from torneos.models import Partido, PartidoGrupo, Inscripcion
+
+    # IDs de equipos del jugador (consulta mínima)
+    equipo_ids_j1 = list(jugador.equipos_como_jugador1.values_list('id', flat=True))
+    equipo_ids_j2 = list(jugador.equipos_como_jugador2.values_list('id', flat=True))
+    todos_equipo_ids = equipo_ids_j1 + equipo_ids_j2
+
+    if not todos_equipo_ids:
+        result = {
+            'partidos_jugados': 0, 'victorias': 0, 'derrotas': 0,
+            'win_rate': 0, 'torneos_jugados': 0, 'torneos_ganados': 0,
+            'inscripciones': []
+        }
+        cache.set(cache_key, result, 300)
+        return result
+
+    # 1. Victorias (consultas directas, sin loops)
+    victorias_elim = Partido.objects.filter(
+        ganador_id__in=todos_equipo_ids, ganador__isnull=False
     ).count()
-    
-    victorias_j1_grupo = jugador.equipos_como_jugador1.filter(
-        partidos_grupo_ganados__isnull=False
+    victorias_grupo = PartidoGrupo.objects.filter(
+        ganador_id__in=todos_equipo_ids, ganador__isnull=False
     ).count()
-    
-    victorias_j2_elim = jugador.equipos_como_jugador2.filter(
-        partidos_bracket_ganados__isnull=False
+    total_victorias = victorias_elim + victorias_grupo
+
+    # 2. Partidos jugados (consultas directas)
+    partidos_elim = Partido.objects.filter(
+        Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
+        ganador__isnull=False
     ).count()
-    
-    victorias_j2_grupo = jugador.equipos_como_jugador2.filter(
-        partidos_grupo_ganados__isnull=False
+    partidos_grupo = PartidoGrupo.objects.filter(
+        Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
+        ganador__isnull=False
     ).count()
-    
-    total_victorias = victorias_j1_elim + victorias_j1_grupo + victorias_j2_elim + victorias_j2_grupo
+    total_partidos = partidos_elim + partidos_grupo
 
-    # 2. Calcular Partidos Jugados (Ganados + Perdidos)
-    # Nota: Esto es una aproximación, lo ideal es contar todos los partidos donde participó el equipo
-    # y el partido tiene resultado.
-    
-    # Helper para contar partidos jugados por queryset de equipos
-    def contar_partidos_equipos(equipos_qs):
-        count = 0
-        for equipo in equipos_qs:
-            # Partidos de Grupo
-            count += equipo.partidos_grupo_e1.filter(ganador__isnull=False).count()
-            count += equipo.partidos_grupo_e2.filter(ganador__isnull=False).count()
-            # Partidos de Bracket
-            count += equipo.partidos_bracket_e1.filter(ganador__isnull=False).count()
-            count += equipo.partidos_bracket_e2.filter(ganador__isnull=False).count()
-        return count
+    total_derrotas = total_partidos - total_victorias
+    win_rate = round((total_victorias / total_partidos) * 100, 1) if total_partidos > 0 else 0
 
-    # Esta lógica es pesada si se itera, pero para un solo perfil está bien.
-    # Para el ranking masivo usamos annotate. Este helper es para el perfil detallado.
-    
-    partidos_jugados = 0
-    
-    # Equipos donde es J1
-    equipos_j1 = jugador.equipos_como_jugador1.all()
-    for equipo in equipos_j1:
-         partidos_jugados += equipo.partidos_grupo_e1.filter(ganador__isnull=False).count()
-         partidos_jugados += equipo.partidos_grupo_e2.filter(ganador__isnull=False).count()
-         partidos_jugados += equipo.partidos_bracket_e1.filter(ganador__isnull=False).count()
-         partidos_jugados += equipo.partidos_bracket_e2.filter(ganador__isnull=False).count()
+    # 3. Torneos ganados
+    torneos_ganados = Partido.objects.filter(
+        ganador_id__in=todos_equipo_ids,
+        es_final=True
+    ).count() if hasattr(Partido, 'es_final') else \
+        jugador.equipos_como_jugador1.filter(torneos_ganados__isnull=False).count() + \
+        jugador.equipos_como_jugador2.filter(torneos_ganados__isnull=False).count()
 
-    # Equipos donde es J2
-    equipos_j2 = jugador.equipos_como_jugador2.all()
-    for equipo in equipos_j2:
-         partidos_jugados += equipo.partidos_grupo_e1.filter(ganador__isnull=False).count()
-         partidos_jugados += equipo.partidos_grupo_e2.filter(ganador__isnull=False).count()
-         partidos_jugados += equipo.partidos_bracket_e1.filter(ganador__isnull=False).count()
-         partidos_jugados += equipo.partidos_bracket_e2.filter(ganador__isnull=False).count()
-
-    total_derrotas = partidos_jugados - total_victorias
-    
-    win_rate = 0
-    if partidos_jugados > 0:
-        win_rate = round((total_victorias / partidos_jugados) * 100, 1)
-
-    # 3. Torneos
-    # Torneos ganados
-    torneos_ganados = jugador.equipos_como_jugador1.filter(torneos_ganados__isnull=False).count() + \
-                      jugador.equipos_como_jugador2.filter(torneos_ganados__isnull=False).count()
-
-    # Torneos jugados (a través de inscripciones sería lo más correcto, pero equipos vinculados a torneos también sirve si hay relación directa o inferida)
-    # Asumiendo que Equipo se crea por torneo o Inscripción vincula Equipo-Torneo
-    
-    from torneos.models import Inscripcion
-    
-    # Torneos donde ha participado (estado FINALIZADO o EN_JUEGO)
+    # 4. Inscripciones (consulta única con select_related)
     inscripciones = Inscripcion.objects.filter(
         Q(equipo__jugador1=jugador) | Q(equipo__jugador2=jugador)
-    ).select_related('torneo')
-    
+    ).select_related('torneo', 'equipo', 'equipo__division').order_by('-fecha_inscripcion')
+
     torneos_jugados = inscripciones.count()
-    
-    return {
-        'partidos_jugados': partidos_jugados,
+
+    result = {
+        'partidos_jugados': total_partidos,
         'victorias': total_victorias,
         'derrotas': total_derrotas,
         'win_rate': win_rate,
         'torneos_jugados': torneos_jugados,
         'torneos_ganados': torneos_ganados,
-        'inscripciones': inscripciones # Para listar los torneos
+        'inscripciones': list(inscripciones)
     }
-
+    cache.set(cache_key, result, 300)
+    return result
 
 def send_email_async(subject, html_template, context, recipient_list, from_email=None):
     """
