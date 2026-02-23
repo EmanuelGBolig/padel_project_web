@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}
+    {{ titulo }}
+{% endblock title %}
 {% block content %}
     <div class="max-w-3xl mx-auto mt-6 md:mt-10 px-4 sm:px-0">
         <div class="card bg-base-100 dark:bg-base-200 shadow-xl rounded-2xl p-6 md:p-10">
             <h2 class="text-3xl font-bold text-center mb-8 text-base-content">{{ titulo }}</h2>
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 {% load widget_tweaks %}
                 <div class="grid grid-cols-2 gap-x-4 md:gap-x-8 gap-y-2">
@@ -40,4 +42,4 @@
             {% endif %}
         </div>
     </div>
-{% endblock %}
+{% endblock content %}

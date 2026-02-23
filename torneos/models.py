@@ -65,6 +65,13 @@ class Torneo(models.Model):
         related_name="torneos_ganados",
     )
     
+    foto_campeones = models.ImageField(
+        upload_to='torneos/campeones/',
+        null=True,
+        blank=True,
+        help_text="Opcional: Sube la foto del equipo ganador al finalizar el torneo. La imagen se mostrará en los detalles de la competencia."
+    )
+    
     organizacion = models.ForeignKey(
         'accounts.Organizacion',
         on_delete=models.CASCADE,

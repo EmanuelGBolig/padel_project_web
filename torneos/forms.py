@@ -15,6 +15,7 @@ class TorneoAdminForm(forms.ModelForm):
             'forzar_grupos_de_3',
             'tipo_torneo',
             'categoria',
+            'foto_campeones',
         ]
         widgets = {
             'fecha_limite_inscripcion': forms.DateTimeInput(
@@ -42,6 +43,8 @@ class TorneoAdminForm(forms.ModelForm):
                 field.widget.attrs['class'] = estilo_select
             elif isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs['class'] = 'checkbox checkbox-primary'
+            elif isinstance(field.widget, forms.ClearableFileInput):
+                field.widget.attrs['class'] = 'file-input file-input-bordered file-input-primary w-full bg-base-100 text-base-content'
             
             # Label para categoria
             if field_name == 'categoria':

@@ -123,8 +123,17 @@
                         </div>
                     {% endif %}
                     {% if torneo.estado == 'FN' and torneo.ganador_del_torneo %}
-                        <div class="mt-4">
-                            <p class="text-success font-semibold text-lg">Ganador: {{ torneo.ganador_del_torneo.nombre }}</p>
+                        <div class="mt-4 flex flex-col items-center justify-center bg-success/10 p-6 rounded-2xl border border-success/20">
+                            <p class="text-success font-black text-2xl mb-2 flex items-center gap-2">
+                                🏆 Ganadores: {{ torneo.ganador_del_torneo.nombre }}
+                            </p>
+                            {% if torneo.foto_campeones %}
+                                <div class="mt-4 w-full max-w-lg overflow-hidden rounded-xl shadow-lg border-2 border-success/30 bg-base-100">
+                                    <img src="{{ torneo.foto_campeones.url }}"
+                                         alt="Campeones del torneo {{ torneo.nombre }}"
+                                         class="w-full h-auto object-cover" />
+                                </div>
+                            {% endif %}
                         </div>
                     {% endif %}
                     {% if ya_inscrito %}
