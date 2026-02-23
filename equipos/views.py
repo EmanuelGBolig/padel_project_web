@@ -423,126 +423,120 @@ class RankingListView(ListView):
         rankings_por_division = []
         
         for division in divisiones:
-            # --- LÓGICA DE RANKING POR DIVISIÓN (OPTIMIZADA) ---
-            # Filtrar equipos que PERTENECEN a esta división
-            # Filtrar equipos que PERTENECEN a esta división O que hayan jugado en un torneo de esta división
-            equipos_con_stats = Equipo.objects.filter(
-                Q(division=division) |
-                Q(partidos_bracket_e1__torneo__division=division) |
-                Q(partidos_grupo_e1__grupo__torneo__division=division)
-            ).distinct().select_related(
-                'jugador1', 'jugador2', 'division'
-            ).annotate(
-                # 1. Victorias en Eliminación (Solo torneos de esta división)
-                victorias_eliminacion=Count(
-                    'partidos_bracket_ganados',
-                    filter=Q(
-                        partidos_bracket_ganados__isnull=False,
-                        partidos_bracket_ganados__torneo__division=division
-                    ),
-                    distinct=True
-                ),
-                # 2. Victorias en Grupos (Solo torneos de esta división)
-                victorias_grupo=Count(
-                    'partidos_grupo_ganados',
-                    filter=Q(
-                        partidos_grupo_ganados__isnull=False,
-                        partidos_grupo_ganados__grupo__torneo__division=division
-                    ),
-                    distinct=True
-                ),
-                # 3. Partidos jugados en Eliminación (Solo torneos de esta división)
-                partidos_elim_1=Count(
-                    'partidos_bracket_e1',
-                    filter=Q(
-                        partidos_bracket_e1__ganador__isnull=False,
-                        partidos_bracket_e1__torneo__division=division
-                    ),
-                    distinct=True
-                ),
-                partidos_elim_2=Count(
-                    'partidos_bracket_e2',
-                    filter=Q(
-                        partidos_bracket_e2__ganador__isnull=False,
-                        partidos_bracket_e2__torneo__division=division
-                    ),
-                    distinct=True
-                ),
-                # 4. Partidos jugados en Grupos (Solo torneos de esta división)
-                partidos_grupo_1=Count(
-                    'partidos_grupo_e1',
-                    filter=Q(
-                        partidos_grupo_e1__ganador__isnull=False,
-                        partidos_grupo_e1__grupo__torneo__division=division
-                    ),
-                    distinct=True
-                ),
-                partidos_grupo_2=Count(
-                    'partidos_grupo_e2',
-                    filter=Q(
-                        partidos_grupo_e2__ganador__isnull=False,
-                        partidos_grupo_e2__grupo__torneo__division=division
-                    ),
-                    distinct=True
-                ),
-                # 5. Torneos Ganados (Solo de esta división)
-                torneos_ganados_count=Count(
-                    'torneos_ganados',
-                    filter=Q(torneos_ganados__division=division),
-                    distinct=True
-                )
+            # Cache para esta división
+            cache_key = f'rankings_equipos_div_{division.id}'
+            from django.core.cache import cache as dj_cache
+            cached = dj_cache.get(cache_key)
+            if cached is not None:
+                rankings_por_division.append({'division': division, 'equipos': cached})
+                continue
+
+            # --- LÓGICA OPTIMIZADA: consultas simples en vez de mega-JOINs ---
+            from torneos.models import Partido, PartidoGrupo, Torneo as TorneoModel
+
+            torneo_ids = list(TorneoModel.objects.filter(division=division).values_list('id', flat=True))
+
+            if not torneo_ids:
+                # Sin torneos: listar solo equipos de la división con 0 puntos
+                equipos_vacios = Equipo.objects.filter(division=division).select_related('jugador1', 'jugador2', 'division')
+                equipos_con_puntos = [{'equipo': e, 'puntos': 0, 'victorias': 0, 'win_rate': 0, 'torneos_ganados': 0, 'partidos_jugados': 0} for e in equipos_vacios]
+                for i, item in enumerate(equipos_con_puntos, 1):
+                    item['posicion'] = i
+                dj_cache.set(cache_key, equipos_con_puntos, 300)
+                rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
+                continue
+
+            # Victorias bracket
+            vict_bracket = (
+                Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
+                .values('ganador_id').annotate(wins=Count('id'))
             )
-            
-            # Procesar equipos y calcular métricas
+            # Victorias grupo
+            vict_grupo = (
+                PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
+                .values('ganador_id').annotate(wins=Count('id'))
+            )
+            # Partidos jugados bracket
+            part_bracket = (
+                Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
+                .values('equipo1_id', 'equipo2_id')
+            )
+            # Partidos jugados grupo
+            part_grupo = (
+                PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
+                .values('equipo1_id', 'equipo2_id')
+            )
+            # Torneos ganados
+            t_ganados = (
+                TorneoModel.objects.filter(id__in=torneo_ids, campeon__isnull=False)
+                .values('campeon_id')
+            )
+
+            # Agregar en Python
+            victorias_por_equipo = {}
+            partidos_por_equipo = {}
+            torneos_por_equipo = {}
+
+            for v in vict_bracket:
+                eid = v['ganador_id']
+                if eid:
+                    victorias_por_equipo[eid] = victorias_por_equipo.get(eid, 0) + v['wins']
+            for v in vict_grupo:
+                eid = v['ganador_id']
+                if eid:
+                    victorias_por_equipo[eid] = victorias_por_equipo.get(eid, 0) + v['wins']
+
+            for p in part_bracket:
+                for eid in (p['equipo1_id'], p['equipo2_id']):
+                    if eid:
+                        partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + 1
+            for p in part_grupo:
+                for eid in (p['equipo1_id'], p['equipo2_id']):
+                    if eid:
+                        partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + 1
+
+            for t in t_ganados:
+                eid = t['campeon_id']
+                if eid:
+                    torneos_por_equipo[eid] = torneos_por_equipo.get(eid, 0) + 1
+
+            # Obtener todos los equipos relevantes
+            equipo_ids_con_datos = (
+                set(victorias_por_equipo.keys()) |
+                set(partidos_por_equipo.keys()) |
+                set(torneos_por_equipo.keys())
+            )
+            equipos_qs = Equipo.objects.filter(
+                Q(division=division) | Q(id__in=equipo_ids_con_datos)
+            ).distinct().select_related('jugador1', 'jugador2', 'division')
+
             equipos_con_puntos = []
-            for equipo in equipos_con_stats:
-                # Calcular totales
-                victorias_total = equipo.victorias_eliminacion + equipo.victorias_grupo
-                partidos_total = (equipo.partidos_elim_1 + equipo.partidos_elim_2 + 
-                                 equipo.partidos_grupo_1 + equipo.partidos_grupo_2)
-                
-                # Calcular win rate
-                win_rate = 0
-                if partidos_total > 0:
-                    win_rate = round((victorias_total / partidos_total) * 100, 1)
-                
-                # Calcular puntos de ranking
-                puntos = victorias_total * 3  # 3 puntos por victoria
-                puntos += equipo.torneos_ganados_count * 50  # 50 puntos por torneo ganado
-                
-                # Bonus por win rate alto (Solo si jugó suficientes partidos en esta división)
-                if win_rate >= 75 and partidos_total >= 5:
+            for equipo in equipos_qs:
+                victorias = victorias_por_equipo.get(equipo.id, 0)
+                partidos = partidos_por_equipo.get(equipo.id, 0)
+                t_gan = torneos_por_equipo.get(equipo.id, 0)
+                win_rate = round((victorias / partidos) * 100, 1) if partidos > 0 else 0
+                puntos = victorias * 3 + t_gan * 50
+                if win_rate >= 75 and partidos >= 5:
                     puntos += 20
-                
-                # Mostrar el equipo SIEMPRE que sea de esta división (ya filtrado por query)
                 equipos_con_puntos.append({
                     'equipo': equipo,
                     'puntos': puntos,
-                    'victorias': victorias_total,
+                    'victorias': victorias,
                     'win_rate': win_rate,
-                    'torneos_ganados': equipo.torneos_ganados_count,
-                    'partidos_jugados': partidos_total
+                    'torneos_ganados': t_gan,
+                    'partidos_jugados': partidos,
                 })
-            
-            # Ordenar por puntos
+
             equipos_con_puntos.sort(key=lambda x: x['puntos'], reverse=True)
-            
-            # Agregar posición
             for i, item in enumerate(equipos_con_puntos, 1):
                 item['posicion'] = i
-            
-            # Agregar a la lista final
-            rankings_por_division.append({
-                'division': division,
-                'equipos': equipos_con_puntos
-            })
-        
-        # Guardar en cache por 5 minutos (solo para esta vista específica)
-        # Nota: La cache key debería cambiar si se usa paginación/filtros distintos, 
-        # pero aquí estamos filtrando por división.
-        # cache.set(cache_key, rankings_por_division, 300) 
+
+            dj_cache.set(cache_key, equipos_con_puntos, 300)
+            rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
         
         return rankings_por_division
+
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
