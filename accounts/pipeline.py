@@ -1,42 +1,35 @@
 """
 Pipeline personalizado para social-auth-app-django (Google OAuth2).
-Guarda el nombre/apellido de Google en el CustomUser,
-y redirige al usuario a completar perfil si le faltan datos.
+Guarda el nombre/apellido de Google en el CustomUser y lo marca como verificado.
+
+IMPORTANTE: No hacer redirects desde el pipeline. En este punto el usuario aún no
+está autenticado en la sesión de Django. Los usuarios nuevos se redirigen via
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL en settings.py, una vez completado el login.
 """
-from django.shortcuts import redirect
 
 
-def save_google_profile(backend, user, response, *args, **kwargs):
+def save_google_profile(backend, user, response, is_new=False, *args, **kwargs):
     """
-    Paso 1: Guarda nombre y apellido desde el perfil de Google si el usuario
+    Guarda nombre y apellido desde el perfil de Google si el usuario
     todavía no los tiene (usuario nuevo), y lo marca como verificado.
     """
     if backend.name == 'google-oauth2':
+        changed = False
+
         # Marcar como verificado (Google ya confirmó el email)
         if not user.is_verified:
             user.is_verified = True
+            changed = True
 
         # Asignar nombre desde Google si el campo está vacío
         if not user.nombre:
             user.nombre = response.get('given_name', '')
+            changed = True
 
         # Asignar apellido desde Google si el campo está vacío
         if not user.apellido:
             user.apellido = response.get('family_name', '')
+            changed = True
 
-        user.save()
-
-
-def require_profile_completion(backend, user, *args, **kwargs):
-    """
-    Paso 2: Si al usuario le faltan campos obligatorios (división, género,
-    teléfono), interrumpir el pipeline y redirigir al formulario de
-    completar perfil.
-    """
-    fields_missing = (
-        not user.division_id or
-        not user.numero_telefono
-    )
-
-    if fields_missing:
-        return redirect('/accounts/completar-perfil/')
+        if changed:
+            user.save()

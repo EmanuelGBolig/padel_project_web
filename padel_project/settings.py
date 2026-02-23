@@ -286,9 +286,10 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.create_user',
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
-    'accounts.pipeline.save_google_profile',           # Guarda nombre/apellido de Google
-    'accounts.pipeline.require_profile_completion',    # Redirige si faltan campos
+    'accounts.pipeline.save_google_profile',           # Guarda nombre/apellido, marca verificado
     'social_core.pipeline.user.user_details',
+    # IMPORTANTE: NO redirigir desde el pipeline. El usuario no está logueado todavía.
+    # Los nuevos usuarios se redirigen via SOCIAL_AUTH_NEW_USER_REDIRECT_URL tras el login.
 )
 
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
