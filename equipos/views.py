@@ -106,8 +106,14 @@ class JugadorAutocomplete(autocomplete.Select2QuerySetView):
 
         # 3. Aplicamos el filtro de búsqueda del usuario (q)
         if self.q:
-            # Búsqueda por nombre O apellido (Case insensitive: icontains)
-            qs = qs.filter(Q(nombre__icontains=self.q) | Q(apellido__icontains=self.q))
+            import operator
+            from functools import reduce
+            keywords = self.q.split()
+            if keywords:
+                # Para cada palabra clave, debe coincidir en nombre O apellido
+                q_list = [Q(nombre__icontains=kw) | Q(apellido__icontains=kw) for kw in keywords]
+                query = reduce(operator.and_, q_list)
+                qs = qs.filter(query)
 
         return qs
 

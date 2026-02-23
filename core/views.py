@@ -47,22 +47,38 @@ class GlobalSearchView(TemplateView):
         context['query'] = query
 
         if query:
-            # Buscar Jugadores (nombre, apellido, email)
-            context['jugadores'] = CustomUser.objects.filter(
-                Q(nombre__icontains=query) | 
-                Q(apellido__icontains=query) | 
-                Q(email__icontains=query),
-                tipo_usuario='PLAYER'
-            ).distinct()[:10]  # Limitar a 10 resultados
+            import operator
+            from functools import reduce
+            
+            # Split query into words
+            keywords = query.split()
+            
+            # Buscar Jugadores (nombre, apellido, email) - TODAS las palabras deben coincidir en alguno de los campos
+            if keywords:
+                # Build an AND query across words: for each word, it must be in nombre OR apellido OR email
+                player_q_list = [
+                    Q(nombre__icontains=kw) | Q(apellido__icontains=kw) | Q(email__icontains=kw)
+                    for kw in keywords
+                ]
+                player_q = reduce(operator.and_, player_q_list)
+                
+                context['jugadores'] = CustomUser.objects.filter(
+                    player_q,
+                    tipo_usuario='PLAYER'
+                ).distinct()[:10]  # Limitar a 10 resultados
 
-            # Buscar Torneos (nombre)
-            context['torneos'] = Torneo.objects.filter(
-                nombre__icontains=query
-            ).order_by('-fecha_inicio')[:10]
+                # Buscar Torneos (nombre)
+                torneo_q_list = [Q(nombre__icontains=kw) for kw in keywords]
+                torneo_q = reduce(operator.and_, torneo_q_list)
+                context['torneos'] = Torneo.objects.filter(
+                    torneo_q
+                ).order_by('-fecha_inicio')[:10]
 
-            # Buscar Equipos (nombre)
-            context['equipos'] = Equipo.objects.filter(
-                nombre__icontains=query
-            )[:10]
+                # Buscar Equipos (nombre)
+                equipo_q_list = [Q(nombre__icontains=kw) for kw in keywords]
+                equipo_q = reduce(operator.and_, equipo_q_list)
+                context['equipos'] = Equipo.objects.filter(
+                    equipo_q
+                )[:10]
 
         return context
