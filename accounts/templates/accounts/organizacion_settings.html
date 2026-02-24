@@ -106,13 +106,6 @@
                             <span>Las coordenadas se usarán para mostrar el mapa en tu perfil público. Puedes obtenerlas de Google Maps.</span>
                         </div>
                         <div class="flex flex-wrap justify-end gap-3 pt-4">
-                            <a href="{% url 'accounts:crear_dummy_user' %}"
-                               class="btn btn-secondary">
-                                <i class="fas fa-user-plus mr-2"></i> Jugador Libre
-                            </a>
-                            <a href="{% url 'equipos:crear_pareja' %}" class="btn btn-secondary">
-                                <i class="fas fa-users-cog mr-2"></i> Armar Pareja
-                            </a>
                             <a href="{% url 'accounts:perfil' %}" class="btn btn-ghost">Volver a Mi Perfil</a>
                             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                         </div>

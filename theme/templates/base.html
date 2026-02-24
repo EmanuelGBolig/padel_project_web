@@ -672,7 +672,7 @@
                                              stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        Mi Equipo
+                                        Mi Pareja
                                     </a>
                                 </li>
                             {% endif %}
@@ -755,7 +755,7 @@
                                             {% if user.is_staff %}
                                                 <li>
                                                     <a href="{% url 'equipos:admin_list' %}"
-                                                       class="{% if request.resolver_match.url_name == 'admin_list' and 'equipos' in request.path %}active{% endif %} rounded-xl">Equipos</a>
+                                                       class="{% if request.resolver_match.url_name == 'admin_list' and 'equipos' in request.path %}active{% endif %} rounded-xl">Parejas</a>
                                                 </li>
                                             {% endif %}
                                             <li>
@@ -765,6 +765,14 @@
                                             <li>
                                                 <a href="{% url 'torneos:admin_crear' %}"
                                                    class="{% if request.resolver_match.url_name == 'admin_crear' %}active{% endif %} rounded-xl">Crear Torneo</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'accounts:crear_dummy_user' %}"
+                                                   class="{% if request.resolver_match.url_name == 'crear_dummy_user' %}active{% endif %} rounded-xl">Crear Jugador</a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'equipos:crear_pareja' %}"
+                                                   class="{% if request.resolver_match.url_name == 'crear_pareja' %}active{% endif %} rounded-xl">Crear Pareja</a>
                                             </li>
                                         </ul>
                                     </details>
@@ -817,7 +825,7 @@
                                     </li>
                                     <li>
                                         <a href="{% url 'equipos:rankings' %}"
-                                           class="{% if request.resolver_match.url_name == 'rankings' %}active{% endif %} rounded-xl">Equipos</a>
+                                           class="{% if request.resolver_match.url_name == 'rankings' %}active{% endif %} rounded-xl">Parejas</a>
                                     </li>
                                 </ul>
                             </details>

@@ -3,11 +3,6 @@ from django.db.models.functions import Coalesce
 from django.core.cache import cache
 
 def get_division_rankings(division):
-    """
-    Calcula el ranking de jugadores para una división específica.
-    Estrategia: Consultas simples por partido/torneo, agrupadas en Python.
-    Usa caché para optimizar rendimiento.
-    """
     if not division:
         return []
 
@@ -20,11 +15,9 @@ def get_division_rankings(division):
     from .models import CustomUser
     from torneos.models import Partido, PartidoGrupo, Torneo
 
-    # 1. Todos los torneos de esta división
     torneo_ids = list(Torneo.objects.filter(division=division).values_list('id', flat=True))
 
     if not torneo_ids:
-        # No hay torneos, solo devolver jugadores de la división con 0 puntos
         jugadores = CustomUser.objects.filter(
             division=division, tipo_usuario='PLAYER'
         ).select_related('division')
@@ -38,14 +31,7 @@ def get_division_rankings(division):
         cache.set(cache_key, result, 300)
         return result
 
-    # 2. Victorias en partidos de eliminación (bracket) — consulta simple
-    victorias_bracket = (
-        Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
-        .values('ganador__jugador1', 'ganador__jugador2')
-        .annotate(wins=Count('id'))
-    )
-
-    # 3. Victorias en partidos de grupo — consulta simple
+    # 1. Victorias en partidos de grupo (15 puntos por victoria)
     victorias_grupo = (
         PartidoGrupo.objects.filter(
             grupo__torneo_id__in=torneo_ids, ganador__isnull=False
@@ -54,72 +40,109 @@ def get_division_rankings(division):
         .annotate(wins=Count('id'))
     )
 
-    # 4. Partidos jugados en bracket — consulta simple
-    partidos_bracket = (
-        Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
-        .values('equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2')
+    # 2. Partidos totales para estadisticas (jugados)
+    partidos_bracket = Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False).values(
+        'equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2', 'ganador__jugador1', 'ganador__jugador2'
+    )
+    partidos_grupo = PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False).values(
+        'equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2', 'ganador__jugador1', 'ganador__jugador2'
     )
 
-    # 5. Partidos jugados en grupo — consulta simple
-    partidos_grupo = (
-        PartidoGrupo.objects.filter(
-            grupo__torneo_id__in=torneo_ids, ganador__isnull=False
-        )
-        .values('equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2')
+    # 3. Puntos por Bracket (Ronda máxima)
+    # Rondas: 4=Final, 3=Semi, 2=Cuartos, 1=Octavos
+    bracket_matches = Partido.objects.filter(
+        torneo_id__in=torneo_ids, equipo1__isnull=False, equipo2__isnull=False, ganador__isnull=False
+    ).values(
+        'torneo_id', 'ronda', 'ganador__jugador1', 'ganador__jugador2',
+        'equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2'
+    )
+    
+    torneos_ganadores = Torneo.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False).values(
+        'id', 'ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2'
     )
 
-    # 6. Torneos ganados
-    torneos_ganados_data = (
-        Torneo.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False)
-        .values('ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2')
-    )
-
-    # Agregar datos por jugador en Python (más rápido que múltiples JOINs en SQL)
     victorias_por_jugador = {}
     partidos_por_jugador = {}
+    puntos_por_jugador = {}
     torneos_ganados_por_jugador = {}
 
-    def add_wins(jugador_id, wins=1):
-        if jugador_id:
-            victorias_por_jugador[jugador_id] = victorias_por_jugador.get(jugador_id, 0) + wins
+    def add_victorias(jid, count):
+        if jid: victorias_por_jugador[jid] = victorias_por_jugador.get(jid, 0) + count
 
-    def add_partidos(jugador_id, count=1):
-        if jugador_id:
-            partidos_por_jugador[jugador_id] = partidos_por_jugador.get(jugador_id, 0) + count
+    def add_partidos(jid, count):
+        if jid: partidos_por_jugador[jid] = partidos_por_jugador.get(jid, 0) + count
 
-    def add_torneo(jugador_id):
-        if jugador_id:
-            torneos_ganados_por_jugador[jugador_id] = torneos_ganados_por_jugador.get(jugador_id, 0) + 1
+    def add_puntos(jid, pts):
+        if jid: puntos_por_jugador[jid] = puntos_por_jugador.get(jid, 0) + pts
 
-    for v in victorias_bracket:
-        add_wins(v['ganador__jugador1'], v['wins'])
-        add_wins(v['ganador__jugador2'], v['wins'])
+    def add_torneo(jid):
+        if jid: torneos_ganados_por_jugador[jid] = torneos_ganados_por_jugador.get(jid, 0) + 1
 
     for v in victorias_grupo:
-        add_wins(v['ganador__jugador1'], v['wins'])
-        add_wins(v['ganador__jugador2'], v['wins'])
+        add_victorias(v['ganador__jugador1'], v['wins'])
+        add_victorias(v['ganador__jugador2'], v['wins'])
+        add_puntos(v['ganador__jugador1'], v['wins'] * 15)
+        add_puntos(v['ganador__jugador2'], v['wins'] * 15)
 
     for p in partidos_bracket:
-        add_partidos(p['equipo1__jugador1'])
-        add_partidos(p['equipo1__jugador2'])
-        add_partidos(p['equipo2__jugador1'])
-        add_partidos(p['equipo2__jugador2'])
+        add_partidos(p['equipo1__jugador1'], 1)
+        add_partidos(p['equipo1__jugador2'], 1)
+        add_partidos(p['equipo2__jugador1'], 1)
+        add_partidos(p['equipo2__jugador2'], 1)
+        add_victorias(p['ganador__jugador1'], 1)
+        add_victorias(p['ganador__jugador2'], 1)
 
     for p in partidos_grupo:
-        add_partidos(p['equipo1__jugador1'])
-        add_partidos(p['equipo1__jugador2'])
-        add_partidos(p['equipo2__jugador1'])
-        add_partidos(p['equipo2__jugador2'])
+        add_partidos(p['equipo1__jugador1'], 1)
+        add_partidos(p['equipo1__jugador2'], 1)
+        add_partidos(p['equipo2__jugador1'], 1)
+        add_partidos(p['equipo2__jugador2'], 1)
 
-    for t in torneos_ganados_data:
-        add_torneo(t['ganador_del_torneo__jugador1'])
-        add_torneo(t['ganador_del_torneo__jugador2'])
+    # Determinar Campeones por Torneo
+    camps = {}
+    for t in torneos_ganadores:
+        tid = t['id']
+        j1 = t['ganador_del_torneo__jugador1']
+        j2 = t['ganador_del_torneo__jugador2']
+        camps[tid] = {j1, j2}
+        add_torneo(j1)
+        add_torneo(j2)
 
-    # Obtener todos los jugadores relevantes: de la división O que hayan participado
+    # Max ronda logic
+    max_ronda_jugador_torneo = {} # {torneo_id: {jugador_id: max_ronda}}
+    for bm in bracket_matches:
+        tid = bm['torneo_id']
+        ronda = bm['ronda']
+        if tid not in max_ronda_jugador_torneo:
+            max_ronda_jugador_torneo[tid] = {}
+        for d in ['equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2']:
+            jid = bm[d]
+            if jid:
+                curr = max_ronda_jugador_torneo[tid].get(jid, 0)
+                if ronda > curr:
+                    max_ronda_jugador_torneo[tid][jid] = ronda
+
+    # Points assign
+    for tid, jugadores_rondas in max_ronda_jugador_torneo.items():
+        torneo_campeones = camps.get(tid, set())
+        for jid, mx_rnda in jugadores_rondas.items():
+            if jid in torneo_campeones:
+                add_puntos(jid, 600)
+            else:
+                if mx_rnda == 4:
+                    add_puntos(jid, 360) # Finalista
+                elif mx_rnda == 3:
+                    add_puntos(jid, 180) # Semifinal
+                elif mx_rnda == 2:
+                    add_puntos(jid, 90)  # Cuartos
+                elif mx_rnda == 1:
+                    add_puntos(jid, 45)  # Octavos
+
     jugador_ids_con_datos = (
         set(victorias_por_jugador.keys()) |
         set(partidos_por_jugador.keys()) |
-        set(torneos_ganados_por_jugador.keys())
+        set(torneos_ganados_por_jugador.keys()) |
+        set(puntos_por_jugador.keys())
     )
 
     jugadores = CustomUser.objects.filter(
@@ -127,20 +150,15 @@ def get_division_rankings(division):
         tipo_usuario='PLAYER'
     ).distinct().select_related('division').prefetch_related('equipos_como_jugador1', 'equipos_como_jugador2')
 
-    # Construir lista de ranking en Python
     jugadores_con_puntos = []
     for jugador in jugadores:
         victorias = victorias_por_jugador.get(jugador.id, 0)
         partidos = partidos_por_jugador.get(jugador.id, 0)
         t_ganados = torneos_ganados_por_jugador.get(jugador.id, 0)
+        puntos = puntos_por_jugador.get(jugador.id, 0)
 
         win_rate = round((victorias / partidos) * 100, 1) if partidos > 0 else 0
-        puntos = victorias * 3 + t_ganados * 50
-        if win_rate >= 75 and partidos >= 10:
-            puntos += 20
 
-        # Optimización: No usar la propiedad .equipo que dispara queries extras
-        # Buscamos en los prefetched equipos
         equipos_j1 = list(jugador.equipos_como_jugador1.all())
         equipos_j2 = list(jugador.equipos_como_jugador2.all())
         
@@ -150,33 +168,34 @@ def get_division_rankings(division):
         elif equipos_j2:
             primer_equipo = equipos_j2[0]
 
-        equipos_actuales = []
-        if primer_equipo and primer_equipo.division_id == division.id:
-            equipos_actuales.append(primer_equipo)
-
-
         jugadores_con_puntos.append({
             'jugador': jugador,
             'puntos': puntos,
             'victorias': victorias,
             'win_rate': win_rate,
             'torneos_ganados': t_ganados,
-            'equipos': equipos_actuales,
+            'equipos': [primer_equipo] if primer_equipo else [],
             'partidos_totales': partidos,
         })
 
-    # Ordenar y agregar posición
-    jugadores_con_puntos.sort(key=lambda x: x['puntos'], reverse=True)
+    jugadores_con_puntos.sort(
+        key=lambda x: (
+            x['puntos'],
+            x['torneos_ganados'],
+            x['win_rate'],
+            x['victorias']
+        ),
+        reverse=True
+    )
+
     for i, item in enumerate(jugadores_con_puntos, 1):
         item['posicion'] = i
 
-    # Guardar en cache por 5 minutos
     cache.set(cache_key, jugadores_con_puntos, 300)
-
     return jugadores_con_puntos
 
-
 def get_user_ranking(user):
+
     """
     Obtiene la información de ranking para un usuario específico.
     Retorna un diccionario con la info del ranking o None si no tiene división/ranking.
