@@ -5,7 +5,7 @@
     <div class="bg-base-100 dark:bg-base-300 shadow-xl rounded-xl p-6">
 
         <h2 class="text-2xl sm:text-3xl font-bold text-base-content dark:text-base-content mb-6 text-center">
-            Gestión de Equipos
+            Gestión de Parejas
         </h2>
 
         <!-- Filtros -->
@@ -45,7 +45,7 @@
                         <td><div class="badge badge-secondary text-white">{{ equipo.division.nombre }}</div></td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" class="text-center py-4">No hay equipos registrados.</td></tr>
+                    <tr><td colspan="4" class="text-center py-4">No hay parejas registrados.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -64,7 +64,7 @@
             </div>
             {% empty %}
             <p class="text-center py-4 text-base-content dark:text-base-content">
-                No hay equipos registrados.
+                No hay parejas registrados.
             </p>
             {% endfor %}
         </div>

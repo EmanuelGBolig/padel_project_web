@@ -187,7 +187,7 @@
                     {% elif puede_inscribirse %}
                         <div class="mt-8">
                             <p class="mb-4 text-success font-medium">
-                                ¡Tu equipo <strong>{{ equipo.nombre }}</strong> puede participar!
+                                ¡Tu pareja <strong>{{ equipo.nombre }}</strong> puede participar!
                             </p>
                             {% if user.is_authenticated %}
                                 <a href="{% url 'torneos:inscribirse' torneo.pk %}"
@@ -627,8 +627,8 @@
         <!-- Modal Create Team Requerido -->
         <dialog id="create_team_modal" class="modal modal-middle">
             <div class="modal-box">
-                <h3 class="font-bold text-lg text-warning">¡Necesitas un Equipo!</h3>
-                <p class="py-4">Para inscribirte en un torneo, primero debes formar parte de un equipo (pareja).</p>
+                <h3 class="font-bold text-lg text-warning">¡Necesitas un Pareja!</h3>
+                <p class="py-4">Para inscribirte en un torneo, primero debes formar parte de un pareja (pareja).</p>
                 <div class="modal-action">
                     <form method="dialog">
                         <button class="btn">Cancelar</button>

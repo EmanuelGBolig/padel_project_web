@@ -15,7 +15,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                         </svg>
                     </div>
-                    Ranking de Equipos
+                    Ranking de Parejas
                 </h1>
                 <p class="text-base-content/60 mt-1 ml-1">Clasificación general por divisiones</p>
             </div>
@@ -49,7 +49,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <div>
-                                    <h3 class="font-bold text-success">¡Tu equipo está en el ranking!</h3>
+                                    <h3 class="font-bold text-success">¡Tu pareja está en el ranking!</h3>
                                     <div class="text-sm opacity-90">
                                         Puesto <span class="font-black text-lg">#{{ item.posicion }}</span> en <span class="font-bold">{{ mi_equipo.division.nombre }}</span> con {{ item.puntos }} puntos.
                                     </div>
@@ -148,7 +148,7 @@
                 </div>
                 <h3 class="font-bold text-lg text-base-content">Sin actividad aún</h3>
                 <p class="text-base-content/60 mt-2 max-w-sm mx-auto">
-                    Los equipos aparecerán en el ranking una vez que se hayan jugado partidos.
+                    Los parejas aparecerán en el ranking una vez que se hayan jugado partidos.
                 </p>
             </div>
         {% endfor %}
