@@ -47,14 +47,9 @@ class Equipo(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        # Lógica adaptada de tu proyecto anterior:
+        # Lógica adaptada:
         if self.es_dummy:
-            if not self.nombre:
-                 # Nombre base para dummy, se puede refinar con un contador si es necesario, 
-                 # pero idealmente el nombre debe ser único, así que usaremos un UUID o similar si choca,
-                 # O mejor, lo manejamos en la creación. 
-                 # Por ahora, dejemos que quien lo cree asigne el nombre o usamos un default.
-                 pass
+             pass
         elif self.jugador1 and self.jugador2:
             # 1. Usamos 'apellido' (nuestro campo) en lugar de 'last_name'
             # Si no tienen apellido, usamos el email como fallback
@@ -73,6 +68,10 @@ class Equipo(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
+        if self.jugador1 and self.jugador1.is_dummy and self.jugador2 and self.jugador2.is_dummy:
+             return f"{self.nombre} [Dummies]"
+        elif (self.jugador1 and self.jugador1.is_dummy) or (self.jugador2 and self.jugador2.is_dummy):
+             return f"{self.nombre} [Con Dummy]"
         return self.nombre
 
     # === ESTADÍSTICAS ===

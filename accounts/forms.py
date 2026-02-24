@@ -212,3 +212,46 @@ class SponsorForm(forms.ModelForm):
                 field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
             else:
                 field.widget.attrs['class'] = estilo_input
+
+
+class DummyUserCreationForm(forms.ModelForm):
+    """
+    Formulario para que los organizadores creen jugadores 'dummy' sin cuenta real
+    pero que se pueden usar para formar parejas y que computen puntos en el ranking.
+    """
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.all(), required=True, label="División"
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('nombre', 'apellido', 'genero', 'division')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
+
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = estilo_select
+            else:
+                field.widget.attrs['class'] = estilo_input
+
+    def save(self, commit=True, organizacion=None):
+        import uuid
+        user = super().save(commit=False)
+        user.is_dummy = True
+        user.tipo_usuario = 'PLAYER'
+        user.is_active = False # No pueden loguear
+        
+        if organizacion:
+            user.organizacion = organizacion
+
+        # Autogenerar email único ficticio usando uuid para evadir el constraint
+        unique_id = str(uuid.uuid4())[:8]
+        user.email = f"dummy_{unique_id}@padel.local"
+
+        if commit:
+            user.save()
+        return user

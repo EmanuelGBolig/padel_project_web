@@ -564,3 +564,64 @@ class RankingListView(ListView):
         
         return context
 
+
+class OrganizadorJugadorAutocomplete(autocomplete.Select2QuerySetView):
+    """
+    Vista AJAX para que los organizadores busquen jugadores sin equipo.
+    """
+    def get_queryset(self):
+        if not self.request.user.is_authenticated or self.request.user.tipo_usuario not in ['ADMIN', 'ORGANIZER']:
+            return CustomUser.objects.none()
+
+        qs = CustomUser.objects.filter(tipo_usuario='PLAYER')
+
+        # Excluir a los que ya tienen equipo
+        usuarios_con_equipo_ids = set(
+            Equipo.objects.values_list('jugador1_id', flat=True)
+        ).union(set(Equipo.objects.values_list('jugador2_id', flat=True)))
+        
+        qs = qs.exclude(id__in=usuarios_con_equipo_ids)
+
+        if self.q:
+            import operator
+            from functools import reduce
+            keywords = self.q.split()
+            if keywords:
+                q_list = [Q(nombre__icontains=kw) | Q(apellido__icontains=kw) for kw in keywords]
+                query = reduce(operator.and_, q_list)
+                qs = qs.filter(query)
+
+        return qs
+
+    def get_result_label(self, item):
+        etiq_dummy = " [Dummy]" if item.is_dummy else ""
+        return f"{item.full_name} ({item.division}){etiq_dummy}"
+
+
+class OrganizadorEquipoCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = Equipo
+    from .forms import PairCreationForm
+    form_class = PairCreationForm
+    template_name = 'equipos/organizador_equipo_form.html'
+    success_url = reverse_lazy('accounts:organizacion_settings')
+
+    def test_func(self):
+        return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Solo organizadores pueden acceder.")
+        return redirect('core:home')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = "Crear Pareja Manualmente"
+        return context
+
+    def form_valid(self, form):
+        # Crear la pareja directamente sin usar invitación
+        equipo = form.save(commit=False)
+        equipo.save()
+        messages.success(self.request, f"¡Pareja '{equipo.nombre}' creada con éxito!")
+        return redirect(self.success_url)
+
+

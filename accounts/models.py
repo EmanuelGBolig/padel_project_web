@@ -89,13 +89,18 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         max_length=10, choices=TipoUsuario.choices, default=TipoUsuario.PLAYER
     )
     
-    # Organización a la que pertenece (para organizadores)
+    # Campos de Organización y Dummy
     organizacion = models.ForeignKey(
         'accounts.Organizacion',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='miembros'
+    )
+    is_dummy = models.BooleanField(
+        default=False,
+        verbose_name="Es Jugador Creado por Organizador",
+        help_text="Indica si el usuario fue creado por un organizador para usar de relleno y no tiene cuenta real."
     )
 
     # Campos de Django

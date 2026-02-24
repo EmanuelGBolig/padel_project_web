@@ -22,4 +22,12 @@ urlpatterns = [
     # Invitaciones
     path('invitacion/<int:pk>/aceptar/', views.AceptarInvitacionView.as_view(), name='aceptar_invitacion'),
     path('invitacion/<int:pk>/rechazar/', views.RechazarInvitacionView.as_view(), name='rechazar_invitacion'),
+    
+    # Organizador
+    path('organizador/crear-pareja/', views.OrganizadorEquipoCreateView.as_view(), name='crear_pareja'),
+    path(
+        'autocomplete/organizador-jugadores/',
+        views.OrganizadorJugadorAutocomplete.as_view(),
+        name='organizador_jugador_autocomplete',
+    ),
 ]

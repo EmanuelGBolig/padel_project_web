@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto relative z-10">
+            <!-- Tarjeta de Creación de Dummy User -->
+            <div class="card bg-base-100/90 backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)] border border-emerald-500/20">
+                <div class="card-body">
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-bold text-white mb-2">{{ titulo }}</h2>
+                        <p class="text-base-content/80 text-sm">
+                            Creá un jugador para rellenar torneos y formar parejas. No tendrán usuario ni contraseña.
+                        </p>
+                    </div>
+                    <form method="post"
+                          action="{% url 'accounts:crear_dummy_user' %}"
+                          class="space-y-4">
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-error mb-4 rounded-lg bg-error/10 text-error border border-error/20 p-3">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>{{ form.non_field_errors|striptags }}</span>
+                            </div>
+                        {% endif %}
+                        {% for field in form %}
+                            <div class="form-control w-full">
+                                <label class="label pt-0 pb-1" for="{{ field.id_for_label }}">
+                                    <span class="label-text text-white/90 font-medium">{{ field.label }}</span>
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <label class="label pb-0 pt-1">
+                                        <span class="label-text-alt text-error"><i class="fas fa-info-circle mr-1"></i>{{ field.errors|striptags }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <div class="pt-4 flex flex-col sm:flex-row gap-3">
+                            <a href="{% url 'accounts:organizacion_settings' %}"
+                               class="btn btn-ghost hover:bg-base-200 border border-base-300 w-full sm:w-auto">
+                                Cancelar
+                            </a>
+                            <button type="submit"
+                                    class="btn btn-primary sm:flex-1 text-white shadow-lg hover:shadow-primary/50 transition-all">
+                                <i class="fas fa-plus-circle mr-2"></i> Crear Jugador
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

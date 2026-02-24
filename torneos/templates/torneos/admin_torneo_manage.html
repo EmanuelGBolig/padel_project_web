@@ -190,7 +190,7 @@
                                     <tr class="hover">
                                         <td>{{ forloop.counter }}</td>
                                         <td class="font-bold">
-                                            {% if inscripcion.equipo.es_dummy %}
+                                            {% if inscripcion.equipo.es_dummy or inscripcion.equipo.jugador1.is_dummy and inscripcion.equipo.jugador2.is_dummy %}
                                                 <span class="badge badge-warning gap-1">
                                                     {{ inscripcion.equipo.nombre }}
                                                     <span class="text-xs opacity-70">(Dummy)</span>

@@ -172,7 +172,9 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                     messages.error(request, f"Ya existe un equipo con el nombre '{nombre_dummy}'.")
                     return redirect('torneos:admin_manage', pk=torneo.pk)
             else:
-                count_dummies = Equipo.objects.filter(es_dummy=True).count()
+                count_dummies = Equipo.objects.filter(
+                    Q(es_dummy=True) | Q(jugador1__is_dummy=True, jugador2__is_dummy=True)
+                ).count()
                 nombre_dummy = f"Pareja Libre {count_dummies + 1}"
             equipo_dummy = Equipo.objects.create(
                 nombre=nombre_dummy,
@@ -783,7 +785,9 @@ class TorneoReplaceTeamView(AdminRequiredMixin, FormView):
             with transaction.atomic():
                 if crear_dummy:
                     if not nombre_dummy:
-                        count_dummies = Equipo.objects.filter(es_dummy=True).count()
+                        count_dummies = Equipo.objects.filter(
+                            Q(es_dummy=True) | Q(jugador1__is_dummy=True, jugador2__is_dummy=True)
+                        ).count()
                         nombre_dummy = f"Pareja Libre {count_dummies + 1}"
                     # Check if already exists to avoid unique constraint 
                     if Equipo.objects.filter(nombre=nombre_dummy).exists():

@@ -16,12 +16,12 @@ urlpatterns = [
     path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
     path('organizador/<int:pk>/', views.OrganizacionDetailView.as_view(), name='organizador_detalle'),
     path('organizadores/', views.OrganizacionListView.as_view(), name='organizador_list'),
-    
     # Gestión de Organización
     path('organizacion/ajustes/', views.OrganizacionSettingsView.as_view(), name='organizacion_settings'),
     path('organizacion/sponsors/', views.OrganizacionSponsorsView.as_view(), name='organizacion_sponsors'),
     path('organizacion/sponsors/<int:pk>/editar/', views.SponsorUpdateView.as_view(), name='editar_sponsor'),
     path('organizacion/sponsors/<int:pk>/delete/', views.SponsorDeleteView.as_view(), name='eliminar_sponsor'),
+    path('organizacion/jugador-dummy/crear/', views.DummyUserCreationView.as_view(), name='crear_dummy_user'),
     
     # Rutas de recuperación de contraseña (Django Auth)
     # Rutas de recuperación de contraseña (Explícitas para corregir namespace)

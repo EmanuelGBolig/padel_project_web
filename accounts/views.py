@@ -522,3 +522,30 @@ class SponsorUpdateView(LoginRequiredMixin, UpdateView):
         # Asegurar que solo pueda editar sponsors de su organización
         from .models import Sponsor
         return Sponsor.objects.filter(organizacion=self.request.user.organizacion)
+
+
+class DummyUserCreationView(LoginRequiredMixin, CreateView):
+    """Vista para que un organizador cree un usuario dummy"""
+    model = CustomUser
+    from .forms import DummyUserCreationForm
+    form_class = DummyUserCreationForm
+    template_name = 'accounts/dummy_user_form.html'
+    success_url = reverse_lazy('accounts:organizacion_settings')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.tipo_usuario not in ['ADMIN', 'ORGANIZER'] or not request.user.organizacion:
+            messages.error(request, "Acceso denegado. Solo para organizadores.")
+            return redirect('core:home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = "Añadir Jugador Sin Registro"
+        return context
+
+    def form_valid(self, form):
+        # Pasar la organización al método save del form
+        form.save(organizacion=self.request.user.organizacion)
+        messages.success(self.request, f"¡Jugador '{form.instance.full_name}' creado con éxito!")
+        return redirect(self.success_url)
+
