@@ -195,6 +195,11 @@
         /* --- Select2 Dark Mode & DaisyUI Integration --- */
 
         /* Contenedor principal (Input) */
+        .select2-container {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
         .select2-container--default .select2-selection--single {
             background-color: var(--fallback-b1, oklch(var(--b1)/1));
             border-color: var(--fallback-bc, oklch(var(--bc)/0.2));
@@ -204,6 +209,8 @@
             display: flex !important;
             align-items: center !important;
             border-radius: var(--rounded-btn, 0.5rem);
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         /* Estado activo en items principales (Con indicador lateral grueso) */
@@ -248,22 +255,43 @@
         /* Flecha */
 
         /* Ajuste para modo oscuro específico si las variables fallan */
-        [data-theme="dark"] .select2-container--default .select2-selection--single {
+        [data-theme="dark"] .select2-container--default .select2-selection--single,
+        [data-theme="business"] .select2-container--default .select2-selection--single {
             background-color: #1d232a;
             /* base-100 fallback */
             border-color: #383f47;
             color: #a6adbb;
         }
 
-        [data-theme="dark"] .select2-dropdown {
+        [data-theme="dark"] .select2-dropdown,
+        [data-theme="business"] .select2-dropdown {
             background-color: #1d232a;
             border-color: #383f47;
         }
 
-        [data-theme="dark"] .select2-search__field {
+        [data-theme="dark"] .select2-search__field,
+        [data-theme="business"] .select2-search__field {
             background-color: #191e24;
             /* base-200 */
             color: #a6adbb;
+        }
+
+        [data-theme="dark"] .select2-results__option,
+        [data-theme="business"] .select2-results__option {
+            background-color: transparent;
+            color: #a6adbb;
+        }
+
+        [data-theme="dark"] .select2-results__option[aria-selected="true"],
+        [data-theme="business"] .select2-results__option[aria-selected="true"] {
+            background-color: #191e24;
+            color: #fff;
+        }
+
+        [data-theme="dark"] .select2-results__option--highlighted[aria-selected],
+        [data-theme="business"] .select2-results__option--highlighted[aria-selected] {
+            background-color: #10b981 !important;
+            color: #fff !important;
         }
 
         /* --- Select2 Multiple (Nuevo Widget) --- */
@@ -308,7 +336,8 @@
         }
 
         /* Fallback Dark Mode para Multiple */
-        [data-theme="dark"] .select2-container--default .select2-selection--multiple {
+        [data-theme="dark"] .select2-container--default .select2-selection--multiple,
+        [data-theme="business"] .select2-container--default .select2-selection--multiple {
             background-color: #1d232a;
             border-color: #383f47;
             color: #a6adbb;

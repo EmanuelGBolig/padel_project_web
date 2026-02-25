@@ -1672,3 +1672,81 @@ class MisTorneosView(PlayerRequiredMixin, TemplateView):
         context['torneos_finalizados'] = torneos_finalizados
         
         return context
+
+
+from itertools import chain
+from operator import attrgetter
+
+class TorneoProgramacionView(DetailView):
+    model = Torneo
+    template_name = 'torneos/torneo_programacion.html'
+    context_object_name = 'torneo'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        torneo = self.object
+
+        # 1. Obtener partidos de fase de grupos
+        partidos_grupo = PartidoGrupo.objects.filter(
+            grupo__torneo=torneo
+        ).select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2',
+            'grupo'
+        )
+
+        # 2. Obtener partidos eliminatorios (bracket)
+        # Excluir los que son puramente estructurales (rondas futuras sin equipos)
+        partidos_bracket = Partido.objects.filter(
+            torneo=torneo
+        ).select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2'
+        )
+
+        # 3. Normalizar la data para la vista
+        partidos_list = []
+        
+        for pg in partidos_grupo:
+            partidos_list.append({
+                'tipo': 'grupo',
+                'fecha_hora': pg.fecha_hora,
+                'equipo1': pg.equipo1,
+                'equipo2': pg.equipo2,
+                'fase': pg.grupo.nombre,
+                'descripcion_partido': f"Partido de Grupo", # Se podría agregar orden si existiera
+                'obj': pg
+            })
+
+        for pb in partidos_bracket:
+            # Solo mostrar partidos que ya tienen al menos los placeholders o equipos definidos
+            if pb.equipo1 or pb.equipo2 or pb.placeholder_e1 or pb.placeholder_e2:
+                # Determinar nombre fase
+                nombre_fase = pb.nombre_ronda.upper()
+                
+                partidos_list.append({
+                    'tipo': 'bracket',
+                    'fecha_hora': pb.fecha_hora,
+                    'equipo1': pb.equipo1,
+                    'equipo2': pb.equipo2,
+                    'placeholder_e1': pb.placeholder_e1,
+                    'placeholder_e2': pb.placeholder_e2,
+                    'fase': nombre_fase,
+                    'descripcion_partido': f"Partido {pb.orden_partido}",
+                    'obj': pb
+                })
+
+        # 4. Separar por partidos con fecha y sin fecha
+        partidos_con_fecha = [p for p in partidos_list if p['fecha_hora'] is not None]
+        partidos_sin_fecha = [p for p in partidos_list if p['fecha_hora'] is None]
+
+        # Ordenar los que tienen fecha cronológicamente
+        partidos_con_fecha.sort(key=lambda x: x['fecha_hora'])
+
+        # Los que no tienen fecha los ordenamos por fase o tipo para que no estén desordenados
+        partidos_sin_fecha.sort(key=lambda x: (x['tipo'], x['fase']))
+
+        context['partidos_con_fecha'] = partidos_con_fecha
+        context['partidos_sin_fecha'] = partidos_sin_fecha
+        
+        return context

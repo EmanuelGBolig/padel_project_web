@@ -18,6 +18,7 @@ urlpatterns = [
         'abiertos/', views.TorneoAbiertoListView.as_view(), name='abierto_list'
     ),
     path('<int:pk>/', views.TorneoDetailView.as_view(), name='detail'),
+    path('<int:pk>/programacion/', views.TorneoProgramacionView.as_view(), name='programacion'),
     path(
         '<int:torneo_pk>/inscribirse/',
         views.InscripcionCreateView.as_view(),

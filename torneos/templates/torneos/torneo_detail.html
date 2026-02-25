@@ -63,6 +63,17 @@
             Editar Torneo
         </a>
     {% endif %}
+    <a href="{% url 'torneos:programacion' torneo.pk %}"
+       class="btn btn-sm btn-outline gap-2 shadow-sm border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="h-4 w-4"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        Ver Programación
+    </a>
 {% endblock header_actions %}
 {% block content %}
     <div class="space-y-12">
