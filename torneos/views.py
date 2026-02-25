@@ -1644,7 +1644,7 @@ class MisTorneosView(PlayerRequiredMixin, TemplateView):
         # Obtenemos todas las inscripciones del usuario (jugador1 o jugador2 de equipos validos)
         mis_inscripciones = Inscripcion.objects.filter(
             Q(equipo__jugador1=user) | Q(equipo__jugador2=user)
-        ).select_related('torneo', 'torneo__division', 'equipo')
+        ).select_related('torneo', 'torneo__division', 'equipo').order_by('-torneo__fecha_inicio')
         
         torneos_abiertos = []
         torneos_en_juego = []
@@ -1659,9 +1659,8 @@ class MisTorneosView(PlayerRequiredMixin, TemplateView):
             elif t.estado == Torneo.Estado.FINALIZADO:
                 torneos_finalizados.append(t)
                 
-        # Ordenamos descendente por fecha de inicio para que los más recientes salgan primero
-        context['torneos_abiertos'] = sorted(torneos_abiertos, key=lambda x: x.fecha_inicio, reverse=True)
-        context['torneos_en_juego'] = sorted(torneos_en_juego, key=lambda x: x.fecha_inicio, reverse=True)
-        context['torneos_finalizados'] = sorted(torneos_finalizados, key=lambda x: x.fecha_inicio, reverse=True)
+        context['torneos_abiertos'] = torneos_abiertos
+        context['torneos_en_juego'] = torneos_en_juego
+        context['torneos_finalizados'] = torneos_finalizados
         
         return context
