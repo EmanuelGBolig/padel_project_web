@@ -85,6 +85,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         qs = super().get_queryset()
         user = self.request.user
         if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            if not user.organizacion:
+                return qs.none()
             return qs.filter(organizacion=user.organizacion)
         return qs
 
@@ -771,7 +773,7 @@ class TorneoReplaceTeamView(AdminRequiredMixin, FormView):
         user = self.request.user
         if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
             from django.core.exceptions import PermissionDenied
-            if self.torneo.organizacion != user.organizacion:
+            if not user.organizacion or self.torneo.organizacion != user.organizacion:
                  raise PermissionDenied
                  
         kwargs['torneo'] = self.torneo
@@ -947,6 +949,8 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
         if user.is_staff:
             return Torneo.objects.all().order_by('-fecha_inicio')
         elif user.tipo_usuario == 'ORGANIZER':
+            if not user.organizacion:
+                return Torneo.objects.none().order_by('-fecha_inicio')
             return Torneo.objects.filter(organizacion=user.organizacion).order_by('-fecha_inicio')
         return Torneo.objects.none().order_by('-fecha_inicio')
 
@@ -983,6 +987,8 @@ class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
         qs = super().get_queryset()
         user = self.request.user
         if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            if not user.organizacion:
+                return qs.none()
             return qs.filter(organizacion=user.organizacion)
         return qs
 
@@ -1001,6 +1007,8 @@ class AdminTorneoDeleteView(AdminRequiredMixin, DeleteView):
         qs = super().get_queryset()
         user = self.request.user
         if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
+            if not user.organizacion:
+                return qs.none()
             return qs.filter(organizacion=user.organizacion)
         return qs
 
