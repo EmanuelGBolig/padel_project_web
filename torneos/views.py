@@ -1297,11 +1297,12 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             
             # Verificar Categoría
             if hasattr(equipo, 'categoria') and hasattr(torneo, 'categoria'):
-                # Si el torneo tiene categoría (M/F/X) y el equipo no coincide
-                if torneo.categoria and equipo.categoria != torneo.categoria:
+                # Si el torneo tiene categoría (M, F, X) y el equipo no coincide
+                # Y el torneo NO ES mixto ('X', M/F/etc)
+                if torneo.categoria and equipo.categoria != torneo.categoria and torneo.categoria != 'X':
                     messages.warning(
                         request, 
-                        f"Tu equipo es categoría {equipo.get_categoria_display()} y este torneo es {torneo.get_categoria_display()}."
+                        f"Tu equipo es categoría {equipo.get_categoria_display()} y este torneo requiere categoría {torneo.get_categoria_display()}."
                     )
                     return redirect('torneos:detail', pk=torneo.pk)
 
