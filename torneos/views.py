@@ -1,5 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
+from django.views.generic import (
+    ListView,
+    DetailView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+    TemplateView,
+    FormView
+)
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -935,11 +943,12 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
     context_object_name = 'torneos'
     
     def get_queryset(self):
-        qs = Torneo.objects.select_related('division').order_by('-fecha_inicio')
         user = self.request.user
-        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
-            return qs.filter(organizacion=user.organizacion)
-        return qs
+        if user.is_staff:
+            return Torneo.objects.all().order_by('-fecha_inicio')
+        elif user.tipo_usuario == 'ORGANIZER':
+            return Torneo.objects.filter(organizacion=user.organizacion).order_by('-fecha_inicio')
+        return Torneo.objects.none().order_by('-fecha_inicio')
 
 
 class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
@@ -1622,3 +1631,36 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
     def get_success_url(self):
         grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
+
+
+class MisTorneosView(PlayerRequiredMixin, TemplateView):
+    template_name = 'torneos/mis_torneos.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Obtenemos todas las inscripciones del usuario (jugador1 o jugador2 de equipos validos)
+        mis_inscripciones = Inscripcion.objects.filter(
+            Q(equipo__jugador1=user) | Q(equipo__jugador2=user)
+        ).select_related('torneo', 'torneo__division', 'equipo')
+        
+        torneos_abiertos = []
+        torneos_en_juego = []
+        torneos_finalizados = []
+        
+        for inc in mis_inscripciones:
+            t = inc.torneo
+            if t.estado == Torneo.Estado.ABIERTO:
+                torneos_abiertos.append(t)
+            elif t.estado == Torneo.Estado.EN_JUEGO:
+                torneos_en_juego.append(t)
+            elif t.estado == Torneo.Estado.FINALIZADO:
+                torneos_finalizados.append(t)
+                
+        # Ordenamos descendente por fecha de inicio para que los más recientes salgan primero
+        context['torneos_abiertos'] = sorted(torneos_abiertos, key=lambda x: x.fecha_inicio, reverse=True)
+        context['torneos_en_juego'] = sorted(torneos_en_juego, key=lambda x: x.fecha_inicio, reverse=True)
+        context['torneos_finalizados'] = sorted(torneos_finalizados, key=lambda x: x.fecha_inicio, reverse=True)
+        
+        return context
