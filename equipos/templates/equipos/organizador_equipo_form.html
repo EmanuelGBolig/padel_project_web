@@ -28,7 +28,7 @@
                                 <label class="label pt-0 pb-1" for="{{ field.id_for_label }}">
                                     <span class="label-text text-white/90 font-medium">{{ field.label }}</span>
                                 </label>
-                                {{ field }}
+                                <div class="w-full overflow-hidden">{{ field }}</div>
                                 {% if field.errors %}
                                     <label class="label pb-0 pt-1">
                                         <span class="label-text-alt text-error"><i class="fas fa-info-circle mr-1"></i>{{ field.errors|striptags }}</span>
@@ -57,7 +57,6 @@
         if ($.fn.select2) {
              $('select[data-autocomplete-light-function="select2"]').select2({
                  width: '100%',
-                 dropdownParent: $('.card-body')
              });
         }
     });
