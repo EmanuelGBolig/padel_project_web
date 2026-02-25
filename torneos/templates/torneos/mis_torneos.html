@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
 {% load torneo_extras %}
-{% block title %}Mis Torneos - TodoPadel{% endblock %}
+{% block title %}
+    Mis Torneos - TodoPadel
+{% endblock title %}
 {% block content_title %}
     <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2 flex items-center gap-3">
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -14,7 +16,7 @@
         Mis Torneos
     </h1>
     <p class="text-base-content/70">Gestioná y revisá todos los torneos en los que participás.</p>
-{% endblock %}
+{% endblock content_title %}
 {% block content %}
     <div class="space-y-12">
         <!-- Pestañas para segmentar los torneos -->
@@ -27,7 +29,7 @@
                    aria-label="En Juego ({{ torneos_en_juego|length }})"
                    {% if torneos_en_juego or not torneos_abiertos %}checked{% endif %} />
             <div role="tabpanel"
-                 class="tab-content bg-base-100 border-base-300 rounded-box p-6 mt-4 border-2">
+                 class="tab-content bg-base-100 border-base-300 rounded-box p-6">
                 {% if torneos_en_juego %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {% for torneo in torneos_en_juego %}
@@ -59,7 +61,7 @@
                    aria-label="Inscripciones ({{ torneos_abiertos|length }})"
                    {% if torneos_abiertos and not torneos_en_juego %}checked{% endif %} />
             <div role="tabpanel"
-                 class="tab-content bg-base-100 border-base-300 rounded-box p-6 mt-4 border-2">
+                 class="tab-content bg-base-100 border-base-300 rounded-box p-6">
                 {% if torneos_abiertos %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {% for torneo in torneos_abiertos %}
@@ -94,7 +96,7 @@
                    class="tab font-bold"
                    aria-label="Historial ({{ torneos_finalizados|length }})" />
             <div role="tabpanel"
-                 class="tab-content bg-base-100 border-base-300 rounded-box p-6 mt-4 border-2">
+                 class="tab-content bg-base-100 border-base-300 rounded-box p-6">
                 {% if torneos_finalizados %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {% for torneo in torneos_finalizados %}
@@ -121,4 +123,4 @@
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}
