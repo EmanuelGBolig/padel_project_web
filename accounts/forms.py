@@ -55,6 +55,12 @@ class CustomUserAdminForm(UserChangeForm):
         model = CustomUser
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            if self.instance.tipo_usuario in ['ADMIN', 'ORGANIZER'] or self.instance.is_staff:
+                self.fields['division'].required = False
+
     def save(self, commit=True):
         user = super().save(commit=False)
         hash_manual = self.cleaned_data.get('hash_password_manual')
@@ -96,6 +102,10 @@ class CustomUserProfileForm(UserChangeForm):
                 field.widget.attrs['class'] = estilo_select
             elif isinstance(field.widget, forms.FileInput):
                 field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
+
+        if self.instance and self.instance.pk:
+            if self.instance.tipo_usuario in ['ADMIN', 'ORGANIZER'] or self.instance.is_staff:
+                self.fields['division'].required = False
 
 
 class CustomLoginForm(AuthenticationForm):
@@ -170,6 +180,10 @@ class GoogleProfileCompletionForm(forms.ModelForm):
                 field.widget.attrs['class'] = estilo_select
             else:
                 field.widget.attrs['class'] = estilo_input
+
+        if self.instance and self.instance.pk:
+            if self.instance.tipo_usuario in ['ADMIN', 'ORGANIZER'] or self.instance.is_staff:
+                self.fields['division'].required = False
 
 
 class OrganizacionForm(forms.ModelForm):

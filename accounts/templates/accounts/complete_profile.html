@@ -38,7 +38,11 @@
                     <div class="form-control mt-3">
                         <label class="label" for="id_division">
                             <span class="label-text font-medium">División</span>
-                            <span class="label-text-alt text-error">*obligatorio</span>
+                            {% if form.division.field.required %}
+                                <span class="label-text-alt text-error">*obligatorio</span>
+                            {% else %}
+                                <span class="label-text-alt text-base-content/50">(opcional)</span>
+                            {% endif %}
                         </label>
                         {{ form.division }}
                         {% if form.division.errors %}<span class="text-error text-xs mt-1">{{ form.division.errors.0 }}</span>{% endif %}
@@ -61,4 +65,4 @@
             </div>
         </div>
     </div>
-{% endblock %}
+{% endblock content %}
