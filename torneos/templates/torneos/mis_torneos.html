@@ -20,16 +20,22 @@
 {% block content %}
     <div class="space-y-12">
         <!-- Pestañas para segmentar los torneos -->
-        <div role="tablist"
-             class="tabs tabs-lifted tabs-lg shadow-sm bg-base-100 rounded-t-2xl overflow-hidden p-2">
-            <input type="radio"
-                   name="mis_torneos_tabs"
-                   role="tab"
-                   class="tab font-bold {% if torneos_en_juego or not torneos_abiertos %}tab-active{% endif %}"
-                   aria-label="En Juego ({{ torneos_en_juego|length }})"
-                   {% if torneos_en_juego or not torneos_abiertos %}checked{% endif %} />
-            <div role="tabpanel"
-                 class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+        <div class="tabs tabs-lifted tabs-lg mb-0">
+            <button id="btn-tab-juego"
+                    class="tab font-bold {% if torneos_en_juego or not torneos_abiertos %}tab-active{% endif %}"
+                    onclick="showTab('tab-juego')">En Juego ({{ torneos_en_juego|length }})</button>
+            <button id="btn-tab-insc"
+                    class="tab font-bold {% if torneos_abiertos and not torneos_en_juego %}tab-active{% endif %}"
+                    onclick="showTab('tab-insc')">Inscripciones ({{ torneos_abiertos|length }})</button>
+            <button id="btn-tab-hist" class="tab font-bold" onclick="showTab('tab-hist')">
+                Historial ({{ torneos_finalizados|length }})
+            </button>
+        </div>
+        <!-- Contenedores -->
+        <div class="bg-base-100 border border-base-300 rounded-b-box rounded-tr-box p-2 md:p-6 shadow-sm">
+            <!-- PANEL: EN JUEGO -->
+            <div id="tab-juego"
+                 class="tab-panel {% if not torneos_en_juego and torneos_abiertos %}hidden{% endif %}">
                 {% if torneos_en_juego %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {% for torneo in torneos_en_juego %}
@@ -54,14 +60,9 @@
                     </div>
                 {% endif %}
             </div>
-            <input type="radio"
-                   name="mis_torneos_tabs"
-                   role="tab"
-                   class="tab font-bold {% if torneos_abiertos and not torneos_en_juego %}tab-active{% endif %}"
-                   aria-label="Inscripciones ({{ torneos_abiertos|length }})"
-                   {% if torneos_abiertos and not torneos_en_juego %}checked{% endif %} />
-            <div role="tabpanel"
-                 class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+            <!-- PANEL: INSCRIPCIONES -->
+            <div id="tab-insc"
+                 class="tab-panel {% if torneos_en_juego or not torneos_abiertos %}hidden{% endif %}">
                 {% if torneos_abiertos %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {% for torneo in torneos_abiertos %}
@@ -90,13 +91,8 @@
                     </div>
                 {% endif %}
             </div>
-            <input type="radio"
-                   name="mis_torneos_tabs"
-                   role="tab"
-                   class="tab font-bold"
-                   aria-label="Historial ({{ torneos_finalizados|length }})" />
-            <div role="tabpanel"
-                 class="tab-content bg-base-100 border-base-300 rounded-box p-6">
+            <!-- PANEL: HISTORIAL -->
+            <div id="tab-hist" class="tab-panel hidden">
                 {% if torneos_finalizados %}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {% for torneo in torneos_finalizados %}
@@ -123,4 +119,18 @@
             </div>
         </div>
     </div>
+    <!-- Script de Pestañas -->
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-panel').forEach(function(el) {
+                el.classList.add('hidden');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab').forEach(function(el) {
+                el.classList.remove('tab-active');
+            });
+            document.getElementById('btn-' + tabId).classList.add('tab-active');
+        }
+    </script>
 {% endblock content %}
