@@ -27,7 +27,7 @@
                             <select name="fecha"
                                     class="select select-bordered select-sm md:select-md w-full sm:w-auto bg-base-200 text-base-content font-semibold shadow-inner"
                                     onchange="this.form.submit()">
-                                <option value="" disabled {% if not fecha_seleccionada %}selected{% endif %}>Seleccionar fin de semana</option>
+                                <option value="" disabled {% if not fecha_seleccionada %}selected{% endif %}>Seleccionar fecha</option>
                                 {% for fecha in fechas_disponibles %}
                                     <option value="{{ fecha|date:'Y-m-d' }}"
                                             {% if fecha_seleccionada == fecha %}selected{% endif %}>
