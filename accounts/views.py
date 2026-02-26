@@ -466,27 +466,69 @@ class OrganizacionProgramacionView(DetailView):
         organizacion = self.object
 
         from torneos.models import Torneo, PartidoGrupo, Partido
+        from django.db.models import Min
 
-        torneos_activos = organizacion.torneos.filter(estado__in=[Torneo.Estado.ABIERTO, Torneo.Estado.EN_JUEGO])
+        # 1. Obtener torneos base (que tengan fecha de inicio)
+        torneos_base = organizacion.torneos.exclude(fecha_inicio__isnull=True).order_by('-fecha_inicio')
+        
+        # 2. Obtener fechas únicas disponibles (agrupadas por día)
+        # Convertimos las fechas a un formato de lista para el dropdown
+        fechas_unicas = torneos_base.values_list('fecha_inicio', flat=True).distinct().order_by('-fecha_inicio')
+        
+        # 3. Determinar qué fecha estamos viendo
+        fecha_seleccionada_str = self.request.GET.get('fecha')
+        fecha_seleccionada = None
+        
+        if fecha_seleccionada_str:
+            import datetime
+            try:
+                fecha_seleccionada = datetime.datetime.strptime(fecha_seleccionada_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+                
+        # Si no hay fecha en GET o es inválida, intentar mostrar:
+        # A) La fecha de los torneos activos actualmente
+        # B) Si no hay activos, la fecha más reciente (el último finde que hubo torneos)
+        if not fecha_seleccionada:
+            activos = torneos_base.filter(estado__in=[Torneo.Estado.ABIERTO, Torneo.Estado.EN_JUEGO]).first()
+            if activos:
+                fecha_seleccionada = activos.fecha_inicio
+            elif fechas_unicas.exists():
+                fecha_seleccionada = fechas_unicas.first()
 
-        # 1. Obtener partidos de fase de grupos
+        context['fechas_disponibles'] = fechas_unicas
+        context['fecha_seleccionada'] = fecha_seleccionada
+
+        # Si no hay ninguna fecha (ej. la org no tiene torneos con fecha), salimos temprano
+        if not fecha_seleccionada:
+            context['partidos_con_fecha'] = []
+            context['partidos_sin_fecha'] = []
+            return context
+
+        # 4. Filtrar torneos que coincidan EXACTAMENTE con esa fecha de inicio
+        # Esto asume que todos los torneos del finde arrancan el mismo día. 
+        # (Si pueden variar 1 o 2 días, la lógica sería un "rango").
+        torneos_bloque = torneos_base.filter(fecha_inicio=fecha_seleccionada)
+        context['torneos_bloque'] = torneos_bloque
+
+        # 5. Obtener los partidos SOLO de esos torneos
         partidos_grupo = PartidoGrupo.objects.filter(
-            grupo__torneo__in=torneos_activos
+            grupo__torneo__in=torneos_bloque
         ).select_related(
             'equipo1__jugador1', 'equipo1__jugador2',
             'equipo2__jugador1', 'equipo2__jugador2',
             'grupo', 'grupo__torneo', 'grupo__torneo__division'
         )
 
-        # 2. Obtener partidos eliminatorios (bracket)
         partidos_bracket = Partido.objects.filter(
-            torneo__in=torneos_activos
+            torneo__in=torneos_bloque
         ).select_related(
             'equipo1__jugador1', 'equipo1__jugador2',
             'equipo2__jugador1', 'equipo2__jugador2',
             'torneo', 'torneo__division'
         )
 
+        # 6. Mapear la info para el template
         partidos_list = []
         
         for pg in partidos_grupo:

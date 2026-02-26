@@ -185,9 +185,9 @@ if CLOUDINARY_URL:
             'API_KEY': api_key,
             'API_SECRET': api_secret,
         }
-        print(f"✅ Cloudinary Configured for Cloud Name: {cloud_name}")
+        print(f"Cloudinary Configured for Cloud Name: {cloud_name}")
     else:
-        print("❌ Cloudinary URL format invalid. Expected: cloudinary://<key>:<secret>@<cloud_name>")
+        print("Cloudinary URL format invalid. Expected: cloudinary://<key>:<secret>@<cloud_name>")
         # Fallback if URL format is unexpected
         CLOUDINARY_STORAGE = {
             'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
@@ -205,9 +205,9 @@ if CLOUDINARY_URL:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-    print(f"✅ USING CLOUDINARY STORAGE (Django 5 STORAGES)")
+    print(f"USING CLOUDINARY STORAGE (Django 5 STORAGES)")
 else:
-    print("⚠️ No CLOUDINARY_URL found. Using local filesystem storage.")
+    print("No CLOUDINARY_URL found. Using local filesystem storage.")
     # Local: Use filesystem
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
@@ -219,7 +219,7 @@ else:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-    print(f"✅ USING LOCAL STORAGE (MEDIA_ROOT: {MEDIA_ROOT})")
+    print(f"USING LOCAL STORAGE (MEDIA_ROOT: {MEDIA_ROOT})")
 
 
 # --- Cache Configuration ---

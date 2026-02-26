@@ -7,14 +7,52 @@
     <div class="container mx-auto px-4 py-8 max-w-4xl" data-theme="business">
         <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg">
             <!-- HEADER -->
-            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-base-content/10 pb-6">
-                <div>
+            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
+                <div class="flex-1">
                     <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN GENERAL</h1>
-                    <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                        <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
+                        {% if fecha_seleccionada %}
+                            <span class="hidden sm:inline-block text-base-content/40 mx-2">|</span>
+                            <div class="badge badge-primary badge-outline text-sm font-bold uppercase tracking-wider py-3 px-4">
+                                Torneos del {{ fecha_seleccionada|date:"d M Y" }}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
-                <a href="{% url 'accounts:organizador_detalle' organizacion.pk %}"
-                   class="btn btn-sm btn-outline text-xs">Volver al Perfil</a>
+                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 shrink-0">
+                    <!-- Selector de Fecha -->
+                    {% if fechas_disponibles %}
+                        <form method="get" class="w-full sm:w-auto">
+                            <select name="fecha"
+                                    class="select select-bordered select-sm md:select-md w-full sm:w-auto bg-base-200 text-base-content font-semibold shadow-inner"
+                                    onchange="this.form.submit()">
+                                <option value="" disabled {% if not fecha_seleccionada %}selected{% endif %}>Seleccionar fin de semana</option>
+                                {% for fecha in fechas_disponibles %}
+                                    <option value="{{ fecha|date:'Y-m-d' }}"
+                                            {% if fecha_seleccionada == fecha %}selected{% endif %}>
+                                        {{ fecha|date:"d M Y" }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    {% endif %}
+                    <a href="{% url 'accounts:organizador_detalle' organizacion.pk %}"
+                       class="btn btn-sm md:btn-md btn-outline text-xs w-full sm:w-auto">Volver al Perfil</a>
+                </div>
             </div>
+            <!-- TORNEOS DE ESTA FECHA -->
+            {% if torneos_bloque %}
+                <div class="flex flex-wrap gap-2 mb-8 items-center bg-base-200/50 p-4 rounded-2xl border border-base-content/5">
+                    <span class="text-xs uppercase tracking-widest opacity-50 font-bold mr-2">Torneos en esta fecha:</span>
+                    {% for t in torneos_bloque %}
+                        <a href="{% url 'torneos:detail' t.pk %}"
+                           class="badge badge-neutral hover:badge-primary transition-colors py-3 shadow-sm border border-base-content/10">
+                            {{ t.nombre }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
             <!-- FECHAS (LISTA AGRUPADA) -->
             <div class="space-y-12 pb-4">
                 {% regroup partidos_con_fecha by fecha_hora|date:"Y-m-d H:i" as partidos_por_hora %}
