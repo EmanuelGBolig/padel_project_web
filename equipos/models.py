@@ -205,20 +205,49 @@ class Equipo(models.Model):
         return resultados[:limit]
     
     def get_puntos_ranking(self):
-        """Calcula puntos para el ranking global"""
+        """Calcula puntos para el ranking global en base a las rondas alcanzadas y grupos"""
+        from torneos.models import Partido, PartidoGrupo, Torneo
+        
         puntos = 0
         
-        # Victorias: 3 puntos cada una
-        puntos += self.get_victorias() * 3
+        # 1. Puntos por Fase de Grupos (15 pts por victoria)
+        victorias_grupo = PartidoGrupo.objects.filter(
+            ganador=self
+        ).count()
+        puntos += victorias_grupo * 15
         
-        # Torneos ganados: 50 puntos extra cada uno
-        puntos += self.get_torneos_ganados() * 50
+        # 2. Puntos por Eliminatorias (Ronda máxima por torneo)
+        torneos_jugados = Torneo.objects.filter(
+            partidos__in=Partido.objects.filter(
+                models.Q(equipo1=self) | models.Q(equipo2=self)
+            )
+        ).distinct()
         
-        # Bonus por win rate alto (>=75%) con al menos 5 partidos
-        partidos_jugados = self.get_partidos_jugados()['total']
-        if self.get_win_rate() >= 75 and partidos_jugados >= 5:
-            puntos += 20
-        
+        for torneo in torneos_jugados:
+            # Es campeón?
+            if torneo.ganador_del_torneo == self:
+                puntos += 600
+                continue
+                
+            # Buscar el partido más avanzado que jugó en este torneo
+            max_ronda = Partido.objects.filter(
+                torneo=torneo,
+                equipo1__isnull=False,
+                equipo2__isnull=False
+            ).filter(
+                models.Q(equipo1=self) | models.Q(equipo2=self)
+            ).aggregate(models.Max('ronda'))['ronda__max']
+            
+            if max_ronda:
+                if max_ronda == 4:
+                    puntos += 360 # Finalista, pero no campeón
+                elif max_ronda == 3:
+                    puntos += 180 # Semifinal
+                elif max_ronda == 2:
+                    puntos += 90  # Cuartos
+                elif max_ronda == 1:
+                    puntos += 45  # Octavos
+                    
         return puntos
 
 

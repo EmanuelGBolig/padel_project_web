@@ -446,66 +446,115 @@ class RankingListView(ListView):
                 rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
                 continue
 
-            # Victorias bracket
-            vict_bracket = (
-                Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
-                .values('ganador_id').annotate(wins=Count('id'))
-            )
-            # Victorias grupo
+            # 1. Victorias en partidos de grupo (15 puntos por victoria)
             vict_grupo = (
                 PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
-                .values('ganador_id').annotate(wins=Count('id'))
+                .values('ganador_id')
+                .annotate(wins=Count('id'))
             )
-            # Partidos jugados bracket
+
+            # 2. Partidos jugados bracket
             part_bracket = (
                 Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
-                .values('equipo1_id', 'equipo2_id')
+                .values('equipo1_id', 'equipo2_id', 'ganador_id')
             )
-            # Partidos jugados grupo
+            # 3. Partidos jugados grupo
             part_grupo = (
                 PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
                 .values('equipo1_id', 'equipo2_id')
             )
-            # Torneos ganados
-            t_ganados = (
-                TorneoModel.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False)
-                .values('ganador_del_torneo_id')
+
+            # 4. Puntos por Bracket (Ronda máxima alcanzada)
+            bracket_matches = Partido.objects.filter(
+                torneo_id__in=torneo_ids, equipo1__isnull=False, equipo2__isnull=False, ganador__isnull=False
+            ).values(
+                'torneo_id', 'ronda', 'equipo1_id', 'equipo2_id'
+            )
+            
+            # Campeones de torneos
+            t_ganados = TorneoModel.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False).values(
+                'id', 'ganador_del_torneo_id'
             )
 
             # Agregar en Python
             victorias_por_equipo = {}
             partidos_por_equipo = {}
-            torneos_por_equipo = {}
+            puntos_por_equipo = {}
+            torneos_ganados_por_equipo = {}
 
-            for v in vict_bracket:
-                eid = v['ganador_id']
-                if eid:
-                    victorias_por_equipo[eid] = victorias_por_equipo.get(eid, 0) + v['wins']
+            # Helpers para acumular
+            def add_victorias(eid, count):
+                if eid: victorias_por_equipo[eid] = victorias_por_equipo.get(eid, 0) + count
+
+            def add_partidos(eid, count):
+                if eid: partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + count
+
+            def add_puntos(eid, pts):
+                if eid: puntos_por_equipo[eid] = puntos_por_equipo.get(eid, 0) + pts
+
+            def add_torneo(eid):
+                if eid: torneos_ganados_por_equipo[eid] = torneos_ganados_por_equipo.get(eid, 0) + 1
+
             for v in vict_grupo:
-                eid = v['ganador_id']
-                if eid:
-                    victorias_por_equipo[eid] = victorias_por_equipo.get(eid, 0) + v['wins']
+                add_victorias(v['ganador_id'], v['wins'])
+                add_puntos(v['ganador_id'], v['wins'] * 15)
 
             for p in part_bracket:
-                for eid in (p['equipo1_id'], p['equipo2_id']):
-                    if eid:
-                        partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + 1
-            for p in part_grupo:
-                for eid in (p['equipo1_id'], p['equipo2_id']):
-                    if eid:
-                        partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + 1
+                add_partidos(p['equipo1_id'], 1)
+                add_partidos(p['equipo2_id'], 1)
+                add_victorias(p['ganador_id'], 1)
 
+            for p in part_grupo:
+                add_partidos(p['equipo1_id'], 1)
+                add_partidos(p['equipo2_id'], 1)
+
+            # Campeones por Torneo
+            campeones = {}
             for t in t_ganados:
-                eid = t['ganador_del_torneo_id']
-                if eid:
-                    torneos_por_equipo[eid] = torneos_por_equipo.get(eid, 0) + 1
+                tid = t['id']
+                ganador = t['ganador_del_torneo_id']
+                campeones[tid] = ganador
+                add_torneo(ganador)
+
+            # Max ronda por equipo y torneo
+            max_ronda_equipo_torneo = {} # {torneo_id: {equipo_id: max_ronda}}
+            for bm in bracket_matches:
+                tid = bm['torneo_id']
+                ronda = bm['ronda']
+                if tid not in max_ronda_equipo_torneo:
+                    max_ronda_equipo_torneo[tid] = {}
+                
+                for el in ['equipo1_id', 'equipo2_id']:
+                    eid = bm[el]
+                    if eid:
+                        curr = max_ronda_equipo_torneo[tid].get(eid, 0)
+                        if ronda > curr:
+                            max_ronda_equipo_torneo[tid][eid] = ronda
+
+            # Asignar Puntos de Bracket
+            for tid, equipos_rondas in max_ronda_equipo_torneo.items():
+                campeon_torneo = campeones.get(tid)
+                for eid, max_ronda in equipos_rondas.items():
+                    if eid == campeon_torneo:
+                        add_puntos(eid, 600)
+                    else:
+                        if max_ronda == 4:
+                            add_puntos(eid, 360) # Finalista
+                        elif max_ronda == 3:
+                            add_puntos(eid, 180) # Semifinal
+                        elif max_ronda == 2:
+                            add_puntos(eid, 90)  # Cuartos
+                        elif max_ronda == 1:
+                            add_puntos(eid, 45)  # Octavos
 
             # Obtener todos los equipos relevantes
             equipo_ids_con_datos = (
                 set(victorias_por_equipo.keys()) |
                 set(partidos_por_equipo.keys()) |
-                set(torneos_por_equipo.keys())
+                set(torneos_ganados_por_equipo.keys()) |
+                set(puntos_por_equipo.keys())
             )
+            
             equipos_qs = Equipo.objects.filter(
                 Q(division=division) | Q(id__in=equipo_ids_con_datos)
             ).distinct().select_related('jugador1', 'jugador2', 'division')
@@ -514,11 +563,11 @@ class RankingListView(ListView):
             for equipo in equipos_qs:
                 victorias = victorias_por_equipo.get(equipo.id, 0)
                 partidos = partidos_por_equipo.get(equipo.id, 0)
-                t_gan = torneos_por_equipo.get(equipo.id, 0)
+                t_gan = torneos_ganados_por_equipo.get(equipo.id, 0)
+                puntos = puntos_por_equipo.get(equipo.id, 0)
+                
                 win_rate = round((victorias / partidos) * 100, 1) if partidos > 0 else 0
-                puntos = victorias * 3 + t_gan * 50
-                if win_rate >= 75 and partidos >= 5:
-                    puntos += 20
+                
                 equipos_con_puntos.append({
                     'equipo': equipo,
                     'puntos': puntos,
@@ -528,7 +577,17 @@ class RankingListView(ListView):
                     'partidos_jugados': partidos,
                 })
 
-            equipos_con_puntos.sort(key=lambda x: x['puntos'], reverse=True)
+            # Ordenar por el mismo criterio que jugadores
+            equipos_con_puntos.sort(
+                key=lambda x: (
+                    x['puntos'],
+                    x['torneos_ganados'],
+                    x['win_rate'],
+                    x['victorias']
+                ),
+                reverse=True
+            )
+            
             for i, item in enumerate(equipos_con_puntos, 1):
                 item['posicion'] = i
 
