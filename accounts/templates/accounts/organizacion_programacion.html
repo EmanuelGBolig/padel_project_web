@@ -8,20 +8,24 @@
         <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg"
              id="schedule-content">
             <!-- HEADER -->
-            <div class="mb-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
-                <div class="flex-1 min-w-0">
-                    <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN GENERAL</h1>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
-                        <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
+            <div class="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 overflow-hidden border-b border-base-content/10 pb-6 w-full">
+                <div class="flex-1 w-full lg:w-auto min-w-0">
+                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md break-words hover:text-primary transition-colors">
+                        PROGRAMACIÓN GENERAL
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                        <h2 class="text-lg sm:text-xl font-bold text-base-content/60 uppercase tracking-widest break-words">
+                            {{ organizacion.nombre }}
+                        </h2>
                         {% if fecha_seleccionada %}
                             <span class="hidden sm:inline-block text-base-content/40 mx-2">|</span>
-                            <div class="inline-flex items-center justify-center border border-primary text-primary text-sm font-bold uppercase tracking-wider py-1.5 px-4 rounded-full text-center h-auto">
+                            <div class="inline-flex items-center justify-center border border-primary text-primary text-xs sm:text-sm font-bold uppercase tracking-wider py-1.5 px-3 rounded-full text-center h-auto whitespace-nowrap whitespace-nowrap">
                                 Torneos del {{ fecha_seleccionada|date:"d M Y" }}
                             </div>
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center justify-start xl:justify-end gap-3 print:hidden w-full xl:w-auto mt-4 xl:mt-0"
+                <div class="flex flex-wrap items-center justify-start lg:justify-end gap-3 print:hidden w-full lg:w-auto shrink-0 mt-4 lg:mt-0"
                      id="export-controls">
                     <!-- Botones de Exportación -->
                     <div class="flex flex-wrap gap-2 w-full sm:w-auto justify-start xl:justify-end">
@@ -243,11 +247,12 @@
                 {% endif %}
             </div>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <script>
         function downloadPDF() {
-            if (typeof html2pdf === 'undefined') {
-                alert("La librería para generar el PDF aún se está cargando o hubo un error al cargarla. Por favor espera unos segundos e intenta de nuevo.");
+            if (typeof htmlToImage === 'undefined' || typeof window.jspdf === 'undefined') {
+                alert("Las librerías para generar el PDF aún se están cargando o hubo un error al cargarlas. Por favor espera unos segundos e intenta de nuevo.");
                 return;
             }
             const controls = document.getElementById('export-controls');
@@ -262,22 +267,37 @@
             // Hide the buttons inside the PDF
             if (controls) controls.style.display = 'none';
             
-            const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     '{{ organizacion.nombre|slugify }}_programacion.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#000000', logging: false },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
+            // Usa html-to-image que sí soporta oklch nativamente al delegarlo al navegador
+            htmlToImage.toPng(element, { 
+                quality: 0.98,
+                backgroundColor: '#000000',
+                pixelRatio: 2
+            })
+            .then(function (dataUrl) {
+                const { jsPDF } = window.jspdf;
+                // PDF A4 portrait
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const imgProps = pdf.getImageProperties(dataUrl);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                // Agregamos la imagen al documento
+                pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save('{{ organizacion.nombre|slugify }}_programacion.pdf');
 
-            html2pdf().set(opt).from(element).save().then(() => {
                 // Restore the buttons
                 if (controls) controls.style.display = 'flex';
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
-            }).catch(err => {
-                console.error("Error generating PDF:", err);
-                alert("Hubo un error al generar el PDF. Por favor intenta desde una computadora de escritorio o utiliza la opción de 'Descargar CSV'. Error: " + err.message);
+            })
+            .catch(function (error) {
+                console.error("Error generating PDF:", error);
+                alert("Hubo un error al generar el PDF. Por favor intenta desde una computadora de escritorio o utiliza la opción de 'Descargar CSV'. Error: " + error.message);
                 if (controls) controls.style.display = 'flex';
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
