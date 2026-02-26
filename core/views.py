@@ -82,3 +82,16 @@ class GlobalSearchView(TemplateView):
                 )[:10]
 
         return context
+
+from django.core.management import call_command
+from django.http import HttpResponse
+
+def trigger_migration(request):
+    if not request.user.is_superuser:
+        return HttpResponse("No autorizado (Solo Superusuarios)", status=401)
+    
+    try:
+        call_command('migrar_rankings_historicos')
+        return HttpResponse("<h1>¡Migración Completada con Éxito!</h1><p>Todos los puntos han sido recalculados y guardados en la BD de producción.</p><a href='/'>Volver al Inicio</a>")
+    except Exception as e:
+        return HttpResponse(f"<h1>Error</h1><p>{str(e)}</p>", status=500)
