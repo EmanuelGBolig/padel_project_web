@@ -5,7 +5,8 @@
 {% endblock head_title %}
 {% block content %}
     <div class="container mx-auto px-4 py-8 max-w-4xl" data-theme="business">
-        <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg">
+        <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg"
+             id="schedule-content">
             <!-- HEADER -->
             <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
                 <div class="flex-1">
@@ -20,10 +21,11 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0 print:hidden">
+                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0 print:hidden"
+                     id="export-controls">
                     <!-- Botones de Exportación -->
                     <div class="flex gap-2 w-full sm:w-auto justify-end">
-                        <button onclick="window.print()"
+                        <button onclick="downloadPDF()"
                                 class="btn btn-sm md:btn-md btn-accent text-xs flex-1 sm:flex-none">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                  class="h-4 w-4 mr-1"
@@ -32,7 +34,7 @@
                                  stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
-                            Imprimir / PDF
+                            Descargar PDF
                         </button>
                         <a href="{% if fecha_seleccionada %}?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&export=csv{% else %}?export=csv{% endif %}"
                            class="btn btn-sm md:btn-md btn-primary text-xs flex-1 sm:flex-none">
@@ -65,180 +67,207 @@
                     <a href="{% url 'accounts:organizador_detalle' organizacion.pk %}"
                        class="btn btn-sm md:btn-md btn-outline text-xs w-full sm:w-auto mt-2 sm:mt-0">Volver al Perfil</a>
                 </div>
-                <!-- TORNEOS DE ESTA FECHA -->
-                {% if torneos_bloque %}
-                    <div class="flex flex-wrap gap-2 mb-8 items-center bg-base-200/50 p-4 rounded-2xl border border-base-content/5">
-                        <span class="text-xs uppercase tracking-widest opacity-50 font-bold mr-2">Torneos en esta fecha:</span>
-                        {% for t in torneos_bloque %}
-                            <a href="{% url 'torneos:detail' t.pk %}"
-                               class="badge badge-neutral hover:badge-primary transition-colors py-3 shadow-sm border border-base-content/10">
-                                {{ t.nombre }}
-                            </a>
-                        {% endfor %}
+            </div>
+            <!-- TORNEOS DE ESTA FECHA -->
+            {% if torneos_bloque %}
+                <div class="flex flex-wrap gap-2 mb-8 items-center bg-base-200/50 p-4 rounded-2xl border border-base-content/5">
+                    <span class="text-xs uppercase tracking-widest opacity-50 font-bold mr-2">Torneos en esta fecha:</span>
+                    {% for t in torneos_bloque %}
+                        <a href="{% url 'torneos:detail' t.pk %}"
+                           class="badge badge-neutral hover:badge-primary transition-colors py-3 shadow-sm border border-base-content/10">
+                            {{ t.nombre }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <!-- FECHAS (LISTA AGRUPADA) -->
+            <div class="space-y-12 pb-4">
+                {% regroup partidos_con_fecha by fecha_hora as partidos_por_hora_exacta %}
+                {% for agrupacion in partidos_por_hora_exacta %}
+                    <div class="space-y-4">
+                        <!-- SEPARADOR DE FECHA/HORA -->
+                        <div class="flex items-center justify-center relative my-6">
+                            <!-- Línea horizontal de fondo verde muy sutil -->
+                            <div class="absolute inset-x-0 h-px bg-emerald-500/20"></div>
+                            <!-- Badge central -->
+                            <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
+                                <div class="bg-emerald-500 text-base-100 px-4 py-1.5 flex items-center justify-center leading-none">
+                                    {{ agrupacion.grouper|date:"H:i" }} <!-- Extraer solo hora -->
+                                </div>
+                                <div class="bg-white text-base-100 px-5 py-1.5 flex items-center justify-center leading-none">
+                                    {{ agrupacion.grouper|date:"d/m/Y" }} <!-- Extraer solo fecha con Año de 4 dígitos -->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- PARTIDOS DE ESA HORA -->
+                        <div class="grid gap-4">
+                            {% for partido in agrupacion.list %}
+                                <div class="bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30 relative overflow-hidden group">
+                                    <!-- Torneo Badge Lateral -->
+                                    <div class="md:absolute top-0 right-0 left-0 md:left-auto md:w-32 bg-emerald-500/10 md:bg-emerald-500/20 md:h-full flex items-center justify-center py-2 md:py-0 px-2 rounded-t-2xl md:rounded-l-none md:rounded-r-2xl mb-4 md:mb-0 transition-colors group-hover:bg-emerald-500/30 text-center">
+                                        <a href="{% url 'torneos:detail' partido.torneo_pk %}"
+                                           class="text-[0.65rem] uppercase font-bold text-emerald-400 hover:text-emerald-300 tracking-wider">
+                                            {{ partido.torneo_nombre }}
+                                        </a>
+                                    </div>
+                                    <!-- Contenido Principal -->
+                                    <div class="flex flex-col md:flex-row items-center justify-between w-full md:pr-32">
+                                        <!-- Equipo 1 -->
+                                        <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
+                                            {% if partido.equipo1 %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
+                                                    {{ partido.equipo1.jugador1.full_name|default:"-" }}
+                                                </p>
+                                                <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
+                                                    {{ partido.equipo1.jugador2.full_name|default:"-" }}
+                                                </p>
+                                            {% else %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">
+                                                    {{ partido.placeholder_e1|default:"Por definir" }}
+                                                </p>
+                                                <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">-</p>
+                                            {% endif %}
+                                        </div>
+                                        <!-- VS Centro -->
+                                        <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
+                                            <span class="text-[0.65rem] tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1 whitespace-nowrap">
+                                                {{ partido.division_nombre }} {{ partido.categoria_display }}
+                                            </span>
+                                            <div class="text-3xl font-black text-white px-2 tracking-widest drop-shadow-md">VS</div>
+                                            <span class="text-[0.6rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase text-center max-w-[120px]">
+                                                {{ partido.fase }}
+                                                <br>
+                                                {{ partido.descripcion_partido }}
+                                            </span>
+                                        </div>
+                                        <!-- Equipo 2 -->
+                                        <div class="flex-1 text-center md:text-right w-full space-y-1.5">
+                                            {% if partido.equipo2 %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
+                                                    {{ partido.equipo2.jugador1.full_name|default:"-" }}
+                                                </p>
+                                                <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
+                                                    {{ partido.equipo2.jugador2.full_name|default:"-" }}
+                                                </p>
+                                            {% else %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">
+                                                    {{ partido.placeholder_e2|default:"Por definir" }}
+                                                </p>
+                                                <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">-</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-10 opacity-70">
+                        <p>Aún no hay partidos con fecha y hora programada en ningún torneo activo.</p>
+                    </div>
+                {% endfor %}
+                <!-- PARTIDOS POR DEFINIR (SIN FECHA) -->
+                {% if partidos_sin_fecha %}
+                    <div class="space-y-4 pt-10">
+                        <!-- SEPARADOR POR DEFINIR -->
+                        <div class="flex items-center justify-center relative my-6">
+                            <!-- Línea horizontal de fondo naranja muy sutil -->
+                            <div class="absolute inset-x-0 h-px bg-warning/20"></div>
+                            <!-- Badge central -->
+                            <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
+                                <div class="bg-warning text-warning-content px-6 py-1.5 flex items-center justify-center leading-none uppercase tracking-wider">
+                                    Por definir
+                                </div>
+                            </div>
+                        </div>
+                        <!-- PARTIDOS SIN ESTABLECER HORA -->
+                        <div class="grid gap-4 opacity-80">
+                            {% for partido in partidos_sin_fecha %}
+                                <div class="bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30 relative overflow-hidden group">
+                                    <!-- Torneo Badge Lateral -->
+                                    <div class="md:absolute top-0 right-0 left-0 md:left-auto md:w-32 bg-warning/10 md:bg-warning/20 md:h-full flex items-center justify-center py-2 md:py-0 px-2 rounded-t-2xl md:rounded-l-none md:rounded-r-2xl mb-4 md:mb-0 transition-colors group-hover:bg-warning/30 text-center">
+                                        <a href="{% url 'torneos:detail' partido.torneo_pk %}"
+                                           class="text-[0.65rem] uppercase font-bold text-warning hover:text-warning-content tracking-wider">
+                                            {{ partido.torneo_nombre }}
+                                        </a>
+                                    </div>
+                                    <!-- Contenido Principal -->
+                                    <div class="flex flex-col md:flex-row items-center justify-between w-full md:pr-32">
+                                        <!-- Equipo 1 -->
+                                        <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
+                                            {% if partido.equipo1 %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
+                                                    {{ partido.equipo1.jugador1.full_name|default:"-" }}
+                                                </p>
+                                                <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
+                                                    {{ partido.equipo1.jugador2.full_name|default:"-" }}
+                                                </p>
+                                            {% else %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content/40 font-medium italic select-none">
+                                                    {{ partido.placeholder_e1|default:"Por definir" }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                        <!-- VS Centro -->
+                                        <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
+                                            <span class="text-[0.65rem] tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1 whitespace-nowrap">
+                                                {{ partido.division_nombre }} {{ partido.categoria_display }}
+                                            </span>
+                                            <div class="text-3xl font-black text-white/50 px-2 tracking-widest">VS</div>
+                                            <span class="text-[0.6rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase text-center max-w-[120px]">
+                                                {{ partido.fase }}
+                                                <br>
+                                                {{ partido.descripcion_partido }}
+                                            </span>
+                                        </div>
+                                        <!-- Equipo 2 -->
+                                        <div class="flex-1 text-center md:text-right w-full space-y-1.5">
+                                            {% if partido.equipo2 %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
+                                                    {{ partido.equipo2.jugador1.full_name|default:"-" }}
+                                                </p>
+                                                <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
+                                                    {{ partido.equipo2.jugador2.full_name|default:"-" }}
+                                                </p>
+                                            {% else %}
+                                                <p class="text-[1.1rem] md:text-lg text-base-content/40 font-medium italic select-none">
+                                                    {{ partido.placeholder_e2|default:"Por definir" }}
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% endif %}
-                <!-- FECHAS (LISTA AGRUPADA) -->
-                <div class="space-y-12 pb-4">
-                    {% regroup partidos_con_fecha by fecha_hora as partidos_por_hora_exacta %}
-                    {% for agrupacion in partidos_por_hora_exacta %}
-                        <div class="space-y-4">
-                            <!-- SEPARADOR DE FECHA/HORA -->
-                            <div class="flex items-center justify-center relative my-6">
-                                <!-- Línea horizontal de fondo verde muy sutil -->
-                                <div class="absolute inset-x-0 h-px bg-emerald-500/20"></div>
-                                <!-- Badge central -->
-                                <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
-                                    <div class="bg-emerald-500 text-base-100 px-4 py-1.5 flex items-center justify-center leading-none">
-                                        {{ agrupacion.grouper|date:"H:i" }} <!-- Extraer solo hora -->
-                                    </div>
-                                    <div class="bg-white text-base-100 px-5 py-1.5 flex items-center justify-center leading-none">
-                                        {{ agrupacion.grouper|date:"d/m/Y" }} <!-- Extraer solo fecha con Año de 4 dígitos -->
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- PARTIDOS DE ESA HORA -->
-                            <div class="grid gap-4">
-                                {% for partido in agrupacion.list %}
-                                    <div class="bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30 relative overflow-hidden group">
-                                        <!-- Torneo Badge Lateral -->
-                                        <div class="md:absolute top-0 right-0 left-0 md:left-auto md:w-32 bg-emerald-500/10 md:bg-emerald-500/20 md:h-full flex items-center justify-center py-2 md:py-0 px-2 rounded-t-2xl md:rounded-l-none md:rounded-r-2xl mb-4 md:mb-0 transition-colors group-hover:bg-emerald-500/30 text-center">
-                                            <a href="{% url 'torneos:detail' partido.torneo_pk %}"
-                                               class="text-[0.65rem] uppercase font-bold text-emerald-400 hover:text-emerald-300 tracking-wider">
-                                                {{ partido.torneo_nombre }}
-                                            </a>
-                                        </div>
-                                        <!-- Contenido Principal -->
-                                        <div class="flex flex-col md:flex-row items-center justify-between w-full md:pr-32">
-                                            <!-- Equipo 1 -->
-                                            <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
-                                                {% if partido.equipo1 %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                        {{ partido.equipo1.jugador1.full_name|default:"-" }}
-                                                    </p>
-                                                    <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                        {{ partido.equipo1.jugador2.full_name|default:"-" }}
-                                                    </p>
-                                                {% else %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">
-                                                        {{ partido.placeholder_e1|default:"Por definir" }}
-                                                    </p>
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">-</p>
-                                                {% endif %}
-                                            </div>
-                                            <!-- VS Centro -->
-                                            <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
-                                                <span class="text-[0.65rem] tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1 whitespace-nowrap">
-                                                    {{ partido.division_nombre }} {{ partido.categoria_display }}
-                                                </span>
-                                                <div class="text-3xl font-black text-white px-2 tracking-widest drop-shadow-md">VS</div>
-                                                <span class="text-[0.6rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase text-center max-w-[120px]">
-                                                    {{ partido.fase }}
-                                                    <br>
-                                                    {{ partido.descripcion_partido }}
-                                                </span>
-                                            </div>
-                                            <!-- Equipo 2 -->
-                                            <div class="flex-1 text-center md:text-right w-full space-y-1.5">
-                                                {% if partido.equipo2 %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                        {{ partido.equipo2.jugador1.full_name|default:"-" }}
-                                                    </p>
-                                                    <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                        {{ partido.equipo2.jugador2.full_name|default:"-" }}
-                                                    </p>
-                                                {% else %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">
-                                                        {{ partido.placeholder_e2|default:"Por definir" }}
-                                                    </p>
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">-</p>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% empty %}
-                        <div class="text-center py-10 opacity-70">
-                            <p>Aún no hay partidos con fecha y hora programada en ningún torneo activo.</p>
-                        </div>
-                    {% endfor %}
-                    <!-- PARTIDOS POR DEFINIR (SIN FECHA) -->
-                    {% if partidos_sin_fecha %}
-                        <div class="space-y-4 pt-10">
-                            <!-- SEPARADOR POR DEFINIR -->
-                            <div class="flex items-center justify-center relative my-6">
-                                <!-- Línea horizontal de fondo naranja muy sutil -->
-                                <div class="absolute inset-x-0 h-px bg-warning/20"></div>
-                                <!-- Badge central -->
-                                <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
-                                    <div class="bg-warning text-warning-content px-6 py-1.5 flex items-center justify-center leading-none uppercase tracking-wider">
-                                        Por definir
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- PARTIDOS SIN ESTABLECER HORA -->
-                            <div class="grid gap-4 opacity-80">
-                                {% for partido in partidos_sin_fecha %}
-                                    <div class="bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30 relative overflow-hidden group">
-                                        <!-- Torneo Badge Lateral -->
-                                        <div class="md:absolute top-0 right-0 left-0 md:left-auto md:w-32 bg-warning/10 md:bg-warning/20 md:h-full flex items-center justify-center py-2 md:py-0 px-2 rounded-t-2xl md:rounded-l-none md:rounded-r-2xl mb-4 md:mb-0 transition-colors group-hover:bg-warning/30 text-center">
-                                            <a href="{% url 'torneos:detail' partido.torneo_pk %}"
-                                               class="text-[0.65rem] uppercase font-bold text-warning hover:text-warning-content tracking-wider">
-                                                {{ partido.torneo_nombre }}
-                                            </a>
-                                        </div>
-                                        <!-- Contenido Principal -->
-                                        <div class="flex flex-col md:flex-row items-center justify-between w-full md:pr-32">
-                                            <!-- Equipo 1 -->
-                                            <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
-                                                {% if partido.equipo1 %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                        {{ partido.equipo1.jugador1.full_name|default:"-" }}
-                                                    </p>
-                                                    <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                        {{ partido.equipo1.jugador2.full_name|default:"-" }}
-                                                    </p>
-                                                {% else %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content/40 font-medium italic select-none">
-                                                        {{ partido.placeholder_e1|default:"Por definir" }}
-                                                    </p>
-                                                {% endif %}
-                                            </div>
-                                            <!-- VS Centro -->
-                                            <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
-                                                <span class="text-[0.65rem] tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1 whitespace-nowrap">
-                                                    {{ partido.division_nombre }} {{ partido.categoria_display }}
-                                                </span>
-                                                <div class="text-3xl font-black text-white/50 px-2 tracking-widest">VS</div>
-                                                <span class="text-[0.6rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase text-center max-w-[120px]">
-                                                    {{ partido.fase }}
-                                                    <br>
-                                                    {{ partido.descripcion_partido }}
-                                                </span>
-                                            </div>
-                                            <!-- Equipo 2 -->
-                                            <div class="flex-1 text-center md:text-right w-full space-y-1.5">
-                                                {% if partido.equipo2 %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                        {{ partido.equipo2.jugador1.full_name|default:"-" }}
-                                                    </p>
-                                                    <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                        {{ partido.equipo2.jugador2.full_name|default:"-" }}
-                                                    </p>
-                                                {% else %}
-                                                    <p class="text-[1.1rem] md:text-lg text-base-content/40 font-medium italic select-none">
-                                                        {{ partido.placeholder_e2|default:"Por definir" }}
-                                                    </p>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
             </div>
         </div>
-    {% endblock content %}
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    {{ block.super }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+    function downloadPDF() {
+        const controls = document.getElementById('export-controls');
+        const element = document.getElementById('schedule-content');
+        
+        // Hide the buttons inside the PDF
+        if (controls) controls.style.display = 'none';
+        
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     '{{ organizacion.nombre|slugify }}_programacion.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#000000' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Restore the buttons
+            if (controls) controls.style.display = 'flex';
+        });
+    }
+    </script>
+{% endblock extra_js %}
