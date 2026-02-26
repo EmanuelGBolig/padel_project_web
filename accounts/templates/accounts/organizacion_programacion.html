@@ -14,7 +14,7 @@
                         <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
                         {% if fecha_seleccionada %}
                             <span class="hidden sm:inline-block text-base-content/40 mx-2">|</span>
-                            <div class="badge badge-primary badge-outline text-sm font-bold uppercase tracking-wider py-3 px-4">
+                            <div class="inline-flex items-center justify-center border border-primary text-primary text-sm font-bold uppercase tracking-wider py-1.5 px-4 rounded-full text-center h-auto">
                                 Torneos del {{ fecha_seleccionada|date:"d M Y" }}
                             </div>
                         {% endif %}
