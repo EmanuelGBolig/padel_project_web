@@ -542,7 +542,7 @@ class OrganizacionProgramacionView(DetailView):
                 'torneo_nombre': pg.grupo.torneo.nombre,
                 'torneo_pk': pg.grupo.torneo.pk,
                 'division_nombre': pg.grupo.torneo.division.nombre if pg.grupo.torneo.division else "Libre",
-                'categoria_display': pg.get_categoria_display() or pg.grupo.torneo.get_categoria_display(),
+                'categoria_display': pg.grupo.torneo.get_categoria_display(),
                 'obj': pg
             })
 
