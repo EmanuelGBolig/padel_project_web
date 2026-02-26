@@ -2,15 +2,43 @@ from django.db.models import Count, Q, Sum, Value, IntegerField
 from django.db.models.functions import Coalesce
 from django.core.cache import cache
 
-def get_division_rankings(division):
+def get_division_rankings(division, force_recalc=False):
     if not division:
         return []
 
     cache_key = f'rankings_jugadores_div_{division.id}'
-    cached_rankings = cache.get(cache_key)
     
-    if cached_rankings is not None:
-        return cached_rankings
+    if not force_recalc:
+        cached_rankings = cache.get(cache_key)
+        if cached_rankings is not None:
+            return cached_rankings
+
+        from equipos.models import RankingJugador
+        rankings_db = RankingJugador.objects.filter(division=division).select_related('jugador').prefetch_related(
+            'jugador__equipos_como_jugador1', 'jugador__equipos_como_jugador2'
+        ).order_by('-puntos', '-torneos_ganados', '-victorias')
+
+        result = []
+        for i, r in enumerate(rankings_db, 1):
+            win_rate = round((r.victorias / r.partidos_jugados) * 100, 1) if r.partidos_jugados > 0 else 0
+            equipos_j1 = list(r.jugador.equipos_como_jugador1.all())
+            equipos_j2 = list(r.jugador.equipos_como_jugador2.all())
+            primer_equipo = equipos_j1[0] if equipos_j1 else (equipos_j2[0] if equipos_j2 else None)
+
+            result.append({
+                'jugador': r.jugador,
+                'puntos': r.puntos,
+                'victorias': r.victorias,
+                'win_rate': win_rate,
+                'torneos_ganados': r.torneos_ganados,
+                'equipos': [primer_equipo] if primer_equipo else [],
+                'partidos_totales': r.partidos_jugados,
+                'posicion': i
+            })
+        
+        # Opcional: llenar tabla local cacheada
+        cache.set(cache_key, result, 300)
+        return result
 
     from .models import CustomUser
     from torneos.models import Partido, PartidoGrupo, Torneo
@@ -334,3 +362,54 @@ def send_email_async(subject, html_template, context, recipient_list, from_email
 
     email_thread = threading.Thread(target=_send)
     email_thread.start()
+
+def actualizar_rankings_en_bd(division):
+    """
+    Recalcula los rankings de Jugadores y Equipos para una división específica
+    y guarda esos valores defintivamente en las tablas RankingJugador y RankingEquipo.
+    Se manda a llamar desde los signals (post_save de partidos).
+    """
+    if not division:
+        return
+
+    from equipos.models import RankingJugador, RankingEquipo
+    from equipos.views import RankingListView
+    from django.test import RequestFactory
+
+    # 1. Traer data cruda de jugadores (está en este mismo archivo, usamos recalc forzado)
+    jugadores_data = get_division_rankings(division, force_recalc=True)
+    for item in jugadores_data:
+        RankingJugador.objects.update_or_create(
+            jugador=item['jugador'],
+            division=division,
+            defaults={
+                'puntos': item['puntos'],
+                'torneos_ganados': item['torneos_ganados'],
+                'victorias': item['victorias'],
+                'partidos_jugados': item['partidos_totales']
+            }
+        )
+
+    # 2. Traer data cruda de equipos usando Fake Request al View
+    req = RequestFactory().get(f'/equipos/rankings/?division={division.id}')
+    view = RankingListView()
+    view.request = req
+    
+    todas_divs = view.get_queryset(force_recalc=True)
+    equipos_data = []
+    for r in todas_divs:
+        if r['division'].id == division.id:
+            equipos_data = r['equipos']
+            break
+            
+    for item in equipos_data:
+        RankingEquipo.objects.update_or_create(
+            equipo=item['equipo'],
+            division=division,
+            defaults={
+                'puntos': item['puntos'],
+                'torneos_ganados': item['torneos_ganados'],
+                'victorias': item['victorias'],
+                'partidos_jugados': item['partidos_jugados']
+            }
+        )

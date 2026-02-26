@@ -5,13 +5,17 @@ from django.core.cache import cache
 from .models import PartidoGrupo, EquipoGrupo, Partido
 
 
+import threading
+from accounts.utils import actualizar_rankings_en_bd
+
 def invalidar_cache_division(division):
-    """Borra el caché de rankings cuando cambia algo en una división."""
+    """Borra el caché de rankings cuando cambia algo en una división y regenera la BD."""
     if division:
         cache.delete(f'rankings_jugadores_div_{division.id}')
         cache.delete(f'rankings_equipos_div_{division.id}')
-
-
+        
+        # Corremos la actualización de BD asíncrona para no trabar el thread de Django Guardar
+        threading.Thread(target=actualizar_rankings_en_bd, args=(division,)).start()
 def invalidar_cache_jugadores_equipo(equipo):
     """Borra el caché de stats de los jugadores de un equipo."""
     if equipo:

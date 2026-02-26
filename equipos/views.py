@@ -395,7 +395,7 @@ class RankingListView(ListView):
     template_name = 'equipos/ranking_list.html'
     context_object_name = 'rankings_por_division'
     
-    def get_queryset(self):
+    def get_queryset(self, force_recalc=False):
         from django.db.models import Count, Q, F, Case, When, IntegerField, FloatField, Value
         from django.core.cache import cache
         
@@ -426,9 +426,31 @@ class RankingListView(ListView):
             # Cache para esta división
             cache_key = f'rankings_equipos_div_{division.id}'
             from django.core.cache import cache as dj_cache
-            cached = dj_cache.get(cache_key)
-            if cached is not None:
-                rankings_por_division.append({'division': division, 'equipos': cached})
+            
+            if not force_recalc:
+                cached = dj_cache.get(cache_key)
+                if cached is not None:
+                    rankings_por_division.append({'division': division, 'equipos': cached})
+                    continue
+
+                from equipos.models import RankingEquipo
+                rankings_db = RankingEquipo.objects.filter(division=division).select_related('equipo', 'equipo__jugador1', 'equipo__jugador2').order_by('-puntos', '-torneos_ganados', '-victorias')
+
+                equipos_con_puntos = []
+                for i, r in enumerate(rankings_db, 1):
+                    win_rate = round((r.victorias / r.partidos_jugados) * 100, 1) if r.partidos_jugados > 0 else 0
+                    equipos_con_puntos.append({
+                        'equipo': r.equipo,
+                        'puntos': r.puntos,
+                        'victorias': r.victorias,
+                        'win_rate': win_rate,
+                        'torneos_ganados': r.torneos_ganados,
+                        'partidos_jugados': r.partidos_jugados,
+                        'posicion': i
+                    })
+                
+                dj_cache.set(cache_key, equipos_con_puntos, 300)
+                rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
                 continue
 
             # --- LÓGICA OPTIMIZADA: consultas simples en vez de mega-JOINs ---

@@ -205,50 +205,12 @@ class Equipo(models.Model):
         return resultados[:limit]
     
     def get_puntos_ranking(self):
-        """Calcula puntos para el ranking global en base a las rondas alcanzadas y grupos"""
-        from torneos.models import Partido, PartidoGrupo, Torneo
+        """Devuelve los puntos totales sumados desde la tabla de rankings cacheada en BD"""
+        # Evitamos import circular
+        from equipos.models import RankingEquipo
         
-        puntos = 0
-        
-        # 1. Puntos por Fase de Grupos (15 pts por victoria)
-        victorias_grupo = PartidoGrupo.objects.filter(
-            ganador=self
-        ).count()
-        puntos += victorias_grupo * 15
-        
-        # 2. Puntos por Eliminatorias (Ronda máxima por torneo)
-        torneos_jugados = Torneo.objects.filter(
-            partidos__in=Partido.objects.filter(
-                models.Q(equipo1=self) | models.Q(equipo2=self)
-            )
-        ).distinct()
-        
-        for torneo in torneos_jugados:
-            # Es campeón?
-            if torneo.ganador_del_torneo == self:
-                puntos += 600
-                continue
-                
-            # Buscar el partido más avanzado que jugó en este torneo
-            max_ronda = Partido.objects.filter(
-                torneo=torneo,
-                equipo1__isnull=False,
-                equipo2__isnull=False
-            ).filter(
-                models.Q(equipo1=self) | models.Q(equipo2=self)
-            ).aggregate(models.Max('ronda'))['ronda__max']
-            
-            if max_ronda:
-                if max_ronda == 4:
-                    puntos += 360 # Finalista, pero no campeón
-                elif max_ronda == 3:
-                    puntos += 180 # Semifinal
-                elif max_ronda == 2:
-                    puntos += 90  # Cuartos
-                elif max_ronda == 1:
-                    puntos += 45  # Octavos
-                    
-        return puntos
+        total = RankingEquipo.objects.filter(equipo=self).aggregate(models.Sum('puntos'))['puntos__sum']
+        return total or 0
 
 
 class Invitation(models.Model):
@@ -281,3 +243,40 @@ class Invitation(models.Model):
     def __str__(self):
         return f"Invitación de {self.inviter} a {self.invited} ({self.status})"
 
+
+class RankingJugador(models.Model):
+    jugador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rankings_jugador')
+    division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name='rankings_jugadores_division')
+    puntos = models.IntegerField(default=0)
+    torneos_ganados = models.IntegerField(default=0)
+    victorias = models.IntegerField(default=0)
+    partidos_jugados = models.IntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['jugador', 'division'], name='unique_ranking_jugador_division')
+        ]
+        verbose_name = "Ranking de Jugador"
+        verbose_name_plural = "Rankings de Jugadores"
+
+    def __str__(self):
+        return f"{self.jugador} - {self.division} ({self.puntos} pts)"
+
+
+class RankingEquipo(models.Model):
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='rankings_equipo')
+    division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name='rankings_equipos_division')
+    puntos = models.IntegerField(default=0)
+    torneos_ganados = models.IntegerField(default=0)
+    victorias = models.IntegerField(default=0)
+    partidos_jugados = models.IntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['equipo', 'division'], name='unique_ranking_equipo_division')
+        ]
+        verbose_name = "Ranking de Equipo"
+        verbose_name_plural = "Rankings de Equipos"
+
+    def __str__(self):
+        return f"{self.equipo} - {self.division} ({self.puntos} pts)"
