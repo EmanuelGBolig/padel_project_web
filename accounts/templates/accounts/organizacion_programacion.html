@@ -55,8 +55,8 @@
             {% endif %}
             <!-- FECHAS (LISTA AGRUPADA) -->
             <div class="space-y-12 pb-4">
-                {% regroup partidos_con_fecha by fecha_hora|date:"Y-m-d H:i" as partidos_por_hora %}
-                {% for agrupacion in partidos_por_hora %}
+                {% regroup partidos_con_fecha by fecha_hora as partidos_por_hora_exacta %}
+                {% for agrupacion in partidos_por_hora_exacta %}
                     <div class="space-y-4">
                         <!-- SEPARADOR DE FECHA/HORA -->
                         <div class="flex items-center justify-center relative my-6">
@@ -65,10 +65,10 @@
                             <!-- Badge central -->
                             <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
                                 <div class="bg-emerald-500 text-base-100 px-4 py-1.5 flex items-center justify-center leading-none">
-                                    {{ agrupacion.grouper|slice:"11:16" }} <!-- Extraer solo hora Ej: 09:00 -->
+                                    {{ agrupacion.grouper|date:"H:i" }} <!-- Extraer solo hora -->
                                 </div>
                                 <div class="bg-white text-base-100 px-5 py-1.5 flex items-center justify-center leading-none">
-                                    {{ agrupacion.list.0.fecha_hora|date:"d/m/Y" }}
+                                    {{ agrupacion.grouper|date:"d/m/Y" }} <!-- Extraer solo fecha con Año de 4 dígitos -->
                                 </div>
                             </div>
                         </div>
