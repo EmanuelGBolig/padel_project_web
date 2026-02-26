@@ -176,6 +176,14 @@
                                 </div>
                             </a>
                         {% endfor %}
+                        {% if has_more_historial %}
+                            <div class="mt-4 text-center">
+                                <a href="{% url 'torneos:finalizado_list' %}?organizacion={{ organizacion.id }}"
+                                   class="btn btn-sm btn-outline btn-block text-xs">
+                                    Ver todos los torneos finalizados
+                                </a>
+                            </div>
+                        {% endif %}
                     </div>
                 {% else %}
                     <p class="text-sm opacity-50 italic">Sin historial de torneos.</p>

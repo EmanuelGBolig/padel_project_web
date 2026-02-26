@@ -1182,10 +1182,41 @@ class TorneoFinalizadoListView(ListView):
     model = Torneo
     template_name = 'torneos/torneo_finalizado_list.html'
     context_object_name = 'torneos_finalizados'
-    queryset = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO) \
-        .select_related('division') \
-        .order_by('-fecha_inicio')
-    paginate_by = 10
+    paginate_by = 12
+
+    def get_queryset(self):
+        qs = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO)\
+            .select_related('division', 'organizacion')\
+            .order_by('-fecha_inicio')
+        
+        year = self.request.GET.get('year')
+        org_id = self.request.GET.get('organizacion')
+
+        if year:
+            qs = qs.filter(fecha_inicio__year=year)
+        if org_id:
+            qs = qs.filter(organizacion_id=org_id)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        base_qs = Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO)
+        
+        # Años disponibles extraídos de fecha_inicio
+        dates = base_qs.dates('fecha_inicio', 'year', order='DESC')
+        context['years'] = [d.year for d in dates if d]
+        
+        # Organizaciones disponibles
+        from accounts.models import Organizacion
+        org_ids = base_qs.values_list('organizacion_id', flat=True).distinct()
+        context['organizaciones'] = Organizacion.objects.filter(id__in=org_ids).order_by('nombre')
+        
+        # Valores seleccionados actualmente
+        context['current_year'] = self.request.GET.get('year', '')
+        context['current_org'] = self.request.GET.get('organizacion', '')
+        
+        return context
 
 
 class TorneoEnJuegoListView(ListView):

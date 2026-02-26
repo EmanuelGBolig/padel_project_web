@@ -448,7 +448,10 @@ class OrganizacionDetailView(DetailView):
         torneos = organizacion.torneos.all().order_by('-fecha_inicio')
         
         context['torneos_activos'] = torneos.filter(estado__in=['AB', 'EJ'])
-        context['torneos_historial'] = torneos.filter(estado='FN')
+        
+        historial_qs = torneos.filter(estado='FN')
+        context['torneos_historial'] = historial_qs[:5]
+        context['has_more_historial'] = historial_qs.count() > 5
         
         return context
 

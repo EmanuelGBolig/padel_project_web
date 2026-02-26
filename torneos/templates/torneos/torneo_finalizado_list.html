@@ -5,6 +5,48 @@
 {% block content %}
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <h2 class="text-3xl font-bold text-base-content mb-6 text-center">Historial de Torneos Finalizados</h2>
+        {% if years or organizaciones %}
+            <!-- Filtros -->
+            <form method="get"
+                  class="mb-8 flex flex-col sm:flex-row gap-4 justify-center items-end bg-base-200/50 p-4 rounded-xl border border-base-300">
+                {% if years %}
+                    <div class="form-control w-full sm:w-auto">
+                        <label class="label py-1">
+                            <span class="label-text text-xs opacity-70 font-semibold uppercase tracking-wider">Año</span>
+                        </label>
+                        <select name="year"
+                                class="select select-bordered select-sm min-w-[150px]"
+                                onchange="this.form.submit()">
+                            <option value="">Todos los años</option>
+                            {% for year in years %}
+                                <option value="{{ year }}"
+                                        {% if current_year == year|stringformat:"s" %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+                {% if organizaciones %}
+                    <div class="form-control w-full sm:w-auto">
+                        <label class="label py-1">
+                            <span class="label-text text-xs opacity-70 font-semibold uppercase tracking-wider">Organización</span>
+                        </label>
+                        <select name="organizacion"
+                                class="select select-bordered select-sm min-w-[200px]"
+                                onchange="this.form.submit()">
+                            <option value="">Todas las organizaciones</option>
+                            {% for org in organizaciones %}
+                                <option value="{{ org.id }}"
+                                        {% if current_org == org.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ org.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+            </form>
+        {% endif %}
         <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 gap-4">
             {% for torneo in torneos_finalizados %}
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-base-300 dark:border-base-100/10 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow bg-base-100">
@@ -51,8 +93,30 @@
             {% endfor %}
         </div>
         {% if is_paginated %}
-            <div class="mt-6 flex justify-center">
-                <!-- Aquí podés poner tu paginación si la agregás -->
+            <div class="mt-8 mb-6 flex justify-center">
+                <div class="join shadow-sm">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.organizacion %}&organizacion={{ request.GET.organizacion }}{% endif %}"
+                           class="join-item btn btn-sm bg-base-100 border-base-300 hover:bg-base-200">«</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.organizacion %}&organizacion={{ request.GET.organizacion }}{% endif %}"
+                           class="join-item btn btn-sm bg-base-100 border-base-300 hover:bg-base-200">‹</a>
+                    {% else %}
+                        <button class="join-item btn btn-sm btn-disabled" disabled>«</button>
+                        <button class="join-item btn btn-sm btn-disabled" disabled>‹</button>
+                    {% endif %}
+                    <button class="join-item btn btn-sm bg-base-200 border-base-300 no-animation cursor-default">
+                        Pág {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </button>
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.organizacion %}&organizacion={{ request.GET.organizacion }}{% endif %}"
+                           class="join-item btn btn-sm bg-base-100 border-base-300 hover:bg-base-200">›</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}{% if request.GET.organizacion %}&organizacion={{ request.GET.organizacion }}{% endif %}"
+                           class="join-item btn btn-sm bg-base-100 border-base-300 hover:bg-base-200">»</a>
+                    {% else %}
+                        <button class="join-item btn btn-sm btn-disabled" disabled>›</button>
+                        <button class="join-item btn btn-sm btn-disabled" disabled>»</button>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
     </div>
