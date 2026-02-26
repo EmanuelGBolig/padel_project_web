@@ -26,7 +26,7 @@ class Command(BaseCommand):
             
             # --- JUGADORES ---
             self.stdout.write("  -> Migrando Jugadores...")
-            jugadores_data = get_division_rankings(division)
+            jugadores_data = get_division_rankings(division, force_recalc=True)
             
             for index, item in enumerate(jugadores_data):
                 jugador = item['jugador']
@@ -58,7 +58,7 @@ class Command(BaseCommand):
             view.request = request
             
             # Esto devuelve array por division, buscamos la que toca
-            rankings_todas_divs = view.get_queryset()
+            rankings_todas_divs = view.get_queryset(force_recalc=True)
             equipos_data = []
             for r in rankings_todas_divs:
                 if r['division'].id == division.id:
