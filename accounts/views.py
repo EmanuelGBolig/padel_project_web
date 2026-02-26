@@ -576,6 +576,58 @@ class OrganizacionProgramacionView(DetailView):
         
         return context
 
+    def render_to_response(self, context, **response_kwargs):
+        if self.request.GET.get('export') == 'csv':
+            import csv
+            from django.http import HttpResponse
+            
+            # Use appropriate filename based on date
+            fecha_str = context.get('fecha_seleccionada').strftime('%Y-%m-%d') if context.get('fecha_seleccionada') else 'todas'
+            filename = f"programacion_{self.object.nombre.replace(' ', '_')}_{fecha_str}.csv"
+            
+            # Use utf-8-sig so Excel recognizes the BOM and displays accents correctly
+            response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Fecha', 'Hora', 'Torneo', 'Categoria', 'Fase', 'Equipo 1', 'Equipo 2', 'Cancha / Detalle'])
+            
+            for p in context.get('partidos_con_fecha', []):
+                eq1_str = str(p['equipo1']) if p.get('equipo1') else p.get('placeholder_e1', 'Por definir')
+                eq2_str = str(p['equipo2']) if p.get('equipo2') else p.get('placeholder_e2', 'Por definir')
+                
+                writer.writerow([
+                    p['fecha_hora'].strftime('%d/%m/%Y') if p['fecha_hora'] else '',
+                    p['fecha_hora'].strftime('%H:%M') if p['fecha_hora'] else '',
+                    p['torneo_nombre'],
+                    f"{p['division_nombre']} {p['categoria_display']}",
+                    p['fase'],
+                    eq1_str,
+                    eq2_str,
+                    p['descripcion_partido']
+                ])
+                
+            writer.writerow([])
+            writer.writerow(['PARTIDOS POR DEFINIR'])
+            for p in context.get('partidos_sin_fecha', []):
+                eq1_str = str(p['equipo1']) if p.get('equipo1') else p.get('placeholder_e1', 'Por definir')
+                eq2_str = str(p['equipo2']) if p.get('equipo2') else p.get('placeholder_e2', 'Por definir')
+                
+                writer.writerow([
+                    'Por definir',
+                    '',
+                    p['torneo_nombre'],
+                    f"{p['division_nombre']} {p['categoria_display']}",
+                    p['fase'],
+                    eq1_str,
+                    eq2_str,
+                    p['descripcion_partido']
+                ])
+                
+            return response
+            
+        return super().render_to_response(context, **response_kwargs)
+
 
 from .forms import OrganizacionForm, SponsorForm
 
