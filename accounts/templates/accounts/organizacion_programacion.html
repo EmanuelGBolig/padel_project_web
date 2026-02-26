@@ -8,8 +8,8 @@
         <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg"
              id="schedule-content">
             <!-- HEADER -->
-            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
-                <div class="flex-1">
+            <div class="mb-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
+                <div class="flex-1 min-w-0">
                     <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN GENERAL</h1>
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
                         <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
@@ -21,10 +21,10 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0 print:hidden"
+                <div class="flex flex-wrap items-center justify-start xl:justify-end gap-3 print:hidden w-full xl:w-auto mt-4 xl:mt-0"
                      id="export-controls">
                     <!-- Botones de Exportación -->
-                    <div class="flex gap-2 w-full sm:w-auto justify-end">
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto justify-start xl:justify-end">
                         <button onclick="downloadPDF()"
                                 class="btn btn-sm md:btn-md btn-accent text-xs flex-1 sm:flex-none">
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -50,9 +50,9 @@
                     </div>
                     <!-- Selector de Fecha -->
                     {% if fechas_disponibles %}
-                        <form method="get" class="w-full sm:w-auto">
+                        <form method="get" class="flex-1 sm:flex-none">
                             <select name="fecha"
-                                    class="select select-bordered select-sm md:select-md w-full sm:w-auto bg-base-200 text-base-content font-semibold shadow-inner"
+                                    class="select select-bordered select-sm md:select-md w-full bg-base-200 text-base-content font-semibold shadow-inner"
                                     onchange="this.form.submit()">
                                 <option value="" disabled {% if not fecha_seleccionada %}selected{% endif %}>Seleccionar fecha</option>
                                 {% for fecha in fechas_disponibles %}
@@ -65,7 +65,7 @@
                         </form>
                     {% endif %}
                     <a href="{% url 'accounts:organizador_detalle' organizacion.pk %}"
-                       class="btn btn-sm md:btn-md btn-outline text-xs w-full sm:w-auto mt-2 sm:mt-0">Volver al Perfil</a>
+                       class="btn btn-sm md:btn-md btn-outline text-xs flex-1 sm:flex-none">Volver al Perfil</a>
                 </div>
             </div>
             <!-- TORNEOS DE ESTA FECHA -->
@@ -243,31 +243,46 @@
                 {% endif %}
             </div>
         </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script>
+        function downloadPDF() {
+            if (typeof html2pdf === 'undefined') {
+                alert("La librería para generar el PDF aún se está cargando o hubo un error al cargarla. Por favor espera unos segundos e intenta de nuevo.");
+                return;
+            }
+            const controls = document.getElementById('export-controls');
+            const element = document.getElementById('schedule-content');
+            const btn = controls.querySelector('button');
+            const originalContent = btn.innerHTML;
+            
+            // Show loading state
+            btn.innerHTML = '<span class="loading loading-spinner loading-xs mr-2"></span> Generando PDF...';
+            btn.disabled = true;
+            
+            // Hide the buttons inside the PDF
+            if (controls) controls.style.display = 'none';
+            
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     '{{ organizacion.nombre|slugify }}_programacion.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#000000', logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Restore the buttons
+                if (controls) controls.style.display = 'flex';
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }).catch(err => {
+                console.error("Error generating PDF:", err);
+                alert("Hubo un error al generar el PDF. Por favor intenta desde una computadora de escritorio o utiliza la opción de 'Descargar CSV'. Error: " + err.message);
+                if (controls) controls.style.display = 'flex';
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            });
+        }
+        </script>
     </div>
 {% endblock content %}
-{% block extra_js %}
-    {{ block.super }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script>
-    function downloadPDF() {
-        const controls = document.getElementById('export-controls');
-        const element = document.getElementById('schedule-content');
-        
-        // Hide the buttons inside the PDF
-        if (controls) controls.style.display = 'none';
-        
-        const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     '{{ organizacion.nombre|slugify }}_programacion.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#000000' },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            // Restore the buttons
-            if (controls) controls.style.display = 'flex';
-        });
-    }
-    </script>
-{% endblock extra_js %}
