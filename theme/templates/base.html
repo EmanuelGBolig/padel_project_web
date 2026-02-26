@@ -743,6 +743,12 @@
                                                    class="{% if request.resolver_match.url_name == 'organizacion_sponsors' %}active{% endif %} rounded-xl">Sponsors</a>
                                             </li>
                                             <li>
+                                                <a href="{% url 'accounts:organizacion_programacion' user.organizacion.pk %}"
+                                                   class="{% if request.resolver_match.url_name == 'organizacion_programacion' %}active{% endif %} rounded-xl">
+                                                    Programación Global
+                                                </a>
+                                            </li>
+                                            <li>
                                                 <a href="{% url 'accounts:organizador_detalle' user.organizacion.pk %}"
                                                    class="rounded-xl">Perfil Público</a>
                                             </li>

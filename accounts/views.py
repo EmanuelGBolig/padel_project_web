@@ -456,6 +456,85 @@ class OrganizacionDetailView(DetailView):
         return context
 
 
+class OrganizacionProgramacionView(DetailView):
+    model = Organizacion
+    template_name = 'accounts/organizacion_programacion.html'
+    context_object_name = 'organizacion'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        organizacion = self.object
+
+        from torneos.models import Torneo, PartidoGrupo, Partido
+
+        torneos_activos = organizacion.torneos.filter(estado__in=[Torneo.Estado.ABIERTO, Torneo.Estado.EN_JUEGO])
+
+        # 1. Obtener partidos de fase de grupos
+        partidos_grupo = PartidoGrupo.objects.filter(
+            grupo__torneo__in=torneos_activos
+        ).select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2',
+            'grupo', 'grupo__torneo', 'grupo__torneo__division'
+        )
+
+        # 2. Obtener partidos eliminatorios (bracket)
+        partidos_bracket = Partido.objects.filter(
+            torneo__in=torneos_activos
+        ).select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2',
+            'torneo', 'torneo__division'
+        )
+
+        partidos_list = []
+        
+        for pg in partidos_grupo:
+            partidos_list.append({
+                'tipo': 'grupo',
+                'fecha_hora': pg.fecha_hora,
+                'equipo1': pg.equipo1,
+                'equipo2': pg.equipo2,
+                'fase': pg.grupo.nombre,
+                'descripcion_partido': "Partido de Grupo",
+                'torneo_nombre': pg.grupo.torneo.nombre,
+                'torneo_pk': pg.grupo.torneo.pk,
+                'division_nombre': pg.grupo.torneo.division.nombre if pg.grupo.torneo.division else "Libre",
+                'categoria_display': pg.get_categoria_display() or pg.grupo.torneo.get_categoria_display(),
+                'obj': pg
+            })
+
+        for pb in partidos_bracket:
+            if pb.equipo1 or pb.equipo2 or pb.placeholder_e1 or pb.placeholder_e2:
+                partidos_list.append({
+                    'tipo': 'bracket',
+                    'fecha_hora': pb.fecha_hora,
+                    'equipo1': pb.equipo1,
+                    'equipo2': pb.equipo2,
+                    'placeholder_e1': pb.placeholder_e1,
+                    'placeholder_e2': pb.placeholder_e2,
+                    'fase': pb.nombre_ronda.upper(),
+                    'descripcion_partido': f"Partido {pb.orden_partido}",
+                    'torneo_nombre': pb.torneo.nombre,
+                    'torneo_pk': pb.torneo.pk,
+                    'division_nombre': pb.torneo.division.nombre if pb.torneo.division else "Libre",
+                    'categoria_display': pb.torneo.get_categoria_display(),
+                    'obj': pb
+                })
+
+        partidos_con_fecha = [p for p in partidos_list if p['fecha_hora'] is not None]
+        partidos_sin_fecha = [p for p in partidos_list if p['fecha_hora'] is None]
+
+        partidos_con_fecha.sort(key=lambda x: x['fecha_hora'])
+        # Sort by tournament name, then phase
+        partidos_sin_fecha.sort(key=lambda x: (x['torneo_nombre'], x['tipo'], x['fase']))
+
+        context['partidos_con_fecha'] = partidos_con_fecha
+        context['partidos_sin_fecha'] = partidos_sin_fecha
+        
+        return context
+
+
 from .forms import OrganizacionForm, SponsorForm
 
 class OrganizacionSettingsView(LoginRequiredMixin, UpdateView):
