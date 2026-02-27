@@ -7,23 +7,24 @@
     <div class="container mx-auto px-4 py-8 max-w-4xl" data-theme="business">
         <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg">
             <!-- HEADER -->
-            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
-                <div class="flex-1">
+            <div class="mb-10 flex flex-col gap-4 border-b border-base-content/10 pb-6">
+                <div>
                     <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN GENERAL</h1>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                    <div class="flex flex-wrap items-center gap-2 mt-2">
                         <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
                         {% if fecha_seleccionada %}
-                            <span class="hidden sm:inline-block text-base-content/40 mx-2">|</span>
-                            <div class="inline-flex items-center justify-center border border-primary text-primary text-sm font-bold uppercase tracking-wider py-1.5 px-4 rounded-full text-center h-auto">
+                            <span class="text-base-content/40 mx-1">|</span>
+                            <div class="inline-flex items-center border border-primary text-primary text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full whitespace-nowrap">
                                 Torneos del {{ fecha_seleccionada|date:"d M Y" }}
                             </div>
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 shrink-0">
+                <!-- Controles: botones y selector de fecha en una fila que sí puede wrappear -->
+                <div class="flex flex-wrap items-center gap-3">
                     <a href="{% url 'accounts:organizacion_programacion_print' organizacion.pk %}{% if fecha_seleccionada %}?fecha={{ fecha_seleccionada|date:'Y-m-d' }}{% endif %}"
                        target="_blank"
-                       class="btn btn-sm md:btn-md btn-accent text-xs w-full sm:w-auto">
+                       class="btn btn-sm btn-accent text-xs whitespace-nowrap">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              class="h-4 w-4 mr-1"
                              fill="none"
@@ -35,9 +36,9 @@
                     </a>
                     <!-- Selector de Fecha -->
                     {% if fechas_disponibles %}
-                        <form method="get" class="w-full sm:w-auto">
+                        <form method="get">
                             <select name="fecha"
-                                    class="select select-bordered select-sm md:select-md w-full sm:w-auto bg-base-200 text-base-content font-semibold shadow-inner"
+                                    class="select select-bordered select-sm bg-base-200 text-base-content font-semibold shadow-inner"
                                     onchange="this.form.submit()">
                                 <option value="" disabled {% if not fecha_seleccionada %}selected{% endif %}>Seleccionar fecha</option>
                                 {% for fecha in fechas_disponibles %}
@@ -50,7 +51,7 @@
                         </form>
                     {% endif %}
                     <a href="{% url 'accounts:organizador_detalle' organizacion.pk %}"
-                       class="btn btn-sm md:btn-md btn-outline text-xs w-full sm:w-auto">Volver al Perfil</a>
+                       class="btn btn-sm btn-outline text-xs whitespace-nowrap">Volver al Perfil</a>
                 </div>
             </div>
             <!-- TORNEOS DE ESTA FECHA -->
