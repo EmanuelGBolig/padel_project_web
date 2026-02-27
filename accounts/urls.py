@@ -16,6 +16,7 @@ urlpatterns = [
     path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
     path('organizador/<int:pk>/', views.OrganizacionDetailView.as_view(), name='organizador_detalle'),
     path('organizador/<int:pk>/programacion/', views.OrganizacionProgramacionView.as_view(), name='organizacion_programacion'),
+    path('organizador/<int:pk>/programacion/imprimir/', views.OrganizacionProgramacionPrintView.as_view(), name='organizacion_programacion_print'),
     path('organizadores/', views.OrganizacionListView.as_view(), name='organizador_list'),
     # Gestión de Organización
     path('organizacion/ajustes/', views.OrganizacionSettingsView.as_view(), name='organizacion_settings'),

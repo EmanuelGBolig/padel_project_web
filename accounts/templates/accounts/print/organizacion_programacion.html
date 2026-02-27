@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Programación - {{ organizacion.nombre }}</title>
+        <style>
+        /* Estilos básicos y limpios para impresión */
+        body {
+            font-family: Arial, sans-serif;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 20px;
+            font-size: 11pt;
+            line-height: 1.4;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: Arial, sans-serif;
+            margin-top: 0;
+            margin-bottom: 0.5em;
+            text-transform: uppercase;
+        }
+        .header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .header h2 {
+            font-size: 14pt;
+            font-weight: normal;
+            color: #444;
+        }
+        .date-badge {
+            display: inline-block;
+            border: 1px solid #000;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 10pt;
+            margin-top: 10px;
+        }
+        .schedule-group {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .time-header {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f9f9f9;
+            font-weight: bold;
+            font-size: 9pt;
+            text-transform: uppercase;
+        }
+        td {
+            font-size: 10pt;
+        }
+        .vs {
+            font-weight: bold;
+            font-size: 8pt;
+            color: #666;
+            margin: 0 5px;
+        }
+        .meta-info {
+            font-size: 8pt;
+            color: #555;
+            display: block;
+        }
+        .team-name {
+            font-weight: bold;
+            display: block;
+        }
+        
+        /* Ocultar elementos en pantalla, solo forzar la impresión al cargar */
+        @media screen {
+            .print-notice {
+                display: block;
+                text-align: center;
+                padding: 50px;
+                font-size: 14pt;
+                color: #555;
+            }
+        }
+        @media print {
+            .print-notice {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            @page {
+                margin: 1.5cm;
+            }
+        }
+        </style>
+    </head>
+    <body onload="window.print();">
+        <div class="print-notice">
+            <p>Preparando documento para impresión...</p>
+            <p style="font-size: 11pt; color: #888;">
+                Si no aparece el cuadro de diálogo, presiona <b>Ctrl+P</b> o <b>Cmd+P</b> para imprimir.
+            </p>
+            <button onclick="window.print()"
+                    style="padding: 10px 20px;
+                           font-size: 12pt;
+                           cursor: pointer;
+                           margin-top: 20px">Imprimir Manualmente</button>
+            <br>
+            <br>
+            <button onclick="window.close()"
+                    style="padding: 8px 16px;
+                           font-size: 10pt;
+                           cursor: pointer">Cerrar esta pestaña</button>
+        </div>
+        <!-- Contenido Imprimible -->
+        <div class="header">
+            <h1>Programación General</h1>
+            <h2>{{ organizacion.nombre }}</h2>
+            {% if fecha_seleccionada %}<div class="date-badge">Torneos del {{ fecha_seleccionada|date:"d M Y" }}</div>{% endif %}
+        </div>
+        {% if partidos_con_fecha %}
+            {% regroup partidos_con_fecha by fecha_hora as partidos_por_hora_exacta %}
+            {% for agrupacion in partidos_por_hora_exacta %}
+                <div class="schedule-group">
+                    <div class="time-header">{{ agrupacion.grouper|date:"H:i" }} hs - {{ agrupacion.grouper|date:"d/m/Y" }}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 25%">Torneo / Fase</th>
+                                <th style="width: 30%">Equipo 1</th>
+                                <th style="width: 10%">VS</th>
+                                <th style="width: 30%">Equipo 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for partido in agrupacion.list %}
+                                <tr>
+                                    <td>
+                                        <b>{{ partido.torneo_nombre }}</b>
+                                        <span class="meta-info">{{ partido.division_nombre }} {{ partido.categoria_display }}</span>
+                                        <span class="meta-info">{{ partido.fase }} ({{ partido.descripcion_partido }})</span>
+                                    </td>
+                                    <td>
+                                        {% if partido.equipo1 %}
+                                            <span class="team-name">{{ partido.equipo1.jugador1.full_name|default:"-" }}</span>
+                                            <span class="team-name">{{ partido.equipo1.jugador2.full_name|default:"-" }}</span>
+                                        {% else %}
+                                            <i style="color: #888;">{{ partido.placeholder_e1|default:"Por definir" }}</i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="vs">VS</span>
+                                    </td>
+                                    <td>
+                                        {% if partido.equipo2 %}
+                                            <span class="team-name">{{ partido.equipo2.jugador1.full_name|default:"-" }}</span>
+                                            <span class="team-name">{{ partido.equipo2.jugador2.full_name|default:"-" }}</span>
+                                        {% else %}
+                                            <i style="color: #888;">{{ partido.placeholder_e2|default:"Por definir" }}</i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% if partidos_sin_fecha %}
+            <div class="schedule-group">
+                <div class="time-header"
+                     style="background-color: #fff;
+                            border-style: dashed">Partidos Por Definir (Sin Horario)</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 25%">Torneo / Fase</th>
+                            <th style="width: 30%">Equipo 1</th>
+                            <th style="width: 10%">VS</th>
+                            <th style="width: 30%">Equipo 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for partido in partidos_sin_fecha %}
+                            <tr>
+                                <td>
+                                    <b>{{ partido.torneo_nombre }}</b>
+                                    <span class="meta-info">{{ partido.division_nombre }} {{ partido.categoria_display }}</span>
+                                    <span class="meta-info">{{ partido.fase }} ({{ partido.descripcion_partido }})</span>
+                                </td>
+                                <td>
+                                    {% if partido.equipo1 %}
+                                        <span class="team-name">{{ partido.equipo1.jugador1.full_name|default:"-" }}</span>
+                                        <span class="team-name">{{ partido.equipo1.jugador2.full_name|default:"-" }}</span>
+                                    {% else %}
+                                        <i style="color: #888;">{{ partido.placeholder_e1|default:"Por definir" }}</i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="vs">VS</span>
+                                </td>
+                                <td>
+                                    {% if partido.equipo2 %}
+                                        <span class="team-name">{{ partido.equipo2.jugador1.full_name|default:"-" }}</span>
+                                        <span class="team-name">{{ partido.equipo2.jugador2.full_name|default:"-" }}</span>
+                                    {% else %}
+                                        <i style="color: #888;">{{ partido.placeholder_e2|default:"Por definir" }}</i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        {% if not partidos_con_fecha and not partidos_sin_fecha %}
+            <p style="text-align: center;
+                      color: #666;
+                      margin-top: 40px;
+                      font-style: italic">No hay partidos programados para esta fecha.</p>
+        {% endif %}
+    </body>
+</html>

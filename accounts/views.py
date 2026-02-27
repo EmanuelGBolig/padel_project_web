@@ -576,7 +576,13 @@ class OrganizacionProgramacionView(DetailView):
         
         return context
 
-
+class OrganizacionProgramacionPrintView(OrganizacionProgramacionView):
+    """
+    Una vista que hereda toda la lógica de obtención de partidos de OrganizacionProgramacionView
+    pero renderiza una plantilla minimalista, en blanco y negro, sin menús ni decoraciones,
+    optimizada específicamente para la función de impresión/PDF del navegador.
+    """
+    template_name = 'accounts/print/organizacion_programacion.html'
 
 from .forms import OrganizacionForm, SponsorForm
 
