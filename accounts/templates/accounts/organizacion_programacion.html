@@ -5,58 +5,27 @@
 {% endblock head_title %}
 {% block content %}
     <div class="container mx-auto px-4 py-8 max-w-4xl" data-theme="business">
-        <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg"
-             id="schedule-content">
+        <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg">
             <!-- HEADER -->
-            <div class="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 overflow-hidden border-b border-base-content/10 pb-6 w-full">
-                <div class="flex-1 w-full lg:w-auto min-w-0">
-                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md break-words hover:text-primary transition-colors">
-                        PROGRAMACIÓN GENERAL
-                    </h1>
-                    <div class="flex flex-wrap items-center gap-2 mt-2">
-                        <h2 class="text-lg sm:text-xl font-bold text-base-content/60 uppercase tracking-widest break-words">
-                            {{ organizacion.nombre }}
-                        </h2>
+            <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-base-content/10 pb-6">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN GENERAL</h1>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                        <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ organizacion.nombre }}</h2>
                         {% if fecha_seleccionada %}
                             <span class="hidden sm:inline-block text-base-content/40 mx-2">|</span>
-                            <div class="inline-flex items-center justify-center border border-primary text-primary text-xs sm:text-sm font-bold uppercase tracking-wider py-1.5 px-3 rounded-full text-center h-auto whitespace-nowrap whitespace-nowrap">
+                            <div class="inline-flex items-center justify-center border border-primary text-primary text-sm font-bold uppercase tracking-wider py-1.5 px-4 rounded-full text-center h-auto">
                                 Torneos del {{ fecha_seleccionada|date:"d M Y" }}
                             </div>
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center justify-start lg:justify-end gap-3 print:hidden w-full lg:w-auto shrink-0 mt-4 lg:mt-0"
-                     id="export-controls">
-                    <!-- Botones de Exportación -->
-                    <div class="flex flex-wrap gap-2 w-full sm:w-auto justify-start xl:justify-end">
-                        <button onclick="downloadPDF()"
-                                class="btn btn-sm md:btn-md btn-accent text-xs flex-1 sm:flex-none">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-4 w-4 mr-1"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
-                            Descargar PDF
-                        </button>
-                        <a href="{% if fecha_seleccionada %}?fecha={{ fecha_seleccionada|date:'Y-m-d' }}&export=csv{% else %}?export=csv{% endif %}"
-                           class="btn btn-sm md:btn-md btn-primary text-xs flex-1 sm:flex-none">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-4 w-4 mr-1"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Descargar CSV
-                        </a>
-                    </div>
+                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 shrink-0">
                     <!-- Selector de Fecha -->
                     {% if fechas_disponibles %}
-                        <form method="get" class="flex-1 sm:flex-none">
+                        <form method="get" class="w-full sm:w-auto">
                             <select name="fecha"
-                                    class="select select-bordered select-sm md:select-md w-full bg-base-200 text-base-content font-semibold shadow-inner"
+                                    class="select select-bordered select-sm md:select-md w-full sm:w-auto bg-base-200 text-base-content font-semibold shadow-inner"
                                     onchange="this.form.submit()">
                                 <option value="" disabled {% if not fecha_seleccionada %}selected{% endif %}>Seleccionar fecha</option>
                                 {% for fecha in fechas_disponibles %}
@@ -69,7 +38,7 @@
                         </form>
                     {% endif %}
                     <a href="{% url 'accounts:organizador_detalle' organizacion.pk %}"
-                       class="btn btn-sm md:btn-md btn-outline text-xs flex-1 sm:flex-none">Volver al Perfil</a>
+                       class="btn btn-sm md:btn-md btn-outline text-xs w-full sm:w-auto">Volver al Perfil</a>
                 </div>
             </div>
             <!-- TORNEOS DE ESTA FECHA -->
@@ -247,62 +216,5 @@
                 {% endif %}
             </div>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-        <script>
-        function downloadPDF() {
-            if (typeof htmlToImage === 'undefined' || typeof window.jspdf === 'undefined') {
-                alert("Las librerías para generar el PDF aún se están cargando o hubo un error al cargarlas. Por favor espera unos segundos e intenta de nuevo.");
-                return;
-            }
-            const controls = document.getElementById('export-controls');
-            const element = document.getElementById('schedule-content');
-            const btn = controls.querySelector('button');
-            const originalContent = btn.innerHTML;
-            
-            // Show loading state
-            btn.innerHTML = '<span class="loading loading-spinner loading-xs mr-2"></span> Generando PDF...';
-            btn.disabled = true;
-            
-            // Hide the buttons inside the PDF
-            if (controls) controls.style.display = 'none';
-            
-            // Usa html-to-image que sí soporta oklch nativamente al delegarlo al navegador
-            htmlToImage.toPng(element, { 
-                quality: 0.98,
-                backgroundColor: '#000000',
-                pixelRatio: 2
-            })
-            .then(function (dataUrl) {
-                const { jsPDF } = window.jspdf;
-                // PDF A4 portrait
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-                
-                const imgProps = pdf.getImageProperties(dataUrl);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                
-                // Agregamos la imagen al documento
-                pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                pdf.save('{{ organizacion.nombre|slugify }}_programacion.pdf');
-
-                // Restore the buttons
-                if (controls) controls.style.display = 'flex';
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            })
-            .catch(function (error) {
-                console.error("Error generating PDF:", error);
-                alert("Hubo un error al generar el PDF. Por favor intenta desde una computadora de escritorio o utiliza la opción de 'Descargar CSV'. Error: " + error.message);
-                if (controls) controls.style.display = 'flex';
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            });
-        }
-        </script>
     </div>
 {% endblock content %}
