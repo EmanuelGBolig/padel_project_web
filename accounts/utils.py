@@ -2,11 +2,12 @@ from django.db.models import Count, Q, Sum, Value, IntegerField
 from django.db.models.functions import Coalesce
 from django.core.cache import cache
 
-def get_division_rankings(division, force_recalc=False):
+def get_division_rankings(division, genero=None, force_recalc=False):
     if not division:
         return []
 
-    cache_key = f'rankings_jugadores_div_{division.id}'
+    genero_key = genero if genero in ('MASCULINO', 'FEMENINO') else 'ALL'
+    cache_key = f'rankings_jugadores_div_{division.id}_gen_{genero_key}'
     
     if not force_recalc:
         cached_rankings = cache.get(cache_key)
@@ -17,6 +18,10 @@ def get_division_rankings(division, force_recalc=False):
         rankings_db = RankingJugador.objects.filter(division=division).select_related('jugador').prefetch_related(
             'jugador__equipos_como_jugador1', 'jugador__equipos_como_jugador2'
         ).order_by('-puntos', '-torneos_ganados', '-victorias')
+
+        # Filtrar por género si se especifica
+        if genero_key != 'ALL':
+            rankings_db = rankings_db.filter(jugador__genero=genero_key)
 
         result = []
         for i, r in enumerate(rankings_db, 1):
@@ -36,7 +41,6 @@ def get_division_rankings(division, force_recalc=False):
                 'posicion': i
             })
         
-        # Opcional: llenar tabla local cacheada
         cache.set(cache_key, result, 300)
         return result
 
@@ -46,14 +50,16 @@ def get_division_rankings(division, force_recalc=False):
     torneo_ids = list(Torneo.objects.filter(division=division).values_list('id', flat=True))
 
     if not torneo_ids:
-        jugadores = CustomUser.objects.filter(
+        jugadores_qs = CustomUser.objects.filter(
             division=division, tipo_usuario='PLAYER'
         ).select_related('division')
+        if genero_key != 'ALL':
+            jugadores_qs = jugadores_qs.filter(genero=genero_key)
         result = [{
             'jugador': j, 'puntos': 0, 'victorias': 0,
             'win_rate': 0, 'torneos_ganados': 0,
             'equipos': [], 'partidos_totales': 0
-        } for j in jugadores]
+        } for j in jugadores_qs]
         for i, item in enumerate(result, 1):
             item['posicion'] = i
         cache.set(cache_key, result, 300)
@@ -173,10 +179,13 @@ def get_division_rankings(division, force_recalc=False):
         set(puntos_por_jugador.keys())
     )
 
-    jugadores = CustomUser.objects.filter(
+    jugadores_qs = CustomUser.objects.filter(
         Q(division=division) | Q(id__in=jugador_ids_con_datos),
         tipo_usuario='PLAYER'
     ).distinct().select_related('division').prefetch_related('equipos_como_jugador1', 'equipos_como_jugador2')
+    if genero_key != 'ALL':
+        jugadores_qs = jugadores_qs.filter(genero=genero_key)
+    jugadores = jugadores_qs
 
     jugadores_con_puntos = []
     for jugador in jugadores:

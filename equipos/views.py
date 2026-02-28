@@ -399,9 +399,12 @@ class RankingListView(ListView):
         from django.db.models import Count, Q, F, Case, When, IntegerField, FloatField, Value
         from django.core.cache import cache
         
-        # Obtener división seleccionada del parámetro GET
-        # Obtener división seleccionada del parámetro GET
+        # Obtener división y género del parámetro GET
         division_id = self.request.GET.get('division')
+        genero = self.request.GET.get('genero', '')
+        if genero not in ('MASCULINO', 'FEMENINO'):
+            genero = ''
+        genero_key = genero if genero else 'ALL'
         
         # Si no hay división seleccionada, usar la del usuario o la primera
         if not division_id:
@@ -423,8 +426,8 @@ class RankingListView(ListView):
         rankings_por_division = []
         
         for division in divisiones:
-            # Cache para esta división
-            cache_key = f'rankings_equipos_div_{division.id}'
+            # Cache key incluye género para no mezclar datos
+            cache_key = f'rankings_equipos_div_{division.id}_gen_{genero_key}'
             from django.core.cache import cache as dj_cache
             
             if not force_recalc:
@@ -435,6 +438,9 @@ class RankingListView(ListView):
 
                 from equipos.models import RankingEquipo
                 rankings_db = RankingEquipo.objects.filter(division=division).select_related('equipo', 'equipo__jugador1', 'equipo__jugador2').order_by('-puntos', '-torneos_ganados', '-victorias')
+                # Filtrar por género si se especifica (usamos jugador1 como referencia del equipo)
+                if genero_key != 'ALL':
+                    rankings_db = rankings_db.filter(equipo__jugador1__genero=genero_key)
 
                 equipos_con_puntos = []
                 for i, r in enumerate(rankings_db, 1):
@@ -580,6 +586,9 @@ class RankingListView(ListView):
             equipos_qs = Equipo.objects.filter(
                 Q(division=division) | Q(id__in=equipo_ids_con_datos)
             ).distinct().select_related('jugador1', 'jugador2', 'division')
+            # Filtrar por género si se especifica
+            if genero_key != 'ALL':
+                equipos_qs = equipos_qs.filter(jugador1__genero=genero_key)
 
             equipos_con_puntos = []
             for equipo in equipos_qs:
@@ -625,7 +634,7 @@ class RankingListView(ListView):
         # Agregar todas las divisiones para el filtro (Dropdown)
         context['divisiones'] = Division.objects.all().order_by('orden')
         
-        # Determinar la división seleccionada para marcar en el select
+        # Determinar la división seleccionada
         division_id = self.request.GET.get('division')
         if not division_id:
              if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
@@ -639,7 +648,13 @@ class RankingListView(ListView):
         
         context['division_seleccionada'] = division_id
         
-        # Agregar información del equipo del usuario si está autenticado
+        # Género seleccionado
+        genero = self.request.GET.get('genero', '')
+        if genero not in ('MASCULINO', 'FEMENINO'):
+            genero = ''
+        context['genero_seleccionado'] = genero
+        
+        # Información del equipo del usuario si está autenticado
         if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
             context['mi_equipo'] = self.request.user.equipo
         

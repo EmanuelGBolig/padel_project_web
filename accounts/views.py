@@ -308,8 +308,13 @@ class RankingJugadoresListView(ListView):
         from .utils import get_division_rankings
         from equipos.models import Division
         
-        # Obtener división seleccionada del parámetro GET
+        # Obtener división y género del parámetro GET
         division_id = self.request.GET.get('division')
+        genero = self.request.GET.get('genero', '')
+        
+        # Normalizar género (solo acepta MASCULINO o FEMENINO)
+        if genero not in ('MASCULINO', 'FEMENINO'):
+            genero = None
         
         # Si no hay división seleccionada, usar la del usuario o la primera
         if not division_id:
@@ -324,17 +329,12 @@ class RankingJugadoresListView(ListView):
         if division_id:
             divisiones = Division.objects.filter(id=division_id)
         else:
-            # Fallback: si no hay divisiones en absoluto
             divisiones = Division.objects.none()
         
         rankings_por_division = []
         
         for division in divisiones:
-            # Ahora la función get_division_rankings debe traer a todos los de esa división
-            jugadores_con_puntos = get_division_rankings(division)
-            
-            # Mostrar tabla incluso si está vacía (para que se vea que no hay nadie)
-            # O si preferimos ocultar: if jugadores_con_puntos:
+            jugadores_con_puntos = get_division_rankings(division, genero=genero)
             rankings_por_division.append({
                 'division': division,
                 'jugadores': jugadores_con_puntos
@@ -349,7 +349,7 @@ class RankingJugadoresListView(ListView):
         # Agregar todas las divisiones para el filtro (Dropdown)
         context['divisiones'] = Division.objects.all().order_by('orden')
         
-        # Determinar la división seleccionada para marcar en el select
+        # Determinar la división seleccionada
         division_id = self.request.GET.get('division')
         if not division_id:
              if self.request.user.is_authenticated and self.request.user.division:
@@ -361,7 +361,13 @@ class RankingJugadoresListView(ListView):
         
         context['division_seleccionada'] = division_id
         
-        # Agregar información del usuario autenticado
+        # Género seleccionado
+        genero = self.request.GET.get('genero', '')
+        if genero not in ('MASCULINO', 'FEMENINO'):
+            genero = ''
+        context['genero_seleccionado'] = genero
+        
+        # Información del usuario autenticado
         if self.request.user.is_authenticated:
             context['usuario_actual'] = self.request.user
         
