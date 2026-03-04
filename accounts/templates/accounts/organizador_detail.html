@@ -115,12 +115,12 @@
                             <a href="{% url 'torneos:detail' torneo.pk %}"
                                class="card bg-base-100 shadow-lg hover:shadow-xl transition-all border border-base-200 group">
                                 <div class="card-body p-5">
-                                    <div class="flex justify-between items-start">
-                                        <div>
+                                    <div class="flex justify-between items-start gap-3">
+                                        <div class="min-w-0 flex-1">
                                             <h4 class="card-title text-primary group-hover:text-primary-focus transition-colors">{{ torneo.nombre }}</h4>
                                             <div class="text-sm opacity-60 mt-1 flex items-center gap-2">
                                                 <svg xmlns="http://www.w3.org/2000/svg"
-                                                     class="h-4 w-4"
+                                                     class="h-4 w-4 shrink-0"
                                                      fill="none"
                                                      viewBox="0 0 24 24"
                                                      stroke="currentColor">
@@ -129,7 +129,7 @@
                                                 {{ torneo.fecha_inicio|date:"d M, Y" }}
                                             </div>
                                         </div>
-                                        <div class="badge badge-outline">{{ torneo.get_estado_display }}</div>
+                                        <div class="badge badge-outline shrink-0 whitespace-nowrap">{{ torneo.get_estado_display }}</div>
                                     </div>
                                     <div class="mt-4 flex flex-wrap gap-2">
                                         <span class="badge badge-ghost text-xs">{{ torneo.division }}</span>
