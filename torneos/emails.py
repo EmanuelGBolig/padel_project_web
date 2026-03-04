@@ -1,4 +1,5 @@
 import logging
+import time
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -78,10 +79,12 @@ def notificar_nuevo_torneo(torneo):
             )
             enviados += 1
             logger.info(f"[emails] Email enviado a {jugador.email}.")
+            time.sleep(0.6)  # Resend permite max 2 req/seg
         except Exception as e:
             logger.error(f"[emails] Error enviando a {jugador.email}: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"[emails] Resend response: {e.response.text}")
+            time.sleep(0.6)  # También esperar en error para no acumular
 
     logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{total_elegibles} emails enviados.")
     return enviados, total_elegibles
