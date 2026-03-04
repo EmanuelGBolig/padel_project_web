@@ -1,7 +1,7 @@
 import logging
-from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +14,7 @@ def notificar_nuevo_torneo(torneo):
     - División dentro del rango ±1 del torneo (o cualquier división si el torneo es libre)
     - Género compatible con la categoría del torneo
     """
+    from django.core.mail import send_mail
     from accounts.models import CustomUser
 
     jugadores = CustomUser.objects.filter(
@@ -29,7 +30,6 @@ def notificar_nuevo_torneo(torneo):
         jugadores = jugadores.filter(genero='MASCULINO')
     elif torneo.categoria == 'F':
         jugadores = jugadores.filter(genero='FEMENINO')
-    # Mixto ('X') → no filtramos por género
 
     logger.info(f"[emails] Tras filtro género ({torneo.get_categoria_display()}): {jugadores.count()} jugadores.")
 
@@ -50,7 +50,7 @@ def notificar_nuevo_torneo(torneo):
     # --- Armar y enviar los mensajes ---
     site_url = getattr(settings, 'SITE_URL', 'https://todopadel.club')
     torneo_url = f"{site_url}/torneos/{torneo.pk}/"
-    from_email = settings.DEFAULT_FROM_EMAIL if not settings.DEBUG else 'noreply@todopadel.club'
+    from_email = settings.DEFAULT_FROM_EMAIL
     asunto = f"🎾 Nuevo torneo disponible: {torneo.nombre}"
 
     enviados = 0
@@ -60,26 +60,23 @@ def notificar_nuevo_torneo(torneo):
             'torneo': torneo,
             'torneo_url': torneo_url,
         }
-        cuerpo_texto = (
-            f"Hola {jugador.full_name},\n\n"
-            f"Se abrió la inscripción para el torneo: {torneo.nombre}\n"
-            f"División: {torneo.division or 'Libre'}\n"
-            f"Categoría: {torneo.get_categoria_display()}\n"
-            f"Fecha: {torneo.fecha_inicio.strftime('%d/%m/%Y')}\n\n"
-            f"Inscribite acá: {torneo_url}\n\n"
-            f"— El equipo de TodoPadel"
-        )
-        cuerpo_html = render_to_string('torneos/emails/nuevo_torneo.html', contexto)
+        html_message = render_to_string('torneos/emails/nuevo_torneo.html', contexto)
+        plain_message = strip_tags(html_message)
 
-        msg = EmailMultiAlternatives(
-            subject=asunto,
-            body=cuerpo_texto,
-            from_email=from_email,
-            to=[jugador.email],
-        )
-        msg.attach_alternative(cuerpo_html, 'text/html')
-        msg.send(fail_silently=False)
-        enviados += 1
-        logger.info(f"[emails] Email enviado a {jugador.email}.")
+        try:
+            send_mail(
+                subject=asunto,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[jugador.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            enviados += 1
+            logger.info(f"[emails] Email enviado a {jugador.email}.")
+        except Exception as e:
+            logger.error(f"[emails] Error enviando a {jugador.email}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"[emails] Resend response: {e.response.text}")
 
-    logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados} emails enviados correctamente.")
+    logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{jugadores.count()} emails enviados.")
