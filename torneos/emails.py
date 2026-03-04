@@ -45,7 +45,11 @@ def notificar_nuevo_torneo(torneo):
 
     if not jugadores.exists():
         logger.info(f"[emails] Torneo '{torneo.nombre}': no hay jugadores elegibles, no se envían emails.")
-        return
+        return 0, 0
+
+    # Materializar el queryset para contar sin releer la DB
+    lista_jugadores = list(jugadores)
+    total_elegibles = len(lista_jugadores)
 
     # --- Armar y enviar los mensajes ---
     site_url = getattr(settings, 'SITE_URL', 'https://todopadel.club')
@@ -54,7 +58,7 @@ def notificar_nuevo_torneo(torneo):
     asunto = f"🎾 Nuevo torneo disponible: {torneo.nombre}"
 
     enviados = 0
-    for jugador in jugadores:
+    for jugador in lista_jugadores:
         contexto = {
             'jugador': jugador,
             'torneo': torneo,
@@ -79,4 +83,5 @@ def notificar_nuevo_torneo(torneo):
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"[emails] Resend response: {e.response.text}")
 
-    logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{jugadores.count()} emails enviados.")
+    logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{total_elegibles} emails enviados.")
+    return enviados, total_elegibles
