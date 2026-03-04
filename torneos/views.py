@@ -218,7 +218,16 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             torneo.save()
             messages.success(request, "Torneo finalizado.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
-            
+
+        elif action == 'notificar_jugadores':
+            try:
+                notificar_nuevo_torneo(torneo)
+                messages.success(request, "✅ Emails enviados a los jugadores elegibles.")
+            except Exception as e:
+                logger.error(f"[emails] Error al notificar manualmente torneo '{torneo}': {e}")
+                messages.error(request, "Hubo un error al enviar los emails. Revisá los logs.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
         elif action == 'set_grupo_date':
             grupo_id = request.POST.get('grupo_id')
             grupo = get_object_or_404(Grupo, pk=grupo_id, torneo=torneo)
