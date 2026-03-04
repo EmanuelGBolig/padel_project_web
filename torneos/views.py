@@ -37,7 +37,11 @@ from .forms import (
     TorneoReplaceTeamForm,
 )
 from .formats import get_format
+from .emails import notificar_nuevo_torneo
 from equipos.models import Equipo
+import logging
+
+logger = logging.getLogger(__name__)
 
 # --- Mixins de Permisos ---
 
@@ -971,7 +975,13 @@ class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
         # Si el usuario es un organizador, asignar automáticamente su organización
         if user.tipo_usuario == 'ORGANIZER' and user.organizacion:
             form.instance.organizacion = user.organizacion
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Notificar a jugadores elegibles por email (sin bloquear si falla)
+        try:
+            notificar_nuevo_torneo(self.object)
+        except Exception as e:
+            logger.error(f"[emails] Error inesperado al notificar torneo '{self.object}': {e}")
+        return response
 
 
 
