@@ -178,6 +178,22 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         elif action == 'confirmar_grupos':
             return self.confirmar_grupos_logica(request, torneo)
         
+        elif action == 'eliminar_inscripcion':
+            inscripcion_id = request.POST.get('inscripcion_id')
+            inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id, torneo=torneo)
+            if torneo.estado != Torneo.Estado.ABIERTO:
+                messages.error(request, "Solo se puede eliminar una pareja mientras el torneo está abierto.")
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+            nombre_equipo = inscripcion.equipo.nombre
+            # Si el equipo es dummy (pareja libre), también eliminar el equipo
+            es_dummy = inscripcion.equipo.es_dummy
+            inscripcion.delete()
+            if es_dummy:
+                from equipos.models import Equipo as EquipoModel
+                EquipoModel.objects.filter(pk=inscripcion.equipo_id, es_dummy=True).delete()
+            messages.success(request, f"Se eliminó la pareja '{nombre_equipo}' del torneo.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
         elif action == 'agregar_dummy':
             nombre_custom = request.POST.get('nombre_dummy_custom', '').strip()
             if nombre_custom:
