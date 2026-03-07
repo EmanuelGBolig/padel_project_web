@@ -15,4 +15,4 @@ python manage.py createcachetable
 # Scripts de automatización
 python scripts/seed_divisions.py
 python scripts/create_initial_superuser.py
-python manage.py migrar_rankings_historicos
+# migrar_rankings_historicos es un script puntual, NO debe correr en cada deploy

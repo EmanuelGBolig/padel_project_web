@@ -36,16 +36,19 @@ class Command(BaseCommand):
                 partidos = item['partidos_totales']
                 
                 # Actualizar o Crear fila en DB
-                RankingJugador.objects.update_or_create(
-                    jugador=jugador,
-                    division=division,
-                    defaults={
-                        'puntos': puntos,
-                        'torneos_ganados': torneos,
-                        'victorias': victorias,
-                        'partidos_jugados': partidos
-                    }
-                )
+                try:
+                    RankingJugador.objects.update_or_create(
+                        jugador=jugador,
+                        division=division,
+                        defaults={
+                            'puntos': puntos,
+                            'torneos_ganados': torneos,
+                            'victorias': victorias,
+                            'partidos_jugados': partidos
+                        }
+                    )
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"     [SKIP] Jugador {jugador.id} saltado: {e}"))
             
             self.stdout.write(f"     [OK] {len(jugadores_data)} Jugadores migrados.")
 
