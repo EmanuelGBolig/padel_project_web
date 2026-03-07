@@ -1130,10 +1130,14 @@ class TorneoDetailView(DetailView):
             context['division_correcta'] = self._es_division_permitida(equipo, torneo)
             
             # Validación de Categoría
+            # Las parejas mixtas pueden inscribirse a cualquier tipo de torneo
             context['categoria_correcta'] = True
             if hasattr(equipo, 'categoria') and hasattr(torneo, 'categoria'):
-                if torneo.categoria and equipo.categoria != torneo.categoria:
-                     context['categoria_correcta'] = False
+                if (torneo.categoria
+                        and equipo.categoria != torneo.categoria
+                        and torneo.categoria != 'X'
+                        and equipo.categoria != 'X'):
+                    context['categoria_correcta'] = False
 
             context['torneo_abierto'] = torneo.estado == Torneo.Estado.ABIERTO
             context['inscripcion_cerrada'] = (
@@ -1375,12 +1379,14 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
                 return redirect('torneos:detail', pk=torneo.pk)
             
             # Verificar Categoría
+            # Las parejas mixtas pueden inscribirse a cualquier tipo de torneo
             if hasattr(equipo, 'categoria') and hasattr(torneo, 'categoria'):
-                # Si el torneo tiene categoría (M, F, X) y el equipo no coincide
-                # Y el torneo NO ES mixto ('X', M/F/etc)
-                if torneo.categoria and equipo.categoria != torneo.categoria and torneo.categoria != 'X':
+                if (torneo.categoria
+                        and equipo.categoria != torneo.categoria
+                        and torneo.categoria != 'X'
+                        and equipo.categoria != 'X'):
                     messages.warning(
-                        request, 
+                        request,
                         f"Tu equipo es categoría {equipo.get_categoria_display()} y este torneo requiere categoría {torneo.get_categoria_display()}."
                     )
                     return redirect('torneos:detail', pk=torneo.pk)
