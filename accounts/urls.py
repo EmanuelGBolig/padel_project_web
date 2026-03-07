@@ -29,7 +29,8 @@ urlpatterns = [
     # Rutas de recuperación de contraseña (Explícitas para corregir namespace)
     path('password_reset/', auth_views.PasswordResetView.as_view(
         success_url=reverse_lazy('accounts:password_reset_done'),
-        email_template_name='registration/password_reset_email.html'
+        email_template_name='registration/password_reset_email.html',
+        html_email_template_name='registration/password_reset_email_html.html',
     ), name='password_reset'),
     
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
