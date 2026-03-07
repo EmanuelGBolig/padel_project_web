@@ -147,7 +147,7 @@ class VerifyEmailView(FormView):
             user.save()
             
             # Autologuear
-            login(self.request, user)
+            login(self.request, user, backend='django.contrib.auth.backends.ModelBackend')
             del self.request.session['verification_user_id']
             return super().form_valid(form)
         else:
