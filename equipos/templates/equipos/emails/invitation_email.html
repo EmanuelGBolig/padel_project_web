@@ -1,35 +1,51 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <style>
-        body { font-family: sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
-        .header { background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { padding: 20px; }
-        .button { display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-        .footer { margin-top: 20px; font-size: 0.8em; color: #666; text-align: center; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h2>¡Tienes una nueva invitación!</h2>
-            </div>
-            <div class="content">
-                <p>
-                    Hola <strong>{{ invited.nombre }}</strong>,
-                </p>
-                <p>
-                    <strong>{{ inviter.full_name }}</strong> te ha invitado a formar parte de su pareja de pádel en <strong>TodoPadel</strong>.
-                </p>
-                <p>Para aceptar o rechazar la invitación, inicia sesión y ve a tu perfil.</p>
-                <div style="text-align: center;">
-                    <a href="{{ action_url }}" class="button">Ver Invitación</a>
-                </div>
-            </div>
-            <div class="footer">
-                <p>Si no esperabas esto, puedes ignorar este correo.</p>
-            </div>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Invitación a pareja - TodoPadel</title>
+    <style>
+        body { margin: 0; padding: 0; background: #0f1117; font-family: 'Arial', sans-serif; color: #e2e8f0; }
+        .wrapper { max-width: 560px; margin: 40px auto; background: #1a1d27; border-radius: 16px; overflow: hidden; border: 1px solid #2d3148; }
+        .header { background: linear-gradient(135deg, #00c896 0%, #009e73 100%); padding: 32px 40px; text-align: center; }
+        .header h1 { margin: 0; color: #fff; font-size: 22px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+        .header p { margin: 6px 0 0; color: rgba(255,255,255,0.8); font-size: 13px; }
+        .body { padding: 32px 40px; }
+        .greeting { font-size: 16px; margin-bottom: 20px; color: #cbd5e1; }
+        .greeting strong { color: #fff; }
+        .card { background: #12141f; border: 1px solid #2d3148; border-radius: 12px; padding: 24px; margin: 20px 0; text-align: center; }
+        .inviter-name { color: #00c896; font-size: 22px; font-weight: 900; margin: 0 0 8px; }
+        .inviter-sub { color: #64748b; font-size: 13px; }
+        .cta { text-align: center; margin: 28px 0 8px; }
+        .btn { display: inline-block; background: #00c896; color: #0f1117; font-weight: 900; font-size: 15px; text-decoration: none; padding: 14px 36px; border-radius: 10px; letter-spacing: 0.5px; }
+        .note { font-size: 13px; color: #64748b; text-align: center; margin-top: 16px; }
+        .footer { background: #12141f; border-top: 1px solid #2d3148; padding: 20px 40px; text-align: center; font-size: 12px; color: #475569; }
+        .footer a { color: #00c896; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <h1>🎾 ¡Nueva Invitación!</h1>
+            <p>Alguien quiere jugar con vos</p>
         </div>
-    </body>
+        <div class="body">
+            <p class="greeting">Hola, <strong>{{ invited.nombre }}</strong>!</p>
+            <p style="color:#94a3b8; font-size:14px; line-height:1.6;">
+                Recibiste una invitación para formar pareja en <strong style="color:#e2e8f0;">TodoPadel</strong>.
+            </p>
+            <div class="card">
+                <div class="inviter-name">{{ inviter.full_name }}</div>
+                <div class="inviter-sub">te invita a ser su pareja de pádel 🏓</div>
+            </div>
+            <div class="cta">
+                <a href="{{ action_url }}" class="btn">Ver Invitación</a>
+            </div>
+            <p class="note">Si no esperabas esta invitación, podés ignorar este email.</p>
+        </div>
+        <div class="footer">
+            © 2026 <a href="https://todopadel.club">TodoPadel</a>. Todos los derechos reservados.
+        </div>
+    </div>
+</body>
 </html>

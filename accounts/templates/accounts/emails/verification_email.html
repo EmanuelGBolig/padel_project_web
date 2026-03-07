@@ -1,31 +1,52 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <style>
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 40px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .logo { font-size: 24px; font-weight: bold; color: #4F46E5; text-decoration: none; }
-        .content { color: #333333; line-height: 1.6; }
-        .code-box { background-color: #F3F4F6; border: 1px dashed #4F46E5; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 5px; font-weight: bold; color: #111827; margin: 30px 0; border-radius: 8px; }
-        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #9CA3AF; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <a href="https://padel-project-web.onrender.com" class="logo">TodoPadel</a>
-            </div>
-            <div class="content">
-                <h2 style="text-align: center; color: #111827;">Verifica tu cuenta</h2>
-                <p>Hola,</p>
-                <p>
-                    Gracias por registrarte en TodoPadel. Para completar tu registro y activar tu cuenta, por favor utiliza el siguiente código de verificación:
-                </p>
-                <div class="code-box">{{ code }}</div>
-                <p>Si no has solicitado este código, puedes ignorar este correo.</p>
-            </div>
-            <div class="footer">&copy; 2026 TodoPadel. Todos los derechos reservados.</div>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Verifica tu cuenta - TodoPadel</title>
+    <style>
+        body { margin: 0; padding: 0; background: #0f1117; font-family: 'Arial', sans-serif; color: #e2e8f0; }
+        .wrapper { max-width: 560px; margin: 40px auto; background: #1a1d27; border-radius: 16px; overflow: hidden; border: 1px solid #2d3148; }
+        .header { background: linear-gradient(135deg, #00c896 0%, #009e73 100%); padding: 32px 40px; text-align: center; }
+        .header h1 { margin: 0; color: #fff; font-size: 22px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+        .header p { margin: 6px 0 0; color: rgba(255,255,255,0.8); font-size: 13px; }
+        .body { padding: 32px 40px; }
+        .greeting { font-size: 16px; margin-bottom: 20px; color: #cbd5e1; }
+        .greeting strong { color: #fff; }
+        .code-box {
+            background: #12141f;
+            border: 2px dashed #00c896;
+            border-radius: 12px;
+            padding: 28px;
+            text-align: center;
+            font-size: 42px;
+            letter-spacing: 12px;
+            font-weight: 900;
+            color: #00c896;
+            margin: 28px 0;
+        }
+        .note { font-size: 13px; color: #64748b; text-align: center; margin-top: -12px; }
+        .footer { background: #12141f; border-top: 1px solid #2d3148; padding: 20px 40px; text-align: center; font-size: 12px; color: #475569; }
+        .footer a { color: #00c896; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <h1>🎾 TodoPadel</h1>
+            <p>Verificación de cuenta</p>
         </div>
-    </body>
+        <div class="body">
+            <p class="greeting">¡Hola! Gracias por registrarte en <strong>TodoPadel</strong>.</p>
+            <p style="color:#94a3b8; font-size:14px; line-height:1.6;">
+                Para completar tu registro y activar tu cuenta, usá el siguiente código de verificación:
+            </p>
+            <div class="code-box">{{ code }}</div>
+            <p class="note">Este código expira en 15 minutos. Si no solicitaste este código, ignorá este email.</p>
+        </div>
+        <div class="footer">
+            © 2026 <a href="https://todopadel.club">TodoPadel</a>. Todos los derechos reservados.
+        </div>
+    </div>
+</body>
 </html>
