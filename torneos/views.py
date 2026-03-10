@@ -240,10 +240,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 enviados, total = notificar_nuevo_torneo(torneo)
                 if total == 0:
                     messages.warning(request, "⚠️ No se encontraron jugadores elegibles para este torneo (verificá división y categoría).")
-                elif enviados == total:
-                    messages.success(request, f"✅ {enviados} email{'s' if enviados != 1 else ''} enviado{'s' if enviados != 1 else ''} correctamente.")
                 else:
-                    messages.warning(request, f"⚠️ Se enviaron {enviados} de {total} emails. Revisá los logs para ver los errores.")
+                    messages.success(request, f"✅ El envío de {total} emails a jugadores elegibles se está procesando en segundo plano.")
             except Exception as e:
                 logger.error(f"[emails] Error al notificar manualmente torneo '{torneo}': {e}")
                 messages.error(request, f"Error al enviar los emails: {e}")

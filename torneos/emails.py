@@ -58,33 +58,39 @@ def notificar_nuevo_torneo(torneo):
     from_email = settings.DEFAULT_FROM_EMAIL
     asunto = f"🎾 Nuevo torneo disponible: {torneo.nombre}"
 
-    enviados = 0
-    for jugador in lista_jugadores:
-        contexto = {
-            'jugador': jugador,
-            'torneo': torneo,
-            'torneo_url': torneo_url,
-        }
-        html_message = render_to_string('torneos/emails/nuevo_torneo.html', contexto)
-        plain_message = strip_tags(html_message)
+    def enviar_emails_en_segundo_plano():
+        enviados = 0
+        for jugador in lista_jugadores:
+            contexto = {
+                'jugador': jugador,
+                'torneo': torneo,
+                'torneo_url': torneo_url,
+            }
+            html_message = render_to_string('torneos/emails/nuevo_torneo.html', contexto)
+            plain_message = strip_tags(html_message)
 
-        try:
-            send_mail(
-                subject=asunto,
-                message=plain_message,
-                from_email=from_email,
-                recipient_list=[jugador.email],
-                html_message=html_message,
-                fail_silently=False,
-            )
-            enviados += 1
-            logger.info(f"[emails] Email enviado a {jugador.email}.")
-            time.sleep(0.6)  # Resend permite max 2 req/seg
-        except Exception as e:
-            logger.error(f"[emails] Error enviando a {jugador.email}: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"[emails] Resend response: {e.response.text}")
-            time.sleep(0.6)  # También esperar en error para no acumular
+            try:
+                send_mail(
+                    subject=asunto,
+                    message=plain_message,
+                    from_email=from_email,
+                    recipient_list=[jugador.email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                enviados += 1
+                logger.info(f"[emails] Email enviado a {jugador.email}.")
+                time.sleep(0.6)  # Resend permite max 2 req/seg
+            except Exception as e:
+                logger.error(f"[emails] Error enviando a {jugador.email}: {e}")
+                if hasattr(e, 'response') and e.response is not None:
+                    logger.error(f"[emails] Resend response: {e.response.text}")
+                time.sleep(0.6)  # También esperar en error para no acumular
 
-    logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{total_elegibles} emails enviados.")
-    return enviados, total_elegibles
+        logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{total_elegibles} emails enviados en segundo plano.")
+
+    import threading
+    threading.Thread(target=enviar_emails_en_segundo_plano).start()
+
+    logger.info(f"[emails] Torneo '{torneo.nombre}': enviando {total_elegibles} emails en segundo plano.")
+    return 0, total_elegibles
