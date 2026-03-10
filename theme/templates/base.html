@@ -101,6 +101,11 @@
             --suc: 98% 0.01 163 !important;
         }
 
+        /* Google Maps Embed en Modo Oscuro (CSS Filter Hack) */
+        [data-theme="business"] .google-map-embed {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%) grayscale(15%);
+        }
+
         /* Forzar colores Emerald en botones clave para evitar residuales de temas */
         .btn-primary, .btn-success {
             background-color: #10b981 !important;
