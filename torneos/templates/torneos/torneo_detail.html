@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load torneo_extras %}
 {% load static %}
 {% block title %}
@@ -509,9 +509,10 @@
                 </summary>
                 <!-- Force overflow visible for horizontal scroll -->
                 <!-- Force overflow visible for horizontal scroll -->
-                <div class="collapse-content px-2 md:px-8 pb-4 md:pb-8 pt-0 min-w-0 !overflow-visible relative">
+                <div class="collapse-content px-2 md:px-4 pb-4 md:pb-8 pt-0 overflow-x-auto">
                     <!-- BRACKET: Horizontal bracket for all screens -->
-                    <div class="overflow-x-auto w-full pb-6 !overflow-x-auto max-w-[100vw] relative"
+                    <div class="w-full pb-6 relative"
+                         style="overflow-x: auto; -webkit-overflow-scrolling: touch;"
                          id="bracket-container">
                         <svg id="bracket-lines-svg"
                              class="absolute top-0 left-0 w-full h-full pointer-events-none"
