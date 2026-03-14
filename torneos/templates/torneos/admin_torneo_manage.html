@@ -681,6 +681,26 @@
                     {% endfor %}
                 </div>
             </section>
+        {% elif torneo.estado != 'AB' %}
+            <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-warning/30 flex flex-col items-center justify-center text-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-warning/20 text-warning flex items-center justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-base-content">Cuadro Final Pendiente</h3>
+                <p class="opacity-70 max-w-md">Parece que el cuadro de eliminación no se definió todavía. Podés forzar la creación de la estructura vacía basada en los grupos actuales.</p>
+                <form method="post" onsubmit="return confirm('¿Forzar la creación del cuadro vacío con las posiciones de todos los grupos?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="forzar_cuadro_vacio">
+                    <button type="submit" class="btn btn-warning gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                        Generar Cuadro Vacío
+                    </button>
+                </form>
+            </section>
         {% endif %}
         <!-- MODAL RESULTADO -->
         <dialog id="resultado_modal" class="modal">

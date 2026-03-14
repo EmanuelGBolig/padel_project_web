@@ -229,6 +229,14 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             messages.success(request, "Bracket eliminado. Puedes generar uno nuevo.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
+        elif action == 'forzar_cuadro_vacio':
+            if not torneo.partidos.exists():
+                self.generar_octavos_logica(request, torneo, solo_estructura=True)
+                messages.success(request, "Cuadro vacío pre-generado exitosamente.")
+            else:
+                messages.warning(request, "El torneo ya tiene un cuadro de partidos generado.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
         elif action == 'finalizar_torneo':
             torneo.estado = Torneo.Estado.FINALIZADO
             torneo.save()
