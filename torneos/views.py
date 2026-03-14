@@ -500,8 +500,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                         current_match.siguiente_partido = next_match
                         current_match.save()
 
-                messages.success(request, f"Bracket complejo generado para {count} parejas.")
-                return redirect('torneos:admin_manage', pk=torneo.pk)
+                if not solo_estructura:
+                    messages.success(request, f"Bracket complejo generado para {count} parejas.")
+                    return redirect('torneos:admin_manage', pk=torneo.pk)
+                else:
+                    return None
 
             # LÓGICA LEGACY (Simétrica basada en crossings)
             # 2. Determinar ronda inicial
@@ -577,8 +580,11 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                         partido.siguiente_partido = partidos_siguientes[i // 2]
                         partido.save()
 
-            messages.success(request, f"Bracket personalizado generado para {count} parejas.")
-            return redirect('torneos:admin_manage', pk=torneo.pk)
+            if not solo_estructura:
+                messages.success(request, f"Bracket personalizado generado para {count} parejas.")
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+            else:
+                return None
 
         # --- LÓGICA GENÉRICA (FALLBACK) ---
         
@@ -735,10 +741,13 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                     partido.siguiente_partido = partidos_siguientes[i // 2]
                     partido.save()
 
-        messages.success(
-            request, f"Estructura de bracket generada ({bracket_size} slots)." if solo_estructura else f"Bracket de {bracket_size} generado con {num_equipos} equipos."
-        )
-        return redirect('torneos:admin_manage', pk=torneo.pk)
+        if not solo_estructura:
+            messages.success(
+                request, f"Bracket de {bracket_size} generado con {num_equipos} equipos."
+            )
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+        else:
+            return None
 
     def avanzar_grupo_logica(self, request, torneo, grupo):
         """Manda a los que pasaron del grupo a sus lugares correspondientes en el bracket."""
