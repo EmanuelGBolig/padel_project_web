@@ -766,8 +766,38 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         tabla = list(grupo.tabla.all()) # Evaluar queryset a lista
+
+        # Si no hay filas en la tabla de posiciones, reconstruirla desde los resultados de PartidoGrupo
         if len(tabla) == 0:
-            messages.error(request, f"No hay clasificados en {grupo.nombre}.")
+            partidos_grupo = grupo.partidos_grupo.filter(ganador__isnull=False)
+            if not partidos_grupo.exists():
+                messages.error(request, f"No hay partidos ni clasificados en {grupo.nombre}.")
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+
+            # Recopilar los equipos que participaron en los partidos
+            equipos_vistos = {}
+            for p in partidos_grupo:
+                for equipo in [p.equipo1, p.equipo2]:
+                    if equipo and equipo.pk not in equipos_vistos:
+                        equipos_vistos[equipo.pk] = equipo
+
+            # Crear EquipoGrupo faltantes y dejar que el signal los actualice
+            for num, equipo in enumerate(equipos_vistos.values(), start=1):
+                eg, created = EquipoGrupo.objects.get_or_create(grupo=grupo, equipo=equipo, defaults={'numero': num})
+                if not created and eg.numero == 0:
+                    eg.numero = num
+                    eg.save()
+
+            # Forzar recalculo disparando el signal manualmente
+            if partidos_grupo.exists():
+                from torneos.signals import actualizar_tabla_de_posiciones
+                actualizar_tabla_de_posiciones(sender=PartidoGrupo, instance=partidos_grupo.first())
+
+            # Re-leer la tabla actualizada
+            tabla = list(grupo.tabla.all())
+
+        if len(tabla) == 0:
+            messages.error(request, f"No se pudo reconstruir la tabla de posiciones del {grupo.nombre}.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
         
         # Identificar la letra del grupo (ej: "Grupo A" -> "A")
