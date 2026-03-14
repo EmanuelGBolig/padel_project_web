@@ -590,6 +590,33 @@ FORMATS = {
             { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
         ]
     ),
+    24: TournamentFormat(
+        teams=24,
+        groups=8,
+        teams_per_group=3, # All groups A-H has 3 teams
+        bracket_type='custom',
+        bracket_structure=[
+            # Round 1 (Octavos)
+            { 'id': 49, 'round': 1, 't1': ('A', 1), 't2': ('B', 2), 'next': 57 },
+            { 'id': 50, 'round': 1, 't1': ('G', 2), 't2': ('H', 1), 'next': 57 },
+            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('F', 2), 'next': 58 },
+            { 'id': 52, 'round': 1, 't1': ('C', 2), 't2': ('D', 1), 'next': 58 },
+            { 'id': 53, 'round': 1, 't1': ('C', 1), 't2': ('D', 2), 'next': 59 },
+            { 'id': 54, 'round': 1, 't1': ('E', 2), 't2': ('F', 1), 'next': 59 },
+            { 'id': 55, 'round': 1, 't1': ('G', 1), 't2': ('H', 2), 'next': 60 },
+            { 'id': 56, 'round': 1, 't1': ('A', 2), 't2': ('B', 1), 'next': 60 },
+            # Round 2 (Cuartos)
+            { 'id': 57, 'round': 2, 't1': None, 't2': None, 'next': 61 },
+            { 'id': 58, 'round': 2, 't1': None, 't2': None, 'next': 61 },
+            { 'id': 59, 'round': 2, 't1': None, 't2': None, 'next': 62 },
+            { 'id': 60, 'round': 2, 't1': None, 't2': None, 'next': 62 },
+            # Round 3 (Semifinales)
+            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
+            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
+            # Round 4 (Final)
+            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
+        ]
+    ),
 }
 
 def get_format(num_teams: int) -> Optional[TournamentFormat]:

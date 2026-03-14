@@ -582,44 +582,46 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         # --- LÓGICA GENÉRICA (FALLBACK) ---
         
-        # 1. Obtener clasificados (1ro y 2do de cada grupo)
-        primeros = []
-        segundos = []
-        grupos = torneo.grupos.all().order_by('nombre')
-
-        for grupo in grupos:
-            tabla = grupo.tabla.all()  # Ya viene ordenada por mérito (PG, DS, DG)
-            # Clasifican los primeros 2 de cada grupo
-            if len(tabla) >= 1:
-                primeros.append(tabla[0].equipo)
-            if len(tabla) >= 2:
-                segundos.append(tabla[1].equipo)
-
-        # Emparejamiento cruzado:
-        # Rotamos la lista de segundos para que el 1ro del Grupo A no juegue con el 2do del Grupo A
-        # Ejemplo con 3 grupos:
-        # Primeros: [A1, B1, C1]
-        # Segundos: [A2, B2, C2] -> Rotado: [B2, C2, A2]
-        # Resultado: A1 vs B2, B1 vs C2, C1 vs A2
-        if segundos:
-            segundos = segundos[1:] + segundos[:1]
-
+        # 1. Obtener clasificados (1ro y 2do de cada grupo) si no es solo_estructura
+        num_equipos = 0
         clasificados = []
-        # Intercalar: [A1, B2, B1, C2, C1, A2]
-        # Usamos zip_longest por si hay diferente cantidad (aunque no debería en grupos balanceados)
-        from itertools import zip_longest
-        for p, s in zip_longest(primeros, segundos):
-            if p: clasificados.append(p)
-            if s: clasificados.append(s)
-
-        num_equipos = len(clasificados)
-
-        if num_equipos < 4:
-            messages.error(
-                request,
-                f"Solo hay {num_equipos} clasificados. Se necesitan al menos 4.",
-            )
-            return redirect('torneos:admin_manage', pk=torneo.pk)
+        if not solo_estructura:
+            primeros = []
+            segundos = []
+            grupos = torneo.grupos.all().order_by('nombre')
+    
+            for grupo in grupos:
+                tabla = grupo.tabla.all()  # Ya viene ordenada por mérito (PG, DS, DG)
+                # Clasifican los primeros 2 de cada grupo
+                if len(tabla) >= 1:
+                    primeros.append(tabla[0].equipo)
+                if len(tabla) >= 2:
+                    segundos.append(tabla[1].equipo)
+    
+            # Emparejamiento cruzado:
+            # Rotamos la lista de segundos para que el 1ro del Grupo A no juegue con el 2do del Grupo A
+            # Ejemplo con 3 grupos:
+            # Primeros: [A1, B1, C1]
+            # Segundos: [A2, B2, C2] -> Rotado: [B2, C2, A2]
+            # Resultado: A1 vs B2, B1 vs C2, C1 vs A2
+            if segundos:
+                segundos = segundos[1:] + segundos[:1]
+    
+            # Intercalar: [A1, B2, B1, C2, C1, A2]
+            # Usamos zip_longest por si hay diferente cantidad (aunque no debería en grupos balanceados)
+            from itertools import zip_longest
+            for p, s in zip_longest(primeros, segundos):
+                if p: clasificados.append(p)
+                if s: clasificados.append(s)
+    
+            num_equipos = len(clasificados)
+    
+            if num_equipos < 4:
+                messages.error(
+                    request,
+                    f"Solo hay {num_equipos} clasificados. Se necesitan al menos 4.",
+                )
+                return redirect('torneos:admin_manage', pk=torneo.pk)
 
         # 2. Calcular tamaño del bracket (Potencia de 2)
         import math
@@ -746,8 +748,8 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             messages.error(request, f"No se pueden avanzar los clasificados del {grupo.nombre} porque aún hay partidos pendientes de resultado.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
-        tabla = grupo.tabla.all() # Ordenada por PG, DS, DG
-        if not tabla.exists():
+        tabla = list(grupo.tabla.all()) # Evaluar queryset a lista
+        if len(tabla) == 0:
             messages.error(request, f"No hay clasificados en {grupo.nombre}.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
         
