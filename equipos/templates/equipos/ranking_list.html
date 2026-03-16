@@ -130,9 +130,43 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-base md:text-lg group-hover:text-primary transition-colors">{{ item.equipo.nombre }}</span>
-                                            <span class="text-xs text-base-content/60">{{ item.equipo.jugador1.full_name }} / {{ item.equipo.jugador2.full_name }}</span>
+                                        <div class="flex items-center gap-3">
+                                            <!-- Avatars de los 2 jugadores -->
+                                            <div class="flex -space-x-2 shrink-0">
+                                                <!-- Jugador 1 -->
+                                                <div class="avatar {% if not item.equipo.jugador1.imagen %}placeholder{% endif %}">
+                                                    <div class="w-8 h-8 rounded-full ring-2 ring-base-100 {% if not item.equipo.jugador1.imagen %}bg-neutral text-neutral-content{% endif %}">
+                                                        {% if item.equipo.jugador1 and item.equipo.jugador1.imagen %}
+                                                            <img src="{{ item.equipo.jugador1.imagen.url }}"
+                                                                 alt="{{ item.equipo.jugador1.full_name }}"
+                                                                 width="32" height="32" class="object-cover" />
+                                                        {% else %}
+                                                            <span class="text-xs font-bold">
+                                                                {% if item.equipo.jugador1 %}{{ item.equipo.jugador1.nombre|slice:":1"|upper }}{{ item.equipo.jugador1.apellido|slice:":1"|upper }}{% else %}?{% endif %}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <!-- Jugador 2 -->
+                                                <div class="avatar {% if not item.equipo.jugador2.imagen %}placeholder{% endif %}">
+                                                    <div class="w-8 h-8 rounded-full ring-2 ring-base-100 {% if not item.equipo.jugador2.imagen %}bg-primary text-primary-content{% endif %}">
+                                                        {% if item.equipo.jugador2 and item.equipo.jugador2.imagen %}
+                                                            <img src="{{ item.equipo.jugador2.imagen.url }}"
+                                                                 alt="{{ item.equipo.jugador2.full_name }}"
+                                                                 width="32" height="32" class="object-cover" />
+                                                        {% else %}
+                                                            <span class="text-xs font-bold">
+                                                                {% if item.equipo.jugador2 %}{{ item.equipo.jugador2.nombre|slice:":1"|upper }}{{ item.equipo.jugador2.apellido|slice:":1"|upper }}{% else %}?{% endif %}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Nombre del equipo -->
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-base md:text-lg group-hover:text-primary transition-colors">{{ item.equipo.nombre }}</span>
+                                                <span class="text-xs text-base-content/60">{{ item.equipo.jugador1.full_name }} / {{ item.equipo.jugador2.full_name }}</span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="text-center">

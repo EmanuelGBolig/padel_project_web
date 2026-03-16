@@ -132,19 +132,36 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="flex flex-col">
-                                            <a href="{% url 'accounts:detalle' item.jugador.id %}"
-                                               class="font-bold text-base md:text-lg hover:text-primary transition-colors hover:underline">
-                                                {{ item.jugador.full_name }}
-                                            </a>
-                                            <div class="text-xs opacity-60 mt-0.5">
-                                                {% if item.equipos %}
-                                                    <div class="flex flex-wrap gap-1">
-                                                        {% for equipo in item.equipos %}<span class="badge badge-xs badge-ghost">{{ equipo.nombre }}</span>{% endfor %}
-                                                    </div>
-                                                {% else %}
-                                                    <span class="opacity-70 italic">Sin equipo</span>
-                                                {% endif %}
+                                        <div class="flex items-center gap-3">
+                                            <!-- Avatar -->
+                                            <div class="avatar {% if not item.jugador.imagen %}placeholder{% endif %} shrink-0">
+                                                <div class="w-8 h-8 rounded-full ring ring-base-300 ring-offset-base-100 ring-offset-1 {% if not item.jugador.imagen %}bg-neutral text-neutral-content{% endif %}">
+                                                    {% if item.jugador.imagen %}
+                                                        <img src="{{ item.jugador.imagen.url }}"
+                                                             alt="{{ item.jugador.full_name }}"
+                                                             width="32"
+                                                             height="32"
+                                                             class="object-cover" />
+                                                    {% else %}
+                                                        <span class="text-xs font-bold">{{ item.jugador.nombre|slice:":1"|upper }}{{ item.jugador.apellido|slice:":1"|upper }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <!-- Nombre -->
+                                            <div class="flex flex-col">
+                                                <a href="{% url 'accounts:detalle' item.jugador.id %}"
+                                                   class="font-bold text-base md:text-lg hover:text-primary transition-colors hover:underline">
+                                                    {{ item.jugador.full_name }}
+                                                </a>
+                                                <div class="text-xs opacity-60 mt-0.5">
+                                                    {% if item.equipos %}
+                                                        <div class="flex flex-wrap gap-1">
+                                                            {% for equipo in item.equipos %}<span class="badge badge-xs badge-ghost">{{ equipo.nombre }}</span>{% endfor %}
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="opacity-70 italic">Sin equipo</span>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
