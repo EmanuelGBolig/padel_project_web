@@ -592,6 +592,59 @@
                         {% endif %}
                         {% block content_title %}
                         {% endblock content_title %}
+                        <!-- BANNERS DE INCENTIVO (solo para jugadores sin foto / sin pareja) -->
+                        {% if user_sin_foto or user_sin_equipo %}
+                            <div id="incentive-banners" class="flex flex-col gap-2 mb-2">
+                                {% if user_sin_foto %}
+                                    <div id="banner-foto"
+                                         class="alert bg-primary/10 border border-primary/20 shadow-sm flex items-center gap-3 py-2 px-4 rounded-2xl transition-all duration-300">
+                                        <span class="text-xl">📸</span>
+                                        <div class="flex-1 text-sm">
+                                            <span class="font-semibold">¡Agrega tu foto de perfil!</span>
+                                            <span class="opacity-70 hidden sm:inline"> Tu foto aparece en los rankings y torneos.</span>
+                                        </div>
+                                        <a href="{% url 'accounts:perfil' %}"
+                                           class="btn btn-primary btn-xs rounded-xl shrink-0">Subir foto</a>
+                                        <button onclick="dismissBanner('banner-foto')"
+                                                class="btn btn-ghost btn-xs btn-circle shrink-0 opacity-50 hover:opacity-100">✕</button>
+                                    </div>
+                                {% endif %}
+                                {% if user_sin_equipo %}
+                                    <div id="banner-equipo"
+                                         class="alert bg-secondary/10 border border-secondary/20 shadow-sm flex items-center gap-3 py-2 px-4 rounded-2xl transition-all duration-300">
+                                        <span class="text-xl">🤝</span>
+                                        <div class="flex-1 text-sm">
+                                            <span class="font-semibold">¡Formá tu pareja!</span>
+                                            <span class="opacity-70 hidden sm:inline"> Necesitás una pareja para inscribirte en torneos.</span>
+                                        </div>
+                                        <a href="{% url 'equipos:crear' %}"
+                                           class="btn btn-secondary btn-xs rounded-xl shrink-0">Crear pareja</a>
+                                        <button onclick="dismissBanner('banner-equipo')"
+                                                class="btn btn-ghost btn-xs btn-circle shrink-0 opacity-50 hover:opacity-100">✕</button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <script>
+                            (function() {
+                                // Ocultar banners descartados previamente
+                                ['banner-foto', 'banner-equipo'].forEach(function(id) {
+                                    if (sessionStorage.getItem('dismissed_' + id)) {
+                                        var el = document.getElementById(id);
+                                        if (el) el.style.display = 'none';
+                                    }
+                                });
+                            })();
+                            function dismissBanner(id) {
+                                sessionStorage.setItem('dismissed_' + id, '1');
+                                var el = document.getElementById(id);
+                                if (el) {
+                                    el.style.opacity = '0';
+                                    el.style.transform = 'translateY(-8px)';
+                                    setTimeout(function() { el.style.display = 'none'; }, 300);
+                                }
+                            }
+                            </script>
+                        {% endif %}
                         <!-- HEADER ACTIONS (VOLVER + OTROS BOTONES) -->
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                             <div class="w-full md:w-auto flex justify-start">

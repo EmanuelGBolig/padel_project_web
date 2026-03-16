@@ -47,10 +47,14 @@ def notifications(request):
 
     notification_count = pending_invitations + upcoming_matches
 
+
     res = {
         'notification_count': notification_count,
         'pending_invitations_count': pending_invitations,
         'upcoming_matches_count': upcoming_matches,
+        # Flags para banners de incentivo (solo jugadores)
+        'user_sin_foto': user.tipo_usuario == 'PLAYER' and not user.imagen,
+        'user_sin_equipo': user.tipo_usuario == 'PLAYER' and not equipo,
     }
     # Cache por 60 segundos (suficiente para fluidez sin perder mucha frescura)
     cache.set(cache_key, res, 60)
