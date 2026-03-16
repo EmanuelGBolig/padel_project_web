@@ -10,18 +10,57 @@
             <!-- Tarjeta de Perfil -->
             <div class="card bg-base-100 shadow-xl border border-base-200">
                 <div class="card-body items-center text-center">
-                    <div class="avatar placeholder mb-4">
-                        <div class="bg-neutral text-neutral-content rounded-full w-32 ring ring-primary ring-offset-base-100 ring-offset-2">
+                    <!-- Avatar con lápiz + zoom -->
+                    <div class="relative mb-4 group w-32 h-32">
+                        <!-- Foto / Iniciales clickeable para zoom -->
+                        <button type="button"
+                                onclick="document.getElementById('photo-zoom-modal').showModal()"
+                                class="w-32 h-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden flex items-center justify-center bg-neutral text-neutral-content focus:outline-none cursor-zoom-in"
+                                {% if not user.imagen %}style="cursor:default;pointer-events:none;"{% endif %}>
                             {% if user.imagen %}
                                 <img src="{{ user.imagen.url }}"
                                      alt="{{ user.full_name }}"
+                                     class="w-full h-full object-cover"
                                      width="128"
                                      height="128" />
                             {% else %}
-                                <span class="text-3xl">{{ user.nombre|slice:":1"|upper }}{{ user.apellido|slice:":1"|upper }}</span>
+                                <span class="text-3xl font-bold">{{ user.nombre|slice:":1"|upper }}{{ user.apellido|slice:":1"|upper }}</span>
                             {% endif %}
-                        </div>
+                        </button>
+                        <!-- Overlay oscuro al hover (solo si hay foto) -->
+                        {% if user.imagen %}
+                            <div class="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803 7.5 7.5 0 0 0 15.8 15.803zM10.5 7.5v6m3-3h-6" />
+                                </svg>
+                            </div>
+                        {% endif %}
+                        <!-- Botón lápiz (siempre visible, esquina inferior derecha) -->
+                        <button type="button"
+                                onclick="document.querySelector('.collapse input[type=checkbox]').checked=true; document.querySelector('.collapse').scrollIntoView({behavior:'smooth', block:'start'});"
+                                title="Cambiar foto"
+                                class="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/80 transition-colors focus:outline-none ring-2 ring-base-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                            </svg>
+                        </button>
                     </div>
+                    <!-- Modal de Zoom de Foto -->
+                    {% if user.imagen %}
+                        <dialog id="photo-zoom-modal" class="modal modal-middle">
+                            <div class="modal-box bg-transparent shadow-none p-2 max-w-lg flex flex-col items-center gap-3">
+                                <img src="{{ user.imagen.url }}"
+                                     alt="{{ user.full_name }}"
+                                     class="rounded-2xl w-full max-w-md object-cover shadow-2xl" />
+                                <form method="dialog">
+                                    <button class="btn btn-sm btn-ghost text-white bg-black/40 hover:bg-black/60">Cerrar</button>
+                                </form>
+                            </div>
+                            <form method="dialog" class="modal-backdrop">
+                                <button>close</button>
+                            </form>
+                        </dialog>
+                    {% endif %}
                     <h2 class="card-title text-2xl">{{ user.full_name }}</h2>
                     <div class="badge badge-primary badge-lg">{{ user.division.nombre }}</div>
                     <p class="text-base-content/70 mt-2">{{ user.email }}</p>
