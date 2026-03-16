@@ -10,18 +10,49 @@
             <!-- Tarjeta de Perfil -->
             <div class="card bg-base-100 shadow-xl border border-base-200">
                 <div class="card-body items-center text-center">
-                    <div class="avatar placeholder mb-4">
-                        <div class="bg-neutral text-neutral-content rounded-full w-32 ring ring-primary ring-offset-base-100 ring-offset-2">
+                    <!-- Avatar con zoom -->
+                    <div class="relative mb-4 group w-32 h-32 mx-auto">
+                        <!-- Foto / Iniciales clickeable para zoom -->
+                        <button type="button"
+                                {% if perfil_usuario.imagen %}onclick="document.getElementById('photo-zoom-modal').showModal()"{% endif %}
+                                class="w-32 h-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden flex items-center justify-center bg-neutral text-neutral-content focus:outline-none {% if perfil_usuario.imagen %}cursor-zoom-in{% else %}cursor-default pointer-events-none{% endif %}">
                             {% if perfil_usuario.imagen %}
                                 <img src="{{ perfil_usuario.imagen.url }}"
                                      alt="{{ perfil_usuario.full_name }}"
+                                     class="w-full h-full object-cover"
                                      width="128"
                                      height="128" />
                             {% else %}
-                                <span class="text-3xl">{{ perfil_usuario.nombre|slice:":1"|upper }}{{ perfil_usuario.apellido|slice:":1"|upper }}</span>
+                                <span class="text-3xl font-bold">{{ perfil_usuario.nombre|slice:":1"|upper }}{{ perfil_usuario.apellido|slice:":1"|upper }}</span>
                             {% endif %}
-                        </div>
+                        </button>
+                        <!-- Overlay oscuro al hover (lupa) -->
+                        {% if perfil_usuario.imagen %}
+                            <button type="button" 
+                                    onclick="document.getElementById('photo-zoom-modal').showModal()"
+                                    class="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-zoom-in">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803 7.5 7.5 0 0 0 15.8 15.803zM10.5 7.5v6m3-3h-6" />
+                                </svg>
+                            </button>
+                        {% endif %}
                     </div>
+                    <!-- Modal de Zoom de Foto -->
+                    {% if perfil_usuario.imagen %}
+                        <dialog id="photo-zoom-modal" class="modal modal-middle">
+                            <div class="modal-box bg-transparent shadow-none p-2 max-w-lg flex flex-col items-center gap-3">
+                                <img src="{{ perfil_usuario.imagen.url }}"
+                                     alt="{{ perfil_usuario.full_name }}"
+                                     class="rounded-2xl w-full max-w-md object-cover shadow-2xl" />
+                                <form method="dialog">
+                                    <button class="btn btn-sm btn-ghost text-white bg-black/40 hover:bg-black/60">Cerrar</button>
+                                </form>
+                            </div>
+                            <form method="dialog" class="modal-backdrop">
+                                <button>close</button>
+                            </form>
+                        </dialog>
+                    {% endif %}
                     <h2 class="card-title text-2xl">{{ perfil_usuario.full_name }}</h2>
                     <div class="badge badge-primary badge-lg">{{ perfil_usuario.division.nombre }}</div>
                     <!-- Email oculto por privacidad o mostrarlo si se desea -->
