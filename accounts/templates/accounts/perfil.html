@@ -490,4 +490,29 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Script para auto-abrir form y selector de archivo si viene del banner -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.location.hash === '#upload-foto') {
+            // Abrir el collapse del formulario
+            const collapseCheckbox = document.querySelector('.collapse input[type=checkbox]');
+            const collapseElement = document.querySelector('.collapse');
+            const fileInput = document.querySelector('input[type=file]');
+
+            if (collapseCheckbox && collapseElement && fileInput) {
+                collapseCheckbox.checked = true;
+                
+                // Un pequeño delay para que la animación se abra antes de scrollear y clickear
+                setTimeout(() => {
+                    collapseElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+                    fileInput.click();
+                    
+                    // Limpiar el hash de la URL sin recargar la página
+                    history.replaceState(null, null, ' ');
+                }, 300);
+            }
+        }
+    });
+    </script>
 {% endblock content %}
