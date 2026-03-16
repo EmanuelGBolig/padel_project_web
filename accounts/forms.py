@@ -246,6 +246,12 @@ class DummyUserCreationForm(forms.ModelForm):
         estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
         estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
 
+        self.fields['genero'].label = 'Género'
+        self.fields['genero'].required = True
+        # Agregar opción vacía al inicio para forzar que el organizador elija explícitamente
+        genero_choices = [('', 'Seleccioná el género')] + list(self.fields['genero'].choices)
+        self.fields['genero'].choices = genero_choices
+
         for field_name, field in self.fields.items():
             if isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select

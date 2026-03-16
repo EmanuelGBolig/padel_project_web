@@ -81,7 +81,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         blank=True,
     )
     genero = models.CharField(
-        max_length=10, choices=Genero.choices, default=Genero.MASCULINO
+        max_length=10, choices=Genero.choices
     )
 
     # Campos de Rol
