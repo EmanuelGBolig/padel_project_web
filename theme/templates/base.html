@@ -643,8 +643,46 @@
                                     setTimeout(function() { el.style.display = 'none'; }, 300);
                                 }
                             }
+                        {% endif %}
+                        
+                        <!-- BANNER DE REGISTRO (solo para usuarios no autenticados) -->
+                        {% if not user.is_authenticated %}
+                            <div id="banner-registro"
+                                 class="alert bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 shadow-sm flex items-center gap-3 py-3 px-5 rounded-2xl transition-all duration-300 mb-4">
+                                <span class="text-2xl drop-shadow-sm">🎾</span>
+                                <div class="flex-1 text-sm">
+                                    <span class="font-bold text-base">¡Sumate a la comunidad TodoPadel!</span>
+                                    <span class="opacity-80 block sm:inline mt-0.5 sm:mt-0"> Crea tu cuenta gratis para jugar torneos y estar en el ranking.</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <a href="{% url 'accounts:registro' %}"
+                                       class="btn btn-primary btn-sm rounded-xl shrink-0 font-bold shadow-md">Crear Cuenta</a>
+                                    <button onclick="dismissBanner('banner-registro')"
+                                            class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-50 hover:opacity-100 hidden sm:flex">✕</button>
+                                </div>
+                            </div>
+                            <script>
+                            (function() {
+                                if (sessionStorage.getItem('dismissed_banner-registro')) {
+                                    var el = document.getElementById('banner-registro');
+                                    if (el) el.style.display = 'none';
+                                }
+                            })();
+                            // Se define la función si no fue definida en el bloque anterior (para usuarios no logueados)
+                            if (typeof dismissBanner !== 'function') {
+                                function dismissBanner(id) {
+                                    sessionStorage.setItem('dismissed_' + id, '1');
+                                    var el = document.getElementById(id);
+                                    if (el) {
+                                        el.style.opacity = '0';
+                                        el.style.transform = 'translateY(-8px)';
+                                        setTimeout(function() { el.style.display = 'none'; }, 300);
+                                    }
+                                }
+                            }
                             </script>
                         {% endif %}
+
                         <!-- HEADER ACTIONS (VOLVER + OTROS BOTONES) -->
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                             <div class="w-full md:w-auto flex justify-start">
