@@ -50,6 +50,7 @@
                         </svg>
                         Iniciar Torneo → Crear Zonas
                     </button>
+                    <!-- Botón desactivado temporalmente por cuota de Resend
                     <button type="submit"
                             name="action"
                             value="notificar_jugadores"
@@ -65,6 +66,7 @@
                         </svg>
                         📧 Notificar Jugadores
                     </button>
+                    -->
                 {% elif torneo.estado == 'EJ' %}
                     {% if todos_grupos_cargados and not fase_eliminatoria_existente %}
                         <button type="submit"
