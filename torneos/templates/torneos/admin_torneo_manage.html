@@ -51,10 +51,11 @@
                         Iniciar Torneo → Crear Zonas
                     </button>
                     <button type="submit"
+                            id="btn-notificar"
                             name="action"
                             value="notificar_jugadores"
                             class="btn btn-info text-white gap-2 ml-auto"
-                            onclick="return confirm('Se enviará un email a todos los jugadores elegibles vía Brevo. ¿Continuar?')">
+                            onclick="if(confirm('Se enviará un email a todos los jugadores elegibles vía Brevo. ¿Continuar?')) { this.disabled=true; this.form.submit(); return true; } return false;">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              fill="none"
                              viewBox="0 0 24 24"
