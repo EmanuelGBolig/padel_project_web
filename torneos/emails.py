@@ -18,6 +18,9 @@ def notificar_nuevo_torneo(torneo):
     from django.core.mail import send_mail, get_connection
     from accounts.models import CustomUser
 
+    # Usar Brevo para notificaciones de torneos (cupo de 300)
+    connection = get_connection('accounts.brevo_backend.BrevoBackend')
+
     jugadores = CustomUser.objects.filter(
         tipo_usuario=CustomUser.TipoUsuario.PLAYER,
         is_active=True,
