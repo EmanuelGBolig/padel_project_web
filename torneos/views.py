@@ -1117,23 +1117,33 @@ class TorneoDetailView(DetailView):
         
         Reglas:
         - Torneos libres (division=null): cualquier equipo puede inscribirse
-        - Misma división: puede inscribirse
-        - División adyacente (±1): puede inscribirse
-        - Otras divisiones: no puede inscribirse
+        - Parejas de distinta división: pueden participar en cualquier división 
+          comprendida entre la de ambos jugadores (inclusive).
+          Ej: Uno de 4ta y uno de 6ta -> pueden en 4ta, 5ta y 6ta.
         """
         if torneo.division is None:  # Torneo libre
             return True
         
-        if equipo.division == torneo.division:  # Misma división
-            return True
+        if not equipo.jugador1 or not equipo.jugador2:
+            # Fallback simple si no hay jugadores reales (ej: dummy)
+            return equipo.division == torneo.division if equipo.division else True
+
+        d1 = equipo.jugador1.division
+        d2 = equipo.jugador2.division
+
+        if not d1 and not d2:
+            return True # Sin divisiones restringidas
+            
+        # Obtener los órdenes (Octava=8, Primera=1)
+        orden_p1 = d1.orden if d1 else (d2.orden if d2 else 99)
+        orden_p2 = d2.orden if d2 else (d1.orden if d1 else 99)
+        orden_torneo = torneo.division.orden
         
-        # División adyacente (±1)
-        if equipo.division and torneo.division:
-            if hasattr(equipo.division, 'orden') and hasattr(torneo.division, 'orden'):
-                diff = abs(equipo.division.orden - torneo.division.orden)
-                return diff <= 1
+        # El rango es entre el mínimo y el máximo orden de la pareja
+        min_orden = min(orden_p1, orden_p2)
+        max_orden = max(orden_p1, orden_p2)
         
-        return False
+        return min_orden <= orden_torneo <= max_orden
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1420,9 +1430,22 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
                 # User asked to "not be redirected anywhere" (stay in place).
                 return redirect('torneos:detail', pk=torneo.pk)
             
-            # Verificar División
-            if torneo.division and equipo.division != torneo.division:
-                messages.warning(request, f"Tu equipo es de {equipo.division} y este torneo es de {torneo.division}.")
+            # Verificar División (Nueva lógica de rango)
+            if not self.get_view_class()._es_division_permitida(self, equipo, torneo):
+                d_info = ""
+                if equipo.jugador1 and equipo.jugador2:
+                    d1 = equipo.jugador1.division
+                    d2 = equipo.jugador2.division
+                    if d1 == d2:
+                        d_info = f"Tu equipo es de {d1}"
+                    else:
+                        d_info = f"Tu equipo es una pareja de {d1} y {d2}"
+                
+                messages.warning(
+                    request, 
+                    f"{d_info}. No pueden inscribirse en un torneo de {torneo.division}. "
+                    "Solo pueden participar en torneos de sus propias divisiones o las intermedias."
+                )
                 return redirect('torneos:detail', pk=torneo.pk)
             
             # Verificar Categoría

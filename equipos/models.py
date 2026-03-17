@@ -60,10 +60,18 @@ class Equipo(models.Model):
             nombres_ordenados = sorted([j1_nombre, j2_nombre])
             self.nombre = f"{nombres_ordenados[0]}/{nombres_ordenados[1]}"
 
-            # 3. Asignar división automáticamente basada en el jugador 1 (si no se pasó)
-            # Esto mantiene la integridad de datos
-            if not self.division_id and self.jugador1:
-                self.division = self.jugador1.division
+            # 3. Asignar división automáticamente basada en el mejor ranking (menor orden)
+            if not self.division_id and self.jugador1 and self.jugador2:
+                d1 = self.jugador1.division
+                d2 = self.jugador2.division
+                
+                if d1 and d2:
+                    # Elegimos la división con menor 'orden' (ej: 4ta=4 vs 6ta=6 -> elegimos 4ta)
+                    self.division = d1 if d1.orden <= d2.orden else d2
+                elif d1:
+                    self.division = d1
+                elif d2:
+                    self.division = d2
 
         super().save(*args, **kwargs)
 

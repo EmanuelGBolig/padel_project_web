@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block back_button %}
-    <a href="{% url 'torneos:abierto_list' %}"
+    <a href="{% if torneo.estado == 'AB' %}{% url 'torneos:abierto_list' %}{% elif torneo.estado == 'EJ' %}{% url 'torneos:en_juego_list' %}{% else %}{% url 'torneos:finalizado_list' %}{% endif %}"
        class="btn btn-ghost btn-sm gap-2 hover:bg-base-200 pl-0 mb-0">
         <svg xmlns="http://www.w3.org/2000/svg"
              fill="none"

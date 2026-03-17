@@ -46,8 +46,9 @@ class EquipoCreateForm(forms.ModelForm):
             ).union(set(Equipo.objects.values_list('jugador2_id', flat=True)))
 
             # 2. Filtramos el queryset para el campo jugador2:
+            # (Quitamos el filtro de división para permitir parejas de distintas divisiones)
             self.fields['jugador2'].queryset = (
-                CustomUser.objects.filter(division=user.division, tipo_usuario='PLAYER')
+                CustomUser.objects.filter(tipo_usuario='PLAYER')
                 .exclude(id=user.id)
                 .exclude(id__in=usuarios_con_equipo_ids)
                 .order_by('apellido', 'nombre')
