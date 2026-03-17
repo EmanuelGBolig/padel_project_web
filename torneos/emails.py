@@ -15,7 +15,7 @@ def notificar_nuevo_torneo(torneo):
     - División dentro del rango ±1 del torneo (o cualquier división si el torneo es libre)
     - Género compatible con la categoría del torneo
     """
-    from django.core.mail import send_mail
+    from django.core.mail import send_mail, get_connection
     from accounts.models import CustomUser
 
     jugadores = CustomUser.objects.filter(
