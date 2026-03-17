@@ -243,18 +243,17 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             messages.success(request, "Torneo finalizado.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
-        # Desactivado temporalmente por cuota de Resend
-        # elif action == 'notificar_jugadores':
-        #     try:
-        #         enviados, total = notificar_nuevo_torneo(torneo)
-        #         if total == 0:
-        #             messages.warning(request, "⚠️ No se encontraron jugadores elegibles para este torneo (verificá división y categoría).")
-        #         else:
-        #             messages.success(request, f"✅ El envío de {total} emails a jugadores elegibles se está procesando en segundo plano.")
-        #     except Exception as e:
-        #         logger.error(f"[emails] Error al notificar manualmente torneo '{torneo}': {e}")
-        #         messages.error(request, f"Error al enviar los emails: {e}")
-        #     return redirect('torneos:admin_manage', pk=torneo.pk)
+        elif action == 'notificar_jugadores':
+            try:
+                enviados, total = notificar_nuevo_torneo(torneo)
+                if total == 0:
+                    messages.warning(request, "⚠️ No se encontraron jugadores elegibles para este torneo (verificá división y categoría).")
+                else:
+                    messages.success(request, f"✅ El envío de {total} emails a jugadores elegibles se está procesando en segundo plano (vía Brevo).")
+            except Exception as e:
+                logger.error(f"[emails] Error al notificar manualmente torneo '{torneo}': {e}")
+                messages.error(request, f"Error al enviar los emails: {e}")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
 
         elif action == 'set_grupo_date':
             grupo_id = request.POST.get('grupo_id')

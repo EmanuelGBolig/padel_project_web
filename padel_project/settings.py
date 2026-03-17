@@ -354,6 +354,7 @@ else:
     # Configuración para producción (Resend API Custom)
     EMAIL_BACKEND = 'accounts.resend_backend.ResendBackend'
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
     
     # Gmail fuerza que el sender sea la cuenta autenticada, con Resend usamos el verificado
     # Asegúrate de verificar el dominio o email en Resend

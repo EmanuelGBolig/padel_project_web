@@ -77,6 +77,7 @@ def notificar_nuevo_torneo(torneo):
                     recipient_list=[jugador.email],
                     html_message=html_message,
                     fail_silently=False,
+                    connection=connection,  # Usar la conexión de Brevo
                 )
                 enviados += 1
                 logger.info(f"[emails] Email enviado a {jugador.email}.")
