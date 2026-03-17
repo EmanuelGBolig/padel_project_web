@@ -16,18 +16,30 @@ def notificar_nuevo_torneo(torneo):
     - Género compatible con la categoría del torneo
     """
     from django.core.mail import send_mail, get_connection
+    from django.db import models
     from accounts.models import CustomUser
+    from torneos.models import Inscripcion
+
+    # 1. Obtener equipos ya inscritos en este torneo
+    equipos_inscritos_ids = Inscripcion.objects.filter(torneo=torneo).values_list('equipo_id', flat=True)
 
     # Usar Brevo para notificaciones de torneos (cupo de 300)
     connection = get_connection('accounts.brevo_backend.BrevoBackend')
 
+    # 2. Filtrar jugadores base
     jugadores = CustomUser.objects.filter(
         tipo_usuario=CustomUser.TipoUsuario.PLAYER,
         is_active=True,
         is_dummy=False,
     ).exclude(email='')
 
-    logger.info(f"[emails] Torneo '{torneo.nombre}': {jugadores.count()} jugadores PLAYER activos antes de filtros.")
+    # 3. Excluir jugadores que ya están inscritos (ya sea como jugador1 o jugador2)
+    jugadores = jugadores.exclude(
+        models.Q(equipos_como_jugador1__id__in=equipos_inscritos_ids) |
+        models.Q(equipos_como_jugador2__id__in=equipos_inscritos_ids)
+    )
+
+    logger.info(f"[emails] Torneo '{torneo.nombre}': {jugadores.count()} jugadores PLAYER elegibles (excluyendo ya inscritos).")
 
     # --- Filtro por género / categoría ---
     if torneo.categoria == 'M':

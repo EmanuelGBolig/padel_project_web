@@ -246,7 +246,7 @@
                     </svg>
                     Sponsors Oficiales
                 </h3>
-                <div class="carousel carousel-center max-w-full p-4 space-x-4 bg-base-100 rounded-box border border-base-200 shadow-inner">
+                <div id="sponsors-carousel" class="carousel carousel-center max-w-full p-4 space-x-4 bg-base-100 rounded-box border border-base-200 shadow-inner">
                     {% for sponsor in sponsors %}
                         <div class="carousel-item">
                             {% if sponsor.link %}
@@ -275,3 +275,35 @@
         {% endif %}
     </div>
 {% endblock content %}
+
+{% block extra_js %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const carousel = document.getElementById('sponsors-carousel');
+        if (!carousel || carousel.children.length < 2) return;
+
+        let isPaused = false;
+        const scrollDelay = 3000;
+
+        const getScrollAmount = () => {
+            if (carousel.children.length === 0) return 0;
+            // Get first item width + gap (space-x-4 is 1rem = 16px)
+            return carousel.children[0].offsetWidth + 16;
+        };
+
+        const autoScroll = setInterval(() => {
+            if (!isPaused) {
+                // If we are at the end, go back to start
+                if (carousel.scrollLeft >= (carousel.scrollWidth - carousel.clientWidth - 20)) {
+                    carousel.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    carousel.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+                }
+            }
+        }, scrollDelay);
+
+        carousel.addEventListener('mouseenter', () => isPaused = true);
+        carousel.addEventListener('mouseleave', () => isPaused = false);
+    });
+    </script>
+{% endblock extra_js %}
