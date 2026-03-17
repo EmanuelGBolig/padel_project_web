@@ -15,8 +15,21 @@ def get_division_rankings(division, genero=None, force_recalc=False):
             return cached_rankings
 
         from equipos.models import RankingJugador
+        from django.db.models import Prefetch
+        from equipos.models import Equipo
+
+        # Prefetch de equipos para el jugador para evitar N+1 en el loop de abajo
+        equipos_prefetch = Prefetch(
+            'jugador__equipos_como_jugador1',
+            queryset=Equipo.objects.all().select_related('jugador1', 'jugador2', 'division')
+        )
+        equipos_prefetch2 = Prefetch(
+            'jugador__equipos_como_jugador2',
+            queryset=Equipo.objects.all().select_related('jugador1', 'jugador2', 'division')
+        )
+
         rankings_db = RankingJugador.objects.filter(division=division).select_related('jugador').prefetch_related(
-            'jugador__equipos_como_jugador1', 'jugador__equipos_como_jugador2'
+            equipos_prefetch, equipos_prefetch2
         ).order_by('-puntos', '-torneos_ganados', '-victorias')
 
         # Filtrar por género si se especifica
