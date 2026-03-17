@@ -1477,8 +1477,9 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             messages.success(self.request, "¡Inscripción confirmada!")
             # Invalidar caché del perfil del organizador del torneo
             from django.core.cache import cache as dj_cache
-            if torneo.organizacion and torneo.organizacion.usuario:
-                dj_cache.delete(f'perfil_gestion_{torneo.organizacion.usuario.id}')
+            if torneo.organizacion:
+                for miembro in torneo.organizacion.miembros.all():
+                    dj_cache.delete(f'perfil_gestion_{miembro.id}')
             return response
         except IntegrityError:
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")

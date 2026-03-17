@@ -1,4 +1,18 @@
 {% extends "base.html" %}
+{% block back_button %}
+    <a href="{% url 'core:home' %}"
+       class="btn btn-ghost btn-sm gap-2 hover:bg-base-200 pl-0 mb-0">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke-width="1.5"
+             stroke="currentColor"
+             class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Volver Inicio
+    </a>
+{% endblock back_button %}
 {% block content %}
     <div class="flex justify-center items-center py-20 bg-base-200/50 min-h-[calc(100vh-4rem)]">
         <div class="card w-full max-w-md shadow-xl bg-base-100 border border-base-300">

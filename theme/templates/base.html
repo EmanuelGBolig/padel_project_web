@@ -687,7 +687,8 @@
                         <!-- HEADER ACTIONS (VOLVER + OTROS BOTONES) -->
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                             <div class="w-full md:w-auto flex justify-start">
-                                {% if request.path != '/' and request.path != '/accounts/login/' and request.path != '/accounts/signup/' %}
+                                {% if request.path != '/' and request.path != '/accounts/login/' and request.path != '/accounts/registro/' %}
+                                {% block back_button %}
                                     <button onclick="window.history.back()"
                                             class="btn btn-ghost btn-sm gap-2 hover:bg-base-200 pl-0 mb-0">
                                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -700,6 +701,7 @@
                                         </svg>
                                         Volver
                                     </button>
+                                {% endblock back_button %}
                                 {% endif %}
                             </div>
                             <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
