@@ -438,11 +438,14 @@ class RankingListView(ListView):
 
                 from equipos.models import RankingEquipo
                 rankings_db = RankingEquipo.objects.filter(division=division).select_related('equipo', 'equipo__jugador1', 'equipo__jugador2').order_by('-puntos', '-torneos_ganados', '-victorias')
+                
                 # Filtrar por género si se especifica (usamos jugador1 como referencia del equipo)
                 if genero_key != 'ALL':
                     rankings_db = rankings_db.filter(equipo__jugador1__genero=genero_key)
 
                 equipos_con_puntos = []
+                equipos_ids_en_ranking = set()
+
                 for i, r in enumerate(rankings_db, 1):
                     win_rate = round((r.victorias / r.partidos_jugados) * 100, 1) if r.partidos_jugados > 0 else 0
                     equipos_con_puntos.append({
@@ -454,6 +457,28 @@ class RankingListView(ListView):
                         'partidos_jugados': r.partidos_jugados,
                         'posicion': i
                     })
+                    equipos_ids_en_ranking.add(r.equipo.id)
+
+                # --- NUEVA LÓGICA: Añadir equipos que están en la división pero no en la tabla RankingEquipo ---
+                equipos_faltantes_qs = Equipo.objects.filter(
+                    division=division
+                ).exclude(id__in=equipos_ids_en_ranking).select_related('jugador1', 'jugador2', 'division')
+
+                if genero_key != 'ALL':
+                    equipos_faltantes_qs = equipos_faltantes_qs.filter(jugador1__genero=genero_key)
+
+                next_pos = len(equipos_con_puntos) + 1
+                for e in equipos_faltantes_qs:
+                    equipos_con_puntos.append({
+                        'equipo': e,
+                        'puntos': 0,
+                        'victorias': 0,
+                        'win_rate': 0,
+                        'torneos_ganados': 0,
+                        'partidos_jugados': 0,
+                        'posicion': next_pos
+                    })
+                    next_pos += 1
                 
                 dj_cache.set(cache_key, equipos_con_puntos, 300)
                 rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
