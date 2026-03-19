@@ -1431,7 +1431,7 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
                 return redirect('torneos:detail', pk=torneo.pk)
             
             # Verificar División (Nueva lógica de rango)
-            if not self.get_view_class()._es_division_permitida(self, equipo, torneo):
+            if not TorneoDetailView._es_division_permitida(self, equipo, torneo):
                 d_info = ""
                 if equipo.jugador1 and equipo.jugador2:
                     d1 = equipo.jugador1.division
