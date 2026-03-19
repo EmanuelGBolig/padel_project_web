@@ -138,12 +138,19 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         equipos_inscriptos = context['inscripciones'].values_list('equipo_id', flat=True)
         
-        equipos_query = Equipo.objects.filter(es_dummy=False)
-        if torneo.division:
-            equipos_query = equipos_query.filter(division=torneo.division)
-            
-        context['equipos_para_inscribir'] = equipos_query.exclude(
+        equipos_query = Equipo.objects.filter(es_dummy=False).exclude(
             id__in=equipos_inscriptos
+        ).select_related('jugador1__division', 'jugador2__division')
+        
+        # Filtramos qué equipos pueden anotarse a este torneo usando las reglas centralizadas
+        valid_team_ids = []
+        for eq in equipos_query:
+            if es_division_permitida(eq, torneo):
+                valid_team_ids.append(eq.pk)
+                
+        # Limitamos la consulta a los válidos devueltos, paginando a <= 200 opciones en el dropdown
+        context['equipos_para_inscribir'] = Equipo.objects.filter(
+            id__in=valid_team_ids
         ).select_related('jugador1', 'jugador2')[:200]
 
         context['todos_grupos_cargados'] = (
@@ -1130,44 +1137,49 @@ class AdminTorneoDeleteView(AdminRequiredMixin, DeleteView):
 
 
 
+def es_division_permitida(equipo, torneo):
+    """
+    Verifica si el equipo puede inscribirse al torneo según la división.
+    
+    Reglas:
+    - Torneos libres (division=null): cualquier equipo puede inscribirse
+    - Parejas mixtas (distinta división): pueden participar en cualquier división 
+      comprendida entre la de ambos jugadores (inclusive).
+      Ej: Uno de 4ta y uno de 6ta -> pueden en 4ta, 5ta y 6ta.
+    - Parejas puras (misma división): pueden participar en su división, 
+      una división superior o una inferior (+/- 1).
+      Ej: Dos de 7ma -> pueden en 6ta, 7ma y 8va.
+    """
+    if torneo.division is None:  # Torneo libre
+        return True
+    
+    if not equipo.jugador1 or not equipo.jugador2:
+        # Fallback simple si no hay jugadores reales (ej: dummy)
+        return equipo.division == torneo.division if equipo.division else True
+
+    d1 = equipo.jugador1.division
+    d2 = equipo.jugador2.division
+
+    if not d1 and not d2:
+        return True # Sin divisiones restringidas
+        
+    # Obtener los órdenes (Octava=8, Primera=1)
+    orden_p1 = d1.orden if d1 else (d2.orden if d2 else 99)
+    orden_p2 = d2.orden if d2 else (d1.orden if d1 else 99)
+    orden_torneo = torneo.division.orden
+    
+    min_orden = min(orden_p1, orden_p2)
+    max_orden = max(orden_p1, orden_p2)
+    
+    if orden_p1 == orden_p2:
+        return (min_orden - 1) <= orden_torneo <= (max_orden + 1)
+    else:
+        return min_orden <= orden_torneo <= max_orden
+
 class TorneoDetailView(DetailView):
     model = Torneo
     template_name = 'torneos/torneo_detail.html'
     context_object_name = 'torneo'
-    
-    def _es_division_permitida(self, equipo, torneo):
-        """
-        Verifica si el equipo puede inscribirse al torneo según la división.
-        
-        Reglas:
-        - Torneos libres (division=null): cualquier equipo puede inscribirse
-        - Parejas de distinta división: pueden participar en cualquier división 
-          comprendida entre la de ambos jugadores (inclusive).
-          Ej: Uno de 4ta y uno de 6ta -> pueden en 4ta, 5ta y 6ta.
-        """
-        if torneo.division is None:  # Torneo libre
-            return True
-        
-        if not equipo.jugador1 or not equipo.jugador2:
-            # Fallback simple si no hay jugadores reales (ej: dummy)
-            return equipo.division == torneo.division if equipo.division else True
-
-        d1 = equipo.jugador1.division
-        d2 = equipo.jugador2.division
-
-        if not d1 and not d2:
-            return True # Sin divisiones restringidas
-            
-        # Obtener los órdenes (Octava=8, Primera=1)
-        orden_p1 = d1.orden if d1 else (d2.orden if d2 else 99)
-        orden_p2 = d2.orden if d2 else (d1.orden if d1 else 99)
-        orden_torneo = torneo.division.orden
-        
-        # El rango es entre el mínimo y el máximo orden de la pareja
-        min_orden = min(orden_p1, orden_p2)
-        max_orden = max(orden_p1, orden_p2)
-        
-        return min_orden <= orden_torneo <= max_orden
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1208,7 +1220,7 @@ class TorneoDetailView(DetailView):
             context['ya_inscrito'] = Inscripcion.objects.filter(
                 torneo=torneo, equipo=equipo
             ).exists()
-            context['division_correcta'] = self._es_division_permitida(equipo, torneo)
+            context['division_correcta'] = es_division_permitida(equipo, torneo)
             
             # Validación de Categoría
             # Las parejas mixtas pueden inscribirse a cualquier tipo de torneo
@@ -1455,7 +1467,7 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
                 return redirect('torneos:detail', pk=torneo.pk)
             
             # Verificar División (Nueva lógica de rango)
-            if not TorneoDetailView._es_division_permitida(self, equipo, torneo):
+            if not es_division_permitida(equipo, torneo):
                 d_info = ""
                 if equipo.jugador1 and equipo.jugador2:
                     d1 = equipo.jugador1.division
