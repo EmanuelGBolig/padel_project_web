@@ -58,7 +58,16 @@ class Equipo(models.Model):
 
             # 2. Ordenamos alfabéticamente para consistencia
             nombres_ordenados = sorted([j1_nombre, j2_nombre])
-            self.nombre = f"{nombres_ordenados[0]}/{nombres_ordenados[1]}"
+            base_nombre = f"{nombres_ordenados[0]}/{nombres_ordenados[1]}"
+            
+            if not self.nombre or not self.nombre.startswith(base_nombre):
+                self.nombre = base_nombre
+                
+            original_nombre = self.nombre
+            counter = 1
+            while Equipo.objects.filter(nombre=self.nombre).exclude(pk=self.pk).exists():
+                self.nombre = f"{original_nombre} ({counter})"
+                counter += 1
 
             # 3. Asignar división automáticamente basada en el mejor ranking (menor orden)
             if not self.division_id and self.jugador1 and self.jugador2:

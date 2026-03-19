@@ -95,7 +95,7 @@ class JugadorAutocomplete(autocomplete.Select2QuerySetView):
             division=user.division, tipo_usuario='PLAYER'
         ).exclude(
             id=user.id  # Excluirse a sí mismo
-        )
+        ).order_by('nombre', 'apellido')
 
         # 2. FILTRO CLAVE: Excluir a los jugadores que ya aparecen como jugador1 O jugador2 en CUALQUIER equipo
         # Usamos las relaciones inversas explícitas (related_name)
