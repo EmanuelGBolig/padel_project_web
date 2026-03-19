@@ -1,0 +1,30 @@
+/* Tooltips anchos para nombres largos de equipos */
+.tooltip::before,
+.tooltip::after {
+    max-width: 300px !important;
+    white-space: normal !important;
+    text-align: center !important;
+}
+
+/* En móviles, tooltips con tap para mostrar */
+@media (hover: none) and (pointer: coarse) {
+    .tooltip {
+        cursor: pointer;
+        position: relative;
+    }
+
+    /* Ocultar tooltips por defecto en móviles */
+    .tooltip::before,
+    .tooltip::after {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    /* Mostrar cuando está activo (touch) */
+    .tooltip.active::before,
+    .tooltip.active::after {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+}

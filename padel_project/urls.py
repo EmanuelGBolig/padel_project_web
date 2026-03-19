@@ -33,3 +33,8 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [
+    path('apple-touch-icon.png', RedirectView.as_view(url=settings.STATIC_URL + 'img/favicon_192.png', permanent=True)),
+    path('apple-touch-icon-precomposed.png', RedirectView.as_view(url=settings.STATIC_URL + 'img/favicon_192.png', permanent=True)),
+]
