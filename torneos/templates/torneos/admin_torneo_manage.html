@@ -193,7 +193,7 @@
                         {% csrf_token %}
                         <div class="flex flex-col sm:flex-row gap-2 w-full">
                             <select name="equipo_a_inscribir_id"
-                                    class="select select-sm select-bordered w-full sm:w-64" required>
+                                    class="select2-enable select select-sm select-bordered w-full sm:w-64" required>
                                 <option value="" disabled selected>Seleccione pareja a agregar...</option>
                                 {% for eq in equipos_para_inscribir %}
                                     <option value="{{ eq.pk }}">{{ eq.nombre }} ({{ eq.jugador1.full_name }} y {{ eq.jugador2.full_name }})</option>
@@ -844,3 +844,19 @@
         </script>
     </div>
 {% endblock content %}
+
+{% block extra_js %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2-enable').select2({
+            placeholder: "Seleccione pareja a agregar...",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('body')
+        });
+    });
+</script>
+{% endblock extra_js %}
