@@ -165,7 +165,7 @@
                         Parejas Inscritos ({{ inscripciones.count }})
                     </h2>
                     {% if torneo.forzar_grupos_de_3 %}
-                        <form method="post" action="" class="w-full md:w-auto">
+                        <form method="post" action="" class="w-full xl:w-auto">
                             {% csrf_token %}
                             <div class="flex flex-col sm:flex-row gap-2 w-full">
                                 <input type="text"
@@ -189,6 +189,32 @@
                             </div>
                         </form>
                     {% endif %}
+                    <form method="post" action="" class="w-full xl:w-auto mt-2 xl:mt-0">
+                        {% csrf_token %}
+                        <div class="flex flex-col sm:flex-row gap-2 w-full">
+                            <select name="equipo_a_inscribir_id"
+                                    class="select select-sm select-bordered w-full sm:w-64" required>
+                                <option value="" disabled selected>Seleccione pareja a agregar...</option>
+                                {% for eq in equipos_para_inscribir %}
+                                    <option value="{{ eq.pk }}">{{ eq.nombre }} ({{ eq.jugador1.full_name }} y {{ eq.jugador2.full_name }})</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit"
+                                    name="action"
+                                    value="agregar_equipo"
+                                    class="btn btn-sm btn-secondary gap-2 whitespace-nowrap">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke-width="1.5"
+                                     stroke="currentColor"
+                                     class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                Agregar Pareja
+                            </button>
+                        </div>
+                    </form>
                 </div>
                 {% if inscripciones %}
                     <div class="overflow-x-auto">

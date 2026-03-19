@@ -136,6 +136,12 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             grupos.exists() and len(context['equipos_sin_grupo']) == 0
         )
 
+        equipos_inscriptos = context['inscripciones'].values_list('equipo_id', flat=True)
+        context['equipos_para_inscribir'] = Equipo.objects.filter(
+            division=torneo.division,
+            es_dummy=False
+        ).exclude(id__in=equipos_inscriptos).select_related('jugador1', 'jugador2')[:200]
+
         context['todos_grupos_cargados'] = (
             partidos_grupo_total > 0
             and context['partidos_grupo_pendientes'] == 0
@@ -177,6 +183,20 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         elif action == 'confirmar_grupos':
             return self.confirmar_grupos_logica(request, torneo)
+            
+        elif action == 'agregar_equipo':
+            equipo_id = request.POST.get('equipo_a_inscribir_id')
+            if equipo_id:
+                try:
+                    equipo = Equipo.objects.get(pk=equipo_id)
+                    if Inscripcion.objects.filter(torneo=torneo, equipo=equipo).exists():
+                        messages.warning(request, f"La pareja '{equipo.nombre}' ya está inscripta.")
+                    else:
+                        Inscripcion.objects.create(torneo=torneo, equipo=equipo)
+                        messages.success(request, f"Se inscribió a '{equipo.nombre}' al torneo.")
+                except Equipo.DoesNotExist:
+                    messages.error(request, "La pareja seleccionada no existe.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
         
         elif action == 'eliminar_inscripcion':
             inscripcion_id = request.POST.get('inscripcion_id')
