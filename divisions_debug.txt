@@ -1,0 +1,17 @@
+All Divisions in DB:
+- ID: 1, Nombre: 'Séptima', Jugadores: 4, Rankings: 0, Orden: 7
+- ID: 2, Nombre: 'TestDiv', Jugadores: 0, Rankings: 0, Orden: 1
+- ID: 3, Nombre: 'Cuarta', Jugadores: 1, Rankings: 0, Orden: 4
+- ID: 4, Nombre: 'Quinta', Jugadores: 0, Rankings: 0, Orden: 5
+- ID: 5, Nombre: 'Sexta', Jugadores: 1, Rankings: 0, Orden: 6
+- ID: 6, Nombre: 'Tercera', Jugadores: 0, Rankings: 0, Orden: 3
+
+Sexta (ID: 6) Players (if exists):
+Division 6 name: 'Tercera'
+
+Sexta (ID: 1) Players (if exists):
+Division 1 name: 'Séptima'
+  - jugador1a@ejemplo.com (Jugador1A Simulado)
+  - jugador1b@ejemplo.com (Jugador1B Simulado)
+  - jugador2a@ejemplo.com (Jugador2A Simulado)
+  - jugador2b@ejemplo.com (Jugador2B Simulado)

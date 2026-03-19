@@ -1,42 +1,29 @@
-
 import os
 import django
-import sys
 
-# Setup Django environment
-sys.path.append(os.getcwd())
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'padel_project.settings')
 django.setup()
 
-from torneos.models import Torneo, Partido
-from equipos.models import Equipo
-from django.db.models import Count, Q
+from accounts.models import CustomUser, Division
+from equipos.models import RankingJugador, Equipo
+from torneos.models import Torneo
 
-print("--- Inspecting Tournaments ---")
-torneos = Torneo.objects.all()
-
-for t in torneos:
-    print(f"ID: {t.id} | Nombre: {t.nombre} | Estado: {t.estado} | Ganador: {t.ganador_del_torneo}")
-    
-    # Check Final Match
-    final_matches = Partido.objects.filter(torneo=t, siguiente_partido__isnull=True)
-    for fm in final_matches:
-        print(f"  -> Final Match ID: {fm.id} | Ronda: {fm.ronda} | Ganador: {fm.ganador} | Resultado: {fm.resultado}")
-        
-    print("-" * 30)
-
-print("\n--- Testing Ranking Calculation for a Team ---")
-# Pick a team that should have points
-if torneos.exists() and torneos.first().ganador_del_torneo:
-    team = torneos.first().ganador_del_torneo
-    print(f"Testing team: {team.nombre}")
-    
-    # Manual Calc from View Logic
-    victorias = team.partidos_bracket_ganados.count() + team.partidos_grupo_ganados.count()
-    torneos_ganados = team.torneos_ganados.count()
-    
-    print(f"  Victorias: {victorias}")
-    print(f"  Torneos Ganados: {torneos_ganados}")
-    print(f"  Puntos (calc): {victorias * 3 + torneos_ganados * 50}")
+div_sexta = Division.objects.filter(nombre__icontains='Sexta').first()
+if not div_sexta:
+    print("No division 'Sexta' found.")
 else:
-    print("No tournament winner found to test.")
+    print(f"Division: {div_sexta.nombre} (ID: {div_sexta.id})")
+    
+    players_in_db = CustomUser.objects.filter(division=div_sexta, tipo_usuario='PLAYER').count()
+    print(f"Total players in DB for this division: {players_in_db}")
+    
+    ranking_records = RankingJugador.objects.filter(division=div_sexta).count()
+    print(f"Total RankingJugador records for this division: {ranking_records}")
+    
+    torneos = Torneo.objects.filter(division=div_sexta).count()
+    print(f"Total torneos for this division: {torneos}")
+
+    # Check some rankings
+    print("\nRankingJugador entries:")
+    for r in RankingJugador.objects.filter(division=div_sexta):
+        print(f"- {r.jugador.full_name}: {r.puntos} pts")

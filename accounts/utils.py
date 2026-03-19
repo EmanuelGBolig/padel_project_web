@@ -37,6 +37,8 @@ def get_division_rankings(division, genero=None, force_recalc=False):
             rankings_db = rankings_db.filter(jugador__genero=genero_key)
 
         result = []
+        jugadores_en_ranking = set()
+
         for i, r in enumerate(rankings_db, 1):
             win_rate = round((r.victorias / r.partidos_jugados) * 100, 1) if r.partidos_jugados > 0 else 0
             equipos_j1 = list(r.jugador.equipos_como_jugador1.all())
@@ -53,6 +55,35 @@ def get_division_rankings(division, genero=None, force_recalc=False):
                 'partidos_totales': r.partidos_jugados,
                 'posicion': i
             })
+            jugadores_en_ranking.add(r.jugador.id)
+        
+        # --- NUEVA LÓGICA: Añadir jugadores que están en la división pero no en la tabla RankingJugador ---
+        jugadores_faltantes_qs = CustomUser.objects.filter(
+            division=division, 
+            tipo_usuario='PLAYER'
+        ).exclude(id__in=jugadores_en_ranking).select_related('division').prefetch_related('equipos_como_jugador1', 'equipos_como_jugador2')
+
+        if genero_key != 'ALL':
+            jugadores_faltantes_qs = jugadores_faltantes_qs.filter(genero=genero_key)
+
+        next_pos = len(result) + 1
+        for j in jugadores_faltantes_qs:
+            # Intentar obtener un equipo para el jugador
+            equipos_j1 = list(j.equipos_como_jugador1.all())
+            equipos_j2 = list(j.equipos_como_jugador2.all())
+            primer_equipo = equipos_j1[0] if equipos_j1 else (equipos_j2[0] if equipos_j2 else None)
+
+            result.append({
+                'jugador': j,
+                'puntos': 0,
+                'victorias': 0,
+                'win_rate': 0,
+                'torneos_ganados': 0,
+                'equipos': [primer_equipo] if primer_equipo else [],
+                'partidos_totales': 0,
+                'posicion': next_pos
+            })
+            next_pos += 1
         
         cache.set(cache_key, result, 300)
         return result
