@@ -137,10 +137,14 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         )
 
         equipos_inscriptos = context['inscripciones'].values_list('equipo_id', flat=True)
-        context['equipos_para_inscribir'] = Equipo.objects.filter(
-            division=torneo.division,
-            es_dummy=False
-        ).exclude(id__in=equipos_inscriptos).select_related('jugador1', 'jugador2')[:200]
+        
+        equipos_query = Equipo.objects.filter(es_dummy=False)
+        if torneo.division:
+            equipos_query = equipos_query.filter(division=torneo.division)
+            
+        context['equipos_para_inscribir'] = equipos_query.exclude(
+            id__in=equipos_inscriptos
+        ).select_related('jugador1', 'jugador2')[:200]
 
         context['todos_grupos_cargados'] = (
             partidos_grupo_total > 0
