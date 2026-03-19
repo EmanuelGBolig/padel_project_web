@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}
-    Mi Perfil - TodoPadel
+    {% if is_admin_editing %}Editar Perfil de {{ perfil_usuario.full_name }}{% else %}Mi Perfil{% endif %} - TodoPadel
 {% endblock title %}
 {% block back_button %}
     <a href="{% url 'core:home' %}"
@@ -29,20 +29,19 @@
                         <!-- Foto / Iniciales clickeable para zoom -->
                         <button type="button"
                                 onclick="document.getElementById('photo-zoom-modal').showModal()"
-                                class="w-32 h-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden flex items-center justify-center bg-neutral text-neutral-content focus:outline-none cursor-zoom-in"
-                                {% if not user.imagen %}style="cursor:default;pointer-events:none;"{% endif %}>
-                            {% if user.imagen %}
-                                <img src="{{ user.imagen.url }}"
-                                     alt="{{ user.full_name }}"
+                                class="w-32 h-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden flex items-center justify-center bg-neutral text-neutral-content focus:outline-none cursor-zoom-in"                                 {% if not perfil_usuario.imagen %}style="cursor:default;pointer-events:none;"{% endif %}>
+                            {% if perfil_usuario.imagen %}
+                                <img src="{{ perfil_usuario.imagen.url }}"
+                                     alt="{{ perfil_usuario.full_name }}"
                                      class="w-full h-full object-cover"
                                      width="128"
                                      height="128" />
                             {% else %}
-                                <span class="text-3xl font-bold">{{ user.nombre|slice:":1"|upper }}{{ user.apellido|slice:":1"|upper }}</span>
+                                <span class="text-3xl font-bold">{{ perfil_usuario.nombre|slice:":1"|upper }}{{ perfil_usuario.apellido|slice:":1"|upper }}</span>
                             {% endif %}
                         </button>
                         <!-- Overlay oscuro al hover (solo si hay foto) -->
-                        {% if user.imagen %}
+                        {% if perfil_usuario.imagen %}
                             <div class="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803 7.5 7.5 0 0 0 15.8 15.803zM10.5 7.5v6m3-3h-6" />
@@ -60,11 +59,11 @@
                         </button>
                     </div>
                     <!-- Modal de Zoom de Foto -->
-                    {% if user.imagen %}
+                    {% if perfil_usuario.imagen %}
                         <dialog id="photo-zoom-modal" class="modal modal-middle">
                             <div class="modal-box bg-transparent shadow-none p-2 max-w-lg flex flex-col items-center gap-3">
-                                <img src="{{ user.imagen.url }}"
-                                     alt="{{ user.full_name }}"
+                                <img src="{{ perfil_usuario.imagen.url }}"
+                                     alt="{{ perfil_usuario.full_name }}"
                                      class="rounded-2xl w-full max-w-md object-cover shadow-2xl" />
                                 <form method="dialog">
                                     <button class="btn btn-sm btn-ghost text-white bg-black/40 hover:bg-black/60">Cerrar</button>
@@ -75,9 +74,9 @@
                             </form>
                         </dialog>
                     {% endif %}
-                    <h2 class="card-title text-2xl">{{ user.full_name }}</h2>
-                    <div class="badge badge-primary badge-lg">{{ user.division.nombre }}</div>
-                    <p class="text-base-content/70 mt-2">{{ user.email }}</p>
+                    <h2 class="card-title text-2xl">{{ perfil_usuario.full_name }}</h2>
+                    <div class="badge badge-primary badge-lg">{{ perfil_usuario.division.nombre }}</div>
+                    <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p></p>
                 </div>
             </div>
             {% if user.tipo_usuario == 'ORGANIZER' %}
@@ -175,7 +174,7 @@
         </div>
         <!-- Columna Derecha: Estadísticas y Torneos (JUGADOR) O Dashboard (ADMIN/ORGANIZADOR) -->
         <div class="lg:col-span-2 space-y-8">
-            {% if user.tipo_usuario == 'PLAYER' %}
+            {% if perfil_usuario.tipo_usuario == 'PLAYER' %}
                 <!-- Tarjeta de Ranking -->
                 <div class="card bg-base-100 shadow-xl border border-base-200">
                     <div class="card-body flex-row items-center gap-4 py-4">
@@ -189,8 +188,8 @@
                         </div>
                         <div class="divider divider-horizontal my-0"></div>
                         <div class="flex-1">
-                            {% if user.division %}
-                                <h3 class="font-bold text-lg">Ranking {{ user.division.nombre }}</h3>
+                            {% if perfil_usuario.division %}
+                                <h3 class="font-bold text-lg">Ranking {{ perfil_usuario.division.nombre }}</h3>
                             {% else %}
                                 <h3 class="font-bold text-lg text-base-content/50">Sin División</h3>
                             {% endif %}
@@ -203,8 +202,8 @@
                                 {% endif %}
                             </p>
                         </div>
-                        {% if user.division %}
-                            <a href="{% url 'accounts:rankings_jugadores' %}?division={{ user.division.pk }}"
+                        {% if perfil_usuario.division %}
+                            <a href="{% url 'accounts:rankings_jugadores' %}?division={{ perfil_usuario.division.pk }}"
                                class="btn btn-ghost btn-sm text-primary">
                                 Ver Tabla
                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -272,7 +271,7 @@
                                                 </div>
                                                 <div class="font-bold text-lg">
                                                     vs.
-                                                    {% if partido.equipo1 == user.equipo %}
+                                                    {% if partido.equipo1 == perfil_usuario.equipo %}
                                                         {{ partido.equipo2.nombre|default:"Por definir" }}
                                                     {% else %}
                                                         {{ partido.equipo1.nombre|default:"Por definir" }}

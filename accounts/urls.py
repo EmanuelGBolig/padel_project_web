@@ -13,6 +13,7 @@ urlpatterns = [
     path('completar-perfil/', views.CompleteGoogleProfileView.as_view(), name='complete_google_profile'),
     path('perfil/', views.PerfilView.as_view(), name='perfil'),
     path('jugador/<int:pk>/', views.PublicProfileView.as_view(), name='detalle'),
+    path('jugador/<int:pk>/editar/', views.AdminUserUpdateView.as_view(), name='admin_user_edit'),
     path('rankings/', views.RankingJugadoresListView.as_view(), name='rankings_jugadores'),
     path('organizador/<int:pk>/', views.OrganizacionDetailView.as_view(), name='organizador_detalle'),
     path('organizador/<int:pk>/programacion/', views.OrganizacionProgramacionView.as_view(), name='organizacion_programacion'),

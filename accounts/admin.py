@@ -29,7 +29,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('email', 'password', 'raw_password_hash', 'hash_password_manual')}),
         (
             'Información Personal',
-            {'fields': ('nombre', 'apellido', 'numero_telefono', 'genero', 'division', 'organizacion')},
+            {'fields': ('nombre', 'apellido', 'imagen', 'numero_telefono', 'genero', 'division', 'organizacion')},
         ),
         (
             'Permisos',

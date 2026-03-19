@@ -1,7 +1,7 @@
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView
 from django.contrib.auth.views import LoginView, LogoutView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
 from django.contrib import messages
 from .models import CustomUser, Organizacion, Sponsor
@@ -155,119 +155,37 @@ class VerifyEmailView(FormView):
             return self.form_invalid(form)
 
 
-class PerfilView(LoginRequiredMixin, UpdateView):
-    model = CustomUser
-    form_class = CustomUserProfileForm
-    template_name = 'accounts/perfil.html'
-    success_url = reverse_lazy('accounts:perfil')
+class ProfileContextMixin:
+    """Mixin para unificar la obtención de contexto de perfil (stats, ranking, invitaciones)"""
+    def get_profile_context(self, target_user):
+        from .utils import get_player_stats, get_user_ranking
+        from django.core.cache import cache as dj_cache
+        from django.db.models import Q
+        from torneos.models import Partido, PartidoGrupo
+        from equipos.models import Invitation
 
-    def get_object(self, queryset=None):
-        # Devuelve el usuario actualmente logueado con división precargada
-        return CustomUser.objects.select_related('division').get(pk=self.request.user.pk)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
+        context = {}
         
-        # --- LÓGICA DE DASHBOARD DE GESTIÓN (ADMIN/ORGANIZADOR) ---
-        if user.tipo_usuario in ['ADMIN', 'ORGANIZER']:
-            from torneos.models import Torneo, Inscripcion
-            from django.core.cache import cache as dj_cache
-            from django.db.models import Prefetch, Count, Q
-
-            cache_key = f'perfil_gestion_{user.id}'
-            cached_ctx = dj_cache.get(cache_key)
-
-            if cached_ctx:
-                context.update(cached_ctx)
-            else:
-                organizacion = user.organizacion
-
-                # Torneos gestionados con select_related para evitar queries extra
-                if user.tipo_usuario == 'ADMIN':
-                    torneos_gestionados = Torneo.objects.all().select_related(
-                        'division', 'organizacion'
-                    ).order_by('-fecha_inicio')
-                else:
-                    torneos_gestionados = Torneo.objects.filter(
-                        organizacion=organizacion
-                    ).select_related('division', 'organizacion').order_by('-fecha_inicio')
-
-                # Prefetch de inscripciones optimizado
-                inscripciones_qs = Inscripcion.objects.select_related(
-                    'equipo', 'equipo__division', 'equipo__jugador1', 'equipo__jugador2'
-                ).order_by('-fecha_inscripcion')
-
-                torneos_con_inscripciones = list(
-                    torneos_gestionados.prefetch_related(
-                        Prefetch('inscripciones', queryset=inscripciones_qs, to_attr='inscripciones_list')
-                    )
-                )
-
-                # Alertas de división y contadores en un solo paso
-                total_torneos_activos = 0
-                for torneo in torneos_con_inscripciones:
-                    if torneo.estado in ['AB', 'EJ']:
-                        total_torneos_activos += 1
-                    for ins in torneo.inscripciones_list:
-                        ins.alerta_division = None
-                        if torneo.division and ins.equipo.division:
-                            if ins.equipo.division.orden < torneo.division.orden:
-                                ins.alerta_division = 'SUPERIOR'
-                            elif ins.equipo.division.orden > torneo.division.orden:
-                                ins.alerta_division = 'INFERIOR'
-
-                # Inscripciones de hoy (una sola query)
-                hoy = timezone.now().date()
-                torneo_ids = [t.id for t in torneos_con_inscripciones]
-                total_inscripciones_hoy = Inscripcion.objects.filter(
-                    torneo_id__in=torneo_ids,
-                    fecha_inscripcion__date=hoy
-                ).count() if torneo_ids else 0
-
-                to_cache = {
-                    'torneos_gestionados': torneos_con_inscripciones,
-                    'torneos_con_inscripciones': torneos_con_inscripciones,
-                    'total_torneos_activos': total_torneos_activos,
-                    'total_inscripciones_hoy': total_inscripciones_hoy,
-                }
-                dj_cache.set(cache_key, to_cache, 300)
-                context.update(to_cache)
-
-
         # --- LÓGICA DE JUGADOR (STATS) ---
-        # Solo calculamos stats pesadas si el usuario es jugador
-        if user.tipo_usuario == 'PLAYER':
-            from .utils import get_player_stats, get_user_ranking
-            from django.core.cache import cache as dj_cache
-            
-            cache_key = f'perfil_stats_ctx_{user.id}'
+        if target_user.tipo_usuario == 'PLAYER':
+            cache_key = f'perfil_stats_ctx_{target_user.id}'
             cached_ctx = dj_cache.get(cache_key)
             
             if cached_ctx:
                 context.update(cached_ctx)
             else:
-                # Obtener estadísticas completas
-                stats = get_player_stats(user)
-                stats_ctx = {}
-                stats_ctx['stats'] = stats
-
-                # Obtener Ranking
-                ranking_info = get_user_ranking(user)
-                stats_ctx['ranking_info'] = ranking_info
-
-                # Separar inscripciones por estado para la vista
-                inscripciones_stats = stats['inscripciones']
-                stats_ctx['torneos_activos'] = [i.torneo for i in inscripciones_stats if i.torneo.estado in ['AB', 'EJ']]
-                stats_ctx['torneos_finalizados'] = [i.torneo for i in inscripciones_stats if i.torneo.estado == 'FN']
+                stats = get_player_stats(target_user)
+                stats_ctx = {
+                    'stats': stats,
+                    'ranking_info': get_user_ranking(target_user),
+                    'torneos_activos': [i.torneo for i in stats['inscripciones'] if i.torneo.estado in ['AB', 'EJ']],
+                    'torneos_finalizados': [i.torneo for i in stats['inscripciones'] if i.torneo.estado == 'FN'],
+                }
                 
-                # Próximos Partidos (Solo para Jugadores)
-                equipo = user.equipo
+                # Próximos Partidos
+                equipo = target_user.equipo
                 proximos = []
                 if equipo:
-                    from django.db.models import Q
-                    from torneos.models import Partido, PartidoGrupo
-                    
                     partidos_elim = list(Partido.objects.filter(
                         Q(equipo1=equipo) | Q(equipo2=equipo),
                         ganador__isnull=True,
@@ -285,15 +203,78 @@ class PerfilView(LoginRequiredMixin, UpdateView):
                         key=lambda x: x.fecha_hora.timestamp() if x.fecha_hora else 9999999999
                     )
                 stats_ctx['proximos_partidos'] = proximos
-                
                 dj_cache.set(cache_key, stats_ctx, 300)
                 context.update(stats_ctx)
 
-        # --- Invitaciones (Común para todos si son jugadores activos, pero prioritario para PLAYER) ---
-        from equipos.models import Invitation
-        context['invitaciones_enviadas'] = user.sent_invitations.filter(status=Invitation.Status.PENDING)
-        context['invitaciones_recibidas'] = user.received_invitations.filter(status=Invitation.Status.PENDING)
+        # Invitaciones
+        context['invitaciones_enviadas'] = target_user.sent_invitations.filter(status=Invitation.Status.PENDING)
+        context['invitaciones_recibidas'] = target_user.received_invitations.filter(status=Invitation.Status.PENDING)
         
+        return context
+
+
+class PerfilView(LoginRequiredMixin, ProfileContextMixin, UpdateView):
+    model = CustomUser
+    form_class = CustomUserProfileForm
+    template_name = 'accounts/perfil.html'
+    success_url = reverse_lazy('accounts:perfil')
+
+    def get_object(self, queryset=None):
+        # Devuelve el usuario actualmente logueado con división precargada
+        return CustomUser.objects.select_related('division').get(pk=self.request.user.pk)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context['perfil_usuario'] = self.object
+        
+        # 1. Stats y Ranking
+        context.update(self.get_profile_context(self.object))
+        
+        # 2. Dashboard de Gestión (solo si es su propio perfil y es gestor)
+        if user == self.object and user.tipo_usuario in ['ADMIN', 'ORGANIZER']:
+            from torneos.models import Torneo, Inscripcion
+            from django.core.cache import cache as dj_cache
+            from django.db.models import Prefetch
+
+            cache_key = f'perfil_gestion_{user.id}'
+            cached_ctx = dj_cache.get(cache_key)
+
+            if cached_ctx:
+                context.update(cached_ctx)
+            else:
+                organizacion = user.organizacion
+                if user.tipo_usuario == 'ADMIN':
+                    torneos_gestionados = Torneo.objects.all().select_related('division', 'organizacion').order_by('-fecha_inicio')
+                else:
+                    torneos_gestionados = Torneo.objects.filter(organizacion=organizacion).select_related('division', 'organizacion').order_by('-fecha_inicio')
+
+                inscripciones_qs = Inscripcion.objects.select_related('equipo', 'equipo__division', 'equipo__jugador1', 'equipo__jugador2').order_by('-fecha_inscripcion')
+                torneos_con_inscripciones = list(torneos_gestionados.prefetch_related(Prefetch('inscripciones', queryset=inscripciones_qs, to_attr='inscripciones_list')))
+
+                total_torneos_activos = sum(1 for t in torneos_con_inscripciones if t.estado in ['AB', 'EJ'])
+                
+                # Alertas de división
+                for torneo in torneos_con_inscripciones:
+                    for ins in torneo.inscripciones_list:
+                        ins.alerta_division = None
+                        if torneo.division and ins.equipo.division:
+                            if ins.equipo.division.orden < torneo.division.orden:
+                                ins.alerta_division = 'SUPERIOR'
+                            elif ins.equipo.division.orden > torneo.division.orden:
+                                ins.alerta_division = 'INFERIOR'
+
+                total_inscripciones_hoy = Inscripcion.objects.filter(torneo__in=torneos_con_inscripciones, fecha_inscripcion__date=timezone.now().date()).count() if torneos_con_inscripciones else 0
+
+                to_cache = {
+                    'torneos_gestionados': torneos_con_inscripciones,
+                    'torneos_con_inscripciones': torneos_con_inscripciones,
+                    'total_torneos_activos': total_torneos_activos,
+                    'total_inscripciones_hoy': total_inscripciones_hoy,
+                }
+                dj_cache.set(cache_key, to_cache, 300)
+                context.update(to_cache)
+
         return context
 
 
@@ -422,8 +403,38 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
                     can_invite = True
 
         context['can_invite'] = can_invite
+        context['is_admin'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ADMIN'
         return context
 
+
+class AdminUserUpdateView(LoginRequiredMixin, UserPassesTestMixin, ProfileContextMixin, UpdateView):
+    """
+    Vista para que un administrador edite el perfil de otro usuario.
+    """
+    model = CustomUser
+    form_class = CustomUserProfileForm
+    template_name = 'accounts/perfil.html'  # Reusing the existing profile template
+
+    def test_func(self):
+        return self.request.user.tipo_usuario == 'ADMIN'
+
+    def get_success_url(self):
+        return reverse('accounts:detalle', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_admin_editing'] = True
+        context['perfil_usuario'] = self.object
+        
+        # Stats y Ranking del usuario que estamos editando
+        context.update(self.get_profile_context(self.object))
+        
+        return context
+
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Perfil de {self.object.full_name} actualizado con éxito.")
+        return super().form_valid(form)
 
 
 class OrganizacionListView(ListView):
