@@ -1,6 +1,7 @@
 from django.db.models import Count, Q, Sum, Value, IntegerField
 from django.db.models.functions import Coalesce
 from django.core.cache import cache
+from .models import CustomUser
 
 def get_division_rankings(division, genero=None, force_recalc=False):
     if not division:
@@ -88,7 +89,6 @@ def get_division_rankings(division, genero=None, force_recalc=False):
         cache.set(cache_key, result, 300)
         return result
 
-    from .models import CustomUser
     from torneos.models import Partido, PartidoGrupo, Torneo
 
     torneo_ids = list(Torneo.objects.filter(division=division).values_list('id', flat=True))
