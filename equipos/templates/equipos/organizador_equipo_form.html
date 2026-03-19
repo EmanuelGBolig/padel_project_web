@@ -37,10 +37,17 @@
                             </div>
                         {% endfor %}
                         <div class="pt-4 flex flex-col sm:flex-row gap-3">
-                            <a href="{% url 'accounts:organizacion_settings' %}"
-                               class="btn btn-ghost hover:bg-base-200 border border-base-300 w-full sm:w-auto">
-                                Cancelar
-                            </a>
+                            {% if request.user.organizacion %}
+                                <a href="{% url 'accounts:organizacion_settings' %}"
+                                   class="btn btn-ghost hover:bg-base-200 border border-base-300 w-full sm:w-auto">
+                                    Cancelar
+                                </a>
+                            {% else %}
+                                <a href="{% url 'equipos:admin_list' %}"
+                                   class="btn btn-ghost hover:bg-base-200 border border-base-300 w-full sm:w-auto">
+                                    Cancelar
+                                </a>
+                            {% endif %}
                             <button type="submit"
                                     class="btn btn-primary sm:flex-1 text-white shadow-lg hover:shadow-primary/50 transition-all">
                                 <i class="fas fa-users mr-2"></i> Crear Pareja
