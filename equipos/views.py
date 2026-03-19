@@ -699,7 +699,11 @@ class OrganizadorEquipoCreateView(LoginRequiredMixin, UserPassesTestMixin, Creat
     from .forms import PairCreationForm
     form_class = PairCreationForm
     template_name = 'equipos/organizador_equipo_form.html'
-    success_url = reverse_lazy('accounts:organizacion_settings')
+    def get_success_url(self):
+        from django.urls import reverse
+        if self.request.user.organizacion:
+            return reverse('accounts:organizacion_settings')
+        return reverse('equipos:admin_list')
 
     def test_func(self):
         return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
@@ -718,6 +722,6 @@ class OrganizadorEquipoCreateView(LoginRequiredMixin, UserPassesTestMixin, Creat
         equipo = form.save(commit=False)
         equipo.save()
         messages.success(self.request, f"¡Pareja '{equipo.nombre}' creada con éxito!")
-        return redirect(self.success_url)
+        return redirect(self.get_success_url())
 
 
