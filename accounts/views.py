@@ -470,6 +470,9 @@ class OrganizacionDetailView(DetailView):
         context['torneos_historial'] = historial_qs[:5]
         context['has_more_historial'] = historial_qs.count() > 5
         
+        # 3. Miembros (Solo organizadores de la organización)
+        context['miembros_activos'] = organizacion.miembros.filter(tipo_usuario='ORGANIZER')
+        
         return context
 
 
