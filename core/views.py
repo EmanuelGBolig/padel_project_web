@@ -47,17 +47,23 @@ class GlobalSearchView(TemplateView):
         context['query'] = query
 
         if query:
+            from .utils import normalize_query, extract_dates, get_smart_filter, is_postgres
             import operator
             from functools import reduce
             
-            # Split query into words
-            keywords = query.split()
+            # 1. Detectar fechas (Smart Search)
+            detected_dates = extract_dates(query)
             
-            # Buscar Jugadores (nombre, apellido, email) - TODAS las palabras deben coincidir en alguno de los campos
+            # 2. Normalizar palabras clave
+            keywords = query.split()
+            use_unaccent = is_postgres()
+            
             if keywords:
-                # Build an AND query across words: for each word, it must be in nombre OR apellido OR email
+                # --- BUSCAR JUGADORES ---
                 player_q_list = [
-                    Q(nombre__icontains=kw) | Q(apellido__icontains=kw) | Q(email__icontains=kw)
+                    get_smart_filter('nombre', kw, use_unaccent) | 
+                    get_smart_filter('apellido', kw, use_unaccent) | 
+                    get_smart_filter('email', kw, use_unaccent)
                     for kw in keywords
                 ]
                 player_q = reduce(operator.and_, player_q_list)
@@ -65,21 +71,37 @@ class GlobalSearchView(TemplateView):
                 context['jugadores'] = CustomUser.objects.filter(
                     player_q,
                     tipo_usuario='PLAYER'
-                ).distinct()[:10]  # Limitar a 10 resultados
+                ).distinct()[:10]
 
-                # Buscar Torneos (nombre)
-                torneo_q_list = [Q(nombre__icontains=kw) for kw in keywords]
-                torneo_q = reduce(operator.and_, torneo_q_list)
+                # --- BUSCAR TORNEOS (Smart: Nombre OR Fecha OR División) ---
+                torneo_filters = []
+                
+                # Búsqueda por palabras en el nombre
+                torneo_name_q_list = [get_smart_filter('nombre', kw, use_unaccent) for kw in keywords]
+                torneo_filters.append(reduce(operator.and_, torneo_name_q_list))
+                
+                # Búsqueda por división
+                div_q_list = [get_smart_filter('division__nombre', kw, use_unaccent) for kw in keywords]
+                torneo_filters.append(reduce(operator.and_, div_q_list))
+
+                # Búsqueda por fechas detectadas
+                if detected_dates:
+                    for d in detected_dates:
+                        torneo_filters.append(Q(fecha_inicio=d))
+                
+                # Combinar filtros de torneos con OR
+                torneo_q = reduce(operator.or_, torneo_filters)
+                
                 context['torneos'] = Torneo.objects.filter(
                     torneo_q
-                ).order_by('-fecha_inicio')[:10]
+                ).select_related('division', 'organizacion').order_by('-fecha_inicio').distinct()[:15]
 
-                # Buscar Equipos (nombre)
-                equipo_q_list = [Q(nombre__icontains=kw) for kw in keywords]
+                # --- BUSCAR EQUIPOS (Nombre) ---
+                equipo_q_list = [get_smart_filter('nombre', kw, use_unaccent) for kw in keywords]
                 equipo_q = reduce(operator.and_, equipo_q_list)
                 context['equipos'] = Equipo.objects.filter(
                     equipo_q
-                )[:10]
+                ).select_related('jugador1', 'jugador2', 'division')[:10]
 
         return context
 

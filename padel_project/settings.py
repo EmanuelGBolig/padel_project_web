@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sitemaps',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',  # Para búsqueda con unaccent
     'whitenoise.runserver_nostatic',
     # --- Apps de terceros ---
     'theme',
