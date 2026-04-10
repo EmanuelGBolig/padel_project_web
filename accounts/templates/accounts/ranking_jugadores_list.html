@@ -167,15 +167,6 @@
                                                    class="font-bold text-base md:text-lg hover:text-primary transition-colors hover:underline">
                                                     {{ item.jugador.full_name }}
                                                 </a>
-                                                <div class="text-xs opacity-60 mt-0.5">
-                                                    {% if item.equipos %}
-                                                        <div class="flex flex-wrap gap-1">
-                                                            {% for equipo in item.equipos %}<span class="badge badge-xs badge-ghost">{{ equipo.nombre }}</span>{% endfor %}
-                                                        </div>
-                                                    {% else %}
-                                                        <span class="opacity-70 italic">Sin equipo</span>
-                                                    {% endif %}
-                                                </div>
                                             </div>
                                         </div>
                                     </td>
