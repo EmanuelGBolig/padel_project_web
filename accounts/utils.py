@@ -444,3 +444,78 @@ def actualizar_rankings_en_bd(division):
             }
         )
 
+
+def merge_users(dummy_user, real_user):
+    """
+    Traspasa todo el historial de un usuario dummy a uno real y elimina el dummy.
+    """
+    from django.db import transaction
+    from equipos.models import Equipo
+    from torneos.models import Inscripcion, EquipoGrupo, PartidoGrupo, Partido, Torneo
+    
+    if not dummy_user.is_dummy:
+        raise ValueError("El usuario origen debe ser una cuenta Dummy.")
+    if real_user.is_dummy:
+        raise ValueError("El usuario destino debe ser una cuenta Real.")
+
+    with transaction.atomic():
+        # 1. Traspasar equipos
+        # Actualizamos jugador1 y jugador2 en la tabla Equipo
+        Equipo.objects.filter(jugador1=dummy_user).update(jugador1=real_user)
+        Equipo.objects.filter(jugador2=dummy_user).update(jugador2=real_user)
+
+        # 2. Identificar y fusionar equipos duplicados para el usuario real
+        # Ahora que movimos los equipos, es probable que existan duplicados (ej: Real+Socio y Dummy+Socio)
+        all_teams = list(Equipo.objects.filter(models.Q(jugador1=real_user) | models.Q(jugador2=real_user), es_dummy=False).values('id', 'jugador1_id', 'jugador2_id'))
+        
+        pair_map = {} # (sorted_ids) -> [team_ids]
+        for t in all_teams:
+            pair = tuple(sorted([t['jugador1_id'], t['jugador2_id']]))
+            if pair not in pair_map: pair_map[pair] = []
+            pair_map[pair].append(t['id'])
+        
+        for pair, team_ids in pair_map.items():
+            if len(team_ids) > 1:
+                canonical_id = team_ids[0]
+                others = team_ids[1:]
+                for other_id in others:
+                    # Mover Inscripciones
+                    for ins in Inscripcion.objects.filter(equipo_id=other_id):
+                        if Inscripcion.objects.filter(equipo_id=canonical_id, torneo_id=ins.torneo_id).exists():
+                            ins.delete()
+                        else:
+                            ins.equipo_id = canonical_id
+                            ins.save()
+                    
+                    # Mover EquipoGrupo
+                    for eg in EquipoGrupo.objects.filter(equipo_id=other_id):
+                        if EquipoGrupo.objects.filter(equipo_id=canonical_id, grupo_id=eg.grupo_id).exists():
+                            eg.delete()
+                        else:
+                            eg.equipo_id = canonical_id
+                            eg.save()
+                    
+                    # Actualizar Partidos
+                    PartidoGrupo.objects.filter(equipo1_id=other_id).update(equipo1_id=canonical_id)
+                    PartidoGrupo.objects.filter(equipo2_id=other_id).update(equipo2_id=canonical_id)
+                    PartidoGrupo.objects.filter(ganador_id=other_id).update(ganador_id=canonical_id)
+                    Partido.objects.filter(equipo1_id=other_id).update(equipo1_id=canonical_id)
+                    Partido.objects.filter(equipo2_id=other_id).update(equipo2_id=canonical_id)
+                    Partido.objects.filter(ganador_id=other_id).update(ganador_id=canonical_id)
+                    Torneo.objects.filter(ganador_del_torneo_id=other_id).update(ganador_del_torneo_id=canonical_id)
+                    
+                    # Eliminar equipo duplicado
+                    Equipo.objects.filter(id=other_id).delete()
+                
+                # Normalizar equipo canónico
+                canonical_team = Equipo.objects.get(id=canonical_id)
+                canonical_team.save()
+
+        # 3. Eliminar usuario dummy
+        dummy_user.delete()
+
+        # 4. Forzar recalculo de rankings para las divisiones del usuario real
+        from accounts.models import Division
+        for div in Division.objects.all():
+            actualizar_rankings_en_bd(div)
+

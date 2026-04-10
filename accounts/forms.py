@@ -275,3 +275,23 @@ class DummyUserCreationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class MergeUserForm(forms.Form):
+    """
+    Formulario para elegir un usuario dummy y un usuario real para fusionar sus historiales.
+    """
+    dummy_user = forms.ModelChoiceField(
+        queryset=CustomUser.objects.filter(is_dummy=True),
+        label="Jugador Dummy (Origen)",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'})
+    )
+    real_user = forms.ModelChoiceField(
+        queryset=CustomUser.objects.filter(is_dummy=False, tipo_usuario='PLAYER'),
+        label="Usuario Real (Destino)",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filtros opcionales pueden añadirse aquí si se pasan desde la vista

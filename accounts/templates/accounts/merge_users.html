@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Fusionar Jugadores{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-10 px-4">
+    <!-- Header -->
+    <div class="mb-8 text-center">
+        <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+        </div>
+        <h1 class="text-3xl font-black text-base-content">Fusionar Jugadores</h1>
+        <p class="text-base-content/60 mt-2">Traspasa el historial de una cuenta dummy a un usuario real.</p>
+    </div>
+
+    <!-- Info Card -->
+    <div class="alert bg-info/5 border-info/20 text-info-content mb-8 shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div>
+            <h3 class="font-bold">¿Qué sucede al fusionar?</h3>
+            <ul class="text-xs mt-1 opacity-80 list-disc list-inside">
+                <li>Todos los <b>partidos y torneos</b> del dummy pasan al usuario real.</li>
+                <li>Las <b>parejas duplicadas</b> se unifican automáticamente.</li>
+                <li>Los <b>puntos de ranking</b> se recalcularán para el usuario real.</li>
+                <li>La cuenta <b>Dummy será eliminada</b> permanentemente.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-base-200/50 rounded-3xl p-6 md:p-8 border border-base-300/50 shadow-sm">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <!-- Dummy User -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-bold">Jugador Dummy (Origen)</span>
+                    </label>
+                    {{ form.dummy_user }}
+                    {% if form.dummy_user.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.dummy_user.errors.0 }}</span></label>
+                    {% endif %}
+                </div>
+
+                <!-- Icon arrow (Mobile hide maybe) -->
+                <div class="hidden md:flex items-center justify-center pb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-primary/40">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+                    </svg>
+                </div>
+
+                <!-- Real User -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-bold">Usuario Real (Destino)</span>
+                    </label>
+                    {{ form.real_user }}
+                    {% if form.real_user.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ form.real_user.errors.0 }}</span></label>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="divider opacity-10"></div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
+                <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'accounts:organizacion_list' %}{% endif %}" class="btn btn-ghost">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary btn-wide shadow-lg shadow-primary/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    Confirmar Fusión
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

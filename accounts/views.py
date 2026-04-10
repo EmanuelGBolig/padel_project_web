@@ -1,11 +1,21 @@
 from django.urls import reverse_lazy, reverse
-from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView
+from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView, FormView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
 from django.contrib import messages
+from django.db import transaction
 from .models import CustomUser, Organizacion, Sponsor
-from .forms import CustomUserCreationForm, CustomUserProfileForm, CustomLoginForm, OrganizacionForm, SponsorForm, GoogleProfileCompletionForm
+from .forms import (
+    CustomUserCreationForm, 
+    CustomUserProfileForm, 
+    CustomLoginForm, 
+    OrganizacionForm, 
+    SponsorForm, 
+    GoogleProfileCompletionForm,
+    MergeUserForm
+)
+from .utils import merge_users
 
 
 class CompleteGoogleProfileView(LoginRequiredMixin, UpdateView):
@@ -472,6 +482,9 @@ class OrganizacionDetailView(DetailView):
         
         # 3. Miembros (Solo organizadores de la organización)
         context['miembros_activos'] = organizacion.miembros.filter(tipo_usuario='ORGANIZER')
+        
+        # 4. Jugadores Dummy (Creados por esta organización)
+        context['jugadores_dummy'] = organizacion.miembros.filter(is_dummy=True).order_by('apellido', 'nombre')
         
         return context
 

@@ -24,7 +24,9 @@ urlpatterns = [
     path('organizacion/sponsors/', views.OrganizacionSponsorsView.as_view(), name='organizacion_sponsors'),
     path('organizacion/sponsors/<int:pk>/editar/', views.SponsorUpdateView.as_view(), name='editar_sponsor'),
     path('organizacion/sponsors/<int:pk>/delete/', views.SponsorDeleteView.as_view(), name='eliminar_sponsor'),
-    path('organizacion/jugador-dummy/crear/', views.DummyUserCreationView.as_view(), name='crear_dummy_user'),
+    path('organizacion/detalle/<slug:slug>/', views.OrganizacionDetailView.as_view(), name='organizacion_detail'),
+    path('usuarios/merge/', views.MergeUserView.as_view(), name='merge_usuarios'),
+    path('organizador/crear-jugador-dummy/', views.DummyUserCreateView.as_view(), name='crear_jugador_dummy'),
     
     # Rutas de recuperación de contraseña (Django Auth)
     # Rutas de recuperación de contraseña (Explícitas para corregir namespace)
