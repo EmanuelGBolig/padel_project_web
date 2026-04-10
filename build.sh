@@ -15,4 +15,7 @@ python manage.py createcachetable
 # Scripts de automatización
 python scripts/seed_divisions.py
 python scripts/create_initial_superuser.py
+# Reparación y recalculo de rankings (Añadido para corregir anomalías en producción)
+python manage.py reparar_rankings
+
 # migrar_rankings_historicos es un script puntual, NO debe correr en cada deploy

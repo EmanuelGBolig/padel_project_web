@@ -20,9 +20,6 @@ def invalidar_cache_rankings(sender, instance, **kwargs):
     # Para LocMemCache, debemos eliminar claves específicas
     # Eliminar cache de todas las divisiones y cache general
     
-    # Cache de equipos
-    cache.delete('rankings_all')
-    
     # Cache de jugadores
     cache.delete('rankings_jugadores_all')
     

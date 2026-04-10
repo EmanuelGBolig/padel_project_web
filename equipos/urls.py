@@ -15,7 +15,6 @@ urlpatterns = [
     path('crear/', views.EquipoCreateView.as_view(), name='crear'),
     path('disolver/', views.EquipoDeleteView.as_view(), name='disolver'),
     # Rankings
-    path('rankings/', views.RankingListView.as_view(), name='rankings'),
     # Vistas de Admin
     path('admin/listado/', views.AdminEquipoListView.as_view(), name='admin_list'),
     

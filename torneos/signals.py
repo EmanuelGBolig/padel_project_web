@@ -12,7 +12,6 @@ def invalidar_cache_division(division):
     """Borra el caché de rankings cuando cambia algo en una división y regenera la BD."""
     if division:
         cache.delete(f'rankings_jugadores_div_{division.id}')
-        cache.delete(f'rankings_equipos_div_{division.id}')
         
         # Corremos la actualización de BD asíncrona para no trabar el thread de Django Guardar
         threading.Thread(target=actualizar_rankings_en_bd, args=(division,)).start()

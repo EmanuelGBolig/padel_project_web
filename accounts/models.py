@@ -170,9 +170,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         # Importación local para evitar importación circular
         from equipos.models import Equipo
 
-        equipo = self.equipos_como_jugador1.first()
+        equipo = self.equipos_como_jugador1.filter(esta_activo=True).first()
         if not equipo:
-            equipo = self.equipos_como_jugador2.first()
+            equipo = self.equipos_como_jugador2.filter(esta_activo=True).first()
         return equipo
 
 class Organizacion(models.Model):

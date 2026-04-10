@@ -163,18 +163,17 @@ def get_division_rankings(division, genero=None, force_recalc=False):
         add_puntos(v['ganador__jugador2'], v['wins'] * 15)
 
     for p in partidos_bracket:
-        add_partidos(p['equipo1__jugador1'], 1)
-        add_partidos(p['equipo1__jugador2'], 1)
-        add_partidos(p['equipo2__jugador1'], 1)
-        add_partidos(p['equipo2__jugador2'], 1)
+        players_in_match = {p['equipo1__jugador1'], p['equipo1__jugador2'], p['equipo2__jugador1'], p['equipo2__jugador2']}
+        for jid in players_in_match:
+            if jid: add_partidos(jid, 1)
+            
         add_victorias(p['ganador__jugador1'], 1)
         add_victorias(p['ganador__jugador2'], 1)
 
     for p in partidos_grupo:
-        add_partidos(p['equipo1__jugador1'], 1)
-        add_partidos(p['equipo1__jugador2'], 1)
-        add_partidos(p['equipo2__jugador1'], 1)
-        add_partidos(p['equipo2__jugador2'], 1)
+        players_in_match = {p['equipo1__jugador1'], p['equipo1__jugador2'], p['equipo2__jugador1'], p['equipo2__jugador2']}
+        for jid in players_in_match:
+            if jid: add_partidos(jid, 1)
 
     # Determinar Campeones por Torneo
     camps = {}
@@ -425,9 +424,11 @@ def actualizar_rankings_en_bd(division):
     if not division:
         return
 
-    from equipos.models import RankingJugador, RankingEquipo
-    from equipos.views import RankingListView
-    from django.test import RequestFactory
+    from equipos.models import RankingJugador
+    
+    # IMPORTANTE: Borramos los registros actuales de la división para evitar puntos obsoletos
+    # de jugadores que ya no participan o torneos eliminados.
+    RankingJugador.objects.filter(division=division).delete()
 
     # 1. Traer data cruda de jugadores (está en este mismo archivo, usamos recalc forzado)
     jugadores_data = get_division_rankings(division, force_recalc=True)
@@ -443,26 +444,3 @@ def actualizar_rankings_en_bd(division):
             }
         )
 
-    # 2. Traer data cruda de equipos usando Fake Request al View
-    req = RequestFactory().get(f'/equipos/rankings/?division={division.id}')
-    view = RankingListView()
-    view.request = req
-    
-    todas_divs = view.get_queryset(force_recalc=True)
-    equipos_data = []
-    for r in todas_divs:
-        if r['division'].id == division.id:
-            equipos_data = r['equipos']
-            break
-            
-    for item in equipos_data:
-        RankingEquipo.objects.update_or_create(
-            equipo=item['equipo'],
-            division=division,
-            defaults={
-                'puntos': item['puntos'],
-                'torneos_ganados': item['torneos_ganados'],
-                'victorias': item['victorias'],
-                'partidos_jugados': item['partidos_jugados']
-            }
-        )

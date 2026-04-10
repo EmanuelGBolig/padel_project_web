@@ -100,8 +100,8 @@ class JugadorAutocomplete(autocomplete.Select2QuerySetView):
         # 2. FILTRO CLAVE: Excluir a los jugadores que ya aparecen como jugador1 O jugador2 en CUALQUIER equipo
         # Usamos las relaciones inversas explícitas (related_name)
         qs = qs.exclude(
-            Q(equipos_como_jugador1__isnull=False)
-            | Q(equipos_como_jugador2__isnull=False)
+            Q(equipos_como_jugador1__esta_activo=True)
+            | Q(equipos_como_jugador2__esta_activo=True)
         )
 
         # 3. Aplicamos el filtro de búsqueda del usuario (q)
@@ -368,9 +368,10 @@ class AdminEquipoListView(AdminRequiredMixin, ListView):
         )
 
         # Filtro por división
-        division_id = self.request.GET.get('division')
         if division_id:
-            queryset = queryset.filter(division_id=division_id)
+            queryset = queryset.filter(division_id=division_id, esta_activo=True)
+        else:
+            queryset = queryset.filter(esta_activo=True)
 
         # Búsqueda por nombre de equipo
         search_query = self.request.GET.get('search')
@@ -390,300 +391,6 @@ class AdminEquipoListView(AdminRequiredMixin, ListView):
 # --- Vista de Rankings ---
 
 
-class RankingListView(ListView):
-    model = Equipo
-    template_name = 'equipos/ranking_list.html'
-    context_object_name = 'rankings_por_division'
-    
-    def get_queryset(self, force_recalc=False):
-        from django.db.models import Count, Q, F, Case, When, IntegerField, FloatField, Value
-        from django.core.cache import cache
-        
-        # Obtener división y género del parámetro GET
-        division_id = self.request.GET.get('division')
-        genero = self.request.GET.get('genero', '')
-        if genero not in ('MASCULINO', 'FEMENINO'):
-            genero = ''
-        genero_key = genero if genero else 'ALL'
-        
-        # Si no hay división seleccionada, usar la del usuario o la primera
-        if not division_id:
-            if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
-                 division_id = self.request.user.equipo.division.id
-            elif self.request.user.is_authenticated and self.request.user.division:
-                 division_id = self.request.user.division.id
-            else:
-                first_div = Division.objects.first()
-                if first_div:
-                    division_id = first_div.id
-
-        # Filtrar divisiones (Solo UNA a la vez)
-        if division_id:
-            divisiones = Division.objects.filter(id=division_id)
-        else:
-            divisiones = Division.objects.none()
-
-        rankings_por_division = []
-        
-        for division in divisiones:
-            # Cache key incluye género para no mezclar datos
-            cache_key = f'rankings_equipos_div_{division.id}_gen_{genero_key}'
-            from django.core.cache import cache as dj_cache
-            
-            if not force_recalc:
-                cached = dj_cache.get(cache_key)
-                if cached is not None:
-                    rankings_por_division.append({'division': division, 'equipos': cached})
-                    continue
-
-                from equipos.models import RankingEquipo
-                rankings_db = RankingEquipo.objects.filter(division=division).select_related('equipo', 'equipo__jugador1', 'equipo__jugador2').order_by('-puntos', '-torneos_ganados', '-victorias')
-                
-                # Filtrar por género si se especifica (usamos jugador1 como referencia del equipo)
-                if genero_key != 'ALL':
-                    rankings_db = rankings_db.filter(equipo__jugador1__genero=genero_key)
-
-                equipos_con_puntos = []
-                equipos_ids_en_ranking = set()
-
-                for i, r in enumerate(rankings_db, 1):
-                    win_rate = round((r.victorias / r.partidos_jugados) * 100, 1) if r.partidos_jugados > 0 else 0
-                    equipos_con_puntos.append({
-                        'equipo': r.equipo,
-                        'puntos': r.puntos,
-                        'victorias': r.victorias,
-                        'win_rate': win_rate,
-                        'torneos_ganados': r.torneos_ganados,
-                        'partidos_jugados': r.partidos_jugados,
-                        'posicion': i
-                    })
-                    equipos_ids_en_ranking.add(r.equipo.id)
-
-                # --- NUEVA LÓGICA: Añadir equipos que están en la división pero no en la tabla RankingEquipo ---
-                equipos_faltantes_qs = Equipo.objects.filter(
-                    division=division
-                ).exclude(id__in=equipos_ids_en_ranking).select_related('jugador1', 'jugador2', 'division')
-
-                if genero_key != 'ALL':
-                    equipos_faltantes_qs = equipos_faltantes_qs.filter(jugador1__genero=genero_key)
-
-                next_pos = len(equipos_con_puntos) + 1
-                for e in equipos_faltantes_qs:
-                    equipos_con_puntos.append({
-                        'equipo': e,
-                        'puntos': 0,
-                        'victorias': 0,
-                        'win_rate': 0,
-                        'torneos_ganados': 0,
-                        'partidos_jugados': 0,
-                        'posicion': next_pos
-                    })
-                    next_pos += 1
-                
-                dj_cache.set(cache_key, equipos_con_puntos, 300)
-                rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
-                continue
-
-            # --- LÓGICA OPTIMIZADA: consultas simples en vez de mega-JOINs ---
-            from torneos.models import Partido, PartidoGrupo, Torneo as TorneoModel
-
-            torneo_ids = list(TorneoModel.objects.filter(division=division).values_list('id', flat=True))
-
-            if not torneo_ids:
-                # Sin torneos: listar solo equipos de la división con 0 puntos
-                equipos_vacios = Equipo.objects.filter(division=division).select_related('jugador1', 'jugador2', 'division')
-                equipos_con_puntos = [{'equipo': e, 'puntos': 0, 'victorias': 0, 'win_rate': 0, 'torneos_ganados': 0, 'partidos_jugados': 0} for e in equipos_vacios]
-                for i, item in enumerate(equipos_con_puntos, 1):
-                    item['posicion'] = i
-                dj_cache.set(cache_key, equipos_con_puntos, 300)
-                rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
-                continue
-
-            # 1. Victorias en partidos de grupo (15 puntos por victoria)
-            vict_grupo = (
-                PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
-                .values('ganador_id')
-                .annotate(wins=Count('id'))
-            )
-
-            # 2. Partidos jugados bracket
-            part_bracket = (
-                Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
-                .values('equipo1_id', 'equipo2_id', 'ganador_id')
-            )
-            # 3. Partidos jugados grupo
-            part_grupo = (
-                PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
-                .values('equipo1_id', 'equipo2_id')
-            )
-
-            # 4. Puntos por Bracket (Ronda máxima alcanzada)
-            bracket_matches = Partido.objects.filter(
-                torneo_id__in=torneo_ids, equipo1__isnull=False, equipo2__isnull=False, ganador__isnull=False
-            ).values(
-                'torneo_id', 'ronda', 'equipo1_id', 'equipo2_id'
-            )
-            
-            # Campeones de torneos
-            t_ganados = TorneoModel.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False).values(
-                'id', 'ganador_del_torneo_id'
-            )
-
-            # Agregar en Python
-            victorias_por_equipo = {}
-            partidos_por_equipo = {}
-            puntos_por_equipo = {}
-            torneos_ganados_por_equipo = {}
-
-            # Helpers para acumular
-            def add_victorias(eid, count):
-                if eid: victorias_por_equipo[eid] = victorias_por_equipo.get(eid, 0) + count
-
-            def add_partidos(eid, count):
-                if eid: partidos_por_equipo[eid] = partidos_por_equipo.get(eid, 0) + count
-
-            def add_puntos(eid, pts):
-                if eid: puntos_por_equipo[eid] = puntos_por_equipo.get(eid, 0) + pts
-
-            def add_torneo(eid):
-                if eid: torneos_ganados_por_equipo[eid] = torneos_ganados_por_equipo.get(eid, 0) + 1
-
-            for v in vict_grupo:
-                add_victorias(v['ganador_id'], v['wins'])
-                add_puntos(v['ganador_id'], v['wins'] * 15)
-
-            for p in part_bracket:
-                add_partidos(p['equipo1_id'], 1)
-                add_partidos(p['equipo2_id'], 1)
-                add_victorias(p['ganador_id'], 1)
-
-            for p in part_grupo:
-                add_partidos(p['equipo1_id'], 1)
-                add_partidos(p['equipo2_id'], 1)
-
-            # Campeones por Torneo
-            campeones = {}
-            for t in t_ganados:
-                tid = t['id']
-                ganador = t['ganador_del_torneo_id']
-                campeones[tid] = ganador
-                add_torneo(ganador)
-
-            # Max ronda por equipo y torneo
-            max_ronda_equipo_torneo = {} # {torneo_id: {equipo_id: max_ronda}}
-            for bm in bracket_matches:
-                tid = bm['torneo_id']
-                ronda = bm['ronda']
-                if tid not in max_ronda_equipo_torneo:
-                    max_ronda_equipo_torneo[tid] = {}
-                
-                for el in ['equipo1_id', 'equipo2_id']:
-                    eid = bm[el]
-                    if eid:
-                        curr = max_ronda_equipo_torneo[tid].get(eid, 0)
-                        if ronda > curr:
-                            max_ronda_equipo_torneo[tid][eid] = ronda
-
-            # Asignar Puntos de Bracket
-            for tid, equipos_rondas in max_ronda_equipo_torneo.items():
-                campeon_torneo = campeones.get(tid)
-                for eid, max_ronda in equipos_rondas.items():
-                    if eid == campeon_torneo:
-                        add_puntos(eid, 600)
-                    else:
-                        if max_ronda == 4:
-                            add_puntos(eid, 360) # Finalista
-                        elif max_ronda == 3:
-                            add_puntos(eid, 180) # Semifinal
-                        elif max_ronda == 2:
-                            add_puntos(eid, 90)  # Cuartos
-                        elif max_ronda == 1:
-                            add_puntos(eid, 45)  # Octavos
-
-            # Obtener todos los equipos relevantes
-            equipo_ids_con_datos = (
-                set(victorias_por_equipo.keys()) |
-                set(partidos_por_equipo.keys()) |
-                set(torneos_ganados_por_equipo.keys()) |
-                set(puntos_por_equipo.keys())
-            )
-            
-            equipos_qs = Equipo.objects.filter(
-                Q(division=division) | Q(id__in=equipo_ids_con_datos)
-            ).distinct().select_related('jugador1', 'jugador2', 'division')
-            # Filtrar por género si se especifica
-            if genero_key != 'ALL':
-                equipos_qs = equipos_qs.filter(jugador1__genero=genero_key)
-
-            equipos_con_puntos = []
-            for equipo in equipos_qs:
-                victorias = victorias_por_equipo.get(equipo.id, 0)
-                partidos = partidos_por_equipo.get(equipo.id, 0)
-                t_gan = torneos_ganados_por_equipo.get(equipo.id, 0)
-                puntos = puntos_por_equipo.get(equipo.id, 0)
-                
-                win_rate = round((victorias / partidos) * 100, 1) if partidos > 0 else 0
-                
-                equipos_con_puntos.append({
-                    'equipo': equipo,
-                    'puntos': puntos,
-                    'victorias': victorias,
-                    'win_rate': win_rate,
-                    'torneos_ganados': t_gan,
-                    'partidos_jugados': partidos,
-                })
-
-            # Ordenar por el mismo criterio que jugadores
-            equipos_con_puntos.sort(
-                key=lambda x: (
-                    x['puntos'],
-                    x['torneos_ganados'],
-                    x['win_rate'],
-                    x['victorias']
-                ),
-                reverse=True
-            )
-            
-            for i, item in enumerate(equipos_con_puntos, 1):
-                item['posicion'] = i
-
-            dj_cache.set(cache_key, equipos_con_puntos, 300)
-            rankings_por_division.append({'division': division, 'equipos': equipos_con_puntos})
-        
-        return rankings_por_division
-
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Agregar todas las divisiones para el filtro (Dropdown)
-        context['divisiones'] = Division.objects.all().order_by('orden')
-        
-        # Determinar la división seleccionada
-        division_id = self.request.GET.get('division')
-        if not division_id:
-             if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
-                 division_id = str(self.request.user.equipo.division.id)
-             elif self.request.user.is_authenticated and self.request.user.division:
-                 division_id = str(self.request.user.division.id)
-             else:
-                first = Division.objects.first()
-                if first:
-                    division_id = str(first.id)
-        
-        context['division_seleccionada'] = division_id
-        
-        # Género seleccionado
-        genero = self.request.GET.get('genero', '')
-        if genero not in ('MASCULINO', 'FEMENINO'):
-            genero = ''
-        context['genero_seleccionado'] = genero
-        
-        # Información del equipo del usuario si está autenticado
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'equipo') and self.request.user.equipo:
-            context['mi_equipo'] = self.request.user.equipo
-        
-        return context
 
 
 class OrganizadorJugadorAutocomplete(autocomplete.Select2QuerySetView):
@@ -698,8 +405,8 @@ class OrganizadorJugadorAutocomplete(autocomplete.Select2QuerySetView):
 
         # Excluir a los que ya tienen equipo
         usuarios_con_equipo_ids = set(
-            Equipo.objects.values_list('jugador1_id', flat=True)
-        ).union(set(Equipo.objects.values_list('jugador2_id', flat=True)))
+            Equipo.objects.filter(esta_activo=True).values_list('jugador1_id', flat=True)
+        ).union(set(Equipo.objects.filter(esta_activo=True).values_list('jugador2_id', flat=True)))
         
         qs = qs.exclude(id__in=usuarios_con_equipo_ids)
 

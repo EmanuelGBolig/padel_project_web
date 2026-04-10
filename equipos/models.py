@@ -23,10 +23,17 @@ class Equipo(models.Model):
     )
     division = models.ForeignKey(Division, on_delete=models.PROTECT, null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    esta_activo = models.BooleanField(default=True, verbose_name="Esta Activo")
 
     class Meta:
-        # Evita que los mismos dos jugadores formen otro equipo
-        unique_together = ('jugador1', 'jugador2')
+        # Evita que los mismos dos jugadores formen otro equipo ACTIVO
+        constraints = [
+            models.UniqueConstraint(
+                fields=['jugador1', 'jugador2'], 
+                condition=models.Q(esta_activo=True), 
+                name='unique_active_team'
+            )
+        ]
 
     class Categoria(models.TextChoices):
         MASCULINO = 'M', 'Masculino'
@@ -51,6 +58,10 @@ class Equipo(models.Model):
         if self.es_dummy:
              pass
         elif self.jugador1 and self.jugador2:
+            # NORMALIZACIÓN: Asegurar orden único de IDs para evitar duplicados (J1 < J2)
+            if self.jugador1_id > self.jugador2_id:
+                self.jugador1, self.jugador2 = self.jugador2, self.jugador1
+            
             # 1. Usamos 'apellido' (nuestro campo) en lugar de 'last_name'
             # Si no tienen apellido, usamos el email como fallback
             j1_nombre = self.jugador1.apellido or self.jugador1.email.split('@')[0]
@@ -280,20 +291,3 @@ class RankingJugador(models.Model):
         return f"{self.jugador} - {self.division} ({self.puntos} pts)"
 
 
-class RankingEquipo(models.Model):
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='rankings_equipo')
-    division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name='rankings_equipos_division')
-    puntos = models.IntegerField(default=0)
-    torneos_ganados = models.IntegerField(default=0)
-    victorias = models.IntegerField(default=0)
-    partidos_jugados = models.IntegerField(default=0)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['equipo', 'division'], name='unique_ranking_equipo_division')
-        ]
-        verbose_name = "Ranking de Equipo"
-        verbose_name_plural = "Rankings de Equipos"
-
-    def __str__(self):
-        return f"{self.equipo} - {self.division} ({self.puntos} pts)"
