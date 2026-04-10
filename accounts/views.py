@@ -688,7 +688,7 @@ class SponsorUpdateView(LoginRequiredMixin, UpdateView):
         return Sponsor.objects.filter(organizacion=self.request.user.organizacion)
 
 
-class DummyUserCreationView(LoginRequiredMixin, CreateView):
+class DummyUserCreateView(LoginRequiredMixin, CreateView):
     """Vista para que un organizador cree un usuario dummy"""
     model = CustomUser
     from .forms import DummyUserCreationForm
@@ -712,4 +712,36 @@ class DummyUserCreationView(LoginRequiredMixin, CreateView):
         form.save(organizacion=self.request.user.organizacion)
         messages.success(self.request, f"¡Jugador '{form.instance.full_name}' creado con éxito!")
         return redirect(self.success_url)
+
+
+class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    template_name = 'accounts/merge_users.html'
+    form_class = MergeUserForm
+    success_url = reverse_lazy('accounts:organizacion_list') # Fallback
+
+    def test_func(self):
+        return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
+
+    def get_initial(self):
+        dummy_id = self.request.GET.get('dummy_id')
+        if dummy_id:
+            return {'dummy_user': dummy_id}
+        return super().get_initial()
+
+    def form_valid(self, form):
+        dummy_user = form.cleaned_data['dummy_user']
+        real_user = form.cleaned_data['real_user']
+        try:
+            merge_users(dummy_user, real_user)
+            messages.success(self.request, f"¡Éxito! El historial de {dummy_user.full_name} ha sido traspasado a {real_user.full_name}.")
+        except Exception as e:
+            messages.error(self.request, f"Error al fusionar jugadores: {str(e)}")
+        
+        # Redirigir de vuelta a la organización del usuario real si existe
+        if real_user.organizacion:
+            return reverse('accounts:organizacion_detail', kwargs={'slug': real_user.organizacion.alias})
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return super().get_success_url()
 
