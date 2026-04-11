@@ -97,12 +97,9 @@ class JugadorAutocomplete(autocomplete.Select2QuerySetView):
             id=user.id  # Excluirse a sí mismo
         ).order_by('nombre', 'apellido')
 
-        # 2. FILTRO CLAVE: Excluir a los jugadores que ya aparecen como jugador1 O jugador2 en CUALQUIER equipo
-        # Usamos las relaciones inversas explícitas (related_name)
-        qs = qs.exclude(
-            Q(equipos_como_jugador1__esta_activo=True)
-            | Q(equipos_como_jugador2__esta_activo=True)
-        )
+        # Se eliminó la restricción que impedía a los jugadores con equipos activos
+        # aparecer en el autocompletado, permitiéndoles formar múltiples parejas.
+
 
         # 3. Aplicamos el filtro de búsqueda del usuario (q)
         if self.q:
@@ -403,12 +400,9 @@ class OrganizadorJugadorAutocomplete(autocomplete.Select2QuerySetView):
 
         qs = CustomUser.objects.filter(tipo_usuario='PLAYER')
 
-        # Excluir a los que ya tienen equipo
-        usuarios_con_equipo_ids = set(
-            Equipo.objects.filter(esta_activo=True).values_list('jugador1_id', flat=True)
-        ).union(set(Equipo.objects.filter(esta_activo=True).values_list('jugador2_id', flat=True)))
-        
-        qs = qs.exclude(id__in=usuarios_con_equipo_ids)
+        # Se eliminó la restricción que impedía a los jugadores con equipos activos
+        # aparecer en el autocompletado, permitiéndoles formar múltiples parejas.
+
 
         if self.q:
             import operator

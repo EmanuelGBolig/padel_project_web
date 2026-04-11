@@ -40,17 +40,9 @@ class EquipoCreateForm(forms.ModelForm):
         if user:
             self.user = user
 
-            # 1. Jugadores que ya están en un equipo
-            usuarios_con_equipo_ids = set(
-                Equipo.objects.filter(esta_activo=True).values_list('jugador1_id', flat=True)
-            ).union(set(Equipo.objects.filter(esta_activo=True).values_list('jugador2_id', flat=True)))
-
-            # 2. Filtramos el queryset para el campo jugador2:
-            # (Quitamos el filtro de división para permitir parejas de distintas divisiones)
             self.fields['jugador2'].queryset = (
                 CustomUser.objects.filter(tipo_usuario='PLAYER')
                 .exclude(id=user.id)
-                .exclude(id__in=usuarios_con_equipo_ids)
                 .order_by('apellido', 'nombre')
             )
 
@@ -129,14 +121,9 @@ class PairCreationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Todos los jugadores que NO tienen equipo
-        usuarios_con_equipo_ids = set(
-            Equipo.objects.filter(esta_activo=True).values_list('jugador1_id', flat=True)
-        ).union(set(Equipo.objects.filter(esta_activo=True).values_list('jugador2_id', flat=True)))
-        
         qs_disponibles = CustomUser.objects.filter(
             tipo_usuario='PLAYER'
-        ).exclude(id__in=usuarios_con_equipo_ids).order_by('apellido', 'nombre')
+        ).order_by('apellido', 'nombre')
 
         self.fields['jugador1'].queryset = qs_disponibles
         self.fields['jugador2'].queryset = qs_disponibles
