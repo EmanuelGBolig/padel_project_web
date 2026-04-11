@@ -71,59 +71,19 @@ class RegistroView(CreateView):
     success_url = reverse_lazy('accounts:verificar_email')
 
     def form_valid(self, form):
-        # 1. Guardar usuario pero inactivo
+        # 1. Guardar usuario como activo directamente
         user = form.save(commit=False)
-        user.is_active = False # Deberá verificar email
-        
-        # 2. Generar código
-        import random
-        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-        user.verification_code = code
+        user.is_active = True
+        user.is_verified = True
         user.save()
 
-        # 3. Enviar email en segundo plano (Threading)
-        from django.core.mail import send_mail
-        from django.conf import settings
-        from django.template.loader import render_to_string
-        from django.utils.html import strip_tags
-        import threading
-        import sys
-
-        def send_email_thread(subject, html_message, plain_message, from_email, recipient_list):
-            print(f"--- Intento de envío de email a {recipient_list} desde {from_email} ---")
-            print(f"--- Config: Host={settings.EMAIL_HOST}, Port={settings.EMAIL_PORT}, User={settings.EMAIL_HOST_USER}, TLS={settings.EMAIL_USE_TLS}, SSL={settings.EMAIL_USE_SSL} ---")
-            sys.stdout.flush()
-            try:
-                send_mail(
-                    subject,
-                    plain_message,
-                    from_email,
-                    recipient_list,
-                    html_message=html_message,
-                    fail_silently=False, 
-                )
-                print("--- Email enviado correctamente ---")
-                sys.stdout.flush()
-            except Exception as e:
-                print(f"!!! Error enviando email async: {e}")
-                import traceback
-                traceback.print_exc()
-                sys.stdout.flush()
-
-        subject = 'Verifica tu cuenta en TodoPadel'
-        html_message = render_to_string('accounts/emails/verification_email.html', {'code': code})
-        plain_message = strip_tags(html_message)
+        # 2. Autologuear al usuario
+        from django.contrib.auth import login
+        login(self.request, user, backend='django.contrib.auth.backends.ModelBackend')
         
-        email_thread = threading.Thread(
-            target=send_email_thread,
-            args=(subject, html_message, plain_message, settings.DEFAULT_FROM_EMAIL, [user.email])
-        )
-        email_thread.start()
-
-        # 4. Guardar ID en sesión para la siguiente vista
-        self.request.session['verification_user_id'] = user.id
-        
-        return super().form_valid(form)
+        messages.success(self.request, '¡Registro exitoso! Bienvenido/a a TodoPadel.')
+        from django.shortcuts import redirect
+        return redirect('core:home')
 
 
 from django.views.generic import FormView
