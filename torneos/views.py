@@ -791,8 +791,16 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
     def avanzar_grupo_logica(self, request, torneo, grupo):
         """Manda a los que pasaron del grupo a sus lugares correspondientes en el bracket."""
         # VALIDACIÓN: Verificar que todos los partidos del grupo estén terminados
+        from .models import Torneo
+        num_partidos = grupo.partidos_grupo.count()
         partidos_pendientes = grupo.partidos_grupo.filter(ganador__isnull=True).exists()
-        if partidos_pendientes:
+        
+        # En formato Llaves para grupos de 4, debe haber 4 partidos terminados
+        if torneo.formato_grupos_4 == Torneo.FormatoZonas4.LLAVES and grupo.tabla.count() == 4:
+            if num_partidos < 4 or partidos_pendientes:
+                messages.error(request, f"No se pueden avanzar los clasificados del {grupo.nombre} porque el formato de Llaves requiere completar las 2 rondas (4 partidos).")
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+        elif partidos_pendientes:
             messages.error(request, f"No se pueden avanzar los clasificados del {grupo.nombre} porque aún hay partidos pendientes de resultado.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 

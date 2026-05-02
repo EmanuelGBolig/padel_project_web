@@ -69,6 +69,10 @@ def actualizar_tabla_de_posiciones(sender, instance, **kwargs):
                 equipo_grupo.games_a_favor += partido.e2_games_ganados
                 equipo_grupo.games_en_contra += partido.e1_games_ganados
 
+        # Calcular diferencias
+        equipo_grupo.diferencia_sets = equipo_grupo.sets_a_favor - equipo_grupo.sets_en_contra
+        equipo_grupo.diferencia_games = equipo_grupo.games_a_favor - equipo_grupo.games_en_contra
+
         # Guardamos la tabla de posiciones actualizada
         equipo_grupo.save()
 
@@ -88,3 +92,52 @@ def invalidar_cache_partido_bracket(sender, instance, **kwargs):
         invalidar_cache_division(division)
         invalidar_cache_jugadores_equipo(instance.equipo1)
         invalidar_cache_jugadores_equipo(instance.equipo2)
+
+
+@receiver(post_save, sender=PartidoGrupo)
+def check_llaves_internas_generacion(sender, instance, **kwargs):
+    """
+    Genera automáticamente la Ronda 2 (Partido de Ganadores y Partido de Perdedores)
+    y asigna prioridades cuando se termina la Ronda 1 en formato Llaves.
+    """
+    grupo = instance.grupo
+    torneo = grupo.torneo
+    
+    # Validar que aplique la regla
+    from .models import Torneo
+    if torneo.formato_grupos_4 != Torneo.FormatoZonas4.LLAVES:
+        return
+        
+    if grupo.tabla.count() != 4:
+        return
+        
+    if not instance.ganador:
+        return
+        
+    partidos_del_grupo = list(PartidoGrupo.objects.filter(grupo=grupo).order_by('id'))
+    
+    # Si hay exactamente 2 partidos y ambos tienen ganador, es momento de crear la Ronda 2
+    if len(partidos_del_grupo) == 2:
+        p1 = partidos_del_grupo[0]
+        p2 = partidos_del_grupo[1]
+        
+        if p1.ganador and p2.ganador:
+            perdedor1 = p1.equipo1 if p1.ganador == p1.equipo2 else p1.equipo2
+            perdedor2 = p2.equipo1 if p2.ganador == p2.equipo2 else p2.equipo2
+            
+            # Ganador vs Ganador (Ronda 2)
+            PartidoGrupo.objects.create(
+                grupo=grupo,
+                equipo1=p1.ganador,
+                equipo2=p2.ganador
+            )
+            
+            # Perdedor vs Perdedor (Ronda 2)
+            PartidoGrupo.objects.create(
+                grupo=grupo,
+                equipo1=perdedor1,
+                equipo2=perdedor2
+            )
+    
+    # NOTA: No asignamos prioridades manuales. 
+    # El ranking se calcula por victorias/sets/games sobre los 4 partidos totales.

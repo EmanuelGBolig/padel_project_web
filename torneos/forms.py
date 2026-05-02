@@ -13,6 +13,7 @@ class TorneoAdminForm(forms.ModelForm):
             'cupos_totales',
             'equipos_por_grupo',
             'forzar_grupos_de_3',
+            'formato_grupos_4',
             'tipo_torneo',
             'categoria',
             'foto_campeones',
@@ -50,6 +51,15 @@ class TorneoAdminForm(forms.ModelForm):
             if field_name == 'categoria':
                 field.label = "Categoría"
                 field.help_text = ""
+            
+            if field_name == 'equipos_por_grupo':
+                field.label = "Equipos por Zona"
+            
+            if field_name == 'forzar_grupos_de_3':
+                field.label = "Forzar Zonas de 3"
+            
+            if field_name == 'formato_grupos_4':
+                field.label = "Formato de Zonas de 4"
             
             # Mantener los tipos de fecha si ya existen
             if field_name == 'fecha_limite_inscripcion':

@@ -461,11 +461,14 @@
                                             <input type="hidden" name="action" value="avanzar_grupo">
                                             <input type="hidden" name="grupo_id" value="{{ grupo.pk }}">
                                             {% setvar grupo_terminado = True %}
-                                            {% for p in grupo.partidos_grupo.all %}
-                                                {% if not p.ganador %}
-                                                    {% setvar grupo_terminado = False %}
+                                            {% with n_partidos=grupo.partidos_grupo.all|length %}
+                                                {% if torneo.formato_grupos_4 == 'LL' and grupo.tabla.all|length == 4 %}
+                                                    {% if n_partidos < 4 %}{% setvar grupo_terminado = False %}{% endif %}
                                                 {% endif %}
-                                            {% endfor %}
+                                                {% for p in grupo.partidos_grupo.all %}
+                                                    {% if not p.ganador %}{% setvar grupo_terminado = False %}{% endif %}
+                                                {% endfor %}
+                                            {% endwith %}
                                             <div class="tooltip tooltip-left"
                                                  data-tip="{% if grupo_terminado %}Mandar ganadores al cuadro{% else %}Faltan resultados por cargar en el grupo{% endif %}">
                                                 <button type="submit"
@@ -498,6 +501,35 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                                             </svg>
                                         </button>
+                                        {% if torneo.formato_grupos_4 == 'LL' and grupo.tabla.all|length == 4 %}
+                                            {% with partidos_grupo_list=grupo.partidos_grupo.all %}
+                                                {# Mostrar botón si hay partidos pendientes en el grupo de 4 #}
+                                                {% setvar tiene_pendientes = False %}
+                                                {% for p in partidos_grupo_list %}
+                                                    {% if not p.ganador %}{% setvar tiene_pendientes = True %}{% endif %}
+                                                {% endfor %}
+                                                {% if tiene_pendientes %}
+                                                    <form method="post"
+                                                          class="inline-block relative z-30"
+                                                          onclick="event.stopPropagation();"
+                                                          onsubmit="return confirm('¿Convertir {{ grupo.nombre }} al formato Llaves? Se eliminarán los partidos pendientes y se generará la Ronda 2 automáticamente.')">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="convertir_a_llaves">
+                                                        <input type="hidden" name="grupo_id" value="{{ grupo.pk }}">
+                                                        <div class="tooltip tooltip-left" data-tip="Convertir a formato Llaves (elimina partidos pendientes y genera Ronda 2)">
+                                                            <button type="submit"
+                                                                    onclick="event.stopPropagation();"
+                                                                    class="btn btn-sm btn-square btn-ghost text-info z-30"
+                                                                    title="Convertir a Llaves">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 0 0 4.5 9.75v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25v-7.5a2.25 2.25 0 0 0-2.25-2.25h-.75m-6 3.75 3 3m0 0 3-3m-3 3V1.5m6 9h.75a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-.75" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
                                         <span class="text-sm font-normal opacity-70 hidden sm:inline">Ver Partidos</span>
                                     </div>
                                 </div>

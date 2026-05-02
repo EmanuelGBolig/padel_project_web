@@ -45,6 +45,17 @@ class Torneo(models.Model):
         max_length=1, choices=TipoTorneo.choices, default=TipoTorneo.GRUPOS
     )
     
+    class FormatoZonas4(models.TextChoices):
+        TODOS_CONTRA_TODOS = 'RR', 'Todos contra todos (3 partidos)'
+        LLAVES = 'LL', 'Llaves internas (2 rondas, Ganadores/Perdedores)'
+
+    formato_grupos_4 = models.CharField(
+        max_length=2,
+        choices=FormatoZonas4.choices,
+        default=FormatoZonas4.TODOS_CONTRA_TODOS,
+        help_text="Formato de juego para las zonas de 4 parejas."
+    )
+    
     class Categoria(models.TextChoices):
         MASCULINO = 'M', 'Masculino'
         FEMENINO = 'F', 'Femenino'
@@ -166,13 +177,11 @@ class EquipoGrupo(models.Model):
     games_a_favor = models.PositiveSmallIntegerField(default=0)
     games_en_contra = models.PositiveSmallIntegerField(default=0)
 
-    @property
-    def diferencia_sets(self):
-        return self.sets_a_favor - self.sets_en_contra
+    # Diferencias para desempate
+    diferencia_sets = models.IntegerField(default=0)
+    diferencia_games = models.IntegerField(default=0)
 
-    @property
-    def diferencia_games(self):
-        return self.games_a_favor - self.games_en_contra
+
 
     def __str__(self):
         return f"{self.equipo} en {self.grupo}"
@@ -181,8 +190,8 @@ class EquipoGrupo(models.Model):
         # Ordenamos la tabla según reglas de desempate de Padel
         ordering = [
             '-partidos_ganados',  # 1. Más partidos ganados
-            '-sets_a_favor',
-            'sets_en_contra',
+            '-diferencia_sets',   # 2. Mejor diferencia de sets
+            '-diferencia_games',  # 3. Mejor diferencia de games
         ]
 
 
