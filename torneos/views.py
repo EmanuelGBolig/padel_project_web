@@ -847,13 +847,15 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         else:
             letra = nombre_grupo.upper()
             
-        # Equipos clasificados (1ro y 2do)
+        # Equipos clasificados (1ro, 2do y 3ro)
         c1 = tabla[0].equipo
         c2 = tabla[1].equipo if len(tabla) >= 2 else None
+        c3 = tabla[2].equipo if len(tabla) >= 3 else None
         
-        # Buscar partidos del bracket donde correspondan (labels 1A y 2A)
+        # Buscar partidos del bracket donde correspondan (labels 1A, 2A, 3A)
         label1 = f"1{letra}"
         label2 = f"2{letra}"
+        label3 = f"3{letra}"
         
         updates_count = 0
         
@@ -861,13 +863,14 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         # Usamos update() y contamos si realmente cambió algo
         up1 = Partido.objects.filter(torneo=torneo, placeholder_e1=label1).update(equipo1=c1)
         up2 = Partido.objects.filter(torneo=torneo, placeholder_e2=label1).update(equipo2=c1)
-        updates_count += (up1 + up2)
         
-        # Actualizar Equipo 2 (si existe)
-        if c2:
-            up3 = Partido.objects.filter(torneo=torneo, placeholder_e1=label2).update(equipo1=c2)
-            up4 = Partido.objects.filter(torneo=torneo, placeholder_e2=label2).update(equipo2=c2)
-            updates_count += (up3 + up4)
+        up3 = Partido.objects.filter(torneo=torneo, placeholder_e1=label2).update(equipo1=c2)
+        up4 = Partido.objects.filter(torneo=torneo, placeholder_e2=label2).update(equipo2=c2)
+        
+        up5 = Partido.objects.filter(torneo=torneo, placeholder_e1=label3).update(equipo1=c3)
+        up6 = Partido.objects.filter(torneo=torneo, placeholder_e2=label3).update(equipo2=c3)
+        
+        updates_count += (up1 + up2 + up3 + up4 + up5 + up6)
         
         if updates_count > 0:
             messages.success(request, f"¡Clasificados del {grupo.nombre} avanzados al cuadro ({updates_count} posiciones actualizadas)!")
