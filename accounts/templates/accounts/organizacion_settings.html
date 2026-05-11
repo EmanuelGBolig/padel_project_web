@@ -71,6 +71,17 @@
                             {{ form.descripcion }}
                             {% if form.descripcion.errors %}<span class="text-error text-xs">{{ form.descripcion.errors.0 }}</span>{% endif %}
                         </div>
+                        <!-- Receptor Notificaciones -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium text-primary">Receptor de Notificaciones (Inscripciones)</span>
+                            </label>
+                            {{ form.receptor_notificaciones }}
+                            {% if form.receptor_notificaciones.errors %}<span class="text-error text-xs">{{ form.receptor_notificaciones.errors.0 }}</span>{% endif %}
+                            <label class="label">
+                                <span class="label-text-alt opacity-70">El organizador seleccionado recibirá un correo cada vez que una pareja se inscriba en un torneo.</span>
+                            </label>
+                        </div>
                         <!-- Ubicación -->
                         <div class="form-control w-full">
                             <label class="label">

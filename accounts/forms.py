@@ -190,7 +190,7 @@ class OrganizacionForm(forms.ModelForm):
 
     class Meta:
         model = Organizacion
-        fields = ('nombre', 'alias', 'descripcion', 'direccion', 'latitud', 'longitud', 'logo')
+        fields = ('nombre', 'alias', 'descripcion', 'direccion', 'latitud', 'longitud', 'logo', 'receptor_notificaciones')
         widgets = {
             'logo': forms.FileInput(),
         }
@@ -199,14 +199,24 @@ class OrganizacionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
         estilo_textarea = 'textarea textarea-bordered w-full bg-base-100 text-base-content h-24'
+        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
         
         for field_name, field in self.fields.items():
             if isinstance(field.widget, forms.Textarea):
                 field.widget.attrs['class'] = estilo_textarea
             elif isinstance(field.widget, forms.FileInput):
                 field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
+            elif isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = estilo_select
             else:
                 field.widget.attrs['class'] = estilo_input
+
+        # Filtrar para que solo muestre organizadores de ESTA organización
+        if self.instance and self.instance.pk:
+            from accounts.models import CustomUser
+            self.fields['receptor_notificaciones'].queryset = CustomUser.objects.filter(
+                organizacion=self.instance, tipo_usuario='ORGANIZER'
+            )
 
 
 class SponsorForm(forms.ModelForm):
