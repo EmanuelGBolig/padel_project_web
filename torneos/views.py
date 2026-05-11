@@ -1550,6 +1550,17 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             if torneo.organizacion:
                 for miembro in torneo.organizacion.miembros.all():
                     dj_cache.delete(f'perfil_gestion_{miembro.id}')
+            
+            # Enviar notificación por email a los organizadores
+            try:
+                from .emails import notificar_nueva_inscripcion
+                notificar_nueva_inscripcion(form.instance)
+            except Exception as e:
+                # Loggear pero no frenar la inscripción
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error al intentar notificar nueva inscripción: {e}")
+                
             return response
         except IntegrityError:
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")

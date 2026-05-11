@@ -183,6 +183,15 @@ class Organizacion(models.Model):
     latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     logo = models.ImageField(upload_to='organizadores/logos/', blank=True, null=True)
+    receptor_notificaciones = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='organizacion_notificaciones',
+        limit_choices_to={'tipo_usuario': 'ORGANIZER'},
+        help_text="Organizador que recibirá los emails de nuevas inscripciones."
+    )
 
     class Meta:
         verbose_name = "Organización"

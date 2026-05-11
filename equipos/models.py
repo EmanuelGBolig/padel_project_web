@@ -233,11 +233,15 @@ class Equipo(models.Model):
         return resultados[:limit]
     
     def get_puntos_ranking(self):
-        """Devuelve los puntos totales sumados desde la tabla de rankings cacheada en BD"""
-        # Evitamos import circular
-        from equipos.models import RankingEquipo
+        """Devuelve los puntos totales promediados de ambos jugadores desde RankingJugador"""
+        from equipos.models import RankingJugador
         
-        total = RankingEquipo.objects.filter(equipo=self).aggregate(models.Sum('puntos'))['puntos__sum']
+        jugadores = [j for j in [self.jugador1, self.jugador2] if j is not None]
+        if not jugadores:
+            return 0
+        total = RankingJugador.objects.filter(
+            jugador__in=jugadores
+        ).aggregate(models.Sum('puntos'))['puntos__sum']
         return total or 0
 
 

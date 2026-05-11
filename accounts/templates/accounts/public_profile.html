@@ -57,6 +57,12 @@
                     <div class="badge badge-primary badge-lg">{{ perfil_usuario.division.nombre }}</div>
                     <!-- Email oculto por privacidad o mostrarlo si se desea -->
                     <!-- <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p> -->
+                    {% if is_admin or is_organizer %}
+                        <div class="mt-4 text-left w-full bg-base-200 p-3 rounded-lg text-sm">
+                            <p><strong>Email:</strong> {{ perfil_usuario.email }}</p>
+                            <p><strong>Teléfono:</strong> {{ perfil_usuario.numero_telefono|default:"No especificado" }}</p>
+                        </div>
+                    {% endif %}
                     {% if can_invite %}
                         <div class="mt-6 w-full">
                             <a href="{% url 'equipos:crear' %}?partner={{ perfil_usuario.pk }}"

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body style="font-family: Arial, sans-serif; color: #333;">
+    <p>Hola,</p>
+    <p>Una nueva pareja se ha inscrito en tu torneo <strong>{{ torneo.nombre }}</strong>.</p>
+
+    <h3 style="color: #4CAF50;">Datos del equipo: {{ equipo.nombre }}</h3>
+    <ul>
+        <li><strong>Jugador 1:</strong> {{ equipo.jugador1.full_name }} <br>
+            Tel: {{ equipo.jugador1.numero_telefono|default:"No especificado" }} <br>
+            Email: {{ equipo.jugador1.email }}
+        </li>
+        <br>
+        <li><strong>Jugador 2:</strong> {{ equipo.jugador2.full_name }} <br>
+            Tel: {{ equipo.jugador2.numero_telefono|default:"No especificado" }} <br>
+            Email: {{ equipo.jugador2.email }}
+        </li>
+    </ul>
+
+    <p>Puedes gestionar el torneo haciendo clic en el siguiente enlace:</p>
+    <p>
+        <a href="{{ torneo_url }}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Gestionar Torneo</a>
+    </p>
+
+    <p>Saludos,<br>El equipo de TodoPadel</p>
+</body>
+</html>

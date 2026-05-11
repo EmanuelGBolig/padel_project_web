@@ -466,7 +466,7 @@ def merge_users(dummy_user, real_user):
 
         # 2. Identificar y fusionar equipos duplicados para el usuario real
         # Ahora que movimos los equipos, es probable que existan duplicados (ej: Real+Socio y Dummy+Socio)
-        all_teams = list(Equipo.objects.filter(models.Q(jugador1=real_user) | models.Q(jugador2=real_user), es_dummy=False).values('id', 'jugador1_id', 'jugador2_id'))
+        all_teams = list(Equipo.objects.filter(Q(jugador1=real_user) | Q(jugador2=real_user), es_dummy=False).values('id', 'jugador1_id', 'jugador2_id'))
         
         pair_map = {} # (sorted_ids) -> [team_ids]
         for t in all_teams:

@@ -374,6 +374,7 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
 
         context['can_invite'] = can_invite
         context['is_admin'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ADMIN'
+        context['is_organizer'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ORGANIZER'
         return context
 
 
@@ -699,7 +700,7 @@ class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         
         # Redirigir de vuelta a la organización del usuario real si existe
         if real_user.organizacion:
-            return reverse('accounts:organizacion_detail', kwargs={'slug': real_user.organizacion.alias})
+            return redirect(reverse('accounts:organizacion_detail', kwargs={'slug': real_user.organizacion.alias}))
         return super().form_valid(form)
 
     def get_success_url(self):

@@ -110,3 +110,65 @@ def notificar_nuevo_torneo(torneo):
 
     logger.info(f"[emails] Torneo '{torneo.nombre}': enviando {total_elegibles} emails en segundo plano.")
     return 0, total_elegibles
+
+def notificar_nueva_inscripcion(inscripcion):
+    """
+    Envía un email a los organizadores del torneo cuando una nueva pareja se inscribe.
+    """
+    from django.core.mail import send_mail, get_connection
+    from django.conf import settings
+    
+    torneo = inscripcion.torneo
+    equipo = inscripcion.equipo
+    
+    if not torneo.organizacion:
+        return
+        
+    receptor = torneo.organizacion.receptor_notificaciones
+    emails_organizadores = []
+    
+    if receptor and receptor.email:
+        emails_organizadores.append(receptor.email)
+    else:
+        # Fallback al primer organizador si no hay uno explícitamente seleccionado
+        organizador_fallback = torneo.organizacion.miembros.filter(tipo_usuario='ORGANIZER').exclude(email='').first()
+        if organizador_fallback:
+            emails_organizadores.append(organizador_fallback.email)
+            
+    if not emails_organizadores:
+        return
+    
+    site_url = getattr(settings, 'SITE_URL', 'https://todopadel.club')
+    torneo_url = f"{site_url}/torneos/admin/{torneo.pk}/gestionar/"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    asunto = f"🎾 Nueva inscripción: {torneo.nombre}"
+    
+    contexto = {
+        'torneo': torneo,
+        'equipo': equipo,
+        'torneo_url': torneo_url,
+    }
+    
+    html_message = render_to_string('torneos/emails/nueva_inscripcion.html', contexto)
+    plain_message = strip_tags(html_message)
+    
+    # Usar Brevo para notificaciones
+    connection = get_connection('accounts.brevo_backend.BrevoBackend')
+    
+    def enviar():
+        try:
+            send_mail(
+                subject=asunto,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=emails_organizadores,
+                html_message=html_message,
+                fail_silently=False,
+                connection=connection,
+            )
+            logger.info(f"[emails] Nueva inscripción enviada a {len(emails_organizadores)} organizadores.")
+        except Exception as e:
+            logger.error(f"[emails] Error enviando inscripción a organizadores: {e}")
+            
+    import threading
+    threading.Thread(target=enviar).start()
