@@ -1206,6 +1206,13 @@ class TorneoDetailView(DetailView):
             'partidos_grupo__ganador',
         )
         context['grupos'] = grupos
+        
+        context['inscripciones'] = (
+            torneo.inscripciones.all()
+            .select_related('equipo', 'equipo__jugador1', 'equipo__jugador2')
+            .order_by('fecha_inscripcion')
+        )
+
         context['partidos_eliminacion'] = torneo.partidos.select_related(
             'equipo1__jugador1', 'equipo1__jugador2',
             'equipo2__jugador1', 'equipo2__jugador2',
