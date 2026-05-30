@@ -257,7 +257,9 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         
         elif action == 'reset_bracket':
             torneo.partidos.all().delete()
-            messages.success(request, "Bracket eliminado. Puedes generar uno nuevo.")
+            # Regeneramos de nuevo la llave
+            self.generar_octavos_logica(request, torneo)
+            messages.success(request, "Llave regenerada con la configuración actual. Revisa los nuevos cruces.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
         elif action == 'forzar_cuadro_vacio':
