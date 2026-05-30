@@ -5,6 +5,7 @@ from django.contrib.auth.models import (
     Group,
     Permission,
 )
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -192,6 +193,15 @@ class Organizacion(models.Model):
         limit_choices_to={'tipo_usuario': 'ORGANIZER'},
         help_text="Organizador que recibirá los emails de nuevas inscripciones."
     )
+    whatsapp = models.CharField(
+        max_length=20,
+        blank=True,
+        validators=[RegexValidator(
+            r'^\+?\d{8,15}$',
+            'Ingresá el número en formato internacional, solo dígitos (ej: +5491123456789).'
+        )],
+        help_text="WhatsApp de contacto en formato internacional (ej: +54911...). Habilita el botón de contacto.",
+    )
 
     class Meta:
         verbose_name = "Organización"
@@ -199,6 +209,12 @@ class Organizacion(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def whatsapp_numero(self):
+        """Solo dígitos, para construir enlaces https://wa.me/<numero>."""
+        import re
+        return re.sub(r'\D', '', self.whatsapp or '')
 
 
 class Sponsor(models.Model):

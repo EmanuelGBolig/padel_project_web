@@ -325,13 +325,18 @@ class RankingJugadoresListView(ListView):
         return context
 
 
-class PublicProfileView(LoginRequiredMixin, DetailView):
+class PublicProfileView(DetailView):
+    # Perfil público (TP-06): accesible SIN login para que sea compartible.
+    # Los datos de contacto siguen detrás de is_admin/is_organizer en el template.
     model = CustomUser
     template_name = 'accounts/public_profile.html'
     context_object_name = 'perfil_usuario'
 
     def get_object(self, queryset=None):
-        return CustomUser.objects.select_related('division').get(pk=self.kwargs.get('pk'))
+        from django.shortcuts import get_object_or_404
+        return get_object_or_404(
+            CustomUser.objects.select_related('division'), pk=self.kwargs.get('pk')
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -375,6 +380,17 @@ class PublicProfileView(LoginRequiredMixin, DetailView):
         context['can_invite'] = can_invite
         context['is_admin'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ADMIN'
         context['is_organizer'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ORGANIZER'
+
+        # --- OG / compartir (TP-06) ---
+        context['share_url'] = self.request.build_absolute_uri()
+        from django.templatetags.static import static
+        if usuario.imagen:
+            og_image = usuario.imagen.url
+            if not og_image.startswith('http'):
+                og_image = self.request.build_absolute_uri(og_image)
+        else:
+            og_image = self.request.build_absolute_uri(static('img/og-image.jpg'))
+        context['og_image_url'] = og_image
         return context
 
 

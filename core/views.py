@@ -38,6 +38,11 @@ from accounts.models import CustomUser
 from equipos.models import Equipo
 
 
+class ParaOrganizadoresView(TemplateView):
+    """Landing de captación de organizadores (TP-05)."""
+    template_name = "core/para_organizadores.html"
+
+
 class GlobalSearchView(TemplateView):
     template_name = "core/search_results.html"
 
