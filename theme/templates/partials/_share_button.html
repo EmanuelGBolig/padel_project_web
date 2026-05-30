@@ -1,0 +1,64 @@
+{% load static %}
+{% comment %}
+Botón de compartir reutilizable (TP-01).
+Uso:
+  {% include "partials/_share_button.html" with share_url=share_url share_title=torneo.nombre share_text="Mirá este torneo en TodoPadel" %}
+Parámetros:
+  share_url    (requerido) URL absoluta a compartir.
+  share_title  (requerido) Título para la Web Share API nativa.
+  share_text   (requerido) Texto que precede al link en WhatsApp / Web Share.
+  btn_class    (opcional)  Clases extra para el botón disparador.
+Progressive enhancement: el link de WhatsApp funciona sin JS; "Compartir…" (nativo)
+y "Copiar link" se activan con share.js.
+{% endcomment %}
+<div class="dropdown dropdown-end"
+     data-share
+     data-share-url="{{ share_url }}"
+     data-share-title="{{ share_title }}"
+     data-share-text="{{ share_text }}">
+    <button type="button" tabindex="0"
+            class="btn btn-sm btn-primary gap-2 shadow-sm {{ btn_class }}"
+            aria-label="Compartir">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+        </svg>
+        Compartir
+    </button>
+    <ul tabindex="0"
+        class="dropdown-content z-[60] menu p-2 shadow-lg bg-base-100 rounded-box w-56 mt-2 border border-base-300">
+        {# Compartir nativo (Web Share API): visible solo si el navegador lo soporta (lo muestra share.js) #}
+        <li class="hidden js-share-native">
+            <a href="#" role="button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                </svg>
+                Compartir…
+            </a>
+        </li>
+        {# WhatsApp: anchor directo, funciona sin JS #}
+        <li>
+            <a href="https://wa.me/?text={{ share_text|add:' '|add:share_url|urlencode }}"
+               target="_blank" rel="noopener">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm0 18.13h-.01c-1.52 0-3.01-.41-4.3-1.18l-.31-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 01-1.26-4.35c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.41 5.82c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01a.92.92 0 00-.67.31c-.23.25-.88.86-.88 2.1 0 1.23.9 2.42 1.03 2.59.12.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z" />
+                </svg>
+                WhatsApp
+            </a>
+        </li>
+        {# Copiar link (requiere JS) #}
+        <li>
+            <button type="button" class="js-share-copy">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m6.328-2.328a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5" />
+                </svg>
+                <span class="js-share-copy-label">Copiar link</span>
+            </button>
+        </li>
+    </ul>
+</div>

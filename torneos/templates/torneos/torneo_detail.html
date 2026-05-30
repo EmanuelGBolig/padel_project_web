@@ -52,6 +52,13 @@
     ]
     }
 {% endblock structured_data %}
+{# --- Open Graph / Twitter dinámicos por torneo (TP-01) --- #}
+{% block og_title %}{{ torneo.nombre }} — TodoPadel{% endblock og_title %}
+{% block twitter_title %}{{ torneo.nombre }} — TodoPadel{% endblock twitter_title %}
+{% block og_description %}{{ torneo.get_categoria_display }} · {{ torneo.division.nombre|default:"Libre" }} · inicia {{ torneo.fecha_inicio|date:"d/m/Y" }}. Seguí los resultados e inscribite en TodoPadel.{% endblock og_description %}
+{% block twitter_description %}{{ torneo.get_categoria_display }} · {{ torneo.division.nombre|default:"Libre" }} · inicia {{ torneo.fecha_inicio|date:"d/m/Y" }}.{% endblock twitter_description %}
+{% block og_image %}{{ og_image_url }}{% endblock og_image %}
+{% block twitter_image %}{{ og_image_url }}{% endblock twitter_image %}
 {% block header_actions %}
     {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' and torneo.organizacion and user.organizacion == torneo.organizacion %}
         <a href="{% url 'torneos:admin_manage' torneo.pk %}"
@@ -88,6 +95,7 @@
         </svg>
         Ver Programación
     </a>
+    {% include "partials/_share_button.html" with share_url=share_url share_title=torneo.nombre share_text="Mirá el torneo "|add:torneo.nombre|add:" en TodoPadel" %}
 {% endblock header_actions %}
 {% block content %}
     <div class="space-y-12">
@@ -728,3 +736,7 @@
         </dialog>
     </div>
 {% endblock content %}
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'js/share.js' %}" defer></script>
+{% endblock extra_js %}
