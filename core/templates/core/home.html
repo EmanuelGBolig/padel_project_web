@@ -405,6 +405,50 @@
                 {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay torneos activos o en inscripción en este momento. ¡Vuelve pronto para el próximo saque!" action_url="/torneos/finalizados/" action_text="Ver historial de torneos" %}
             </div>
         {% endif %}
+        <!-- Prueba social: contadores + testimonios (TP-04) -->
+        <section class="bg-base-100 rounded-3xl border border-base-300 shadow-sm p-6 md:p-8">
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <div class="text-3xl md:text-4xl font-black text-primary">{{ stats_home.torneos_jugados }}</div>
+                    <div class="text-xs md:text-sm opacity-70 mt-1">Torneos jugados</div>
+                </div>
+                <div>
+                    <div class="text-3xl md:text-4xl font-black text-primary">{{ stats_home.jugadores }}</div>
+                    <div class="text-xs md:text-sm opacity-70 mt-1">Jugadores</div>
+                </div>
+                <div>
+                    <div class="text-3xl md:text-4xl font-black text-primary">{{ stats_home.partidos_jugados }}</div>
+                    <div class="text-xs md:text-sm opacity-70 mt-1">Partidos jugados</div>
+                </div>
+            </div>
+            {% if testimonios %}
+                <div class="divider my-6 md:my-8">Lo que dicen</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {% for t in testimonios %}
+                        <div class="card bg-base-200/40 border border-base-300">
+                            <div class="card-body p-5">
+                                <p class="italic text-base-content/90">“{{ t.texto }}”</p>
+                                <div class="flex items-center gap-3 mt-3">
+                                    <div class="avatar placeholder">
+                                        <div class="w-10 h-10 rounded-full bg-primary/15 text-primary overflow-hidden flex items-center justify-center">
+                                            {% if t.foto %}
+                                                <img src="{{ t.foto.url }}" alt="{{ t.autor }}" class="w-full h-full object-cover" />
+                                            {% else %}
+                                                <span class="font-bold">{{ t.autor|slice:":1"|upper }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold leading-tight">{{ t.autor }}</div>
+                                        {% if t.rol %}<div class="text-xs opacity-60">{{ t.rol }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
     </div>
 {% endblock content %}
 {% block extra_js %}

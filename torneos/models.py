@@ -82,7 +82,18 @@ class Torneo(models.Model):
         blank=True,
         help_text="Opcional: Sube la foto del equipo ganador al finalizar el torneo. La imagen se mostrará en los detalles de la competencia."
     )
-    
+
+    # --- Ficha "vendedora" (TP-03) ---
+    cover_image = models.ImageField(
+        upload_to='torneos/portadas/', null=True, blank=True,
+        help_text="Imagen de portada del torneo (banner)."
+    )
+    ciudad = models.CharField(max_length=100, blank=True, help_text="Ciudad/localidad de la sede.")
+    sede_nombre = models.CharField(max_length=150, blank=True, help_text="Nombre del club o sede.")
+    sede_direccion = models.CharField(max_length=255, blank=True)
+    premio = models.CharField(max_length=255, blank=True, help_text="Ej: Trofeos + $100.000 + indumentaria.")
+    reglamento = models.TextField(blank=True, help_text="Reglas del torneo (texto libre).")
+
     organizacion = models.ForeignKey(
         'accounts.Organizacion',
         on_delete=models.CASCADE,
@@ -115,6 +126,11 @@ class Torneo(models.Model):
             # Si no hay partidos de bracket o fecha, fallback a fecha inicio
             return self.fecha_inicio
         return None
+
+    @property
+    def cupos_disponibles(self):
+        """Cupos que quedan libres (no baja de 0)."""
+        return max(0, self.cupos_totales - self.inscripciones.count())
 
 
 class Inscripcion(models.Model):

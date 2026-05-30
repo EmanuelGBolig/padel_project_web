@@ -188,3 +188,32 @@ class PlacaCampeonesTests(TestCase):
             cupos_totales=8, estado=Torneo.Estado.ABIERTO,
         )
         self.assertIsNone(placa_campeones_url(torneo))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class FichaVendedoraTests(TestCase):
+    """TP-03: campos de sede/premio/reglamento + cupos restantes en la ficha."""
+
+    def test_cupos_disponibles(self):
+        torneo = Torneo.objects.create(
+            nombre="Cupos", fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=8,
+        )
+        self.assertEqual(torneo.cupos_disponibles, 8)
+
+    def test_detalle_muestra_info_vendedora(self):
+        torneo = Torneo.objects.create(
+            nombre="Copa Sur", estado=Torneo.Estado.ABIERTO, cupos_totales=8,
+            fecha_inicio=timezone.now().date() + timedelta(days=10),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=5),
+            sede_nombre="Club Norte", ciudad="Mar del Plata",
+            premio="Trofeos + indumentaria", reglamento="Al mejor de 3 sets.",
+        )
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": torneo.pk}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("Club Norte", html)
+        self.assertIn("Mar del Plata", html)
+        self.assertIn("Trofeos + indumentaria", html)
+        self.assertIn("Reglamento", html)

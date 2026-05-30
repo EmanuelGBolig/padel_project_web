@@ -16,6 +16,12 @@ class TorneoAdminForm(forms.ModelForm):
             'formato_grupos_4',
             'tipo_torneo',
             'categoria',
+            'cover_image',
+            'ciudad',
+            'sede_nombre',
+            'sede_direccion',
+            'premio',
+            'reglamento',
             'foto_campeones',
         ]
         widgets = {
@@ -46,7 +52,9 @@ class TorneoAdminForm(forms.ModelForm):
                 field.widget.attrs['class'] = 'checkbox checkbox-primary'
             elif isinstance(field.widget, forms.ClearableFileInput):
                 field.widget.attrs['class'] = 'file-input file-input-bordered file-input-primary w-full bg-base-100 text-base-content'
-            
+            elif isinstance(field.widget, forms.Textarea):
+                field.widget.attrs['class'] = 'textarea textarea-bordered w-full bg-base-100 text-base-content h-28'
+
             # Label para categoria
             if field_name == 'categoria':
                 field.label = "Categoría"

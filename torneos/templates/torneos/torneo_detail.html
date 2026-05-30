@@ -112,6 +112,11 @@
         <!-- HERO -->
         <div class="hero bg-base-100 rounded-3xl border border-base-300 shadow-sm">
             <div class="hero-content flex-col text-center py-12 w-full">
+                {% if torneo.cover_image %}
+                    <img src="{{ torneo.cover_image.url }}"
+                         alt="{{ torneo.nombre }}"
+                         class="w-full max-h-64 object-cover rounded-2xl mb-6 shadow-sm" />
+                {% endif %}
                 <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
                 <div class="max-w-md w-full">
                     <div class="flex justify-center gap-2 mt-2 flex-wrap">
@@ -131,6 +136,37 @@
                             {{ torneo.get_categoria_display }}
                         </div>
                     </div>
+                    {# --- Info "vendedora" (TP-03) --- #}
+                    {% if torneo.estado == 'AB' %}
+                        <div class="flex flex-wrap justify-center items-center gap-2 mt-3">
+                            {% if torneo.cupos_disponibles > 0 and torneo.cupos_disponibles <= 5 %}
+                                <span class="badge badge-warning badge-lg">¡Últimos {{ torneo.cupos_disponibles }} cupos!</span>
+                            {% endif %}
+                            <span class="text-sm opacity-70">Arranca en {{ torneo.fecha_inicio|timeuntil }}</span>
+                        </div>
+                    {% endif %}
+                    {% if torneo.sede_nombre or torneo.ciudad or torneo.sede_direccion %}
+                        <div class="mt-4 flex items-center justify-center gap-2 text-sm opacity-80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>
+                                {% if torneo.sede_nombre %}{{ torneo.sede_nombre }}{% endif %}{% if torneo.ciudad %}{% if torneo.sede_nombre %} · {% endif %}{{ torneo.ciudad }}{% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                    {% if torneo.premio %}
+                        <div class="mt-3 inline-flex items-center gap-2 bg-warning/10 px-4 py-2 rounded-xl border border-warning/30 text-sm">
+                            <span class="font-bold">🏆 Premio:</span> <span>{{ torneo.premio }}</span>
+                        </div>
+                    {% endif %}
+                    {% if torneo.reglamento %}
+                        <details class="mt-4 text-left bg-base-200/40 rounded-xl border border-base-300 w-full max-w-md mx-auto">
+                            <summary class="cursor-pointer font-semibold px-4 py-3">Reglamento</summary>
+                            <div class="px-4 pb-4 text-sm whitespace-pre-line opacity-80">{{ torneo.reglamento }}</div>
+                        </details>
+                    {% endif %}
                     {% if torneo.organizador %}
                         <div class="mt-6 p-4 bg-base-200/50 rounded-xl border border-base-content/5">
                             <div class="text-sm uppercase tracking-widest opacity-60 font-bold mb-2">Organizado por</div>

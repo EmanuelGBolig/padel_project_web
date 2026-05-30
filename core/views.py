@@ -19,10 +19,29 @@ def home(request):
     from accounts.models import Organizacion
     organizadores = Organizacion.objects.all()
 
+    # Prueba social (TP-04): contadores reales cacheados 1h + testimonios.
+    from django.core.cache import cache
+    from .models import Testimonio
+    stats_home = cache.get('home_stats')
+    if stats_home is None:
+        from accounts.models import CustomUser
+        from torneos.models import Partido, PartidoGrupo
+        stats_home = {
+            'torneos_jugados': Torneo.objects.filter(estado=Torneo.Estado.FINALIZADO).count(),
+            'jugadores': CustomUser.objects.filter(tipo_usuario='PLAYER', is_dummy=False).count(),
+            'partidos_jugados': (
+                Partido.objects.filter(ganador__isnull=False).count()
+                + PartidoGrupo.objects.filter(ganador__isnull=False).count()
+            ),
+        }
+        cache.set('home_stats', stats_home, 3600)
+
     context = {
         'torneos_abiertos': torneos_abiertos,
         'torneos_en_juego': torneos_en_juego,
         'organizadores': organizadores,
+        'stats_home': stats_home,
+        'testimonios': Testimonio.objects.filter(activo=True),
     }
 
     if request.user.is_authenticated and hasattr(request.user, 'equipo') and request.user.equipo:
