@@ -585,17 +585,17 @@ FORMATS = {
         bracket_type='custom',
         bracket_structure=[
             # Round 1 (Octavos)
-            { 'id': 49, 'round': 1, 't1': ('F', 1), 't2': ('G', 2), 'next': 57 }, # plays 1A
-            { 'id': 50, 'round': 1, 't1': ('C', 1), 't2': ('E', 2), 'next': 58 },
-            { 'id': 51, 'round': 1, 't1': ('D', 1), 't2': ('B', 2), 'next': 58 },
-            { 'id': 52, 'round': 1, 't1': ('E', 1), 't2': ('C', 2), 'next': 59 },
-            { 'id': 53, 'round': 1, 't1': ('G', 1), 't2': ('D', 2), 'next': 59 },
-            { 'id': 54, 'round': 1, 't1': ('A', 2), 't2': ('F', 2), 'next': 60 }, # plays 1B
+            { 'id': 50, 'round': 1, 't1': ('F', 2), 't2': ('G', 2), 'next': 57 }, # 2ºF vs 2ºG -> plays 1A
+            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('C', 2), 'next': 58 }, # 1ºE vs 2ºC
+            { 'id': 52, 'round': 1, 't1': ('B', 2), 't2': ('D', 1), 'next': 58 }, # 2ºB vs 1ºD
+            { 'id': 53, 'round': 1, 't1': ('C', 1), 't2': ('A', 2), 'next': 59 }, # 1ºC vs 2ºA
+            { 'id': 54, 'round': 1, 't1': ('D', 2), 't2': ('F', 1), 'next': 59 }, # 2ºD vs 1ºF
+            { 'id': 55, 'round': 1, 't1': ('G', 1), 't2': ('E', 2), 'next': 60 }, # 1ºG vs 2ºE -> plays 1B
             # Round 2 (Cuartos)
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 }, # vs Win49
-            { 'id': 58, 'round': 2, 't1': None, 't2': None, 'next': 61 }, # Win50 vs Win51
-            { 'id': 59, 'round': 2, 't1': None, 't2': None, 'next': 62 }, # Win52 vs Win53
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 }, # Win54 vs 1B
+            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 }, # 1ºA vs Win50
+            { 'id': 58, 'round': 2, 't1': None, 't2': None, 'next': 61 }, # Win51 vs Win52
+            { 'id': 59, 'round': 2, 't1': None, 't2': None, 'next': 62 }, # Win53 vs Win54
+            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 }, # Win55 vs 1ºB
             # Round 3 (Semis)
             { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
             { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
