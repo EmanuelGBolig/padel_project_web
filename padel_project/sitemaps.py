@@ -12,6 +12,7 @@ class StaticViewSitemap(Sitemap):
             'accounts:login',
             'accounts:registro',
             'accounts:rankings_jugadores',
+            'torneos:circuito_list',
             'torneos:abierto_list',
             'torneos:en_juego_list',
             'torneos:finalizado_list',

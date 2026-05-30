@@ -388,3 +388,62 @@ class Partido(models.Model):
 
     class Meta:
         ordering = ['ronda', 'orden_partido']
+
+
+class Circuito(models.Model):
+    """Agrupa varios torneos en una liga con ranking acumulado (TP-12)."""
+    nombre = models.CharField(max_length=150)
+    descripcion = models.TextField(blank=True)
+    organizacion = models.ForeignKey(
+        'accounts.Organizacion', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='circuitos'
+    )
+    torneos = models.ManyToManyField('Torneo', blank=True, related_name='circuitos')
+    activo = models.BooleanField(default=True)
+    cupos_ascenso = models.PositiveSmallIntegerField(
+        default=0, help_text="Cuántos primeros del circuito ascienden de categoría (0 = sin ascensos)."
+    )
+    cupos_descenso = models.PositiveSmallIntegerField(
+        default=0, help_text="Cuántos últimos descienden de categoría (0 = sin descensos)."
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = "Circuito"
+        verbose_name_plural = "Circuitos"
+
+    def __str__(self):
+        return self.nombre
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('torneos:circuito_detail', kwargs={'pk': self.pk})
+
+    def tabla_posiciones(self):
+        """Ranking acumulado del circuito, con ascenso/descenso marcados por posición."""
+        from accounts.utils import calcular_puntos_por_jugador
+        from accounts.models import CustomUser
+
+        torneo_ids = list(self.torneos.values_list('id', flat=True))
+        data = calcular_puntos_por_jugador(torneo_ids)
+        if not data:
+            return []
+
+        jugadores = CustomUser.objects.filter(id__in=data.keys()).select_related('division')
+        filas = []
+        for j in jugadores:
+            d = data[j.id]
+            wr = round((d['victorias'] / d['partidos']) * 100, 1) if d['partidos'] else 0
+            filas.append({
+                'jugador': j, 'puntos': d['puntos'], 'victorias': d['victorias'],
+                'partidos': d['partidos'], 'torneos_ganados': d['torneos_ganados'], 'win_rate': wr,
+            })
+        filas.sort(key=lambda x: (x['puntos'], x['torneos_ganados'], x['win_rate']), reverse=True)
+
+        n = len(filas)
+        for i, f in enumerate(filas):
+            f['posicion'] = i + 1
+            f['asciende'] = 0 < self.cupos_ascenso and i < self.cupos_ascenso
+            f['desciende'] = 0 < self.cupos_descenso and i >= n - self.cupos_descenso
+        return filas

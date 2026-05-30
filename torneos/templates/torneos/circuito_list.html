@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Circuitos | TodoPadel{% endblock title %}
+{% block meta_description %}Circuitos y ligas de pádel en TodoPadel: ranking acumulado por categoría a lo largo de varios torneos.{% endblock meta_description %}
+{% block content %}
+    <div class="space-y-6">
+        <div class="text-center py-8 bg-base-100 rounded-3xl border border-base-300 shadow-sm">
+            <h1 class="text-3xl md:text-4xl font-black">Circuitos</h1>
+            <p class="text-base-content/70 mt-2">Ligas que acumulan puntos a lo largo de varios torneos.</p>
+        </div>
+
+        {% if circuitos %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for c in circuitos %}
+                    <a href="{{ c.get_absolute_url }}"
+                       class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="card-body p-5">
+                            <h2 class="card-title">{{ c.nombre }}</h2>
+                            {% if c.descripcion %}<p class="text-sm opacity-70 line-clamp-2">{{ c.descripcion }}</p>{% endif %}
+                            <p class="text-xs opacity-60 mt-2">{{ c.torneos.count }} torneo{{ c.torneos.count|pluralize }}</p>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-10 text-center">
+                <p class="text-base-content/70">Todavía no hay circuitos activos.</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

@@ -274,6 +274,95 @@ def get_division_rankings(division, genero=None, force_recalc=False):
     cache.set(cache_key, jugadores_con_puntos, 300)
     return jugadores_con_puntos
 
+def calcular_puntos_por_jugador(torneo_ids):
+    """Puntos acumulados por jugador para un conjunto de torneos (TP-12, circuitos).
+
+    Usa el MISMO esquema que el ranking general: 15 pts por victoria de zona,
+    45/90/180/360 por ronda máxima alcanzada en la llave (octavos/cuartos/semi/final)
+    y 600 al campeón. Devuelve {jugador_id: {'puntos','victorias','partidos','torneos_ganados'}}.
+
+    Función independiente de get_division_rankings para no alterar el ranking existente.
+    """
+    from torneos.models import Partido, PartidoGrupo, Torneo
+
+    torneo_ids = list(torneo_ids)
+    data = {}
+
+    def ensure(jid):
+        if jid not in data:
+            data[jid] = {'puntos': 0, 'victorias': 0, 'partidos': 0, 'torneos_ganados': 0}
+        return data[jid]
+
+    if not torneo_ids:
+        return data
+
+    # Victorias en zona (15 pts c/u)
+    for v in (PartidoGrupo.objects
+              .filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False)
+              .values('ganador__jugador1', 'ganador__jugador2')
+              .annotate(wins=Count('id'))):
+        for key in ('ganador__jugador1', 'ganador__jugador2'):
+            jid = v[key]
+            if jid:
+                d = ensure(jid)
+                d['puntos'] += v['wins'] * 15
+                d['victorias'] += v['wins']
+
+    # Partidos jugados (zona + llave)
+    for qs in (
+        PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False),
+        Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False),
+    ):
+        for p in qs.values('equipo1__jugador1', 'equipo1__jugador2',
+                           'equipo2__jugador1', 'equipo2__jugador2'):
+            for key in ('equipo1__jugador1', 'equipo1__jugador2',
+                        'equipo2__jugador1', 'equipo2__jugador2'):
+                if p[key]:
+                    ensure(p[key])['partidos'] += 1
+
+    # Victorias en la llave
+    for p in (Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
+              .values('ganador__jugador1', 'ganador__jugador2')):
+        for key in ('ganador__jugador1', 'ganador__jugador2'):
+            if p[key]:
+                ensure(p[key])['victorias'] += 1
+
+    # Campeones (600 pts)
+    camps = {}
+    for t in (Torneo.objects.filter(id__in=torneo_ids, ganador_del_torneo__isnull=False)
+              .values('id', 'ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2')):
+        s = set()
+        for key in ('ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2'):
+            if t[key]:
+                s.add(t[key])
+                ensure(t[key])['torneos_ganados'] += 1
+        camps[t['id']] = s
+
+    # Ronda máxima por jugador por torneo
+    max_ronda = {}  # (torneo_id, jugador_id) -> ronda
+    for bm in (Partido.objects
+               .filter(torneo_id__in=torneo_ids, equipo1__isnull=False,
+                       equipo2__isnull=False, ganador__isnull=False)
+               .values('torneo_id', 'ronda', 'equipo1__jugador1', 'equipo1__jugador2',
+                       'equipo2__jugador1', 'equipo2__jugador2')):
+        for key in ('equipo1__jugador1', 'equipo1__jugador2',
+                    'equipo2__jugador1', 'equipo2__jugador2'):
+            jid = bm[key]
+            if jid:
+                k = (bm['torneo_id'], jid)
+                if bm['ronda'] > max_ronda.get(k, 0):
+                    max_ronda[k] = bm['ronda']
+
+    puntos_ronda = {4: 360, 3: 180, 2: 90, 1: 45}
+    for (tid, jid), mx in max_ronda.items():
+        if jid in camps.get(tid, set()):
+            ensure(jid)['puntos'] += 600
+        else:
+            ensure(jid)['puntos'] += puntos_ronda.get(mx, 0)
+
+    return data
+
+
 def get_user_ranking(user):
 
     """

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ circuito.nombre }} | Circuitos | TodoPadel{% endblock title %}
+{% block meta_description %}Ranking acumulado del circuito {{ circuito.nombre }} en TodoPadel.{% endblock meta_description %}
+{% block og_title %}{{ circuito.nombre }} — Circuito | TodoPadel{% endblock og_title %}
+{% block content %}
+    <div class="space-y-8">
+        <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm p-6 md:p-8">
+            <h1 class="text-3xl md:text-4xl font-black">{{ circuito.nombre }}</h1>
+            {% if circuito.descripcion %}<p class="text-base-content/70 mt-2 whitespace-pre-line">{{ circuito.descripcion }}</p>{% endif %}
+            {% if circuito.cupos_ascenso or circuito.cupos_descenso %}
+                <div class="flex flex-wrap gap-2 mt-4">
+                    {% if circuito.cupos_ascenso %}<span class="badge badge-success gap-1">↑ Ascienden {{ circuito.cupos_ascenso }}</span>{% endif %}
+                    {% if circuito.cupos_descenso %}<span class="badge badge-error gap-1">↓ Descienden {{ circuito.cupos_descenso }}</span>{% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Ranking acumulado -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm">
+            <div class="card-body p-4 md:p-6">
+                <h2 class="text-2xl font-black mb-3">Ranking acumulado</h2>
+                {% if tabla %}
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>#</th><th>Jugador</th><th>División</th>
+                                    <th class="text-center">Puntos</th><th class="text-center">🏆</th>
+                                    <th class="text-center">% Vict.</th><th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fila in tabla %}
+                                    <tr class="{% if fila.asciende %}bg-success/10{% elif fila.desciende %}bg-error/10{% endif %}">
+                                        <td class="font-bold">{{ fila.posicion }}</td>
+                                        <td><a href="{% url 'accounts:detalle' fila.jugador.pk %}" class="link link-hover">{{ fila.jugador.full_name }}</a></td>
+                                        <td>{{ fila.jugador.division.nombre|default:"-" }}</td>
+                                        <td class="text-center font-black text-primary">{{ fila.puntos }}</td>
+                                        <td class="text-center">{{ fila.torneos_ganados }}</td>
+                                        <td class="text-center">{{ fila.win_rate }}%</td>
+                                        <td class="text-center">
+                                            {% if fila.asciende %}<span class="text-success font-bold" title="Asciende">↑</span>
+                                            {% elif fila.desciende %}<span class="text-error font-bold" title="Desciende">↓</span>{% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-base-content/60">Todavía no hay puntos cargados en este circuito.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Torneos del circuito -->
+        {% if torneos %}
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body p-4 md:p-6">
+                    <h2 class="text-2xl font-black mb-3">Torneos</h2>
+                    <div class="flex flex-wrap gap-2">
+                        {% for t in torneos %}
+                            <a href="{{ t.get_absolute_url }}" class="badge badge-lg badge-outline gap-1 p-3">{{ t.nombre }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

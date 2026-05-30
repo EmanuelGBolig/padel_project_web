@@ -22,7 +22,7 @@ from itertools import combinations
 from django.http import HttpResponse
 from django.db import transaction
 
-from .models import Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo
+from .models import Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo, Circuito
 from .forms import (
     TorneoAdminForm,
     CargarResultadoGrupoForm,
@@ -1429,6 +1429,29 @@ class TorneoVivoView(DetailView):
             context['total_rondas'] = partidos_elim.aggregate(Max('ronda'))['ronda__max'] or 0
         else:
             context['total_rondas'] = 0
+        return context
+
+
+class CircuitoListView(ListView):
+    """Listado público de circuitos activos (TP-12)."""
+    model = Circuito
+    template_name = 'torneos/circuito_list.html'
+    context_object_name = 'circuitos'
+
+    def get_queryset(self):
+        return Circuito.objects.filter(activo=True).prefetch_related('torneos')
+
+
+class CircuitoDetailView(DetailView):
+    """Detalle de un circuito con ranking acumulado (TP-12)."""
+    model = Circuito
+    template_name = 'torneos/circuito_detail.html'
+    context_object_name = 'circuito'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tabla'] = self.object.tabla_posiciones()
+        context['torneos'] = self.object.torneos.select_related('division').order_by('-fecha_inicio')
         return context
 
 

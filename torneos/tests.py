@@ -256,3 +256,55 @@ class TorneoVivoTests(TestCase):
         resp = self.client.get(reverse("torneos:vivo", kwargs={"pk": torneo.pk}))
         self.assertEqual(resp.status_code, 200)
         self.assertIn("En vivo", resp.content.decode())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CircuitoTests(TestCase):
+    """TP-12: circuitos con ranking acumulado."""
+
+    contador = 0
+
+    def _user(self, division):
+        CircuitoTests.contador += 1
+        n = CircuitoTests.contador
+        return User.objects.create_user(
+            email=f"circ{n}@test.com", password="x",
+            nombre=f"N{n}", apellido=f"A{n}", division=division,
+        )
+
+    def setUp(self):
+        from .models import Circuito
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.e1 = Equipo.objects.create(
+            jugador1=self._user(self.division), jugador2=self._user(self.division), division=self.division,
+        )
+        self.e2 = Equipo.objects.create(
+            jugador1=self._user(self.division), jugador2=self._user(self.division), division=self.division,
+        )
+        self.torneo = Torneo.objects.create(
+            nombre="Fecha 1", division=self.division, estado=Torneo.Estado.EN_JUEGO, cupos_totales=8,
+            fecha_inicio=timezone.now().date(), fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+        )
+        grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        EquipoGrupo.objects.create(grupo=grupo, equipo=self.e1, numero=1)
+        EquipoGrupo.objects.create(grupo=grupo, equipo=self.e2, numero=2)
+        PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=self.e1, equipo2=self.e2, ganador=self.e1,
+            e1_sets_ganados=2, e2_sets_ganados=0,
+        )
+        self.circuito = Circuito.objects.create(nombre="Apertura 2026")
+        self.circuito.torneos.add(self.torneo)
+
+    def test_listado_y_detalle_200(self):
+        self.assertEqual(self.client.get(reverse("torneos:circuito_list")).status_code, 200)
+        self.assertEqual(
+            self.client.get(reverse("torneos:circuito_detail", kwargs={"pk": self.circuito.pk})).status_code,
+            200,
+        )
+
+    def test_tabla_acumula_puntos_de_zona(self):
+        tabla = self.circuito.tabla_posiciones()
+        puntos = {f['jugador'].id: f['puntos'] for f in tabla}
+        # Cada jugador de la pareja ganadora suma 15 pts por la victoria de zona.
+        self.assertEqual(puntos.get(self.e1.jugador1_id), 15)
+        self.assertEqual(puntos.get(self.e1.jugador2_id), 15)

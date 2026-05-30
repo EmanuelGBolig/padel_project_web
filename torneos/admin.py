@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Torneo, Inscripcion, Partido, Grupo, PartidoGrupo, EquipoGrupo
+from .models import Torneo, Inscripcion, Partido, Grupo, PartidoGrupo, EquipoGrupo, Circuito
 
 # --- INLINES ---
 
@@ -140,3 +140,11 @@ class PartidoGrupoAdmin(admin.ModelAdmin):
 # Registramos modelos simples
 admin.site.register(Inscripcion)
 admin.site.register(EquipoGrupo)  # Opcional, ya se ve dentro de Grupo
+
+
+@admin.register(Circuito)
+class CircuitoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'organizacion', 'activo', 'cupos_ascenso', 'cupos_descenso')
+    list_filter = ('activo', 'organizacion')
+    search_fields = ('nombre',)
+    filter_horizontal = ('torneos',)
