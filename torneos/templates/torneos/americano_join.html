@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Sumarse a {{ americano.nombre }} | TodoPadel{% endblock title %}
+{% block content %}
+    <div class="max-w-md mx-auto">
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body text-center">
+                <h1 class="text-2xl font-bold">Sumate al Americano</h1>
+                <p class="text-base-content/70">{{ americano.nombre }} · {{ americano.get_tipo_display }}</p>
+                <form method="post" class="space-y-4 mt-4 text-left">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Tu nombre</span></label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}<span class="text-error text-xs">{{ form.nombre.errors.0 }}</span>{% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Anotarme</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

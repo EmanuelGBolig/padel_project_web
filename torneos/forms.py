@@ -1,5 +1,5 @@
 from django import forms
-from .models import Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo
+from .models import Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo, Americano, JugadorAmericano
 
 
 class TorneoAdminForm(forms.ModelForm):
@@ -539,5 +539,36 @@ class TorneoReplaceTeamForm(forms.Form):
             
         if nuevo_equipo and crear_dummy:
             raise forms.ValidationError("No puedes seleccionar un equipo existente y crear uno nuevo a la vez.")
-            
+
         return cleaned_data
+
+
+class AmericanoForm(forms.ModelForm):
+    """Crear un Americano/Mexicano (TP-09)."""
+
+    class Meta:
+        model = Americano
+        fields = ['nombre', 'tipo', 'num_canchas']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = 'select select-bordered w-full bg-base-100 text-base-content'
+            else:
+                field.widget.attrs['class'] = 'input input-bordered w-full bg-base-100 text-base-content'
+        self.fields['num_canchas'].help_text = "Cada cancha juega con 4 jugadores."
+
+
+class JugadorAmericanoForm(forms.ModelForm):
+    """Inscripción por link (sin cuenta) a un Americano (TP-09)."""
+
+    class Meta:
+        model = JugadorAmericano
+        fields = ['nombre']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full bg-base-100 text-base-content',
+                'placeholder': 'Tu nombre y apellido',
+            }),
+        }

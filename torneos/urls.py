@@ -21,6 +21,12 @@ urlpatterns = [
     # Circuitos (TP-12)
     path('circuitos/', views.CircuitoListView.as_view(), name='circuito_list'),
     path('circuito/<int:pk>/', views.CircuitoDetailView.as_view(), name='circuito_detail'),
+    # Americano / Mexicano (TP-09)
+    path('americanos/', views.AmericanoListView.as_view(), name='americano_list'),
+    path('americano/crear/', views.AmericanoCreateView.as_view(), name='americano_crear'),
+    path('americano/sumarse/<str:codigo>/', views.AmericanoJoinView.as_view(), name='americano_join'),
+    path('americano/<int:pk>/', views.AmericanoDetailView.as_view(), name='americano_detail'),
+    path('americano/<int:pk>/gestionar/', views.AmericanoManageView.as_view(), name='americano_manage'),
     path('<int:pk>/', views.TorneoDetailView.as_view(), name='detail'),
     path('<int:pk>/programacion/', views.TorneoProgramacionView.as_view(), name='programacion'),
     path('<int:pk>/vivo/', views.TorneoVivoView.as_view(), name='vivo'),

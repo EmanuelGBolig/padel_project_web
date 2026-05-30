@@ -308,3 +308,81 @@ class CircuitoTests(TestCase):
         # Cada jugador de la pareja ganadora suma 15 pts por la victoria de zona.
         self.assertEqual(puntos.get(self.e1.jugador1_id), 15)
         self.assertEqual(puntos.get(self.e1.jugador2_id), 15)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AmericanoTests(TestCase):
+    """TP-09: Americano/Mexicano (engine + flujos)."""
+
+    def setUp(self):
+        from .models import Americano, JugadorAmericano
+        self.admin = User.objects.create_user(
+            email="admin-am@test.com", password="x", nombre="Adm", apellido="In",
+            tipo_usuario="ADMIN", is_staff=True,
+        )
+        self.am = Americano.objects.create(nombre="Social del viernes", tipo=Americano.Tipo.AMERICANO, num_canchas=1)
+        self.jugadores = [
+            JugadorAmericano.objects.create(americano=self.am, nombre=f"J{i}", orden=i)
+            for i in range(4)
+        ]
+
+    def test_join_publico_crea_jugador(self):
+        from .models import Americano, JugadorAmericano
+        am2 = Americano.objects.create(nombre="Abierto", tipo=Americano.Tipo.AMERICANO)
+        url = reverse("torneos:americano_join", kwargs={"codigo": am2.codigo})
+        self.assertEqual(self.client.get(url).status_code, 200)  # público, sin login
+        resp = self.client.post(url, {"nombre": "Pedro"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(JugadorAmericano.objects.filter(americano=am2, nombre="Pedro").exists())
+
+    def test_iniciar_americano_genera_3_rondas_con_rotacion(self):
+        from .models import Americano
+        self.client.force_login(self.admin)
+        url = reverse("torneos:americano_manage", kwargs={"pk": self.am.pk})
+        self.client.post(url, {"action": "iniciar"})
+        self.am.refresh_from_db()
+        self.assertEqual(self.am.estado, Americano.Estado.EN_JUEGO)
+        self.assertEqual(self.am.rondas.count(), 3)
+
+        # El jugador J0 debe jugar con cada uno de los otros 3 a lo largo de las rondas.
+        j0 = self.jugadores[0].id
+        companeros = set()
+        from .models import PartidoAmericano
+        for p in PartidoAmericano.objects.filter(ronda__americano=self.am):
+            equipo_a = {p.a1_id, p.a2_id}
+            equipo_b = {p.b1_id, p.b2_id}
+            for equipo in (equipo_a, equipo_b):
+                if j0 in equipo:
+                    companeros |= (equipo - {j0})
+        otros = {j.id for j in self.jugadores[1:]}
+        self.assertEqual(companeros, otros)
+
+    def test_cargar_resultado_suma_puntos(self):
+        self.client.force_login(self.admin)
+        url = reverse("torneos:americano_manage", kwargs={"pk": self.am.pk})
+        self.client.post(url, {"action": "iniciar"})
+        from .models import PartidoAmericano
+        partido = PartidoAmericano.objects.filter(ronda__americano=self.am).first()
+        self.client.post(url, {
+            "action": "cargar_resultado", "partido_id": partido.id,
+            "games_a": 6, "games_b": 2,
+        })
+        partido.refresh_from_db()
+        self.assertTrue(partido.cargado)
+        # Los del equipo A suman 6, los del B suman 2.
+        from .models import JugadorAmericano
+        self.assertEqual(JugadorAmericano.objects.get(pk=partido.a1_id).puntos, 6)
+        self.assertEqual(JugadorAmericano.objects.get(pk=partido.b1_id).puntos, 2)
+
+    def test_mexicano_genera_1_ronda_y_luego_siguiente(self):
+        from .models import Americano
+        am = Americano.objects.create(nombre="Mexi", tipo=Americano.Tipo.MEXICANO, num_canchas=1)
+        from .models import JugadorAmericano
+        for i in range(4):
+            JugadorAmericano.objects.create(americano=am, nombre=f"M{i}", orden=i)
+        self.client.force_login(self.admin)
+        url = reverse("torneos:americano_manage", kwargs={"pk": am.pk})
+        self.client.post(url, {"action": "iniciar"})
+        self.assertEqual(am.rondas.count(), 1)  # Mexicano arranca con 1 ronda
+        self.client.post(url, {"action": "siguiente_ronda"})
+        self.assertEqual(am.rondas.count(), 2)

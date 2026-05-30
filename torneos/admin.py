@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Torneo, Inscripcion, Partido, Grupo, PartidoGrupo, EquipoGrupo, Circuito
+from .models import (
+    Torneo, Inscripcion, Partido, Grupo, PartidoGrupo, EquipoGrupo, Circuito,
+    Americano, JugadorAmericano, RondaAmericano, PartidoAmericano,
+)
 
 # --- INLINES ---
 
@@ -148,3 +151,21 @@ class CircuitoAdmin(admin.ModelAdmin):
     list_filter = ('activo', 'organizacion')
     search_fields = ('nombre',)
     filter_horizontal = ('torneos',)
+
+
+class JugadorAmericanoInline(admin.TabularInline):
+    model = JugadorAmericano
+    extra = 0
+    readonly_fields = ('puntos', 'partidos_jugados')
+
+
+@admin.register(Americano)
+class AmericanoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'tipo', 'estado', 'num_canchas', 'codigo')
+    list_filter = ('tipo', 'estado')
+    search_fields = ('nombre', 'codigo')
+    inlines = [JugadorAmericanoInline]
+
+
+admin.site.register(RondaAmericano)
+admin.site.register(PartidoAmericano)

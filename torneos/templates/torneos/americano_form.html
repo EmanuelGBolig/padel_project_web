@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Crear Americano | TodoPadel{% endblock title %}
+{% block content %}
+    <div class="max-w-xl mx-auto">
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body">
+                <h1 class="text-2xl font-bold mb-4">Crear Americano / Mexicano</h1>
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Nombre</span></label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}<span class="text-error text-xs">{{ form.nombre.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Formato</span></label>
+                        {{ form.tipo }}
+                    </div>
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Cantidad de canchas</span></label>
+                        {{ form.num_canchas }}
+                        <label class="label"><span class="label-text-alt opacity-70">Cada cancha juega con 4 jugadores.</span></label>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <a href="{% url 'torneos:americano_list' %}" class="btn btn-ghost">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Crear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

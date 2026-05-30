@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ americano.nombre }} | TodoPadel{% endblock title %}
+{% block content %}
+    <div class="space-y-6">
+        <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm p-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-black">{{ americano.nombre }}</h1>
+            <div class="flex justify-center gap-2 mt-3 flex-wrap">
+                <span class="badge badge-lg badge-secondary">{{ americano.get_tipo_display }}</span>
+                <span class="badge badge-lg badge-neutral">{{ americano.get_estado_display }}</span>
+            </div>
+            {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' %}
+                <a href="{% url 'torneos:americano_manage' americano.pk %}" class="btn btn-sm btn-outline btn-accent mt-4">Gestionar</a>
+            {% endif %}
+        </div>
+
+        {% if americano.estado == 'IN' %}
+            <div class="bg-primary/5 rounded-2xl border border-primary/20 p-5 text-center space-y-3">
+                <p class="font-bold">Inscripción abierta</p>
+                <a href="{% url 'torneos:americano_join' americano.codigo %}" class="btn btn-primary">Sumarme</a>
+                <p class="text-xs opacity-70 break-all">Compartí este link: {{ join_url }}</p>
+                {% include "partials/_share_button.html" with share_url=join_url share_title=americano.nombre share_text="Sumate a este Americano en TodoPadel" %}
+            </div>
+        {% endif %}
+
+        <!-- Ranking -->
+        <div class="card bg-base-100 border border-base-300 shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="text-2xl font-black mb-2">Posiciones</h2>
+                <table class="table table-zebra">
+                    <thead><tr><th>#</th><th>Jugador</th><th class="text-center">Puntos</th><th class="text-center">PJ</th></tr></thead>
+                    <tbody>
+                        {% for j in tabla %}
+                            <tr class="{% if forloop.first %}font-bold text-primary{% endif %}">
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ j.nombre }}</td>
+                                <td class="text-center font-black">{{ j.puntos }}</td>
+                                <td class="text-center">{{ j.partidos_jugados }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="4" class="text-center opacity-60">Sin jugadores todavía.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Rondas -->
+        {% for ronda in rondas %}
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Ronda {{ ronda.numero }}</h3>
+                    <div class="space-y-2">
+                        {% for p in ronda.partidos.all %}
+                            <div class="flex items-center justify-between gap-2 bg-base-200/40 rounded-lg px-3 py-2 text-sm">
+                                <span>Cancha {{ p.cancha }}</span>
+                                <span class="flex-1 text-center">{{ p.a1.nombre }} / {{ p.a2.nombre }}</span>
+                                <span class="font-mono font-bold">{% if p.cargado %}{{ p.games_a }}-{{ p.games_b }}{% else %}vs{% endif %}</span>
+                                <span class="flex-1 text-center">{{ p.b1.nombre }} / {{ p.b2.nombre }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content %}

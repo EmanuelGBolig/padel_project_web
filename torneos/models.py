@@ -447,3 +447,130 @@ class Circuito(models.Model):
             f['asciende'] = 0 < self.cupos_ascenso and i < self.cupos_ascenso
             f['desciende'] = 0 < self.cupos_descenso and i >= n - self.cupos_descenso
         return filas
+
+
+# --- Americano / Mexicano (TP-09): formato a nivel jugador individual ---
+
+
+def _generar_codigo_americano():
+    import secrets
+    import string
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+
+
+class Americano(models.Model):
+    """Evento Americano/Mexicano: jugadores individuales que rotan de compañero.
+
+    Se juega en canchas/grupos de 4 (cada ronda = N/4 partidos). El puntaje de cada
+    jugador es la suma de games ganados en sus partidos.
+    """
+    class Tipo(models.TextChoices):
+        AMERICANO = 'A', 'Americano (rotación fija)'
+        MEXICANO = 'M', 'Mexicano (por ranking)'
+
+    class Estado(models.TextChoices):
+        INSCRIPCION = 'IN', 'Inscripción abierta'
+        EN_JUEGO = 'EJ', 'En juego'
+        FINALIZADO = 'FN', 'Finalizado'
+
+    nombre = models.CharField(max_length=150)
+    organizacion = models.ForeignKey(
+        'accounts.Organizacion', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='americanos'
+    )
+    tipo = models.CharField(max_length=1, choices=Tipo.choices, default=Tipo.AMERICANO)
+    num_canchas = models.PositiveSmallIntegerField(default=1)
+    estado = models.CharField(max_length=2, choices=Estado.choices, default=Estado.INSCRIPCION)
+    codigo = models.CharField(max_length=8, unique=True, blank=True,
+                              help_text="Código para el link de inscripción.")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = "Americano/Mexicano"
+        verbose_name_plural = "Americanos/Mexicanos"
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            codigo = _generar_codigo_americano()
+            while Americano.objects.filter(codigo=codigo).exists():
+                codigo = _generar_codigo_americano()
+            self.codigo = codigo
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.nombre} ({self.get_tipo_display()})"
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        return reverse('torneos:americano_detail', kwargs={'pk': self.pk})
+
+    def tabla(self):
+        return self.jugadores.order_by('-puntos', '-partidos_jugados', 'nombre')
+
+    def recalcular_puntos(self):
+        """Recalcula puntos (games ganados) y partidos jugados de cada jugador
+        a partir de los partidos cargados. Idempotente."""
+        agregados = {}  # jugador_id -> [puntos, partidos]
+        for p in PartidoAmericano.objects.filter(ronda__americano=self, cargado=True):
+            for jid in (p.a1_id, p.a2_id):
+                agg = agregados.setdefault(jid, [0, 0])
+                agg[0] += p.games_a or 0
+                agg[1] += 1
+            for jid in (p.b1_id, p.b2_id):
+                agg = agregados.setdefault(jid, [0, 0])
+                agg[0] += p.games_b or 0
+                agg[1] += 1
+        for jugador in self.jugadores.all():
+            puntos, partidos = agregados.get(jugador.id, [0, 0])
+            if jugador.puntos != puntos or jugador.partidos_jugados != partidos:
+                jugador.puntos = puntos
+                jugador.partidos_jugados = partidos
+                jugador.save(update_fields=['puntos', 'partidos_jugados'])
+
+
+class JugadorAmericano(models.Model):
+    americano = models.ForeignKey(Americano, on_delete=models.CASCADE, related_name='jugadores')
+    nombre = models.CharField(max_length=100)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='participaciones_americano'
+    )
+    puntos = models.IntegerField(default=0)
+    partidos_jugados = models.IntegerField(default=0)
+    orden = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-puntos', 'nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
+class RondaAmericano(models.Model):
+    americano = models.ForeignKey(Americano, on_delete=models.CASCADE, related_name='rondas')
+    numero = models.PositiveSmallIntegerField()
+
+    class Meta:
+        ordering = ['numero']
+
+    def __str__(self):
+        return f"{self.americano.nombre} - Ronda {self.numero}"
+
+
+class PartidoAmericano(models.Model):
+    ronda = models.ForeignKey(RondaAmericano, on_delete=models.CASCADE, related_name='partidos')
+    cancha = models.PositiveSmallIntegerField(default=1)
+    a1 = models.ForeignKey(JugadorAmericano, on_delete=models.CASCADE, related_name='+')
+    a2 = models.ForeignKey(JugadorAmericano, on_delete=models.CASCADE, related_name='+')
+    b1 = models.ForeignKey(JugadorAmericano, on_delete=models.CASCADE, related_name='+')
+    b2 = models.ForeignKey(JugadorAmericano, on_delete=models.CASCADE, related_name='+')
+    games_a = models.PositiveSmallIntegerField(null=True, blank=True)
+    games_b = models.PositiveSmallIntegerField(null=True, blank=True)
+    cargado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['ronda__numero', 'cancha']
+
+    def __str__(self):
+        return f"R{self.ronda.numero} C{self.cancha}: {self.a1}/{self.a2} vs {self.b1}/{self.b2}"

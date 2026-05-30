@@ -22,7 +22,10 @@ from itertools import combinations
 from django.http import HttpResponse
 from django.db import transaction
 
-from .models import Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo, Circuito
+from .models import (
+    Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo, Circuito,
+    Americano, JugadorAmericano, RondaAmericano, PartidoAmericano,
+)
 from .forms import (
     TorneoAdminForm,
     CargarResultadoGrupoForm,
@@ -35,6 +38,8 @@ from .forms import (
     PartidoGrupoReplaceTeamsForm,
     GrupoDateForm,
     TorneoReplaceTeamForm,
+    AmericanoForm,
+    JugadorAmericanoForm,
 )
 from .formats import get_format
 from .emails import notificar_nuevo_torneo
@@ -2083,5 +2088,15 @@ class TorneoProgramacionView(DetailView):
 
         context['partidos_con_fecha'] = partidos_con_fecha
         context['partidos_sin_fecha'] = partidos_sin_fecha
-        
+
         return context
+
+
+# --- Americano / Mexicano (TP-09): vistas definidas en torneos/americano.py ---
+from .americano import (  # noqa: E402
+    AmericanoListView,
+    AmericanoCreateView,
+    AmericanoDetailView,
+    AmericanoJoinView,
+    AmericanoManageView,
+)

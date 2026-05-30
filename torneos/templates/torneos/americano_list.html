@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Americanos | TodoPadel{% endblock title %}
+{% block meta_description %}Americanos y Mexicanos de pádel en TodoPadel: rotás de compañero y sumás puntos individuales.{% endblock meta_description %}
+{% block content %}
+    <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-black">Americanos / Mexicanos</h1>
+                <p class="text-base-content/70">Eventos sociales: rotás de compañero y sumás puntos.</p>
+            </div>
+            {% if user.is_authenticated and user.tipo_usuario != 'PLAYER' %}
+                <a href="{% url 'torneos:americano_crear' %}" class="btn btn-primary gap-2">Crear Americano</a>
+            {% endif %}
+        </div>
+        {% if americanos %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for a in americanos %}
+                    <a href="{{ a.get_absolute_url }}" class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="card-body p-5">
+                            <h2 class="card-title">{{ a.nombre }}</h2>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="badge badge-secondary">{{ a.get_tipo_display }}</span>
+                                <span class="badge badge-neutral">{{ a.get_estado_display }}</span>
+                            </div>
+                            <p class="text-xs opacity-60 mt-2">{{ a.jugadores.count }} jugador{{ a.jugadores.count|pluralize:"es" }}</p>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-10 text-center">
+                <p class="text-base-content/70">Todavía no hay americanos.</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}
