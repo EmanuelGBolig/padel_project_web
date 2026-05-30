@@ -12,7 +12,6 @@ class StaticViewSitemap(Sitemap):
             'accounts:login',
             'accounts:registro',
             'accounts:rankings_jugadores',
-            'equipos:rankings',
             'torneos:abierto_list',
             'torneos:en_juego_list',
             'torneos:finalizado_list',
@@ -32,3 +31,19 @@ class TorneoSitemap(Sitemap):
         # Asumiendo que Torneo tiene un campo de fecha de actualización o creación
         # Si no, devolver None o la fecha de inicio
         return obj.fecha_inicio
+
+
+class CitySitemap(Sitemap):
+    """Páginas por ciudad (SEO local, TP-14)."""
+    changefreq = 'weekly'
+    priority = 0.6
+
+    def items(self):
+        return list(
+            Torneo.objects.exclude(ciudad='')
+            .values_list('ciudad', flat=True)
+            .distinct()
+        )
+
+    def location(self, item):
+        return reverse('torneos:ciudad', args=[item])

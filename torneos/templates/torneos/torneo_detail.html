@@ -152,7 +152,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                             <span>
-                                {% if torneo.sede_nombre %}{{ torneo.sede_nombre }}{% endif %}{% if torneo.ciudad %}{% if torneo.sede_nombre %} · {% endif %}{{ torneo.ciudad }}{% endif %}
+                                {% if torneo.sede_nombre %}{{ torneo.sede_nombre }}{% endif %}{% if torneo.ciudad %}{% if torneo.sede_nombre %} · {% endif %}<a href="{% url 'torneos:ciudad' torneo.ciudad %}" class="link link-hover">{{ torneo.ciudad }}</a>{% endif %}
                             </span>
                         </div>
                     {% endif %}

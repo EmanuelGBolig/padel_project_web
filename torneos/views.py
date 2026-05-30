@@ -1386,6 +1386,26 @@ class TorneoDetailView(DetailView):
         return context
 
 
+class TorneoPorCiudadView(ListView):
+    """Listado de torneos de una ciudad (SEO local, TP-14)."""
+    model = Torneo
+    template_name = 'torneos/torneo_ciudad_list.html'
+    context_object_name = 'torneos'
+
+    def get_queryset(self):
+        self.ciudad = self.kwargs['ciudad']
+        return (
+            Torneo.objects.filter(ciudad__iexact=self.ciudad)
+            .select_related('division', 'organizacion')
+            .order_by('-fecha_inicio')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['ciudad'] = self.ciudad
+        return context
+
+
 class TorneoFinalizadoListView(ListView):
     model = Torneo
     template_name = 'torneos/torneo_finalizado_list.html'

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Torneos de pádel en {{ ciudad }} | TodoPadel{% endblock title %}
+{% block meta_description %}Torneos de pádel en {{ ciudad }}: inscribite, seguí los resultados en vivo y consultá el ranking. Calendario de torneos en {{ ciudad }} en TodoPadel.{% endblock meta_description %}
+{% block og_title %}Torneos de pádel en {{ ciudad }}{% endblock og_title %}
+{% block og_description %}Calendario de torneos de pádel en {{ ciudad }}. Inscribite y seguí los resultados en TodoPadel.{% endblock og_description %}
+{% block structured_data %}
+    {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Torneos de pádel en {{ ciudad }}",
+    "itemListElement": [
+        {% for t in torneos %}
+        {
+        "@type": "ListItem",
+        "position": {{ forloop.counter }},
+        "url": "{{ request.scheme }}://{{ request.get_host }}{{ t.get_absolute_url }}",
+        "name": "{{ t.nombre|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+    }
+{% endblock structured_data %}
+{% block content %}
+    <div class="space-y-8">
+        <div class="text-center py-8 bg-base-100 rounded-3xl border border-base-300 shadow-sm">
+            <h1 class="text-3xl md:text-4xl font-black">Torneos de pádel en <span class="text-primary">{{ ciudad }}</span></h1>
+            <p class="text-base-content/70 mt-2">{{ torneos|length }} torneo{{ torneos|length|pluralize }} en esta ciudad</p>
+        </div>
+
+        {% if torneos %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for t in torneos %}
+                    <a href="{{ t.get_absolute_url }}"
+                       class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="card-body p-5">
+                            <h2 class="card-title text-lg">{{ t.nombre }}</h2>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                {% if t.division %}<span class="badge badge-secondary">{{ t.division.nombre }}</span>{% endif %}
+                                <span class="badge badge-neutral">{{ t.get_estado_display }}</span>
+                                <span class="badge badge-outline">{{ t.get_categoria_display }}</span>
+                            </div>
+                            <p class="text-sm opacity-70 mt-2">Inicia el {{ t.fecha_inicio|date:"d/m/Y" }}{% if t.sede_nombre %} · {{ t.sede_nombre }}{% endif %}</p>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-10 text-center">
+                <p class="text-base-content/70">Todavía no hay torneos cargados en {{ ciudad }}.</p>
+                <a href="{% url 'torneos:abierto_list' %}" class="btn btn-primary btn-sm mt-4">Ver torneos abiertos</a>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

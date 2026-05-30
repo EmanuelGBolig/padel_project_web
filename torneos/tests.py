@@ -217,3 +217,27 @@ class FichaVendedoraTests(TestCase):
         self.assertIn("Mar del Plata", html)
         self.assertIn("Trofeos + indumentaria", html)
         self.assertIn("Reglamento", html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class TorneosPorCiudadTests(TestCase):
+    """TP-14: páginas por ciudad + sitemap de ciudades."""
+
+    def _torneo(self, ciudad):
+        return Torneo.objects.create(
+            nombre=f"Copa {ciudad}", ciudad=ciudad, estado=Torneo.Estado.ABIERTO,
+            cupos_totales=8, fecha_inicio=timezone.now().date() + timedelta(days=5),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+        )
+
+    def test_pagina_ciudad_lista_torneos(self):
+        self._torneo("Mar del Plata")
+        resp = self.client.get(reverse("torneos:ciudad", kwargs={"ciudad": "Mar del Plata"}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Copa Mar del Plata", resp.content.decode())
+
+    def test_sitemap_incluye_ciudad(self):
+        self._torneo("Rosario")
+        resp = self.client.get("/sitemap.xml")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("/torneos/ciudad/Rosario/", resp.content.decode())
