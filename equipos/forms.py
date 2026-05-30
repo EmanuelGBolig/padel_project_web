@@ -1,5 +1,5 @@
 from django import forms
-from .models import Equipo
+from .models import Equipo, BusquedaCompanero
 from accounts.models import CustomUser, Division
 from dal import autocomplete
 from crispy_forms.helper import FormHelper
@@ -139,5 +139,47 @@ class PairCreationForm(forms.ModelForm):
                 
             # Validar que al menos uno de los dos pertenezca a la división elegida
             # o dar una advertencia, pero por ahora lo dejamos estricto o flexible según prefiera
-            
+
         return cleaned_data
+
+
+class BusquedaCompaneroForm(forms.ModelForm):
+    """Publicar un aviso 'busco compañero/rival' (TP-10)."""
+
+    class Meta:
+        model = BusquedaCompanero
+        fields = ['division', 'ciudad', 'torneo', 'nota']
+        widgets = {
+            'nota': forms.Textarea(attrs={'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
+        estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
+        estilo_textarea = 'textarea textarea-bordered w-full bg-base-100 text-base-content'
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = estilo_select
+            elif isinstance(field.widget, forms.Textarea):
+                field.widget.attrs['class'] = estilo_textarea
+            else:
+                field.widget.attrs['class'] = estilo_input
+
+        self.fields['division'].required = False
+        self.fields['torneo'].required = False
+        self.fields['division'].empty_label = "Cualquier división"
+        self.fields['torneo'].empty_label = "Sin torneo específico"
+
+        # Solo torneos con inscripción abierta como opción.
+        from torneos.models import Torneo
+        self.fields['torneo'].queryset = Torneo.objects.filter(
+            estado=Torneo.Estado.ABIERTO
+        ).order_by('-fecha_inicio')
+
+        # Prefijar división y ciudad del jugador si las tiene.
+        if user is not None:
+            if getattr(user, 'division_id', None):
+                self.fields['division'].initial = user.division_id

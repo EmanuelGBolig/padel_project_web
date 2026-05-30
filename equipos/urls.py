@@ -14,6 +14,10 @@ urlpatterns = [
     path('mi-equipo/', views.MiEquipoDetailView.as_view(), name='mi_equipo'),
     path('crear/', views.EquipoCreateView.as_view(), name='crear'),
     path('disolver/', views.EquipoDeleteView.as_view(), name='disolver'),
+    # Matchmaking (TP-10)
+    path('buscar-companero/', views.BusquedaCompaneroListView.as_view(), name='buscar_companero'),
+    path('buscar-companero/publicar/', views.BusquedaCompaneroCreateView.as_view(), name='publicar_busqueda'),
+    path('buscar-companero/<int:pk>/eliminar/', views.BusquedaCompaneroDeleteView.as_view(), name='eliminar_busqueda'),
     # Rankings
     # Vistas de Admin
     path('admin/listado/', views.AdminEquipoListView.as_view(), name='admin_list'),

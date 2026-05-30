@@ -3,9 +3,9 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, DeleteView, ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
-from .models import Equipo, Invitation
+from .models import Equipo, Invitation, BusquedaCompanero
 from accounts.models import Division, CustomUser
-from .forms import EquipoCreateForm
+from .forms import EquipoCreateForm, BusquedaCompaneroForm
 from django.db.models import Q
 from django.db import models, transaction
 
@@ -449,5 +449,71 @@ class OrganizadorEquipoCreateView(LoginRequiredMixin, UserPassesTestMixin, Creat
         equipo.save()
         messages.success(self.request, f"¡Pareja '{equipo.nombre}' creada con éxito!")
         return redirect(self.get_success_url())
+
+
+# --- Matchmaking: "busco compañero/rival" (TP-10) ---
+
+
+class BusquedaCompaneroListView(ListView):
+    """Listado público de búsquedas, filtrable por división y ciudad."""
+    model = BusquedaCompanero
+    template_name = 'equipos/busqueda_list.html'
+    context_object_name = 'busquedas'
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = BusquedaCompanero.objects.filter(activa=True).select_related(
+            'jugador', 'division', 'torneo'
+        )
+        division = self.request.GET.get('division')
+        ciudad = self.request.GET.get('ciudad')
+        if division:
+            qs = qs.filter(division_id=division)
+        if ciudad:
+            qs = qs.filter(ciudad__icontains=ciudad)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['divisiones'] = Division.objects.all()
+        context['current_division'] = self.request.GET.get('division', '')
+        context['current_ciudad'] = self.request.GET.get('ciudad', '')
+        return context
+
+
+class BusquedaCompaneroCreateView(PlayerRequiredMixin, CreateView):
+    model = BusquedaCompanero
+    form_class = BusquedaCompaneroForm
+    template_name = 'equipos/busqueda_form.html'
+    success_url = reverse_lazy('equipos:buscar_companero')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.jugador = self.request.user
+        if not form.instance.division_id:
+            form.instance.division = self.request.user.division
+        messages.success(self.request, "¡Tu búsqueda fue publicada!")
+        return super().form_valid(form)
+
+
+class BusquedaCompaneroDeleteView(LoginRequiredMixin, DeleteView):
+    """El dueño cierra su búsqueda (solo por POST)."""
+    model = BusquedaCompanero
+    success_url = reverse_lazy('equipos:buscar_companero')
+
+    def get_queryset(self):
+        return BusquedaCompanero.objects.filter(jugador=self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        # Evita renderizar plantilla de confirmación: se borra vía POST desde el listado.
+        return redirect('equipos:buscar_companero')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Búsqueda cerrada.")
+        return super().form_valid(form)
 
 

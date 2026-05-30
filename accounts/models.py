@@ -152,6 +152,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def full_name(self):
         return f"{self.nombre} {self.apellido}"
 
+    @property
+    def telefono_numero(self):
+        """Solo dígitos del teléfono, para enlaces https://wa.me/<numero>."""
+        import re
+        return re.sub(r'\D', '', self.numero_telefono or '')
+
     def save(self, *args, **kwargs):
         # Simplemente guardar - Cloudinary se encarga de la optimización
         super().save(*args, **kwargs)

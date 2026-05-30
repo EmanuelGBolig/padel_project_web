@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Publicar búsqueda | TodoPadel{% endblock title %}
+{% block content %}
+    <div class="max-w-xl mx-auto">
+        <div class="card bg-base-100 shadow-xl border border-base-200">
+            <div class="card-body">
+                <h1 class="text-2xl font-bold mb-2">Buscá compañero / rival</h1>
+                <p class="text-base-content/70 text-sm mb-4">Tu aviso aparecerá en el listado. Otros jugadores podrán contactarte por WhatsApp o ver tu perfil.</p>
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">División</span></label>
+                        {{ form.division }}
+                        {% if form.division.errors %}<span class="text-error text-xs">{{ form.division.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Ciudad</span></label>
+                        {{ form.ciudad }}
+                        {% if form.ciudad.errors %}<span class="text-error text-xs">{{ form.ciudad.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Torneo (opcional)</span></label>
+                        {{ form.torneo }}
+                        {% if form.torneo.errors %}<span class="text-error text-xs">{{ form.torneo.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-medium">Nota</span></label>
+                        {{ form.nota }}
+                        {% if form.nota.errors %}<span class="text-error text-xs">{{ form.nota.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <a href="{% url 'equipos:buscar_companero' %}" class="btn btn-ghost">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Publicar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

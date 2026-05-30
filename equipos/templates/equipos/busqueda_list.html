@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Buscar compañero/rival | TodoPadel{% endblock title %}
+{% block meta_description %}Encontrá compañero o rival para tu próximo torneo de pádel. Buscá por división y ciudad y contactá por WhatsApp en TodoPadel.{% endblock meta_description %}
+{% block content %}
+    <div class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-black">Buscar compañero / rival</h1>
+                <p class="text-base-content/70">Avisos de jugadores que buscan con quién jugar.</p>
+            </div>
+            {% if user.is_authenticated and user.tipo_usuario == 'PLAYER' %}
+                <a href="{% url 'equipos:publicar_busqueda' %}" class="btn btn-primary gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Publicar mi búsqueda
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Filtros -->
+        <form method="get" class="flex flex-col sm:flex-row gap-3 bg-base-100 p-4 rounded-2xl border border-base-300">
+            <select name="division" class="select select-bordered w-full sm:w-auto">
+                <option value="">Todas las divisiones</option>
+                {% for d in divisiones %}
+                    <option value="{{ d.id }}" {% if current_division == d.id|stringformat:'s' %}selected{% endif %}>{{ d.nombre }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="ciudad" value="{{ current_ciudad }}" placeholder="Ciudad"
+                   class="input input-bordered w-full sm:flex-1" />
+            <button type="submit" class="btn btn-neutral">Filtrar</button>
+        </form>
+
+        {% if busquedas %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for b in busquedas %}
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body p-5">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <a href="{% url 'accounts:detalle' b.jugador.pk %}" class="font-bold text-lg link link-hover">{{ b.jugador.full_name }}</a>
+                                <div class="flex gap-1 flex-wrap">
+                                    {% if b.division %}<span class="badge badge-secondary">{{ b.division.nombre }}</span>{% endif %}
+                                    {% if b.ciudad %}<span class="badge badge-outline">{{ b.ciudad }}</span>{% endif %}
+                                </div>
+                            </div>
+                            {% if b.torneo %}
+                                <p class="text-sm mt-1">Para el torneo: <a href="{{ b.torneo.get_absolute_url }}" class="link">{{ b.torneo.nombre }}</a></p>
+                            {% endif %}
+                            {% if b.nota %}<p class="text-sm text-base-content/80 mt-2 whitespace-pre-line">{{ b.nota }}</p>{% endif %}
+                            <div class="card-actions justify-end mt-3 gap-2">
+                                {% if b.jugador.telefono_numero %}
+                                    <a href="https://wa.me/{{ b.jugador.telefono_numero }}?text={{ 'Hola! Te contacto desde TodoPadel por tu búsqueda de compañero.'|urlencode }}"
+                                       target="_blank" rel="noopener" class="btn btn-success btn-sm gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2z" /></svg>
+                                        WhatsApp
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'accounts:detalle' b.jugador.pk %}" class="btn btn-outline btn-sm">Ver perfil</a>
+                                {% if user == b.jugador %}
+                                    <form method="post" action="{% url 'equipos:eliminar_busqueda' b.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-ghost btn-sm text-error">Cerrar</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-10 text-center">
+                <p class="text-base-content/70">No hay búsquedas activas con esos filtros.</p>
+                {% if user.is_authenticated and user.tipo_usuario == 'PLAYER' %}
+                    <a href="{% url 'equipos:publicar_busqueda' %}" class="btn btn-primary btn-sm mt-4">Publicar la primera</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

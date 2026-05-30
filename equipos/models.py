@@ -295,3 +295,29 @@ class RankingJugador(models.Model):
         return f"{self.jugador} - {self.division} ({self.puntos} pts)"
 
 
+class BusquedaCompanero(models.Model):
+    """Aviso de un jugador que busca compañero/rival (TP-10)."""
+    jugador = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='busquedas_companero'
+    )
+    division = models.ForeignKey(
+        Division, on_delete=models.CASCADE, null=True, blank=True, related_name='busquedas'
+    )
+    ciudad = models.CharField(max_length=100, blank=True)
+    torneo = models.ForeignKey(
+        'torneos.Torneo', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='busquedas_companero'
+    )
+    nota = models.TextField(blank=True, help_text="Contanos qué buscás (nivel, disponibilidad, etc.)")
+    activa = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = "Búsqueda de compañero"
+        verbose_name_plural = "Búsquedas de compañero"
+
+    def __str__(self):
+        return f"{self.jugador} busca compañero ({self.division})"
+
+
