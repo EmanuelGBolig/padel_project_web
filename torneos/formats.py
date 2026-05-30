@@ -397,21 +397,13 @@ FORMATS = {
         bracket_type='custom',
         bracket_structure=[
             # Round 1 (Play-in / Octavos parciales)
-            # Match 50: 3º A vs 2º B -> Winner to QF (Match 57) (Wait, image 14 says 3ºA ?)
-            # Image 14: Match 50 connects to 57.
-            # Match 50 teams: 3º A vs ... wait, image 14 is blurry.
-            # Let's assume standard pattern: 3rd of group A (size 4) vs 2nd of group B (size 4).
-            # Which is harder because B has 4 too.
-            # Let's check format 13 again. Match 50 was 3A vs 2B.
-            # In 14, B has 4 teams. So 3rd B exists.
-            # Let's check Match 60 in 14 pairs image: 2º A vs 3º B (?).
-            # Yes, looks like 2A vs 3B.
-            # So Match 50: 3º A vs 2º B (?) No, 50 is on top left.
-            # Top left target is winner of 50 plays 1º A in 57.
-            # So 50 must be a lower seed vs lower seed. 3º A vs 2º B?
-            # Or 3º A vs 3º B?
-            # Let's assume 3º A vs 2º B for Match 50.
-            # And Match 60: 2º A vs 3º B.
+            {
+                'id': 49, 
+                'round': 1, 
+                't1': ('A', 2), 
+                't2': ('B', 3), 
+                'next': 60
+            },
             {
                 'id': 50, 
                 'round': 1, 
@@ -420,7 +412,6 @@ FORMATS = {
                 'next': 57
             },
             # Round 2 (Cuartos)
-            # Match 57: 1º A vs Winner(50)
             {
                 'id': 57, 
                 'round': 2, 
@@ -428,7 +419,6 @@ FORMATS = {
                 't2': None, # Win 50
                 'next': 61
             },
-            # Match 58: 2º C vs 1º D
             {
                 'id': 58, 
                 'round': 2, 
@@ -436,7 +426,6 @@ FORMATS = {
                 't2': ('D', 1), 
                 'next': 61
             },
-            # Match 59: 1º C vs 2º D
             {
                 'id': 59, 
                 'round': 2, 
@@ -444,12 +433,11 @@ FORMATS = {
                 't2': ('D', 2), 
                 'next': 62
             },
-            # Match 60: 2º A vs 3º B (assuming 3B based on image logic for 14 teams)
             {
                 'id': 60, 
                 'round': 2, 
-                't1': ('A', 2), 
-                't2': ('B', 3), 
+                't1': None, # Win 49
+                't2': ('B', 1), 
                 'next': 62
             },
             # Round 3 (Semis)
