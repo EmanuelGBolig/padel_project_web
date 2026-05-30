@@ -1364,11 +1364,18 @@ class TorneoDetailView(DetailView):
         # --- OG / compartir (TP-01) ---
         # URL absoluta de la página para los botones de compartir.
         context['share_url'] = self.request.build_absolute_uri()
-        # Imagen OG: si el torneo tiene foto de campeones la usamos; si no, la
-        # imagen por defecto. Cloudinary devuelve URL absoluta (http...) y el
-        # storage local una relativa (/media/...): normalizamos ambas a absoluta.
         from django.templatetags.static import static
-        if torneo.foto_campeones:
+        from .social import placa_campeones_url
+        # Placa de campeones (overlay Cloudinary). Devuelve None si no aplica
+        # (torneo no finalizado, sin foto/ganador o Cloudinary inactivo) -> fallback.
+        placa = placa_campeones_url(torneo)
+        context['placa_url'] = placa
+        # Imagen OG: placa > foto de campeones > imagen por defecto. Cloudinary da
+        # URL absoluta (http...) y el storage local relativa (/media/...): la
+        # normalizamos a absoluta.
+        if placa:
+            og_image = placa
+        elif torneo.foto_campeones:
             og_image = torneo.foto_campeones.url
             if not og_image.startswith('http'):
                 og_image = self.request.build_absolute_uri(og_image)

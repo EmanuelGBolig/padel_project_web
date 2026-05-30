@@ -149,3 +149,42 @@ class GenerarBracketZonaIncompletaTests(TestCase):
         p1b = Partido.objects.get(torneo=self.torneo, placeholder_e1="1B")
         self.assertIsNone(p2b.equipo2, "2B NO debe estar lleno: la Zona B no terminó")
         self.assertIsNone(p1b.equipo1, "1B NO debe estar lleno: la Zona B no terminó")
+
+
+from unittest import skipUnless
+
+try:
+    import cloudinary  # noqa: F401
+    _CLOUDINARY_AVAILABLE = True
+except Exception:  # pragma: no cover
+    _CLOUDINARY_AVAILABLE = False
+
+
+class PlacaCampeonesTests(TestCase):
+    """TP-01b: placa de campeones (overlay Cloudinary) y fallbacks seguros."""
+
+    @skipUnless(_CLOUDINARY_AVAILABLE, "cloudinary no instalado")
+    def test_build_placa_url_genera_overlays(self):
+        import cloudinary
+        from .social import build_placa_url
+        cloudinary.config(cloud_name="demo", api_key="k", api_secret="s", secure=True)
+        url = build_placa_url("torneos/campeones/foto1", "Apertura 7ma", "Gómez/Pérez")
+        self.assertIn("res.cloudinary.com/demo", url)
+        self.assertIn("l_text", url)                    # hay overlays de texto
+        self.assertIn("CAMPEONES", url)                 # etiqueta principal
+        self.assertIn("torneos/campeones/foto1", url)   # base = foto de campeones
+
+    def test_cloudinary_inactivo_en_tests(self):
+        from .social import cloudinary_activo
+        # En tests el storage de media por defecto es FileSystemStorage: la placa
+        # NO debe activarse (evita romper local / entornos sin Cloudinary).
+        self.assertFalse(cloudinary_activo())
+
+    def test_placa_none_si_torneo_no_finalizado(self):
+        from .social import placa_campeones_url
+        torneo = Torneo.objects.create(
+            nombre="Abierto", fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=8, estado=Torneo.Estado.ABIERTO,
+        )
+        self.assertIsNone(placa_campeones_url(torneo))
