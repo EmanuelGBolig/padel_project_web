@@ -458,6 +458,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         messages.success(request, "¡Partidos de grupos generados! El torneo está en marcha.")
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
+    def _zona_completa(self, grupo):
+        """True si la zona no tiene partidos pendientes (todos tienen ganador)."""
+        return not grupo.partidos_grupo.filter(ganador__isnull=True).exists()
+
     def generar_octavos_logica(self, request, torneo, solo_estructura=False):
         inscripciones = torneo.inscripciones.all()
         count = inscripciones.count()
@@ -498,9 +502,13 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                         if isinstance(t1_def, tuple): # ('A', 1)
                             g_letra, g_pos = t1_def
                             p1_label = f"{g_pos}{g_letra}" # Ej: 1A
-                            if not solo_estructura:
-                                if g_letra in grupos_map:
-                                    tabla = grupos_map[g_letra].tabla.all()
+                            # Solo asignamos el equipo si la zona terminó todos sus
+                            # partidos; si no, queda el placeholder (1A, 2B...) y
+                            # "Avanzar Clasificados" lo completa al cerrarse la zona.
+                            if not solo_estructura and g_letra in grupos_map:
+                                grupo_obj = grupos_map[g_letra]
+                                if self._zona_completa(grupo_obj):
+                                    tabla = grupo_obj.tabla.all()
                                     if len(tabla) >= g_pos:
                                         e1 = tabla[g_pos-1].equipo
 
@@ -512,9 +520,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                         if isinstance(t2_def, tuple):
                             g_letra, g_pos = t2_def
                             p2_label = f"{g_pos}{g_letra}" # Ej: 2B
-                            if not solo_estructura:
-                                if g_letra in grupos_map:
-                                    tabla = grupos_map[g_letra].tabla.all()
+                            if not solo_estructura and g_letra in grupos_map:
+                                grupo_obj = grupos_map[g_letra]
+                                if self._zona_completa(grupo_obj):
+                                    tabla = grupo_obj.tabla.all()
                                     if len(tabla) >= g_pos:
                                         e2 = tabla[g_pos-1].equipo
 
@@ -573,17 +582,21 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 p1_label = f"{g1_pos}{g1_letra}"
                 p2_label = f"{g2_pos}{g2_letra}"
                 
+                # Solo asignamos el equipo si la zona terminó todos sus partidos;
+                # si no, queda el placeholder y "Avanzar Clasificados" lo completa.
                 e1 = None
-                if not solo_estructura:
-                    if g1_letra in grupos_map:
-                        tabla = grupos_map[g1_letra].tabla.all()
+                if not solo_estructura and g1_letra in grupos_map:
+                    grupo_obj = grupos_map[g1_letra]
+                    if self._zona_completa(grupo_obj):
+                        tabla = grupo_obj.tabla.all()
                         if len(tabla) >= g1_pos:
                             e1 = tabla[g1_pos-1].equipo
-                
+
                 e2 = None
-                if not solo_estructura:
-                    if g2_letra in grupos_map:
-                        tabla = grupos_map[g2_letra].tabla.all()
+                if not solo_estructura and g2_letra in grupos_map:
+                    grupo_obj = grupos_map[g2_letra]
+                    if self._zona_completa(grupo_obj):
+                        tabla = grupo_obj.tabla.all()
                         if len(tabla) >= g2_pos:
                             e2 = tabla[g2_pos-1].equipo
 
@@ -633,6 +646,22 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         num_equipos = 0
         clasificados = []
         if not solo_estructura:
+            # En este formato el cuadro se dimensiona y llena de una sola vez con los
+            # clasificados reales, por lo que requiere que TODAS las zonas estén
+            # cerradas (si no, aparecerían parejas que aún no clasificaron). Para armar
+            # el cuadro de forma incremental está el cuadro vacío + "Avanzar Clasificados".
+            zonas_incompletas = sorted(
+                g.nombre for g in torneo.grupos.all() if not self._zona_completa(g)
+            )
+            if zonas_incompletas:
+                messages.error(
+                    request,
+                    "No se puede calcular la llave completa porque estas zonas todavía "
+                    "tienen partidos pendientes: " + ", ".join(zonas_incompletas) +
+                    ". Cerralas o usá 'Avanzar Clasificados' en cada zona terminada."
+                )
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+
             primeros = []
             segundos = []
             grupos = torneo.grupos.all().order_by('nombre')
