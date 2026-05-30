@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+{% load torneo_extras %}
+{% block title %}EN VIVO · {{ torneo.nombre }} | TodoPadel{% endblock title %}
+{% block content %}
+    <div class="space-y-8">
+        <div class="flex items-center justify-center gap-3 py-4">
+            <span class="relative flex h-4 w-4">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-4 w-4 bg-error"></span>
+            </span>
+            <span class="text-error font-black tracking-widest uppercase">En vivo</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-black text-center">{{ torneo.nombre }}</h1>
+
+        <!-- Zonas -->
+        {% if grupos %}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {% for grupo in grupos %}
+                    <div class="card bg-base-100 border border-base-300 shadow-sm">
+                        <div class="card-body p-4">
+                            <h2 class="text-2xl font-black mb-2">{{ grupo.nombre }}</h2>
+                            <table class="table table-zebra text-lg">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Pareja</th><th class="text-center">PG</th>
+                                        <th class="text-center">Dif. Sets</th><th class="text-center">Dif. Games</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for eg in grupo.tabla.all %}
+                                        <tr class="{% if forloop.counter <= 2 %}font-bold text-primary{% endif %}">
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{% get_team_display eg.equipo torneo %}</td>
+                                            <td class="text-center">{{ eg.partidos_ganados }}</td>
+                                            <td class="text-center">{{ eg.diferencia_sets }}</td>
+                                            <td class="text-center">{{ eg.diferencia_games }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Eliminatoria -->
+        {% if partidos_eliminacion %}
+            <div class="card bg-base-100 border border-base-300 shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="text-2xl font-black mb-3">Llave final</h2>
+                    <div class="space-y-2">
+                        {% for p in partidos_eliminacion %}
+                            {% ifchanged p.ronda %}
+                                <div class="text-sm uppercase tracking-widest opacity-60 mt-3">{% nombre_ronda_dinamico p.ronda total_rondas %}</div>
+                            {% endifchanged %}
+                            <div class="flex items-center justify-between gap-3 bg-base-200/40 rounded-lg px-4 py-2 text-lg">
+                                <span class="{% if p.ganador and p.ganador == p.equipo1 %}font-black text-primary{% endif %}">
+                                    {{ p.equipo1.nombre|default:p.placeholder_e1|default:"—" }}
+                                </span>
+                                <span class="font-mono opacity-70">{{ p.resultado|default:"vs" }}</span>
+                                <span class="text-right {% if p.ganador and p.ganador == p.equipo2 %}font-black text-primary{% endif %}">
+                                    {{ p.equipo2.nombre|default:p.placeholder_e2|default:"—" }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if not grupos and not partidos_eliminacion %}
+            <p class="text-center text-base-content/60 py-10">El torneo todavía no tiene zonas ni llave generadas.</p>
+        {% endif %}
+
+        <p class="text-center text-xs opacity-40">Esta pantalla se actualiza automáticamente.</p>
+    </div>
+{% endblock content %}
+{% block extra_js %}
+    {{ block.super }}
+    <script>
+        // Auto-refresco para uso en pantallas/TV (TP-13).
+        setTimeout(function () { window.location.reload(); }, 20000);
+    </script>
+{% endblock extra_js %}

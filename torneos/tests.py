@@ -241,3 +241,18 @@ class TorneosPorCiudadTests(TestCase):
         resp = self.client.get("/sitemap.xml")
         self.assertEqual(resp.status_code, 200)
         self.assertIn("/torneos/ciudad/Rosario/", resp.content.decode())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class TorneoVivoTests(TestCase):
+    """TP-13: scoreboard público en vivo."""
+
+    def test_vivo_responde_200(self):
+        torneo = Torneo.objects.create(
+            nombre="En Juego", estado=Torneo.Estado.EN_JUEGO, cupos_totales=8,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+        )
+        resp = self.client.get(reverse("torneos:vivo", kwargs={"pk": torneo.pk}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("En vivo", resp.content.decode())

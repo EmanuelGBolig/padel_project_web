@@ -95,6 +95,16 @@
         </svg>
         Ver Programación
     </a>
+    {% if torneo.estado == 'EJ' %}
+        <a href="{% url 'torneos:vivo' torneo.pk %}"
+           class="btn btn-sm btn-error gap-2 shadow-sm">
+            <span class="relative flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-base-100 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-base-100"></span>
+            </span>
+            Ver en vivo
+        </a>
+    {% endif %}
     {% if torneo.organizacion.whatsapp %}
         <a href="https://wa.me/{{ torneo.organizacion.whatsapp_numero }}?text={{ "Hola! Quería consultar por el torneo "|add:torneo.nombre|urlencode }}"
            target="_blank" rel="noopener"

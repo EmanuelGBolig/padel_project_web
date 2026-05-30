@@ -1406,6 +1406,32 @@ class TorneoPorCiudadView(ListView):
         return context
 
 
+class TorneoVivoView(DetailView):
+    """Scoreboard público optimizado para TV, con auto-refresh (TP-13)."""
+    model = Torneo
+    template_name = 'torneos/torneo_vivo.html'
+    context_object_name = 'torneo'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        torneo = self.object
+        context['grupos'] = torneo.grupos.all().prefetch_related(
+            'tabla__equipo__jugador1', 'tabla__equipo__jugador2',
+            'partidos_grupo__equipo1', 'partidos_grupo__equipo2', 'partidos_grupo__ganador',
+        ).order_by('nombre')
+        partidos_elim = torneo.partidos.select_related(
+            'equipo1__jugador1', 'equipo1__jugador2',
+            'equipo2__jugador1', 'equipo2__jugador2', 'ganador',
+        ).order_by('ronda', 'orden_partido')
+        context['partidos_eliminacion'] = partidos_elim
+        if partidos_elim.exists():
+            from django.db.models import Max
+            context['total_rondas'] = partidos_elim.aggregate(Max('ronda'))['ronda__max'] or 0
+        else:
+            context['total_rondas'] = 0
+        return context
+
+
 class TorneoFinalizadoListView(ListView):
     model = Torneo
     template_name = 'torneos/torneo_finalizado_list.html'
