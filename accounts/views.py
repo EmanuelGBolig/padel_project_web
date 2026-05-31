@@ -381,16 +381,8 @@ class PublicProfileView(DetailView):
         context['is_admin'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ADMIN'
         context['is_organizer'] = self.request.user.is_authenticated and self.request.user.tipo_usuario == 'ORGANIZER'
 
-        # --- OG / compartir (TP-06) ---
+        # --- Compartir (TP-06) ---
         context['share_url'] = self.request.build_absolute_uri()
-        from django.templatetags.static import static
-        if usuario.imagen:
-            og_image = usuario.imagen.url
-            if not og_image.startswith('http'):
-                og_image = self.request.build_absolute_uri(og_image)
-        else:
-            og_image = self.request.build_absolute_uri(static('img/og-image.jpg'))
-        context['og_image_url'] = og_image
         return context
 
 
