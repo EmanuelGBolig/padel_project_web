@@ -38,43 +38,63 @@
         }
     </style>
     <div class="flex flex-col gap-12">
-        <!-- Hero -->
-        <div class="text-center py-12 bg-base-100 home-hero rounded-3xl border border-base-300 shadow-sm transition-all duration-300">
-            <div class="max-w-3xl mx-auto">
-                <h1 class="text-5xl md:text-6xl font-black text-base-content mb-6 tracking-tight">
-                    Torneos de <span class="text-primary brightness-110">Pádel</span>
-                </h1>
-                <p class="text-xl md:text-2xl text-base-content/80 font-medium mb-8 leading-relaxed">
-                    Gestiona tus parejas, inscríbete y sigue los resultados en tiempo real.
-                </p>
-                {% if user.is_authenticated and user.tipo_usuario == 'ADMIN' %}
-                    <div class="flex flex-col sm:flex-row justify-center gap-4">
-                        <a href="{% url 'torneos:admin_crear' %}"
-                           class="btn btn-primary btn-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 gap-3">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke-width="2"
-                                 stroke="currentColor"
-                                 class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                            Crear Nuevo Torneo
-                        </a>
-                        <a href="{% url 'torneos:admin_list' %}"
-                           class="btn btn-outline btn-lg hover:bg-base-200 gap-3">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke-width="2"
-                                 stroke="currentColor"
-                                 class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                            </svg>
-                            Administrar
-                        </a>
+        <!-- Hero (TP-16.1): 2 columnas, fondo ilustrado, métricas y card en vivo -->
+        <div class="home-hero relative overflow-hidden rounded-3xl border border-base-300 shadow-sm">
+            <div class="absolute inset-0 bg-base-100/75 md:bg-gradient-to-r md:from-base-100/95 md:via-base-100/75 md:to-transparent"></div>
+            <div class="relative grid md:grid-cols-2 gap-8 items-center p-6 md:p-12">
+                <!-- Izquierda: contenido -->
+                <div class="text-center md:text-left">
+                    <span class="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-3">Torneos por categorías · Argentina</span>
+                    <h1 class="text-4xl md:text-5xl font-black text-base-content mb-4 tracking-tight leading-tight">
+                        Tu próximo torneo de <span class="text-primary">pádel</span> arranca acá.
+                    </h1>
+                    <p class="text-lg md:text-xl text-base-content/80 mb-6 leading-relaxed">
+                        Armá tu pareja, inscribite y seguí las llaves y los resultados en vivo.
+                    </p>
+                    <div class="flex flex-wrap justify-center md:justify-start gap-3 mb-8">
+                        {% if user.is_authenticated and user.tipo_usuario == 'ADMIN' %}
+                            <a href="{% url 'torneos:admin_crear' %}" class="btn btn-primary gap-2 shadow-lg">Crear torneo</a>
+                            <a href="{% url 'torneos:admin_list' %}" class="btn btn-outline">Administrar</a>
+                        {% elif user.is_authenticated %}
+                            <a href="{% url 'torneos:abierto_list' %}" class="btn btn-primary gap-2 shadow-lg">Ver torneos abiertos</a>
+                            <a href="{% url 'equipos:mi_equipo' %}" class="btn btn-outline">Mi pareja</a>
+                        {% else %}
+                            <a href="{% url 'accounts:registro' %}" class="btn btn-primary gap-2 shadow-lg">Crear cuenta gratis</a>
+                            <a href="{% url 'core:para_organizadores' %}" class="btn btn-ghost gap-1">Soy organizador →</a>
+                        {% endif %}
                     </div>
-                {% endif %}
+                    <!-- Métricas (TP-04) -->
+                    <div class="flex justify-center md:justify-start gap-8">
+                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.torneos_jugados }}</div><div class="text-xs opacity-70">Torneos</div></div>
+                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.jugadores }}</div><div class="text-xs opacity-70">Jugadores</div></div>
+                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.partidos_jugados }}</div><div class="text-xs opacity-70">Partidos</div></div>
+                    </div>
+                </div>
+                <!-- Derecha: card "en vivo" / teaser -->
+                <div class="hidden md:block">
+                    {% if torneos_en_juego %}
+                        {% with t=torneos_en_juego.0 %}
+                            <a href="{% url 'torneos:vivo' t.pk %}" class="card bg-base-100/90 backdrop-blur border border-base-300 shadow-xl card-elevate">
+                                <div class="card-body">
+                                    <span class="live-badge"><span class="live-dot"></span> En vivo</span>
+                                    <h3 class="text-xl font-black mt-1 leading-tight">{{ t.nombre }}</h3>
+                                    <p class="text-sm opacity-70">{{ t.division.nombre|default:"Libre" }} · {{ t.get_categoria_display }}</p>
+                                    <div class="card-actions mt-3">
+                                        <span class="btn btn-primary btn-sm w-full">Ver resultados en vivo</span>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endwith %}
+                    {% else %}
+                        <div class="card bg-base-100/85 backdrop-blur border border-base-300 shadow-xl">
+                            <div class="card-body items-center text-center">
+                                <img src="{% static 'img/ilustraciones/cover-torneo.svg' %}" alt="" aria-hidden="true" class="w-full rounded-xl mb-2">
+                                <p class="font-bold">Sumate al próximo torneo</p>
+                                <a href="{% url 'torneos:abierto_list' %}" class="btn btn-primary btn-sm mt-2">Inscripciones abiertas</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
         <!-- CTA Organizadores -->
@@ -372,16 +392,20 @@
                                             <h3 class="card-title text-lg md:text-xl font-bold line-clamp-2 min-h-[3rem] md:min-h-[3.5rem]">
                                                 {{ torneo.nombre }}
                                             </h3>
-                                            <div class="badge badge-info gap-1 text-white font-medium shrink-0">En Juego</div>
+                                            <span class="inline-flex items-center gap-1.5 shrink-0 text-xs font-bold uppercase tracking-wide" style="color:#FF5861"><span class="live-dot"></span> En vivo</span>
                                         </div>
                                         <div class="flex flex-wrap gap-2 mt-auto mb-4 md:mb-8">
                                             <div class="badge badge-outline border-base-content/20">{{ torneo.division.nombre }}</div>
                                             {% if torneo.pk in torneos_inscritos_ids %}<div class="badge badge-success text-white">Jugando</div>{% endif %}
                                         </div>
-                                        <div class="card-actions mt-auto">
+                                        <div class="card-actions mt-auto flex-col gap-2">
+                                            <a href="{% url 'torneos:vivo' torneo.pk %}"
+                                               class="btn btn-primary w-full gap-2">
+                                                <span class="live-dot"></span> Ver en vivo
+                                            </a>
                                             <a href="{% url 'torneos:detail' torneo.pk %}"
-                                               class="btn btn-outline btn-info w-full hover:shadow">
-                                                Ver Brackets y Resultados
+                                               class="btn btn-ghost btn-sm w-full">
+                                                Ver llaves y resultados
                                             </a>
                                             {% if user.is_staff %}
                                                 <a href="{% url 'torneos:admin_manage' torneo.pk %}"

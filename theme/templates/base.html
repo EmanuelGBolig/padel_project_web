@@ -121,6 +121,45 @@
             border-color: #059669 !important;
         }
 
+        /* === Sistema visual TodoPadel (TP-16): un solo acento verde, "en vivo" en rojo === */
+        /* Matar el azul: secundario/acento/info pasan a la familia verde de marca */
+        .btn-secondary, .btn-accent, .btn-info {
+            background-color: #10b981 !important; border-color: #10b981 !important; color: #fff !important;
+        }
+        .btn-outline.btn-secondary, .btn-outline.btn-accent, .btn-outline.btn-info {
+            background-color: transparent !important; color: #10b981 !important; border-color: #10b981 !important;
+        }
+        .btn-outline.btn-secondary:hover, .btn-outline.btn-accent:hover, .btn-outline.btn-info:hover {
+            background-color: #10b981 !important; color: #fff !important;
+        }
+        .btn-secondary:hover, .btn-accent:hover, .btn-info:hover {
+            background-color: #059669 !important; border-color: #059669 !important;
+        }
+        .badge-secondary, .badge-accent, .badge-info {
+            background-color: #0f6e50 !important; border-color: #0f6e50 !important; color: #fff !important;
+        }
+        .text-info, .text-secondary, .text-accent { color: #10b981 !important; }
+        .bg-info\/10, .bg-secondary\/10, .bg-accent\/10 { background-color: rgba(16,185,129,0.10) !important; }
+
+        /* Punto e indicador "en vivo" */
+        @keyframes tp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+        .live-dot {
+            width: 8px; height: 8px; border-radius: 9999px; background: #FF5861;
+            display: inline-block; animation: tp-pulse 1.3s ease-in-out infinite;
+        }
+        .live-badge {
+            display: inline-flex; align-items: center; gap: .4rem; color: #FF5861;
+            font-weight: 700; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+        }
+        @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+        /* Elevación sutil en cards clickeables */
+        .card-elevate { transition: transform .2s ease, box-shadow .2s ease; }
+        .card-elevate:hover { transform: translateY(-3px); box-shadow: 0 12px 28px -8px rgba(0,0,0,.30); }
+
+        /* Ritmo de secciones: banda con tinte verde */
+        .section-tint { background: linear-gradient(135deg, rgba(16,185,129,.10), rgba(16,185,129,.02)); }
+
         /* Override corporate theme defaults for rounded corners */
         [data-theme="corporate"] {
             --rounded-box: 1rem;
@@ -711,21 +750,6 @@
                         {% block content %}
                         {% endblock content %}
                     </main>
-                    <!-- Right Sidebar (Placeholder for Ads - Symmetry) -->
-                    <aside class="hidden 2xl:block w-80 bg-base-100 border-l border-base-200 shrink-0 p-6">
-                        <!-- Placeholder Content -->
-                        <div class="h-full rounded-2xl border-2 border-dashed border-base-300/50 flex flex-col items-center justify-center text-base-content/30 gap-4 p-4 text-center">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke-width="1.5"
-                                 stroke="currentColor"
-                                 class="w-12 h-12 opacity-50">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span class="font-medium text-sm">Espacio Publicitario</span>
-                        </div>
-                    </aside>
                 </div>
             </div>
             <!-- Sidebar -->
