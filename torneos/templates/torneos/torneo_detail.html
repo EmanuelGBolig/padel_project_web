@@ -126,6 +126,10 @@
                     <img src="{{ torneo.cover_image.url }}"
                          alt="{{ torneo.nombre }}"
                          class="w-full max-h-64 object-cover rounded-2xl mb-6 shadow-sm" />
+                {% else %}
+                    <img src="{% static 'img/ilustraciones/cover-torneo.svg' %}"
+                         alt="" aria-hidden="true"
+                         class="w-full max-h-64 object-cover rounded-2xl mb-6 shadow-sm" />
                 {% endif %}
                 <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
                 <div class="max-w-md w-full">

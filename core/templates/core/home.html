@@ -26,10 +26,20 @@
     }
 {% endblock structured_data %}
 {% block content %}
+    <style>
+        /* Hero con ilustración de cancha (TP-15), cambia según el tema. */
+        .home-hero {
+            background-image: url("{% static 'img/ilustraciones/hero-cancha-dark.svg' %}");
+            background-size: cover;
+            background-position: center;
+        }
+        [data-theme="corporate"] .home-hero {
+            background-image: url("{% static 'img/ilustraciones/hero-cancha-light.svg' %}");
+        }
+    </style>
     <div class="flex flex-col gap-12">
         <!-- Hero -->
-        <!-- Hero -->
-        <div class="text-center py-12 bg-base-100 rounded-3xl border border-base-300 shadow-sm transition-all duration-300">
+        <div class="text-center py-12 bg-base-100 home-hero rounded-3xl border border-base-300 shadow-sm transition-all duration-300">
             <div class="max-w-3xl mx-auto">
                 <h1 class="text-5xl md:text-6xl font-black text-base-content mb-6 tracking-tight">
                     Torneos de <span class="text-primary brightness-110">Pádel</span>
