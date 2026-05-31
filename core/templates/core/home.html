@@ -27,14 +27,12 @@
 {% endblock structured_data %}
 {% block content %}
     <style>
-        /* Hero con ilustración de cancha (TP-15), cambia según el tema. */
+        /* Hero con foto de cancha (stock Pexels, licencia libre comercial).
+           Para cambiarla, reemplazá el archivo o apuntá a padel-court-2/3.jpg. */
         .home-hero {
-            background-image: url("{% static 'img/ilustraciones/hero-cancha-dark.svg' %}");
+            background-image: url("{% static 'img/fondos/padel-court-1.jpg' %}");
             background-size: cover;
             background-position: center;
-        }
-        [data-theme="corporate"] .home-hero {
-            background-image: url("{% static 'img/ilustraciones/hero-cancha-light.svg' %}");
         }
     </style>
     <div class="flex flex-col gap-12">

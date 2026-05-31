@@ -31,7 +31,7 @@ class LandingOrganizadoresTests(TestCase):
         self.assertIn("Marta", html)             # testimonio activo
         self.assertIn("Excelente plataforma", html)
 
-    def test_home_usa_ilustracion_hero(self):
+    def test_home_usa_imagen_de_fondo_hero(self):
         resp = self.client.get(reverse("core:home"))
-        # El hero referencia la ilustración de cancha (TP-15).
-        self.assertIn("ilustraciones/hero-cancha", resp.content.decode())
+        # El hero usa una foto de cancha de fondo (stock Pexels).
+        self.assertIn("fondos/padel-court", resp.content.decode())
