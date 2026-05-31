@@ -111,6 +111,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'padel_project.context_processors.notifications',  # Notificaciones Globales
+                'padel_project.context_processors.contacto',        # WhatsApp organizadores
                 'social_django.context_processors.backends',       # Google OAuth2
                 'social_django.context_processors.login_redirect',  # Google OAuth2
             ],

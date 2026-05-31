@@ -16,10 +16,11 @@ class LandingOrganizadoresTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn("Creá tu torneo", resp.content.decode())
 
-    def test_home_muestra_cta_para_anonimo(self):
+    def test_home_cta_organizador_va_a_whatsapp(self):
         resp = self.client.get(reverse("core:home"))
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("/para-organizadores/", resp.content.decode())
+        # Los CTA de organizador redirigen a WhatsApp del dueño.
+        self.assertIn("wa.me/5492236886313", resp.content.decode())
 
     def test_home_muestra_contadores_y_testimonio(self):
         from .models import Testimonio

@@ -1,6 +1,20 @@
+from urllib.parse import quote
+
 from equipos.models import Invitation
 from torneos.models import Partido, PartidoGrupo
 from django.db.models import Q
+
+# Número de contacto del dueño para captación de organizadores (formato WhatsApp AR).
+ORGANIZADOR_WHATSAPP = '5492236886313'
+
+
+def contacto(request):
+    """Expone el link de WhatsApp para los CTA de 'creá tu torneo / organizador'."""
+    mensaje = quote('Hola! Quiero organizar un torneo en TodoPadel.')
+    return {
+        'organizador_whatsapp': ORGANIZADOR_WHATSAPP,
+        'organizador_whatsapp_url': f'https://wa.me/{ORGANIZADOR_WHATSAPP}?text={mensaje}',
+    }
 
 def notifications(request):
     if not request.user.is_authenticated:

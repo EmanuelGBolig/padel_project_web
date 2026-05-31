@@ -58,7 +58,7 @@
                             <a href="{% url 'equipos:mi_equipo' %}" class="btn btn-outline">Mi pareja</a>
                         {% else %}
                             <a href="{% url 'accounts:registro' %}" class="btn btn-primary gap-2 shadow-lg">Crear cuenta gratis</a>
-                            <a href="{% url 'core:para_organizadores' %}" class="btn btn-ghost gap-1">Soy organizador →</a>
+                            <a href="{{ organizador_whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-ghost gap-1">Soy organizador →</a>
                         {% endif %}
                     </div>
                     <!-- Métricas (TP-04) -->
@@ -97,7 +97,7 @@
         </div>
         <!-- CTA Organizadores -->
         {% if not user.is_authenticated or user.tipo_usuario == 'PLAYER' %}
-            <a href="{% url 'core:para_organizadores' %}"
+            <a href="{{ organizador_whatsapp_url }}" target="_blank" rel="noopener"
                class="block bg-primary/5 hover:bg-primary/10 transition-colors rounded-3xl border border-primary/20 p-6 md:p-8">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
                     <div>
