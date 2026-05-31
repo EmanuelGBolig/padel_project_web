@@ -441,6 +441,16 @@
                 visibility: visible !important;
             }
         }
+
+        /* En desktop la barra lateral scrollea junto con la página (no queda fija). */
+        @media (min-width: 1536px) {
+            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side {
+                position: relative !important;
+                top: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+        }
         </style>
         {% block extra_head %}
             <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
