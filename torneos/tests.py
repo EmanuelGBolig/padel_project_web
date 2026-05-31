@@ -50,7 +50,7 @@ class ShareButtonTorneoDetailTests(TestCase):
         self.assertIn('property="og:title"', html)
         self.assertIn("Apertura Test — TodoPadel", html)
         # og:image absoluta apuntando a la imagen por defecto (sin foto_campeones).
-        self.assertIn("http://testserver/static/img/og-image.jpg", html)
+        self.assertIn("http://testserver/static/img/og-image.png", html)
 
     def test_share_url_es_absoluta(self):
         resp = self.client.get(self.url)
