@@ -61,23 +61,10 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
               rel="stylesheet">
-        <!-- 3. TAILWIND CSS JS (Utilidades de Diseño) -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        <!-- Configuración para modo oscuro y tema -->
+        <!-- 3. TAILWIND CSS (compilado v3, reemplaza cdn.tailwindcss.com) -->
+        <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+        <!-- Detección de tema (oscuro/claro) -->
         <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: '#10b981', // Emerald 500
-                    }
-                }
-            }
-        }
         if (localStorage.getItem('theme') === 'corporate' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
             document.documentElement.setAttribute('data-theme', 'corporate');
         } else {
