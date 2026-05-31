@@ -34,22 +34,33 @@
             background-size: cover;
             background-position: center;
         }
-        /* Carrusel vertical del hero: las cards rotan (en vivo o abiertos). */
+        /* Carrusel vertical del hero: las cards rotan (en vivo o abiertos).
+           La activa entra con un rebote tipo pelota de pádel (squash & stretch). */
         .hero-slide {
             position: absolute;
             inset: 0;
             opacity: 0;
-            transform: translateY(14px);
-            transition: opacity .5s ease, transform .5s ease;
+            transform: translateY(24px) scale(.96);
+            transition: opacity .3s ease, transform .3s ease;
             pointer-events: none;
+            transform-origin: bottom center;
+            will-change: transform, opacity;
         }
         .hero-slide.active {
             opacity: 1;
-            transform: translateY(0);
             pointer-events: auto;
+            animation: hero-ball-bounce .7s ease-out both;
+        }
+        @keyframes hero-ball-bounce {
+            0%   { opacity: 0; transform: translateY(50px) scaleX(1.07) scaleY(.85); }  /* llega estirada desde abajo */
+            50%  { opacity: 1; transform: translateY(-12px) scaleX(.97) scaleY(1.06); } /* se pasa hacia arriba */
+            70%  { transform: translateY(0) scaleX(1.06) scaleY(.94); }                 /* impacto: se achata */
+            85%  { transform: translateY(-4px) scaleX(.99) scaleY(1.02); }              /* rebotecito */
+            100% { opacity: 1; transform: translateY(0) scaleX(1) scaleY(1); }          /* se asienta */
         }
         @media (prefers-reduced-motion: reduce) {
             .hero-slide { transition: none; }
+            .hero-slide.active { animation: none; opacity: 1; transform: none; }
         }
     </style>
     <div class="flex flex-col gap-12">
