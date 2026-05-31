@@ -1,9 +1,87 @@
-{% load static %}
 <div class="flex flex-col items-center justify-center py-12 px-4 text-center animate-fade-in">
-    <!-- Ilustración de marca (TP-15) -->
-    <img src="{% static 'img/ilustraciones/empty-cancha.svg' %}"
-         alt="" aria-hidden="true"
-         class="w-72 max-w-full mb-6 opacity-90" width="320" height="177">
+    <!-- Padel Animation Container -->
+    <div class="relative w-64 h-48 mb-6 flex items-center justify-center">
+        <!-- Background Glow -->
+        <div class="absolute inset-0 bg-primary/10 blur-3xl rounded-full scale-110"></div>
+        <!-- Padel Scene -->
+        <div class="relative w-40 h-40">
+            <!-- Ball Shadow -->
+            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/10 rounded-full animate-shadow"></div>
+            <!-- Racket -->
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-36 h-44 origin-bottom animate-racket-swing"
+                 style="transform-box: fill-box">
+                <svg viewBox="0 0 120 160" class="w-full h-full drop-shadow-xl">
+                    <!-- Wrist Strap (Cordón Rojo) -->
+                    <path d="M55 150 Q 60 165 65 150" stroke="#ef4444" stroke-width="3" fill="none" class="animate-pulse" />
+                    <!-- Handle Cap -->
+                    <rect x="52" y="148" width="16" height="4" rx="1" fill="#111827" />
+                    <!-- Handle with Grip -->
+                    <rect x="54" y="110" width="12" height="40" fill="#1f2937" />
+                    <!-- White Grip tape spiraling -->
+                    <g stroke="white" stroke-width="2" opacity="0.9">
+                    <line x1="54" y1="115" x2="66" y2="112" />
+                    <line x1="54" y1="122" x2="66" y2="119" />
+                    <line x1="54" y1="129" x2="66" y2="126" />
+                    <line x1="54" y1="136" x2="66" y2="133" />
+                    <line x1="54" y1="143" x2="66" y2="140" />
+                    </g>
+                    <!-- Padel Racket Body Construction -->
+                    <g transform="translate(0, -5)">
+                    <!-- Frame/Outline (Carbon Fiber look) -->
+                    <!-- Shape: Classic Teardrop Padel -->
+                    <path d="M60 110 L 50 90 Q 10 80 10 45 Q 10 5 60 5 Q 110 5 110 45 Q 110 80 70 90 L 60 110 Z" fill="#171717" stroke="#10b981" stroke-width="4" />
+                    <!-- Face (Surface) -->
+                    <path d="M55 90 Q 15 80 15 45 Q 15 10 60 10 Q 105 10 105 45 Q 105 80 65 90 Z" fill="#262626" />
+                    <!-- Bridge/Corazón (Detailed) -->
+                    <path d="M50 90 L 70 90 L 60 110 Z" fill="#1f2937" />
+                    <!-- Triangle base -->
+                    <circle cx="60" cy="96" r="3" fill="#374151" /> <!-- Central hole in bridge -->
+                    <!-- Holes Pattern (Professional Layout) -->
+                    <g fill="#404040">
+                    <!-- Center Group -->
+                    <circle cx="60" cy="30" r="3" />
+                    <circle cx="60" cy="40" r="3" />
+                    <circle cx="60" cy="50" r="3" />
+                    <circle cx="60" cy="60" r="3" />
+                    <circle cx="60" cy="70" r="3" />
+                    <!-- Inner Side Columns -->
+                    <circle cx="48" cy="35" r="3" />
+                    <circle cx="48" cy="45" r="3" />
+                    <circle cx="48" cy="55" r="3" />
+                    <circle cx="48" cy="65" r="3" />
+                    <circle cx="72" cy="35" r="3" />
+                    <circle cx="72" cy="45" r="3" />
+                    <circle cx="72" cy="55" r="3" />
+                    <circle cx="72" cy="65" r="3" />
+                    <!-- Outer Side Columns -->
+                    <circle cx="36" cy="40" r="3" />
+                    <circle cx="36" cy="50" r="3" />
+                    <circle cx="36" cy="60" r="3" />
+                    <circle cx="84" cy="40" r="3" />
+                    <circle cx="84" cy="50" r="3" />
+                    <circle cx="84" cy="60" r="3" />
+                    <!-- Top/Bottom extras -->
+                    <circle cx="60" cy="20" r="3" />
+                    <circle cx="48" cy="25" r="3" />
+                    <circle cx="72" cy="25" r="3" />
+                    </g>
+                    <!-- Highlights/Reflection -->
+                    <path d="M 30 20 Q 45 15 60 15" stroke="white" stroke-width="2" opacity="0.05" fill="none" />
+                    </g>
+                </svg>
+            </div>
+            <!-- Ball (Neon Green) -->
+            <div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#ccff00] border border-[#aacc00] shadow-sm animate-ball-bounce z-10 flex items-center justify-center overflow-hidden">
+                <!-- Seams -->
+                <div class="absolute w-[110%] h-[110%] rounded-full border border-white/40 rotate-45 scale-x-50"></div>
+                <div class="absolute w-[110%] h-[110%] rounded-full border border-white/40 -rotate-45 scale-x-50"></div>
+            </div>
+            <!-- Impact Effect -->
+            <div class="absolute bottom-[65px] left-1/2 -translate-x-1/2 w-12 h-12 bg-white/30 rounded-full animate-ping opacity-0"
+                 style="animation-duration: 1.2s;
+                        animation-delay: 0.6s"></div>
+        </div>
+    </div>
     <!-- Text content -->
     <h3 class="text-2xl font-black text-base-content mb-3">
         {% if title %}
@@ -41,9 +119,33 @@
     {% endif %}
 </div>
 <style>
+@keyframes ball-bounce {
+    0%, 100% { transform: translate(-50%, 0); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+    50% { transform: translate(-50%, -60px); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
+@keyframes racket-swing {
+    0%, 100% { transform: translate(-50%, 0) rotate(0deg); }
+    25% { transform: translate(-50%, 0) rotate(-10deg); }
+    50% { transform: translate(-50%, -5px) rotate(15deg); } /* Hit point */
+    75% { transform: translate(-50%, 0) rotate(-5deg); }
+}
+@keyframes shadow {
+    0%, 100% { width: 32px; opacity: 0.2; }
+    50% { width: 16px; opacity: 0.1; }
+}
 @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-ball-bounce {
+    animation: ball-bounce 1.2s infinite;
+}
+.animate-racket-swing {
+    animation: racket-swing 1.2s infinite;
+}
+.animate-shadow {
+    animation: shadow 1.2s infinite;
 }
 .animate-fade-in {
     animation: fade-in 0.6s ease-out forwards;
