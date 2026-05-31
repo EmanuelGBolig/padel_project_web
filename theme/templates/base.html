@@ -442,13 +442,9 @@
             }
         }
 
-        /* En desktop: que scrollee la página entera (no un panel interno) y que la
-           barra lateral baje con el contenido (no quede fija ni estirada). */
+        /* Desktop: el contenido scrollea con la página y la barra lateral queda
+           fija (sticky) acompañándote, pegada bajo el navbar, sin columna vacía. */
         @media (min-width: 1536px) {
-            html, body {
-                height: auto !important;
-                overflow-y: visible !important;
-            }
             .drawer.lg\:drawer-open,
             .drawer.lg\:drawer-open > .drawer-content {
                 height: auto !important;
@@ -456,17 +452,12 @@
                 overflow: visible !important;
             }
             .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side {
-                position: relative !important;
-                top: 0 !important;
-                height: auto !important;
-                max-height: none !important;
-                align-self: start !important;
-                overflow: visible !important;
-            }
-            /* Neutraliza el min-h-full del panel interno para que sea de su alto real. */
-            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side > * {
-                min-height: 0 !important;
-                height: auto !important;
+                position: sticky !important;
+                top: 4rem !important;
+                height: calc(100vh - 4rem) !important;
+                max-height: calc(100vh - 4rem) !important;
+                align-self: flex-start !important;
+                overflow-y: auto !important;
             }
         }
         </style>
