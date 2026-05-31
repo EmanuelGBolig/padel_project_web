@@ -92,19 +92,19 @@
         overflow-x: hidden; /* Prevent horizontal scroll just in case */
     }
     </style>
-    <div class="flex justify-center items-center py-6 md:py-12 px-4 md:px-4 min-h-[calc(100vh-4rem)]">
+    <div class="flex justify-center items-start py-6 md:py-8 px-4">
         <div class="card w-full max-w-xl shadow-xl bg-base-100 border border-base-300">
             <div class="card-body p-6 md:p-10">
                 <h2 class="card-title text-center justify-center mb-6 text-2xl font-bold text-base-content">Crear Nuevo Equipo</h2>
-                <div role="alert" class="alert alert-info text-sm mb-6 shadow-sm">
+                <div role="alert" class="alert bg-base-200 border border-base-300 text-sm mb-6 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          fill="none"
                          viewBox="0 0 24 24"
-                         class="stroke-current shrink-0 w-6 h-6">
+                         class="stroke-primary shrink-0 w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
                         </path>
                     </svg>
-                    <span>Se enviará una invitación a tu compañero. El pareja se creará cuando acepte.</span>
+                    <span>Se enviará una invitación a tu compañero. La pareja se creará cuando acepte.</span>
                 </div>
                 <form method="post" class="w-full">
                     {% csrf_token %}
