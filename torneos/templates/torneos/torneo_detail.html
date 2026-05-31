@@ -57,8 +57,6 @@
 {% block twitter_title %}{{ torneo.nombre }} — TodoPadel{% endblock twitter_title %}
 {% block og_description %}{{ torneo.get_categoria_display }} · {{ torneo.division.nombre|default:"Libre" }} · inicia {{ torneo.fecha_inicio|date:"d/m/Y" }}. Seguí los resultados e inscribite en TodoPadel.{% endblock og_description %}
 {% block twitter_description %}{{ torneo.get_categoria_display }} · {{ torneo.division.nombre|default:"Libre" }} · inicia {{ torneo.fecha_inicio|date:"d/m/Y" }}.{% endblock twitter_description %}
-{% block og_image %}{{ og_image_url }}{% endblock og_image %}
-{% block twitter_image %}{{ og_image_url }}{% endblock twitter_image %}
 {% block header_actions %}
     {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' and torneo.organizacion and user.organizacion == torneo.organizacion %}
         <a href="{% url 'torneos:admin_manage' torneo.pk %}"

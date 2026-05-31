@@ -7,8 +7,6 @@
 {% block twitter_title %}{{ perfil_usuario.full_name }} — TodoPadel{% endblock twitter_title %}
 {% block og_description %}{{ perfil_usuario.division.nombre|default:"Jugador" }} en TodoPadel. Mirá su ranking, estadísticas e historial de torneos.{% endblock og_description %}
 {% block twitter_description %}{{ perfil_usuario.division.nombre|default:"Jugador" }} en TodoPadel.{% endblock twitter_description %}
-{% block og_image %}{{ og_image_url }}{% endblock og_image %}
-{% block twitter_image %}{{ og_image_url }}{% endblock twitter_image %}
 {% block content %}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Columna Izquierda: Perfil -->
