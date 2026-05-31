@@ -442,6 +442,25 @@
             }
         }
 
+        /* Desktop: barra lateral fija estilo YouTube — siempre visible al scrollear,
+           con scroll interno propio si el menú es largo. El contenido scrollea aparte. */
+        @media (min-width: 1536px) {
+            .drawer.lg\:drawer-open,
+            .drawer.lg\:drawer-open > .drawer-content {
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+            }
+            .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side {
+                position: sticky !important;
+                top: 4rem !important;
+                height: calc(100vh - 4rem) !important;
+                max-height: calc(100vh - 4rem) !important;
+                align-self: flex-start !important;
+                overflow-y: auto !important;
+            }
+        }
+
         </style>
         {% block extra_head %}
             <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
