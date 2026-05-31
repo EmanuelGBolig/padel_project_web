@@ -34,6 +34,23 @@
             background-size: cover;
             background-position: center;
         }
+        /* Carrusel vertical del hero: las cards rotan (en vivo o abiertos). */
+        .hero-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity .5s ease, transform .5s ease;
+            pointer-events: none;
+        }
+        .hero-slide.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-slide { transition: none; }
+        }
     </style>
     <div class="flex flex-col gap-12">
         <!-- Hero (TP-16.1): 2 columnas, fondo ilustrado, métricas y card en vivo -->
@@ -70,26 +87,37 @@
                 </div>
                 <!-- Derecha: card "en vivo" / teaser -->
                 <div class="hidden md:block">
-                    {% if torneos_en_juego %}
-                        {% with t=torneos_en_juego.0 %}
-                            <a href="{% url 'torneos:vivo' t.pk %}" class="card bg-base-100/90 backdrop-blur border border-base-300 shadow-xl card-elevate">
-                                <div class="card-body">
-                                    <span class="live-badge"><span class="live-dot"></span> En vivo</span>
-                                    <h3 class="text-xl font-black mt-1 leading-tight">{{ t.nombre }}</h3>
-                                    <p class="text-sm opacity-70">{{ t.division.nombre|default:"Libre" }} · {{ t.get_categoria_display }}</p>
-                                    <div class="card-actions mt-3">
-                                        <span class="btn btn-primary btn-sm w-full">Ver resultados en vivo</span>
-                                    </div>
-                                </div>
-                            </a>
-                        {% endwith %}
-                    {% else %}
-                        <div class="card bg-base-100/85 backdrop-blur border border-base-300 shadow-xl">
-                            <div class="card-body items-center text-center">
-                                <img src="{% static 'img/fondos/padel-court-3.jpg' %}" alt="" aria-hidden="true" class="w-full h-32 object-cover rounded-xl mb-2">
-                                <p class="font-bold">Sumate al próximo torneo</p>
-                                <a href="{% url 'torneos:abierto_list' %}" class="btn btn-primary btn-sm mt-2">Inscripciones abiertas</a>
-                            </div>
+                    {% if torneos_en_juego or torneos_abiertos %}
+                        <div class="hero-carousel relative h-60" data-interval="4500">
+                            {% if torneos_en_juego %}
+                                {% for t in torneos_en_juego|slice:":6" %}
+                                    <a href="{% url 'torneos:vivo' t.pk %}"
+                                       class="hero-slide card bg-base-100/90 backdrop-blur border border-base-300 shadow-xl card-elevate{% if forloop.first %} active{% endif %}">
+                                        <div class="card-body">
+                                            <span class="live-badge"><span class="live-dot"></span> En vivo</span>
+                                            <h3 class="text-xl font-black mt-1 leading-tight line-clamp-2">{{ t.nombre }}</h3>
+                                            <p class="text-sm opacity-70">{{ t.division.nombre|default:"Libre" }} · {{ t.get_categoria_display }}</p>
+                                            <div class="card-actions mt-3">
+                                                <span class="btn btn-primary btn-sm w-full">Ver resultados en vivo</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            {% else %}
+                                {% for t in torneos_abiertos|slice:":6" %}
+                                    <a href="{% url 'torneos:detail' t.pk %}"
+                                       class="hero-slide card bg-base-100/90 backdrop-blur border border-base-300 shadow-xl card-elevate{% if forloop.first %} active{% endif %}">
+                                        <div class="card-body">
+                                            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">Inscripción abierta</span>
+                                            <h3 class="text-xl font-black mt-1 leading-tight line-clamp-2">{{ t.nombre }}</h3>
+                                            <p class="text-sm opacity-70">{{ t.division.nombre|default:"Libre" }} · {{ t.get_categoria_display }}</p>
+                                            <div class="card-actions mt-3">
+                                                <span class="btn btn-primary btn-sm w-full">Inscribite</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     {% endif %}
                 </div>
@@ -484,6 +512,24 @@
     </div>
 {% endblock content %}
 {% block extra_js %}
+    <!-- Carrusel vertical del hero (rota cards en vivo / abiertos) -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.hero-carousel').forEach(function (car) {
+            const slides = car.querySelectorAll('.hero-slide');
+            if (slides.length === 0) return;
+            if (!car.querySelector('.hero-slide.active')) slides[0].classList.add('active');
+            if (slides.length < 2) return;
+            let i = 0;
+            const interval = parseInt(car.dataset.interval, 10) || 4500;
+            setInterval(function () {
+                slides[i].classList.remove('active');
+                i = (i + 1) % slides.length;
+                slides[i].classList.add('active');
+            }, interval);
+        });
+    });
+    </script>
     <!-- Carousel Logic -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
