@@ -442,12 +442,21 @@
             }
         }
 
-        /* En desktop la barra lateral scrollea junto con la página (no queda fija). */
+        /* En desktop: que scrollee la página entera (no el panel interno) y que la
+           barra lateral baje con el contenido en vez de quedar fija. */
         @media (min-width: 1536px) {
+            .drawer.lg\:drawer-open {
+                height: auto !important;
+                overflow: visible !important;
+            }
+            .drawer.lg\:drawer-open > .drawer-content {
+                overflow: visible !important;
+            }
             .drawer.lg\:drawer-open > .drawer-toggle ~ .drawer-side {
                 position: relative !important;
                 top: 0 !important;
                 height: auto !important;
+                align-self: stretch !important;
                 overflow: visible !important;
             }
         }
