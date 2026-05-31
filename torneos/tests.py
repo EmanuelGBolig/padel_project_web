@@ -217,8 +217,8 @@ class FichaVendedoraTests(TestCase):
         self.assertIn("Mar del Plata", html)
         self.assertIn("Trofeos + indumentaria", html)
         self.assertIn("Reglamento", html)
-        # Sin cover_image propia, la ficha usa la portada ilustrada por defecto (TP-15).
-        self.assertIn("ilustraciones/cover-torneo.svg", html)
+        # Sin cover_image propia, la ficha usa una foto de cancha por defecto.
+        self.assertIn("fondos/padel-court", html)
 
 
 @override_settings(STORAGES=TEST_STORAGES)
