@@ -457,6 +457,11 @@
                 overflow-y: auto !important;
                 z-index: 30 !important;
             }
+            /* El footer arranca después de la barra fija (no la tapa). */
+            .app-footer {
+                margin-left: 20rem !important;
+                width: auto !important;
+            }
         }
 
         </style>
@@ -1078,7 +1083,7 @@
             </div>
         </div>
         <!-- Footer (Full Width, Sticky Bottom) -->
-        <footer class="footer footer-center p-4 bg-base-200/95 backdrop-blur-md border-t border-base-300 text-base-content/50 z-[55] print:hidden">
+        <footer class="app-footer footer footer-center p-4 bg-base-200/95 backdrop-blur-md border-t border-base-300 text-base-content/50 z-[55] print:hidden">
             <aside class="flex flex-col items-center gap-1">
                 <p class="font-medium text-sm">TodoPadel © {% now "Y" %}</p>
                 <p class="text-xs opacity-80">
