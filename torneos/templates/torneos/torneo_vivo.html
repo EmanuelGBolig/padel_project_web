@@ -12,6 +12,14 @@
             <span class="text-error font-black tracking-widest uppercase">En vivo</span>
         </div>
         <h1 class="text-4xl md:text-5xl font-black text-center">{{ torneo.nombre }}</h1>
+        <div class="text-center">
+            <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-primary btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Ver llaves y resultados
+            </a>
+        </div>
 
         <!-- Zonas -->
         {% if grupos %}
@@ -55,12 +63,12 @@
                             {% ifchanged p.ronda %}
                                 <div class="text-sm uppercase tracking-widest opacity-60 mt-3">{% nombre_ronda_dinamico p.ronda total_rondas %}</div>
                             {% endifchanged %}
-                            <div class="flex items-center justify-between gap-3 bg-base-200/40 rounded-lg px-4 py-2 text-lg">
-                                <span class="{% if p.ganador and p.ganador == p.equipo1 %}font-black text-primary{% endif %}">
+                            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 bg-base-200/40 rounded-lg px-4 py-2 text-lg">
+                                <span class="min-w-0 break-words {% if p.ganador and p.ganador == p.equipo1 %}font-black text-primary{% endif %}">
                                     {{ p.equipo1.nombre|default:p.placeholder_e1|default:"—" }}
                                 </span>
-                                <span class="font-mono opacity-70">{{ p.resultado|default:"vs" }}</span>
-                                <span class="text-right {% if p.ganador and p.ganador == p.equipo2 %}font-black text-primary{% endif %}">
+                                <span class="font-mono opacity-70 text-center whitespace-nowrap px-2">{{ p.resultado|default:"vs" }}</span>
+                                <span class="min-w-0 break-words text-right {% if p.ganador and p.ganador == p.equipo2 %}font-black text-primary{% endif %}">
                                     {{ p.equipo2.nombre|default:p.placeholder_e2|default:"—" }}
                                 </span>
                             </div>
