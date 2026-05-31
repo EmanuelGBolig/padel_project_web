@@ -444,10 +444,11 @@
                 overflow-y: auto !important;
                 z-index: 30 !important;
             }
-            /* El footer arranca después de la barra fija (no la tapa). */
+            /* El footer ocupa exactamente el área de contenido (a la derecha de la
+               barra fija), así su texto queda centrado con la página y no la tapa. */
             .app-footer {
                 margin-left: 20rem !important;
-                width: auto !important;
+                width: calc(100% - 20rem) !important;
             }
         }
 
