@@ -494,6 +494,21 @@ def get_player_stats(jugador):
             'etiqueta': _etiqueta_reso.get(reso, ''),
         })
 
+    # 6. Racha (TP-19.4): sobre el historial completo, en orden cronológico.
+    historial_asc = sorted(raw, key=lambda x: x[0])
+    wins_seq = [p.ganador_id in todos_equipo_ids for _ts, _k, p in historial_asc]
+    racha_maxima = 0
+    cur = 0
+    for w in wins_seq:
+        cur = cur + 1 if w else 0
+        racha_maxima = max(racha_maxima, cur)
+    racha_actual = 0
+    for w in reversed(wins_seq):
+        if w:
+            racha_actual += 1
+        else:
+            break
+
     result = {
         'partidos_jugados': total_partidos,
         'victorias': total_victorias,
@@ -503,9 +518,62 @@ def get_player_stats(jugador):
         'torneos_ganados': torneos_ganados,
         'inscripciones': list(inscripciones),
         'resultados_recientes': resultados_recientes,
+        'racha_actual': racha_actual,
+        'racha_maxima': racha_maxima,
     }
     cache.set(cache_key, result, 300)
     return result
+
+
+def get_player_achievements(jugador, stats):
+    """Logros del jugador (TP-19.4), derivados de stats ya cacheadas.
+
+    Devuelve lista de dicts {emoji, titulo, desc, unlocked}. Los que requieren
+    histórico de posición de ranking (no existe hoy) quedan bloqueados.
+    """
+    pj = stats.get('partidos_jugados', 0)
+    tg = stats.get('torneos_ganados', 0)
+    wr = stats.get('win_rate', 0)
+    rmax = stats.get('racha_maxima', 0)
+    plural = 's' if tg != 1 else ''
+    return [
+        {'emoji': '🏆', 'titulo': 'Campeón',
+         'desc': f'{tg} título{plural} ganado{plural}', 'unlocked': tg > 0},
+        {'emoji': '🔥', 'titulo': f'Racha máx: {rmax}' if rmax else 'Racha',
+         'desc': 'victorias seguidas', 'unlocked': rmax >= 3},
+        {'emoji': '🎾', 'titulo': '+10 partidos',
+         'desc': 'jugador activo', 'unlocked': pj >= 10},
+        {'emoji': '🎯', 'titulo': 'Efectivo',
+         'desc': '60%+ de win rate', 'unlocked': wr >= 60 and pj >= 5},
+        {'emoji': '💯', 'titulo': '100% en zona',
+         'desc': 'ganá todos los partidos de una zona', 'unlocked': False},
+        {'emoji': '⭐', 'titulo': 'Top 10',
+         'desc': 'entrá al top 10 del ranking', 'unlocked': False},
+    ]
+
+
+def get_profile_completeness(user):
+    """% de perfil completo + checklist con CTAs (TP-19.4)."""
+    from django.urls import reverse
+    ficha_ok = bool(
+        user.posicion_cancha or user.mano_habil or user.club
+        or user.ciudad or user.juega_desde or user.bio
+    )
+    items = [
+        {'label': 'Foto de perfil', 'done': bool(user.imagen),
+         'cta_url': '#upload-foto', 'cta_text': 'Subir'},
+        {'label': 'Tu división', 'done': bool(user.division_id),
+         'cta_url': '', 'cta_text': ''},
+        {'label': 'Formá tu pareja', 'done': bool(getattr(user, 'equipo', None)),
+         'cta_url': reverse('equipos:crear'), 'cta_text': 'Crear'},
+        {'label': 'Ficha de juego', 'done': ficha_ok,
+         'cta_url': '', 'cta_text': 'Editar'},
+        {'label': 'Tu Instagram', 'done': bool(user.instagram),
+         'cta_url': '', 'cta_text': 'Agregar'},
+    ]
+    done = sum(1 for i in items if i['done'])
+    total = len(items)
+    return {'pct': round(done / total * 100), 'items': items, 'done': done, 'total': total}
 
 def send_email_async(subject, html_template, context, recipient_list, from_email=None):
     """

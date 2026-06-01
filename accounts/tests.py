@@ -116,3 +116,75 @@ class PerfilStatsHistorialTests(TestCase):
         for needle in ['Derrotas', 'Win rate', 'Resultados recientes',
                        'Victorias temporada', 'Torneos jugados']:
             self.assertIn(needle, html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class FichaLogrosCompletitudTests(TestCase):
+    """TP-19.3/.4: ficha de jugador, logros, racha y medidor de perfil."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.user = User.objects.create_user(
+            email="ficha@t.com", password="x", nombre="Caro", apellido="Lopez",
+            genero="FEMENINO", division=self.division)
+
+    def _form_data(self, **over):
+        data = {
+            'email': self.user.email, 'nombre': 'Caro', 'apellido': 'Lopez',
+            'genero': 'FEMENINO', 'division': self.division.pk,
+            'numero_telefono': '',
+            'posicion_cancha': 'R', 'mano_habil': 'D', 'club': 'AprendePadel',
+            'ciudad': 'Mar del Plata', 'juega_desde': 2019, 'instagram': '@caro.padel',
+            'bio': 'Me gusta el revés.',
+        }
+        data.update(over)
+        return data
+
+    def test_instagram_se_normaliza(self):
+        from accounts.forms import CustomUserProfileForm
+        f = CustomUserProfileForm(data=self._form_data(instagram='@caro.padel'), instance=self.user)
+        self.assertTrue(f.is_valid(), f.errors)
+        self.assertEqual(f.cleaned_data['instagram'], 'caro.padel')
+        f2 = CustomUserProfileForm(data=self._form_data(instagram='https://instagram.com/caro.padel?x=1'), instance=self.user)
+        self.assertTrue(f2.is_valid(), f2.errors)
+        self.assertEqual(f2.cleaned_data['instagram'], 'caro.padel')
+
+    def test_juega_desde_fuera_de_rango_invalida(self):
+        from accounts.forms import CustomUserProfileForm
+        f = CustomUserProfileForm(data=self._form_data(juega_desde=1800), instance=self.user)
+        self.assertFalse(f.is_valid())
+        self.assertIn('juega_desde', f.errors)
+
+    def test_achievements_campeon_desbloqueado(self):
+        from accounts.utils import get_player_achievements
+        stats = {'partidos_jugados': 12, 'torneos_ganados': 1, 'win_rate': 70, 'racha_maxima': 4}
+        ach = get_player_achievements(self.user, stats)
+        by_title = {a['titulo']: a for a in ach}
+        self.assertTrue(by_title['Campeón']['unlocked'])
+        self.assertTrue(by_title['+10 partidos']['unlocked'])
+        self.assertFalse(by_title['Top 10']['unlocked'])  # bloqueado (sin histórico)
+
+    def test_completitud_sube_con_datos(self):
+        from accounts.utils import get_profile_completeness
+        base = get_profile_completeness(self.user)['pct']
+        self.user.ciudad = "MDQ"
+        self.user.instagram = "caro"
+        self.user.save()
+        despues = get_profile_completeness(self.user)['pct']
+        self.assertGreater(despues, base)
+
+    def test_perfil_propio_muestra_ficha_y_medidor(self):
+        self.client.force_login(self.user)
+        html = self.client.get(reverse('accounts:perfil')).content.decode()
+        self.assertIn('Mi juego', html)
+        self.assertIn('Tu perfil está al', html)
+        self.assertIn('Logros', html)
+
+    def test_perfil_publico_muestra_ficha_cargada(self):
+        self.user.posicion_cancha = 'R'
+        self.user.ciudad = 'Mar del Plata'
+        self.user.save()
+        url = reverse('accounts:detalle', kwargs={'pk': self.user.pk})
+        html = self.client.get(url).content.decode()
+        self.assertIn('Mi juego', html)
+        self.assertIn('Mar del Plata', html)

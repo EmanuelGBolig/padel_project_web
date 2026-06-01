@@ -128,25 +128,26 @@ class VerifyEmailView(FormView):
 class ProfileContextMixin:
     """Mixin para unificar la obtención de contexto de perfil (stats, ranking, invitaciones)"""
     def get_profile_context(self, target_user):
-        from .utils import get_player_stats, get_user_ranking
+        from .utils import get_player_stats, get_user_ranking, get_player_achievements
         from django.core.cache import cache as dj_cache
         from django.db.models import Q
         from torneos.models import Partido, PartidoGrupo
         from equipos.models import Invitation
 
         context = {}
-        
+
         # --- LÓGICA DE JUGADOR (STATS) ---
         if target_user.tipo_usuario == 'PLAYER':
             cache_key = f'perfil_stats_ctx_{target_user.id}'
             cached_ctx = dj_cache.get(cache_key)
-            
+
             if cached_ctx:
                 context.update(cached_ctx)
             else:
                 stats = get_player_stats(target_user)
                 stats_ctx = {
                     'stats': stats,
+                    'achievements': get_player_achievements(target_user, stats),
                     'ranking_info': get_user_ranking(target_user),
                     'torneos_activos': [i.torneo for i in stats['inscripciones'] if i.torneo.estado in ['AB', 'EJ']],
                     'torneos_finalizados': [i.torneo for i in stats['inscripciones'] if i.torneo.estado == 'FN'],
@@ -200,7 +201,12 @@ class PerfilView(LoginRequiredMixin, ProfileContextMixin, UpdateView):
         
         # 1. Stats y Ranking
         context.update(self.get_profile_context(self.object))
-        
+
+        # Medidor de perfil completo (TP-19.4), solo para jugadores.
+        if self.object.tipo_usuario == 'PLAYER':
+            from .utils import get_profile_completeness
+            context['completitud'] = get_profile_completeness(self.object)
+
         # 2. Dashboard de Gestión (solo si es su propio perfil y es gestor)
         if user == self.object and user.tipo_usuario in ['ADMIN', 'ORGANIZER']:
             from torneos.models import Torneo, Inscripcion
@@ -340,15 +346,15 @@ class PublicProfileView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from .utils import get_player_stats, get_user_ranking
+        from .utils import get_player_stats, get_user_ranking, get_player_achievements
         from django.core.cache import cache as dj_cache
-        
+
         # El objeto usuario ya está en self.object o context['perfil_usuario']
         usuario = self.object
-        
+
         cache_key = f'public_profile_ctx_{usuario.id}'
         cached_ctx = dj_cache.get(cache_key)
-        
+
         if cached_ctx:
             context.update(cached_ctx)
         else:
@@ -356,6 +362,7 @@ class PublicProfileView(DetailView):
             stats = get_player_stats(usuario)
             public_ctx = {}
             public_ctx['stats'] = stats
+            public_ctx['achievements'] = get_player_achievements(usuario, stats)
 
             # Obtener Ranking
             ranking_info = get_user_ranking(usuario)

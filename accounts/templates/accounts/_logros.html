@@ -1,0 +1,19 @@
+{# Logros del jugador (TP-19.4). Requiere `achievements`. #}
+{% if achievements %}
+    <div class="card bg-base-100 shadow-xl border border-base-200">
+        <div class="card-body">
+            <h3 class="card-title flex items-center gap-2 mb-3">🏅 Logros</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {% for a in achievements %}
+                    <div class="flex items-center gap-3 p-3 rounded-xl border border-base-200 bg-base-200/40 {% if not a.unlocked %}opacity-40 grayscale{% endif %}">
+                        <span class="text-2xl shrink-0">{{ a.emoji }}</span>
+                        <div class="min-w-0">
+                            <div class="font-bold text-sm truncate">{{ a.titulo }}</div>
+                            <div class="text-xs opacity-60 truncate">{{ a.desc }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}

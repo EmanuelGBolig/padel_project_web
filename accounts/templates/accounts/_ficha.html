@@ -1,0 +1,33 @@
+{# Ficha de jugador (TP-19.3). Requiere `perfil_usuario`. Datos no sensibles. #}
+<div class="card bg-base-100 shadow-xl border border-base-200">
+    <div class="card-body">
+        <h3 class="card-title text-base mb-2">🎾 Mi juego</h3>
+        {% if perfil_usuario.bio or perfil_usuario.posicion_cancha or perfil_usuario.mano_habil or perfil_usuario.club or perfil_usuario.ciudad or perfil_usuario.juega_desde or perfil_usuario.instagram %}
+            {% if perfil_usuario.bio %}
+                <p class="text-sm text-base-content/80 mb-3 italic">“{{ perfil_usuario.bio }}”</p>
+            {% endif %}
+            <div class="divide-y divide-base-200 text-sm">
+                {% if perfil_usuario.posicion_cancha %}
+                    <div class="flex justify-between py-1.5"><span class="opacity-60">🧤 Posición</span><span class="font-semibold">{{ perfil_usuario.get_posicion_cancha_display }}</span></div>
+                {% endif %}
+                {% if perfil_usuario.mano_habil %}
+                    <div class="flex justify-between py-1.5"><span class="opacity-60">✋ Mano hábil</span><span class="font-semibold">{{ perfil_usuario.get_mano_habil_display }}</span></div>
+                {% endif %}
+                {% if perfil_usuario.club %}
+                    <div class="flex justify-between py-1.5"><span class="opacity-60">🏟️ Club</span><span class="font-semibold">{{ perfil_usuario.club }}</span></div>
+                {% endif %}
+                {% if perfil_usuario.ciudad %}
+                    <div class="flex justify-between py-1.5"><span class="opacity-60">📍 Ciudad</span><span class="font-semibold">{{ perfil_usuario.ciudad }}</span></div>
+                {% endif %}
+                {% if perfil_usuario.juega_desde %}
+                    <div class="flex justify-between py-1.5"><span class="opacity-60">📅 Juega desde</span><span class="font-semibold">{{ perfil_usuario.juega_desde }}</span></div>
+                {% endif %}
+                {% if perfil_usuario.instagram %}
+                    <div class="flex justify-between py-1.5"><span class="opacity-60">📷 Instagram</span><a href="https://instagram.com/{{ perfil_usuario.instagram }}" target="_blank" rel="noopener" class="font-semibold link link-primary">@{{ perfil_usuario.instagram }}</a></div>
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="text-sm opacity-60">Todavía no cargó su ficha de juego.</p>
+        {% endif %}
+    </div>
+</div>

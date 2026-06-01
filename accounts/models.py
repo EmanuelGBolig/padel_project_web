@@ -63,12 +63,31 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         FEMENINO = 'FEMENINO', 'Femenino'
         OTRO = 'OTRO', 'Otro'
 
+    # Ficha de jugador (TP-19.3)
+    class Posicion(models.TextChoices):
+        DRIVE = 'D', 'Drive'
+        REVES = 'R', 'Revés'
+        AMBAS = 'A', 'Ambas'
+
+    class Mano(models.TextChoices):
+        DIESTRA = 'D', 'Diestra'
+        ZURDA = 'Z', 'Zurda'
+
     # Campos de Registro
     email = models.EmailField(unique=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     numero_telefono = models.CharField(max_length=20, blank=True)
     imagen = models.ImageField(upload_to='perfiles/', blank=True, null=True)
+
+    # --- Ficha de jugador (TP-19.3) ---
+    posicion_cancha = models.CharField(max_length=1, choices=Posicion.choices, blank=True)
+    mano_habil = models.CharField(max_length=1, choices=Mano.choices, blank=True)
+    club = models.CharField(max_length=120, blank=True)
+    ciudad = models.CharField(max_length=100, blank=True)
+    juega_desde = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Año en que empezó a jugar")
+    instagram = models.CharField(max_length=50, blank=True, help_text="Usuario de Instagram, sin @")
+    bio = models.TextField(blank=True, max_length=280)
 
     # Campos de Verificación
     verification_code = models.CharField(max_length=6, blank=True, null=True)

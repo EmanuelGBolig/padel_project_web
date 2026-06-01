@@ -88,7 +88,23 @@ class CustomUserProfileForm(UserChangeForm):
             'numero_telefono',
             'genero',
             'division',
+            # Ficha de jugador (TP-19.3)
+            'posicion_cancha',
+            'mano_habil',
+            'club',
+            'ciudad',
+            'juega_desde',
+            'instagram',
+            'bio',
         )
+        widgets = {
+            'bio': forms.Textarea(attrs={'rows': 3, 'maxlength': 280,
+                                         'placeholder': 'Contá algo sobre tu juego (máx. 280)'}),
+            'instagram': forms.TextInput(attrs={'placeholder': 'tu_usuario (sin @)'}),
+            'club': forms.TextInput(attrs={'placeholder': 'Ej: AprendePadel'}),
+            'ciudad': forms.TextInput(attrs={'placeholder': 'Ej: Mar del Plata'}),
+            'juega_desde': forms.NumberInput(attrs={'placeholder': 'Año, ej: 2019'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -102,10 +118,40 @@ class CustomUserProfileForm(UserChangeForm):
                 field.widget.attrs['class'] = estilo_select
             elif isinstance(field.widget, forms.FileInput):
                 field.widget.attrs['class'] = 'file-input file-input-bordered w-full bg-base-100 text-base-content'
+            elif isinstance(field.widget, forms.Textarea):
+                field.widget.attrs['class'] = 'textarea textarea-bordered w-full bg-base-100 text-base-content'
+
+        # Labels claros para la ficha
+        self.fields['posicion_cancha'].label = "Posición en la cancha"
+        self.fields['mano_habil'].label = "Mano hábil"
+        self.fields['juega_desde'].label = "Juega desde (año)"
+        self.fields['bio'].label = "Sobre mí"
 
         if self.instance and self.instance.pk:
             if self.instance.tipo_usuario in ['ADMIN', 'ORGANIZER'] or self.instance.is_staff:
                 self.fields['division'].required = False
+
+    def clean_instagram(self):
+        """Normaliza el handle de Instagram: sin @, sin URL, solo el usuario."""
+        ig = (self.cleaned_data.get('instagram') or '').strip()
+        if not ig:
+            return ig
+        ig = ig.rsplit('/', 1)[-1]          # saca https://instagram.com/usuario
+        ig = ig.split('?')[0].lstrip('@')   # saca query y @
+        import re
+        if not re.fullmatch(r'[A-Za-z0-9._]{1,30}', ig):
+            raise forms.ValidationError("Poné solo tu usuario de Instagram (letras, números, punto o guion bajo).")
+        return ig
+
+    def clean_juega_desde(self):
+        anio = self.cleaned_data.get('juega_desde')
+        if anio is None:
+            return anio
+        from django.utils import timezone
+        actual = timezone.now().year
+        if anio < 1950 or anio > actual:
+            raise forms.ValidationError(f"Ingresá un año entre 1950 y {actual}.")
+        return anio
 
 
 class CustomLoginForm(AuthenticationForm):

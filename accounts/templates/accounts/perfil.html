@@ -76,9 +76,45 @@
                     {% endif %}
                     <h2 class="card-title text-2xl">{{ perfil_usuario.full_name }}</h2>
                     <div class="badge badge-primary badge-lg">{{ perfil_usuario.division.nombre }}</div>
-                    <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p></p>
+                    {% if perfil_usuario.posicion_cancha or perfil_usuario.ciudad %}
+                        <p class="text-sm text-base-content/60 mt-2">
+                            {% if perfil_usuario.posicion_cancha %}🎾 {{ perfil_usuario.get_posicion_cancha_display }}{% endif %}
+                            {% if perfil_usuario.posicion_cancha and perfil_usuario.ciudad %} · {% endif %}
+                            {% if perfil_usuario.ciudad %}📍 {{ perfil_usuario.ciudad }}{% endif %}
+                        </p>
+                    {% endif %}
+                    <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p>
                 </div>
             </div>
+
+            {% if perfil_usuario.tipo_usuario == 'PLAYER' and completitud %}
+                <!-- Medidor de perfil completo (TP-19.4) -->
+                <div class="card bg-base-100 shadow-xl border border-base-200">
+                    <div class="card-body">
+                        <h3 class="card-title text-base">📈 Tu perfil está al {{ completitud.pct }}%</h3>
+                        <progress class="progress progress-primary w-full my-1" value="{{ completitud.pct }}" max="100"></progress>
+                        <div class="divide-y divide-base-200">
+                            {% for item in completitud.items %}
+                                <div class="flex items-center gap-3 py-2 text-sm">
+                                    <span class="w-5 h-5 rounded-full grid place-items-center text-[11px] font-bold shrink-0 {% if item.done %}bg-success/15 text-success{% else %}bg-error/10 text-error{% endif %}">{% if item.done %}✓{% else %}!{% endif %}</span>
+                                    <span class="flex-1 {% if item.done %}line-through opacity-50{% endif %}">{{ item.label }}</span>
+                                    {% if not item.done and item.cta_text %}
+                                        {% if item.cta_url %}
+                                            <a href="{{ item.cta_url }}" class="text-xs font-bold text-primary">{{ item.cta_text }} →</a>
+                                        {% else %}
+                                            <button type="button" onclick="document.querySelector('.collapse input[type=checkbox]').checked=true; document.querySelector('.collapse').scrollIntoView({behavior:'smooth',block:'start'});" class="text-xs font-bold text-primary">{{ item.cta_text }} →</button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if perfil_usuario.tipo_usuario == 'PLAYER' %}
+                {% include "accounts/_ficha.html" %}
+            {% endif %}
             {% if user.tipo_usuario == 'ORGANIZER' %}
                 <div class="card bg-base-100 shadow-xl border border-base-200">
                     <div class="card-body">
@@ -219,6 +255,8 @@
                 </div>
                 <!-- Grid de Estadísticas (TP-19.1) -->
                 {% include "accounts/_stats.html" %}
+                <!-- Logros (TP-19.4) -->
+                {% include "accounts/_logros.html" %}
                 <!-- Torneos y Partidos -->
                 <div class="space-y-8">
                     <!-- Próximos Partidos -->
