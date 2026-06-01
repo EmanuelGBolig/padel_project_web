@@ -734,6 +734,37 @@ def find_duplicate_candidates(limit_pairs=20000):
     return resultado
 
 
+def _mover_historial_equipo(src_id, dst_id):
+    """Mueve todo el historial del equipo `src_id` al equipo `dst_id` (TP-20).
+
+    Inscripciones y EquipoGrupo se reasignan evitando duplicados (mismo torneo/grupo);
+    partidos y ganadores se reapuntan al equipo destino.
+    """
+    from torneos.models import Inscripcion, EquipoGrupo, PartidoGrupo, Partido, Torneo
+
+    for ins in Inscripcion.objects.filter(equipo_id=src_id):
+        if Inscripcion.objects.filter(equipo_id=dst_id, torneo_id=ins.torneo_id).exists():
+            ins.delete()
+        else:
+            ins.equipo_id = dst_id
+            ins.save()
+
+    for eg in EquipoGrupo.objects.filter(equipo_id=src_id):
+        if EquipoGrupo.objects.filter(equipo_id=dst_id, grupo_id=eg.grupo_id).exists():
+            eg.delete()
+        else:
+            eg.equipo_id = dst_id
+            eg.save()
+
+    PartidoGrupo.objects.filter(equipo1_id=src_id).update(equipo1_id=dst_id)
+    PartidoGrupo.objects.filter(equipo2_id=src_id).update(equipo2_id=dst_id)
+    PartidoGrupo.objects.filter(ganador_id=src_id).update(ganador_id=dst_id)
+    Partido.objects.filter(equipo1_id=src_id).update(equipo1_id=dst_id)
+    Partido.objects.filter(equipo2_id=src_id).update(equipo2_id=dst_id)
+    Partido.objects.filter(ganador_id=src_id).update(ganador_id=dst_id)
+    Torneo.objects.filter(ganador_del_torneo_id=src_id).update(ganador_del_torneo_id=dst_id)
+
+
 def merge_users(dummy_user, real_user):
     """
     Fusiona la cuenta `dummy_user` (origen) dentro de `real_user` (destino),
@@ -748,7 +779,6 @@ def merge_users(dummy_user, real_user):
     """
     from django.db import transaction
     from equipos.models import Equipo
-    from torneos.models import Inscripcion, EquipoGrupo, PartidoGrupo, Partido, Torneo
 
     if real_user.is_dummy:
         raise ValueError("El usuario destino debe ser una cuenta Real.")
@@ -756,57 +786,51 @@ def merge_users(dummy_user, real_user):
         raise ValueError("No se puede fusionar una cuenta consigo misma.")
 
     with transaction.atomic():
-        # 1. Traspasar equipos
-        # Actualizamos jugador1 y jugador2 en la tabla Equipo
-        Equipo.objects.filter(jugador1=dummy_user).update(jugador1=real_user)
-        Equipo.objects.filter(jugador2=dummy_user).update(jugador2=real_user)
+        # 1+2. Traspasar equipos del origen al destino, equipo por equipo, de forma
+        # SEGURA ante la constraint unique_active_team (par activo único). Si ya
+        # existe el equipo (destino, compañero), se absorbe el historial ahí; si no,
+        # se reasigna el equipo al destino. (Antes un .update() masivo rompía la
+        # constraint a mitad de camino — TP-20 fix.)
+        source_team_ids = list(Equipo.objects.filter(
+            Q(jugador1=dummy_user) | Q(jugador2=dummy_user)
+        ).values_list('id', flat=True))
 
-        # 2. Identificar y fusionar equipos duplicados para el usuario real
-        # Ahora que movimos los equipos, es probable que existan duplicados (ej: Real+Socio y Dummy+Socio)
-        all_teams = list(Equipo.objects.filter(Q(jugador1=real_user) | Q(jugador2=real_user), es_dummy=False).values('id', 'jugador1_id', 'jugador2_id'))
-        
-        pair_map = {} # (sorted_ids) -> [team_ids]
-        for t in all_teams:
-            pair = tuple(sorted([t['jugador1_id'], t['jugador2_id']]))
-            if pair not in pair_map: pair_map[pair] = []
-            pair_map[pair].append(t['id'])
-        
-        for pair, team_ids in pair_map.items():
-            if len(team_ids) > 1:
-                canonical_id = team_ids[0]
-                others = team_ids[1:]
-                for other_id in others:
-                    # Mover Inscripciones
-                    for ins in Inscripcion.objects.filter(equipo_id=other_id):
-                        if Inscripcion.objects.filter(equipo_id=canonical_id, torneo_id=ins.torneo_id).exists():
-                            ins.delete()
-                        else:
-                            ins.equipo_id = canonical_id
-                            ins.save()
-                    
-                    # Mover EquipoGrupo
-                    for eg in EquipoGrupo.objects.filter(equipo_id=other_id):
-                        if EquipoGrupo.objects.filter(equipo_id=canonical_id, grupo_id=eg.grupo_id).exists():
-                            eg.delete()
-                        else:
-                            eg.equipo_id = canonical_id
-                            eg.save()
-                    
-                    # Actualizar Partidos
-                    PartidoGrupo.objects.filter(equipo1_id=other_id).update(equipo1_id=canonical_id)
-                    PartidoGrupo.objects.filter(equipo2_id=other_id).update(equipo2_id=canonical_id)
-                    PartidoGrupo.objects.filter(ganador_id=other_id).update(ganador_id=canonical_id)
-                    Partido.objects.filter(equipo1_id=other_id).update(equipo1_id=canonical_id)
-                    Partido.objects.filter(equipo2_id=other_id).update(equipo2_id=canonical_id)
-                    Partido.objects.filter(ganador_id=other_id).update(ganador_id=canonical_id)
-                    Torneo.objects.filter(ganador_del_torneo_id=other_id).update(ganador_del_torneo_id=canonical_id)
-                    
-                    # Eliminar equipo duplicado
-                    Equipo.objects.filter(id=other_id).delete()
-                
-                # Normalizar equipo canónico
-                canonical_team = Equipo.objects.get(id=canonical_id)
-                canonical_team.save()
+        for tid in source_team_ids:
+            t = Equipo.objects.filter(pk=tid).first()
+            if not t:
+                continue
+            partner_id = t.jugador2_id if t.jugador1_id == dummy_user.id else t.jugador1_id
+
+            # Equipo sin compañero, o "auto-pareja" (origen + destino): no tiene
+            # sentido como pareja tras la fusión -> se desactiva y se reasigna el
+            # slot del origen al destino (el historial queda atado al equipo inactivo).
+            if partner_id is None or partner_id == real_user.id:
+                nj1, nj2 = real_user.id, partner_id
+                if nj2 is not None and nj1 > nj2:
+                    nj1, nj2 = nj2, nj1
+                Equipo.objects.filter(pk=tid).update(
+                    jugador1_id=nj1, jugador2_id=nj2, esta_activo=False
+                )
+                continue
+
+            # ¿Ya existe un equipo (destino, compañero) en cualquier orden?
+            # Preferimos el activo como canónico para no dejar la pareja sin equipo activo.
+            canonical = Equipo.objects.filter(
+                Q(jugador1_id=real_user.id, jugador2_id=partner_id)
+                | Q(jugador1_id=partner_id, jugador2_id=real_user.id)
+            ).exclude(pk=tid).order_by('-esta_activo', 'id').first()
+
+            if canonical:
+                _mover_historial_equipo(tid, canonical.id)
+                Equipo.objects.filter(pk=tid).delete()
+            else:
+                nj1, nj2 = real_user.id, partner_id
+                if nj1 > nj2:
+                    nj1, nj2 = nj2, nj1
+                Equipo.objects.filter(pk=tid).update(jugador1_id=nj1, jugador2_id=nj2)
+                eq = Equipo.objects.filter(pk=tid).first()
+                if eq:
+                    eq.save()  # re-normaliza nombre/división
 
         # 3. Cerrar la cuenta origen
         if dummy_user.is_dummy:

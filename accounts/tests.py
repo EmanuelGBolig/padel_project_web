@@ -316,3 +316,63 @@ class MultiLoginCuentasFusionadasTests(TestCase):
         self.assertTrue(self.client.login(username="vieja@t.com", password="secret1"))
         self.client.logout()
         self.assertFalse(self.client.login(username="vieja@t.com", password="secret2"))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class MergeColisionEquipoTests(TestCase):
+    """TP-20 fix: fusionar no debe romper la constraint unique_active_team."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.division = Division.objects.create(nombre="Octava", orden=8)
+
+    def _p(self, email):
+        return User.objects.create_user(
+            email=email, password="x", nombre="N"+email[:3], apellido="Ape",
+            genero="MASCULINO", division=self.division)
+
+    def test_merge_con_companero_compartido_no_rompe(self):
+        from accounts.utils import merge_users
+        from equipos.models import Equipo
+        from torneos.models import Torneo, Grupo, PartidoGrupo
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Q
+
+        p1 = self._p("aaa@t.com")   # destino (canónico)
+        p2 = self._p("bbb@t.com")   # origen (se fusiona en p1)
+        x = self._p("xxx@t.com")    # compañero compartido
+        rival = self._p("riv@t.com")
+        compa_rival = self._p("rv2@t.com")
+
+        equipo_a = Equipo.objects.create(jugador1=p1, jugador2=x, division=self.division)   # (p1, x)
+        equipo_b = Equipo.objects.create(jugador1=p2, jugador2=x, division=self.division)   # (p2, x)  colisión al fusionar
+        equipo_riv = Equipo.objects.create(jugador1=rival, jugador2=compa_rival, division=self.division)
+
+        torneo = Torneo.objects.create(
+            nombre="T", division=self.division, fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1), estado='EJ')
+        grupo = Grupo.objects.create(torneo=torneo, nombre="Zona A")
+        # equipo_b jugó y ganó un partido -> historial a preservar
+        pg = PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=equipo_b, equipo2=equipo_riv,
+            e1_sets_ganados=2, e2_sets_ganados=0, ganador=equipo_b)
+
+        # No debe lanzar IntegrityError
+        merge_users(p2, p1)
+
+        # Solo queda un equipo activo con la pareja {p1, x}
+        activos = Equipo.objects.filter(
+            Q(jugador1=p1, jugador2=x) | Q(jugador1=x, jugador2=p1), esta_activo=True)
+        self.assertEqual(activos.count(), 1)
+        # El equipo origen (b) ya no existe
+        self.assertFalse(Equipo.objects.filter(pk=equipo_b.pk).exists())
+        # El historial se movió al canónico (equipo_a)
+        pg.refresh_from_db()
+        self.assertEqual(pg.equipo1_id, equipo_a.pk)
+        self.assertEqual(pg.ganador_id, equipo_a.pk)
+        # p2 quedó desactivado y enlazado
+        p2.refresh_from_db()
+        self.assertFalse(p2.is_active)
+        self.assertEqual(p2.merged_into_id, p1.id)
