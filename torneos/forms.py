@@ -1,5 +1,8 @@
 from django import forms
-from .models import Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo, Americano, JugadorAmericano
+from .models import (
+    Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo,
+    Americano, JugadorAmericano, ResolucionPartido,
+)
 
 
 class TorneoAdminForm(forms.ModelForm):
@@ -135,35 +138,92 @@ class TorneoAdminForm(forms.ModelForm):
 
 
 class CargarResultadoGrupoForm(forms.ModelForm):
+    # TP-18: lado ganador (W.O.) / lado que abandona (abandono). '1' = equipo1, '2' = equipo2.
+    lado_ganador = forms.ChoiceField(required=False, label="Gana")
+    lado_abandona = forms.ChoiceField(required=False, label="Abandonó")
+
     class Meta:
         model = PartidoGrupo
-        fields = ['e1_set1', 'e2_set1', 'e1_set2', 'e2_set2', 'e1_set3', 'e2_set3']
+        fields = ['resolucion', 'e1_set1', 'e2_set1', 'e1_set2', 'e2_set2', 'e1_set3', 'e2_set3']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Estilo DaisyUI + Dark Mode Ready
-        estilo_input = 'input input-bordered input-sm w-full text-center font-extrabold text-lg p-0 h-10 bg-base-100 text-base-content focus:border-primary'
+        # Opciones de lado con el nombre de cada equipo.
+        choices = [
+            ('1', str(self.instance.equipo1) if self.instance.equipo1_id else "Equipo 1"),
+            ('2', str(self.instance.equipo2) if self.instance.equipo2_id else "Equipo 2"),
+        ]
+        self.fields['lado_ganador'].choices = [('', '—')] + choices
+        self.fields['lado_abandona'].choices = [('', '—')] + choices
 
-        for field_name in self.fields:
+        estilo_select = 'select select-bordered select-sm w-full bg-base-100 text-base-content'
+        self.fields['resolucion'].widget.attrs['class'] = estilo_select
+        self.fields['resolucion'].label = "Tipo de resultado"
+        self.fields['lado_ganador'].widget.attrs['class'] = estilo_select
+        self.fields['lado_abandona'].widget.attrs['class'] = estilo_select
+
+        # Estilo DaisyUI + Dark Mode Ready para los inputs de sets
+        estilo_input = 'input input-bordered input-sm w-full text-center font-extrabold text-lg p-0 h-10 bg-base-100 text-base-content focus:border-primary'
+        for field_name in ['e1_set1', 'e2_set1', 'e1_set2', 'e2_set2', 'e1_set3', 'e2_set3']:
             field = self.fields[field_name]
             field.label = ""
             field.widget.attrs.update(
-                {
-                    'class': estilo_input,
-                    'placeholder': '-',
-                    'min': '0',
-                    'max': '7',
-                    'type': 'number',
-                }
+                {'class': estilo_input, 'placeholder': '-', 'min': '0', 'max': '7', 'type': 'number'}
             )
+
+    def _lado_a_equipo(self, lado):
+        return self.instance.equipo1 if lado == '1' else self.instance.equipo2
 
     def clean(self):
         cleaned_data = super().clean()
-        e1_sets = 0
-        e2_sets = 0
-        e1_games = 0
-        e2_games = 0
+        resolucion = cleaned_data.get('resolucion') or ResolucionPartido.NORMAL
+
+        # --- WALKOVER: gana el presente, sin jugar. 2-0 en sets, sin games. ---
+        if resolucion == ResolucionPartido.WALKOVER:
+            lado = cleaned_data.get('lado_ganador')
+            if lado not in ('1', '2'):
+                self.add_error('lado_ganador', "Elegí qué pareja gana por W.O.")
+                return cleaned_data
+            # Limpiar sets cargados (no se jugó).
+            for f in ['e1_set1', 'e2_set1', 'e1_set2', 'e2_set2', 'e1_set3', 'e2_set3']:
+                cleaned_data[f] = None
+                setattr(self.instance, f, None)
+            self.instance.e1_sets_ganados = 2 if lado == '1' else 0
+            self.instance.e2_sets_ganados = 2 if lado == '2' else 0
+            # Games NO se tocan (no inflar desempates por un partido no jugado).
+            self.instance.e1_games_ganados = 0
+            self.instance.e2_games_ganados = 0
+            self.instance.ganador = self._lado_a_equipo(lado)
+            return cleaned_data
+
+        # --- ABANDONO: se carga el parcial; gana la pareja que NO abandonó. ---
+        if resolucion == ResolucionPartido.ABANDONO:
+            lado = cleaned_data.get('lado_abandona')
+            if lado not in ('1', '2'):
+                self.add_error('lado_abandona', "Marcá qué pareja abandonó.")
+                return cleaned_data
+            e1_sets = e2_sets = e1_games = e2_games = 0
+            for i in range(1, 4):
+                s1 = cleaned_data.get(f'e1_set{i}')
+                s2 = cleaned_data.get(f'e2_set{i}')
+                if s1 is not None and s2 is not None:
+                    e1_games += s1
+                    e2_games += s2
+                    if s1 > s2:
+                        e1_sets += 1
+                    elif s2 > s1:
+                        e2_sets += 1
+            self.instance.e1_sets_ganados = e1_sets
+            self.instance.e2_sets_ganados = e2_sets
+            self.instance.e1_games_ganados = e1_games
+            self.instance.e2_games_ganados = e2_games
+            # Gana el otro lado (el que no abandonó).
+            self.instance.ganador = self._lado_a_equipo('2' if lado == '1' else '1')
+            return cleaned_data
+
+        # --- NORMAL: como siempre, el ganador sale de los sets. ---
+        e1_sets = e2_sets = e1_games = e2_games = 0
         for i in range(1, 4):
             s1 = cleaned_data.get(f'e1_set{i}')
             s2 = cleaned_data.get(f'e2_set{i}')
@@ -205,9 +265,14 @@ class PartidoResultadoForm(forms.ModelForm):
         required=False, widget=forms.HiddenInput(), initial=0
     )
 
+    # TP-18: lado ganador (W.O.) / lado que abandona. '1' = local (equipo1), '2' = visitante (equipo2).
+    lado_ganador = forms.ChoiceField(required=False, label="Gana")
+    lado_abandona = forms.ChoiceField(required=False, label="Abandonó")
+
     class Meta:
         model = Partido
         fields = [
+            'resolucion',
             'set1_local',
             'set1_visitante',
             'set2_local',
@@ -229,18 +294,45 @@ class PartidoResultadoForm(forms.ModelForm):
                 if i < 3:
                     self.initial[f'set{i+1}_visitante'] = games
 
+        choices = [
+            ('1', str(self.instance.equipo1) if self.instance.equipo1_id else "Equipo 1"),
+            ('2', str(self.instance.equipo2) if self.instance.equipo2_id else "Equipo 2"),
+        ]
+        self.fields['lado_ganador'].choices = [('', '—')] + choices
+        self.fields['lado_abandona'].choices = [('', '—')] + choices
+        estilo_select = 'select select-bordered select-sm w-full bg-base-100 text-base-content'
+        self.fields['resolucion'].widget.attrs['class'] = estilo_select
+        self.fields['resolucion'].label = "Tipo de resultado"
+        self.fields['lado_ganador'].widget.attrs['class'] = estilo_select
+        self.fields['lado_abandona'].widget.attrs['class'] = estilo_select
+
         estilo_input = 'input input-bordered input-secondary input-sm w-full text-center font-extrabold text-lg p-0 h-10 bg-base-100 text-base-content focus:border-secondary'
 
-        for field_name in self.fields:
-            if 'resultado' not in field_name:
-                field = self.fields[field_name]
-                field.label = ""
-                field.widget.attrs.update(
-                    {'class': estilo_input, 'placeholder': '-', 'type': 'number'}
-                )
+        for field_name in ['set1_local', 'set1_visitante', 'set2_local',
+                           'set2_visitante', 'set3_local', 'set3_visitante']:
+            field = self.fields[field_name]
+            field.label = ""
+            field.widget.attrs.update(
+                {'class': estilo_input, 'placeholder': '-', 'type': 'number'}
+            )
 
     def clean(self):
         cleaned_data = super().clean()
+        resolucion = cleaned_data.get('resolucion') or ResolucionPartido.NORMAL
+
+        # --- WALKOVER: gana el presente, sin sets jugados. ---
+        if resolucion == ResolucionPartido.WALKOVER:
+            lado = cleaned_data.get('lado_ganador')
+            if lado not in ('1', '2'):
+                self.add_error('lado_ganador', "Elegí qué pareja gana por W.O.")
+                return cleaned_data
+            self.instance.sets_local = []
+            self.instance.sets_visitante = []
+            cleaned_data['resultado_local'] = 1 if lado == '1' else 0
+            cleaned_data['resultado_visitante'] = 1 if lado == '2' else 0
+            return cleaned_data
+
+        # Sets cargados (Normal y Abandono comparten el parseo del parcial).
         sets_local = 0
         sets_visitante = 0
         games_l = []
@@ -258,13 +350,25 @@ class PartidoResultadoForm(forms.ModelForm):
             elif (l is not None and v is None) or (l is None and v is not None):
                 self.add_error(f'set{i}_local', "Cargar ambos.")
 
-        if sets_local > 2 or sets_visitante > 2:
-            raise forms.ValidationError("Máximo 2 sets.")
-
-        cleaned_data['resultado_local'] = sets_local
-        cleaned_data['resultado_visitante'] = sets_visitante
         self.instance.sets_local = games_l
         self.instance.sets_visitante = games_v
+
+        # --- ABANDONO: gana la pareja que NO abandonó (el parcial queda como está). ---
+        if resolucion == ResolucionPartido.ABANDONO:
+            lado = cleaned_data.get('lado_abandona')
+            if lado not in ('1', '2'):
+                self.add_error('lado_abandona', "Marcá qué pareja abandonó.")
+                return cleaned_data
+            # Gana el lado opuesto al que abandonó.
+            cleaned_data['resultado_local'] = 1 if lado == '2' else 0
+            cleaned_data['resultado_visitante'] = 1 if lado == '1' else 0
+            return cleaned_data
+
+        # --- NORMAL ---
+        if sets_local > 2 or sets_visitante > 2:
+            raise forms.ValidationError("Máximo 2 sets.")
+        cleaned_data['resultado_local'] = sets_local
+        cleaned_data['resultado_visitante'] = sets_visitante
         return cleaned_data
 
     def save(self, commit=True):
@@ -272,27 +376,35 @@ class PartidoResultadoForm(forms.ModelForm):
         Asigna el ganador basado en los sets ganados y genera el string de resultado.
         """
         instance = super().save(commit=False)
-        
-        # Determinar ganador basado en sets ganados
+        resolucion = self.cleaned_data.get('resolucion') or ResolucionPartido.NORMAL
+
+        # Determinar ganador basado en el conteo (sets normales, o forzado en W.O./abandono)
         sets_local = self.cleaned_data.get('resultado_local', 0)
         sets_visitante = self.cleaned_data.get('resultado_visitante', 0)
-        
+
         if sets_local > sets_visitante:
             instance.ganador = instance.equipo1
         elif sets_visitante > sets_local:
             instance.ganador = instance.equipo2
         else:
             instance.ganador = None
-        
-        # Generar string de resultado (ej: "6-4, 6-2")
-        resultado_parts = []
-        for i in range(len(instance.sets_local)):
-            resultado_parts.append(f"{instance.sets_local[i]}-{instance.sets_visitante[i]}")
-        instance.resultado = ", ".join(resultado_parts) if resultado_parts else None
-        
+
+        # Generar string de resultado
+        if resolucion == ResolucionPartido.WALKOVER:
+            instance.resultado = "W.O."
+        else:
+            resultado_parts = []
+            for i in range(len(instance.sets_local)):
+                resultado_parts.append(f"{instance.sets_local[i]}-{instance.sets_visitante[i]}")
+            base = ", ".join(resultado_parts) if resultado_parts else None
+            if resolucion == ResolucionPartido.ABANDONO:
+                instance.resultado = f"{base} (abandono)" if base else "Abandono"
+            else:
+                instance.resultado = base
+
         if commit:
             instance.save()
-        
+
         return instance
 
 

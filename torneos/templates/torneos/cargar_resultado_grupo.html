@@ -23,6 +23,17 @@
       hx-target="#modal_content"
       class="p-4 sm:p-6 bg-base-100 text-base-content rounded-b-xl">
     {% csrf_token %}
+    <!-- TP-18: Tipo de resultado (Normal / Walkover / Abandono) -->
+    <div class="mb-4">
+        <label class="text-[11px] font-black uppercase tracking-wider text-base-content/50 block mb-1">Tipo de resultado</label>
+        <select name="resolucion" id="grupo-resolucion"
+                onchange="toggleGrupoResol(this.value)"
+                class="select select-bordered select-sm w-full bg-base-100 text-base-content">
+            <option value="N" {% if form.resolucion.value == 'N' or not form.resolucion.value %}selected{% endif %}>Normal</option>
+            <option value="W" {% if form.resolucion.value == 'W' %}selected{% endif %}>Walkover (no se presentó)</option>
+            <option value="A" {% if form.resolucion.value == 'A' %}selected{% endif %}>Abandono (se retiró)</option>
+        </select>
+    </div>
     <!-- ========================================================= -->
     <!-- EQUIPOS Y SETS EN COLUMNAS ALINEADAS -->
     <!-- ========================================================= -->
@@ -44,7 +55,7 @@
             </div>
         </div>
         <!-- Sets -->
-        <div class="flex flex-col gap-2 sm:gap-3">
+        <div class="flex flex-col gap-2 sm:gap-3" id="grupo-sets-block">
             {% for i in "123" %}
                 <div class="flex items-center justify-center gap-2 sm:gap-6">
                     <!-- Input equipo 1 -->
@@ -78,7 +89,31 @@
                 </div>
             {% endfor %}
         </div>
+        <!-- TP-18: ganador (W.O.) / quién abandonó -->
+        <div id="grupo-wo-block" class="hidden">
+            <label class="text-[11px] font-black uppercase tracking-wider text-base-content/50 block mb-1">¿Quién gana por W.O.?</label>
+            {{ form.lado_ganador }}
+            {% for e in form.lado_ganador.errors %}<span class="text-error text-xs mt-1 block">{{ e }}</span>{% endfor %}
+        </div>
+        <div id="grupo-ab-block" class="hidden">
+            <label class="text-[11px] font-black uppercase tracking-wider text-base-content/50 block mb-1">¿Qué pareja abandonó?</label>
+            {{ form.lado_abandona }}
+            {% for e in form.lado_abandona.errors %}<span class="text-error text-xs mt-1 block">{{ e }}</span>{% endfor %}
+        </div>
     </div>
+    <script>
+        function toggleGrupoResol(v) {
+            var sets = document.getElementById('grupo-sets-block');
+            var wo = document.getElementById('grupo-wo-block');
+            var ab = document.getElementById('grupo-ab-block');
+            if (!sets) return;
+            // Walkover: sin sets, elegir ganador. Abandono: con parcial + quién abandonó.
+            sets.classList.toggle('hidden', v === 'W');
+            wo.classList.toggle('hidden', v !== 'W');
+            ab.classList.toggle('hidden', v !== 'A');
+        }
+        toggleGrupoResol(document.getElementById('grupo-resolucion').value);
+    </script>
     <!-- Errores -->
     {% if form.non_field_errors %}
         <div class="alert alert-error text-xs py-2 mt-6 shadow-sm">

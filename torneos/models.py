@@ -4,6 +4,14 @@ from django.db.models import F
 from equipos.models import Equipo
 from accounts.models import Division
 
+
+class ResolucionPartido(models.TextChoices):
+    """Cómo se resolvió un partido (TP-18). Compartido por PartidoGrupo y Partido."""
+    NORMAL = 'N', 'Normal'
+    WALKOVER = 'W', 'Walkover (no se presentó)'
+    ABANDONO = 'A', 'Abandono (se retiró)'
+
+
 # --- NO IMPORTAR .models AQUÍ ---
 
 
@@ -239,18 +247,38 @@ class PartidoGrupo(models.Model):
         Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name="partidos_grupo_ganados"
     )
 
+    # TP-18: cómo se resolvió (Normal / Walkover / Abandono).
+    resolucion = models.CharField(
+        max_length=1, choices=ResolucionPartido.choices, default=ResolucionPartido.NORMAL
+    )
+
     @property
     def resultado(self):
         """Devuelve el resultado formateado como string (Ej: '6-4 6-2')"""
+        if self.resolucion == ResolucionPartido.WALKOVER:
+            return "W.O."
+
         if self.e1_set1 is None:
-            return ""
-        
+            # Abandono sin parcial cargado: igual mostramos el motivo.
+            return "Abandono" if self.resolucion == ResolucionPartido.ABANDONO else ""
+
         res = f"{self.e1_set1}-{self.e2_set1}"
         if self.e1_set2 is not None:
             res += f" {self.e1_set2}-{self.e2_set2}"
         if self.e1_set3 is not None:
             res += f" {self.e1_set3}-{self.e2_set3}"
+        if self.resolucion == ResolucionPartido.ABANDONO:
+            res += " (abandono)"
         return res
+
+    @property
+    def etiqueta_resolucion(self):
+        """Texto corto del badge: '' / 'W.O.' / 'Abandono' (TP-18)."""
+        if self.resolucion == ResolucionPartido.WALKOVER:
+            return "W.O."
+        if self.resolucion == ResolucionPartido.ABANDONO:
+            return "Abandono"
+        return ""
 
     # Totales calculados (se llenan al guardar)
     e1_sets_ganados = models.PositiveSmallIntegerField(default=0)
@@ -299,6 +327,11 @@ class Partido(models.Model):
 
     # Resultado en texto (Ej: "6-4, 6-2")
     resultado = models.CharField(max_length=100, blank=True, null=True)
+
+    # TP-18: cómo se resolvió (Normal / Walkover / Abandono).
+    resolucion = models.CharField(
+        max_length=1, choices=ResolucionPartido.choices, default=ResolucionPartido.NORMAL
+    )
 
     # Fecha y Hora del Partido
     fecha_hora = models.DateTimeField(null=True, blank=True)
@@ -380,6 +413,15 @@ class Partido(models.Model):
 
         super().save(*args, **kwargs)
         self.__original_ganador = self.ganador
+
+    @property
+    def etiqueta_resolucion(self):
+        """Texto corto del badge: '' / 'W.O.' / 'Abandono' (TP-18)."""
+        if self.resolucion == ResolucionPartido.WALKOVER:
+            return "W.O."
+        if self.resolucion == ResolucionPartido.ABANDONO:
+            return "Abandono"
+        return ""
 
     def __str__(self):
         e1 = self.equipo1.nombre if self.equipo1 else "TBD"

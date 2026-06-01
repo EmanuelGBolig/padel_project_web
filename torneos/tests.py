@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from accounts.models import Division
 from equipos.models import Equipo
-from .models import Torneo, Inscripcion, Grupo, EquipoGrupo, PartidoGrupo
+from .models import Torneo, Inscripcion, Grupo, EquipoGrupo, PartidoGrupo, Partido
 
 # En tests no hay manifest de WhiteNoise (no se corre collectstatic), así que usamos
 # el storage estático plano para que {% static %} no falle al renderizar.
@@ -541,3 +541,100 @@ class TorneoAdminFormTests(TestCase):
         data = r.json()
         self.assertEqual(data['nivel'], 'ok')
         self.assertEqual(len(data['zonas']), 5)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class WalkoverAbandonoTests(TestCase):
+    """TP-18: Walkover y Abandono al cargar resultados."""
+
+    _c = 0
+
+    def _equipo(self, division):
+        WalkoverAbandonoTests._c += 1
+        n = WalkoverAbandonoTests._c
+        j1 = User.objects.create_user(email=f"wo{n}a@t.com", password="x",
+                                      nombre=f"N{n}A", apellido=f"A{n}A", division=division)
+        j2 = User.objects.create_user(email=f"wo{n}b@t.com", password="x",
+                                      nombre=f"N{n}B", apellido=f"A{n}B", division=division)
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=division)
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.torneo = Torneo.objects.create(
+            nombre="WO Test", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=6, estado=Torneo.Estado.EN_JUEGO,
+        )
+        self.grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        self.e1 = self._equipo(self.division)
+        self.e2 = self._equipo(self.division)
+        EquipoGrupo.objects.create(grupo=self.grupo, equipo=self.e1, numero=1)
+        EquipoGrupo.objects.create(grupo=self.grupo, equipo=self.e2, numero=2)
+        self.partido = PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.e1, equipo2=self.e2)
+
+    def test_grupo_walkover_convencion_tabla(self):
+        from .forms import CargarResultadoGrupoForm
+        form = CargarResultadoGrupoForm(
+            data={'resolucion': 'W', 'lado_ganador': '1'}, instance=self.partido)
+        self.assertTrue(form.is_valid(), form.errors)
+        p = form.save()
+        self.assertEqual(p.ganador, self.e1)
+        self.assertEqual(p.resultado, "W.O.")
+        self.assertEqual((p.e1_sets_ganados, p.e2_sets_ganados), (2, 0))
+        self.assertEqual((p.e1_games_ganados, p.e2_games_ganados), (0, 0))
+        # Tabla (la recalcula el signal al guardar): W.O. = 2-0 en sets, sin games.
+        eg1 = EquipoGrupo.objects.get(grupo=self.grupo, equipo=self.e1)
+        eg2 = EquipoGrupo.objects.get(grupo=self.grupo, equipo=self.e2)
+        self.assertEqual((eg1.partidos_ganados, eg1.diferencia_sets, eg1.games_a_favor), (1, 2, 0))
+        self.assertEqual((eg2.partidos_perdidos, eg2.diferencia_sets, eg2.games_a_favor), (1, -2, 0))
+
+    def test_grupo_abandono_gana_el_que_sigue(self):
+        from .forms import CargarResultadoGrupoForm
+        # El equipo1 iba ganando 6-2 pero abandona -> gana el equipo2.
+        form = CargarResultadoGrupoForm(
+            data={'resolucion': 'A', 'lado_abandona': '1',
+                  'e1_set1': 6, 'e2_set1': 2}, instance=self.partido)
+        self.assertTrue(form.is_valid(), form.errors)
+        p = form.save()
+        self.assertEqual(p.ganador, self.e2)
+        self.assertIn("abandono", p.resultado)
+        # Los games del parcial se cuentan como un partido normal.
+        self.assertEqual((p.e1_games_ganados, p.e2_games_ganados), (6, 2))
+        eg2 = EquipoGrupo.objects.get(grupo=self.grupo, equipo=self.e2)
+        self.assertEqual(eg2.partidos_ganados, 1)
+
+    def test_grupo_walkover_requiere_ganador(self):
+        from .forms import CargarResultadoGrupoForm
+        form = CargarResultadoGrupoForm(data={'resolucion': 'W'}, instance=self.partido)
+        self.assertFalse(form.is_valid())
+        self.assertIn('lado_ganador', form.errors)
+
+    def test_bracket_walkover_avanza(self):
+        from .forms import PartidoResultadoForm
+        final = Partido.objects.create(torneo=self.torneo, ronda=2, orden_partido=1)
+        semi = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.e1, equipo2=self.e2, siguiente_partido=final)
+        form = PartidoResultadoForm(
+            data={'resolucion': 'W', 'lado_ganador': '1'}, instance=semi)
+        self.assertTrue(form.is_valid(), form.errors)
+        p = form.save()
+        self.assertEqual(p.ganador, self.e1)
+        self.assertEqual(p.resultado, "W.O.")
+        final.refresh_from_db()
+        self.assertEqual(final.equipo1, self.e1)  # avanzó al siguiente partido
+
+    def test_bracket_abandono_gana_el_que_sigue(self):
+        from .forms import PartidoResultadoForm
+        partido = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.e1, equipo2=self.e2)
+        form = PartidoResultadoForm(
+            data={'resolucion': 'A', 'lado_abandona': '2',
+                  'set1_local': 6, 'set1_visitante': 4}, instance=partido)
+        self.assertTrue(form.is_valid(), form.errors)
+        p = form.save()
+        self.assertEqual(p.ganador, self.e1)
+        self.assertIn("abandono", p.resultado)
