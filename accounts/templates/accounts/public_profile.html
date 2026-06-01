@@ -124,7 +124,7 @@
                         <p class="text-sm opacity-70">
                             {% if ranking_info %}
                                 Puntos: <span class="font-bold">{{ ranking_info.puntos }}</span>
-                                • Victorias: {{ ranking_info.victorias }}
+                                • Victorias temporada: {{ ranking_info.victorias }}
                             {% else %}
                                 <span class="italic">Sin actividad registrada</span>
                             {% endif %}
@@ -145,64 +145,8 @@
                     {% endif %}
                 </div>
             </div>
-            <!-- Grid de Estadísticas -->
-            <div class="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200">
-                    <div class="stat-figure text-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Partidos</div>
-                    <div class="stat-value text-primary">{{ stats.partidos_jugados }}</div>
-                    <div class="stat-desc">Jugados totales</div>
-                </div>
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200">
-                    <div class="stat-figure text-success">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Victorias</div>
-                    <div class="stat-value text-success">{{ stats.victorias }}</div>
-                    <div class="stat-desc">Win Rate: {{ stats.win_rate }}%</div>
-                </div>
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200">
-                    <div class="stat-figure text-secondary">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Torneos</div>
-                    <div class="stat-value text-secondary">{{ stats.torneos_jugados }}</div>
-                    <div class="stat-desc">Participaciones</div>
-                </div>
-                <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200">
-                    <div class="stat-figure text-accent">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Campeonatos</div>
-                    <div class="stat-value text-accent">{{ stats.torneos_ganados }}</div>
-                    <div class="stat-desc">Torneos ganados</div>
-                </div>
-            </div>
+            <!-- Grid de Estadísticas (TP-19.1) -->
+            {% include "accounts/_stats.html" %}
             <!-- Sección de Torneos -->
             <div class="space-y-12">
                 <!-- Torneos Activos -->
@@ -230,62 +174,8 @@
                         {% endif %}
                     </div>
                 </div>
-                <!-- Historial de Torneos -->
-                <div class="card bg-base-100 shadow-xl border border-base-200">
-                    <div class="card-body">
-                        <h3 class="card-title flex items-center gap-2 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-5 w-5 opacity-70"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Historial Reciente
-                        </h3>
-                        {% if torneos_finalizados %}
-                            <div class="overflow-x-auto">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Torneo</th>
-                                            <th>Fecha</th>
-                                            <th>División</th>
-                                            <th>Resultado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for torneo in torneos_finalizados|slice:":5" %}
-                                            <tr class="hover:bg-base-200/50 cursor-pointer"
-                                                onclick="window.location='{% url 'torneos:detail' torneo.pk %}'">
-                                                <td class="font-bold max-w-xs truncate" title="{{ torneo.nombre }}">{{ torneo.nombre }}</td>
-                                                <td class="whitespace-nowrap">{{ torneo.fecha_inicio|date:"d/m/Y" }}</td>
-                                                <td class="truncate max-w-[120px]" title="{{ torneo.division.nombre }}">{{ torneo.division.nombre }}</td>
-                                                <td>
-                                                    {% if torneo.ganador_del_torneo and torneo.ganador_del_torneo.jugador1 == perfil_usuario or torneo.ganador_del_torneo and torneo.ganador_del_torneo.jugador2 == perfil_usuario %}
-                                                        <span class="badge badge-warning gap-1">
-                                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                                 class="h-3 w-3"
-                                                                 viewBox="0 0 20 20"
-                                                                 fill="currentColor">
-                                                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 00-.556.834c-.045.722-.11 1.45-.195 2.18-.035.304-.158.59-.356.83a.998.998 0 01-.76.76c-.24.198-.526.321-.83.356-.73.085-1.458.15-2.18.195a.999.999 0 01-1.014-1.39c.045-.27.091-.54.135-.808A3.992 3.992 0 014 15a3.99 3.99 0 01-2.667-1.019 1 1 0 00-.285-1.05l1.738-5.42-1.233-.616a1 1 0 01.894-1.79l1.599.8L8 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
-                                                            </svg>
-                                                            Campeón
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="opacity-50">-</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <p class="text-sm opacity-50 italic">No hay torneos finalizados registrados.</p>
-                        {% endif %}
-                    </div>
-                </div>
+                <!-- Historial: resultados recientes + torneos jugados (TP-19.2) -->
+                {% include "accounts/_historial.html" %}
             </div>
         </div>
     </div>

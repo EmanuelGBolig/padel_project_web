@@ -196,7 +196,7 @@
                             <p class="text-sm opacity-70">
                                 {% if ranking_info %}
                                     Puntos: <span class="font-bold">{{ ranking_info.puntos }}</span>
-                                    • Victorias: {{ ranking_info.victorias }}
+                                    • Victorias temporada: {{ ranking_info.victorias }}
                                 {% else %}
                                     <span class="italic">Sin actividad registrada</span>
                                 {% endif %}
@@ -217,37 +217,8 @@
                         {% endif %}
                     </div>
                 </div>
-                <!-- Grid de Estadísticas -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
-                        <div class="stat-figure text-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                        </div>
-                        <div class="stat-title text-xs sm:text-sm">Partidos</div>
-                        <div class="stat-value text-primary text-2xl sm:text-4xl">{{ stats.partidos_jugados }}</div>
-                        <div class="stat-desc text-[10px] sm:text-xs truncate">Jugados totales</div>
-                    </div>
-                    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-2 sm:p-4">
-                        <div class="stat-figure text-success">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 class="inline-block w-6 h-6 sm:w-8 sm:h-8 stroke-current">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div class="stat-title text-xs sm:text-sm">Victorias</div>
-                        <div class="stat-value text-success text-2xl sm:text-4xl">{{ stats.victorias }}</div>
-                        <div class="stat-desc text-[10px] sm:text-xs truncate">Win Rate: {{ stats.win_rate }}%</div>
-                    </div>
-                    <!-- ... otros stats ... -->
-                </div>
+                <!-- Grid de Estadísticas (TP-19.1) -->
+                {% include "accounts/_stats.html" %}
                 <!-- Torneos y Partidos -->
                 <div class="space-y-8">
                     <!-- Próximos Partidos -->
@@ -319,6 +290,8 @@
                             {% endif %}
                         </div>
                     </div>
+                    <!-- Historial: resultados recientes + torneos jugados (TP-19.2) -->
+                    {% include "accounts/_historial.html" %}
                 </div>
             {% elif user.tipo_usuario == 'ORGANIZER' or user.is_staff %}
                 <!-- DASHBOARD DE GESTIÓN -->

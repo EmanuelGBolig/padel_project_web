@@ -1,0 +1,40 @@
+{# Grid de estadísticas del jugador (TP-19.1). Requiere `stats` (y opcional `ranking_info`). #}
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-3 sm:p-4">
+        <div class="stat-title text-xs sm:text-sm">⚡ Partidos</div>
+        <div class="stat-value text-primary text-2xl sm:text-3xl">{{ stats.partidos_jugados }}</div>
+        <div class="stat-desc text-[11px]">jugados</div>
+    </div>
+    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-3 sm:p-4">
+        <div class="stat-title text-xs sm:text-sm">✅ Victorias</div>
+        <div class="stat-value text-success text-2xl sm:text-3xl">{{ stats.victorias }}</div>
+        <div class="stat-desc text-[11px]">totales (carrera)</div>
+    </div>
+    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-3 sm:p-4">
+        <div class="stat-title text-xs sm:text-sm">❌ Derrotas</div>
+        <div class="stat-value text-error text-2xl sm:text-3xl">{{ stats.derrotas }}</div>
+        <div class="stat-desc text-[11px]">totales</div>
+    </div>
+    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-3 sm:p-4">
+        <div class="stat-title text-xs sm:text-sm">🎯 Win rate</div>
+        <div class="stat-value text-2xl sm:text-3xl">{{ stats.win_rate }}%</div>
+        <div class="stat-desc text-[11px]">{{ stats.victorias }} de {{ stats.partidos_jugados }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-3 sm:p-4">
+        <div class="stat-title text-xs sm:text-sm">🏟️ Torneos</div>
+        <div class="stat-value text-2xl sm:text-3xl">{{ stats.torneos_jugados }}</div>
+        <div class="stat-desc text-[11px]">jugados</div>
+    </div>
+    <div class="stat bg-base-100 shadow-md rounded-2xl border border-base-200 p-3 sm:p-4">
+        <div class="stat-title text-xs sm:text-sm">🏆 Títulos</div>
+        <div class="stat-value text-success text-2xl sm:text-3xl">{{ stats.torneos_ganados }}</div>
+        <div class="stat-desc text-[11px]">ganados</div>
+    </div>
+</div>
+{% if ranking_info %}
+    <p class="text-[11px] sm:text-xs text-base-content/60 mt-3 leading-snug">
+        Las <b>victorias totales</b> cuentan todos tus partidos ganados; las
+        <b>victorias temporada</b> del ranking solo cuentan torneos puntuables de tu división.
+        Por eso los números pueden diferir.
+    </p>
+{% endif %}

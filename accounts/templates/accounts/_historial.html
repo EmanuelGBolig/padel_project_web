@@ -1,0 +1,71 @@
+{# Historial del jugador (TP-19.2). Requiere `stats` (con resultados_recientes), #}
+{# `torneos_finalizados` y `perfil_usuario` en contexto. #}
+<div class="space-y-6">
+    <!-- Resultados recientes -->
+    <div class="card bg-base-100 shadow-xl border border-base-200">
+        <div class="card-body">
+            <h3 class="card-title flex items-center gap-2 mb-3">🕑 Resultados recientes</h3>
+            {% if stats.resultados_recientes %}
+                <div class="space-y-2">
+                    {% for r in stats.resultados_recientes %}
+                        <div class="flex items-center justify-between gap-3 p-3 bg-base-200/50 rounded-xl">
+                            <div class="min-w-0">
+                                <div class="text-[11px] uppercase tracking-wide opacity-60 font-bold truncate">{{ r.torneo }} · {{ r.contexto }}</div>
+                                <div class="font-bold truncate">vs. {{ r.rival }}</div>
+                                {% if r.fecha %}<div class="text-xs opacity-60">{{ r.fecha|date:"d M Y" }}</div>{% endif %}
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="font-mono font-bold text-sm">{{ r.resultado|default:"—" }}</div>
+                                {% if r.gano %}
+                                    <span class="badge badge-success badge-sm gap-1">Ganó{% if r.etiqueta %} · {{ r.etiqueta }}{% endif %}</span>
+                                {% else %}
+                                    <span class="badge badge-error badge-sm badge-outline gap-1">Perdió{% if r.etiqueta %} · {{ r.etiqueta }}{% endif %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8 opacity-60">
+                    <div class="text-3xl mb-1">🎾</div>
+                    <p class="text-sm">Todavía no hay partidos jugados. Cuando juegues, tus resultados aparecen acá.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Torneos jugados (finalizados) -->
+    <div class="card bg-base-100 shadow-xl border border-base-200">
+        <div class="card-body">
+            <h3 class="card-title flex items-center gap-2 mb-3">🏟️ Torneos jugados</h3>
+            {% if torneos_finalizados %}
+                <div class="space-y-2">
+                    {% for torneo in torneos_finalizados %}
+                        <a href="{% url 'torneos:detail' torneo.pk %}"
+                           class="flex items-center justify-between gap-3 p-3 bg-base-200/50 rounded-xl hover:bg-base-200 transition-colors group">
+                            <div class="min-w-0">
+                                <div class="font-bold truncate group-hover:text-primary transition-colors">
+                                    {% if torneo.ganador_del_torneo.jugador1_id == perfil_usuario.id or torneo.ganador_del_torneo.jugador2_id == perfil_usuario.id %}🏆 {% endif %}{{ torneo.nombre }}
+                                </div>
+                                <div class="text-xs opacity-60 truncate">{{ torneo.division.nombre|default:"Libre" }}{% if torneo.ciudad %} · {{ torneo.ciudad }}{% endif %}</div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                {% if torneo.ganador_del_torneo.jugador1_id == perfil_usuario.id or torneo.ganador_del_torneo.jugador2_id == perfil_usuario.id %}
+                                    <span class="badge badge-warning badge-sm font-bold">Campeón</span>
+                                {% else %}
+                                    <span class="badge badge-ghost badge-sm">Participó</span>
+                                {% endif %}
+                                <div class="text-xs opacity-60 mt-0.5">{{ torneo.fecha_inicio|date:"M Y" }}</div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8 opacity-60">
+                    <div class="text-3xl mb-1">🏟️</div>
+                    <p class="text-sm">Sin torneos finalizados todavía.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

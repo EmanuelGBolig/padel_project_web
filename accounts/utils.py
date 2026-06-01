@@ -453,6 +453,47 @@ def get_player_stats(jugador):
 
     torneos_jugados = inscripciones.count()
 
+    # 5. Resultados recientes (TP-19.2): últimos partidos jugados con ganador.
+    #    Se computan acá para compartir la caché/invalidación de las stats.
+    _etiqueta_reso = {'W': 'W.O.', 'A': 'Abandono'}
+    raw = []
+    pg_qs = PartidoGrupo.objects.filter(
+        Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
+        ganador__isnull=False,
+    ).select_related('grupo__torneo', 'equipo1', 'equipo2')
+    for p in pg_qs:
+        ts = p.fecha_hora.timestamp() if p.fecha_hora else 0
+        raw.append((ts, 'g', p))
+    pe_qs = Partido.objects.filter(
+        Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
+        ganador__isnull=False,
+    ).select_related('torneo', 'equipo1', 'equipo2')
+    for p in pe_qs:
+        ts = p.fecha_hora.timestamp() if p.fecha_hora else 0
+        raw.append((ts, 'e', p))
+    raw.sort(key=lambda x: x[0], reverse=True)
+
+    resultados_recientes = []
+    for ts, kind, p in raw[:8]:
+        mine1 = p.equipo1_id in todos_equipo_ids
+        rival = p.equipo2 if mine1 else p.equipo1
+        if kind == 'g':
+            torneo_nombre = p.grupo.torneo.nombre
+            contexto = p.grupo.nombre
+        else:
+            torneo_nombre = p.torneo.nombre
+            contexto = p.nombre_ronda
+        reso = getattr(p, 'resolucion', 'N')
+        resultados_recientes.append({
+            'torneo': torneo_nombre,
+            'contexto': contexto,
+            'fecha': p.fecha_hora,
+            'rival': rival.nombre if rival else '—',
+            'resultado': p.resultado,
+            'gano': p.ganador_id in todos_equipo_ids,
+            'etiqueta': _etiqueta_reso.get(reso, ''),
+        })
+
     result = {
         'partidos_jugados': total_partidos,
         'victorias': total_victorias,
@@ -460,7 +501,8 @@ def get_player_stats(jugador):
         'win_rate': win_rate,
         'torneos_jugados': torneos_jugados,
         'torneos_ganados': torneos_ganados,
-        'inscripciones': list(inscripciones)
+        'inscripciones': list(inscripciones),
+        'resultados_recientes': resultados_recientes,
     }
     cache.set(cache_key, result, 300)
     return result
