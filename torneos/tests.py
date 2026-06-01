@@ -388,3 +388,156 @@ class AmericanoTests(TestCase):
         self.assertEqual(am.rondas.count(), 1)  # Mexicano arranca con 1 ronda
         self.client.post(url, {"action": "siguiente_ronda"})
         self.assertEqual(am.rondas.count(), 2)
+
+
+class DescribirEstructuraTests(TestCase):
+    """TP-17.3: proyección de estructura para la vista previa del alta."""
+
+    def test_grupos_con_formato_optimizado(self):
+        from .formats import describir_estructura
+        for n, num_zonas in [(6, 2), (8, 2), (12, 4), (13, 4), (16, 5), (17, 6), (24, 8)]:
+            r = describir_estructura(n, 'G')
+            self.assertTrue(r['ok'], f"n={n} debería ser ok")
+            self.assertEqual(r['nivel'], 'ok')
+            self.assertEqual(len(r['zonas']), num_zonas, f"n={n}")
+
+    def test_grupos_sin_formato_optimizado_igual_genera(self):
+        # 20/22/23 no tienen formato en FORMATS pero el sistema arma zonas genéricas.
+        from .formats import describir_estructura
+        for n in (20, 22, 23):
+            r = describir_estructura(n, 'G')
+            self.assertTrue(r['ok'], f"n={n}")
+            self.assertEqual(r['nivel'], 'ok')
+            self.assertTrue(r['zonas'])
+
+    def test_grupos_pocas_parejas_avisa(self):
+        from .formats import describir_estructura
+        r = describir_estructura(3, 'G')
+        self.assertFalse(r['ok'])
+        self.assertEqual(r['nivel'], 'warn')
+
+    def test_grupos_forzar_3_no_divisible_avisa(self):
+        from .formats import describir_estructura
+        r = describir_estructura(16, 'G', forzar3=True)
+        self.assertEqual(r['nivel'], 'warn')
+        r2 = describir_estructura(18, 'G', forzar3=True)
+        self.assertEqual(r2['nivel'], 'ok')
+        self.assertEqual(len(r2['zonas']), 6)
+        self.assertTrue(all(z[1] == 3 for z in r2['zonas']))
+
+    def test_eliminacion_directa_byes(self):
+        from .formats import describir_estructura
+        r = describir_estructura(13, 'E')
+        self.assertTrue(r['ok'])
+        self.assertEqual(r['byes'], 3)  # 16 - 13
+        r2 = describir_estructura(16, 'E')
+        self.assertEqual(r2['byes'], 0)
+        r3 = describir_estructura(32, 'E')
+        self.assertEqual(r3['byes'], 0)
+
+    def test_eliminacion_directa_minimo(self):
+        from .formats import describir_estructura
+        r = describir_estructura(1, 'E')
+        self.assertFalse(r['ok'])
+
+    def test_estructura_grupos_coincide_con_generacion_real(self):
+        # La proyección debe usar la MISMA función que la generación real.
+        from .formats import describir_estructura, calcular_estructura_grupos
+        for n in (6, 13, 16, 20, 24):
+            _, sizes, _, _ = calcular_estructura_grupos(n)
+            zonas = describir_estructura(n, 'G')['zonas']
+            self.assertEqual([z[1] for z in zonas], sizes, f"n={n}")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class TorneoAdminFormTests(TestCase):
+    """TP-17.1/.4/.5: alta en secciones, prefijado desde org y validaciones."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.org = Organizacion.objects.create(
+            nombre="AprendePadelMDQ", alias="aprendepadel",
+            ciudad="Mar del Plata", direccion="Av. Constitución 5500",
+        )
+        self.organizador = User.objects.create_user(
+            email="org@test.com", password="x", nombre="Orga", apellido="Test",
+            tipo_usuario="ORGANIZER",
+        )
+        self.organizador.organizacion = self.org
+        self.organizador.save()
+
+    def _data(self, **over):
+        data = {
+            'nombre': 'Abierto Test', 'cupos_totales': 16,
+            'equipos_por_grupo': 3, 'forzar_grupos_de_3': False,
+            'formato_grupos_4': 'RR', 'tipo_torneo': 'G', 'categoria': 'X',
+            'fecha_limite_inscripcion': '2030-01-01T10:00',
+            'fecha_inicio': '2030-01-05',
+        }
+        data.update(over)
+        return data
+
+    def test_foto_campeones_ausente_al_crear(self):
+        from .forms import TorneoAdminForm
+        form = TorneoAdminForm()
+        self.assertNotIn('foto_campeones', form.fields)
+
+    def test_foto_campeones_presente_al_editar(self):
+        from .forms import TorneoAdminForm
+        t = Torneo.objects.create(
+            nombre="T", fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+        )
+        form = TorneoAdminForm(instance=t)
+        self.assertIn('foto_campeones', form.fields)
+
+    def test_prefijar_sede_desde_organizacion(self):
+        from .forms import TorneoAdminForm
+        form = TorneoAdminForm(user=self.organizador)
+        self.assertEqual(form.initial.get('sede_nombre'), "AprendePadelMDQ")
+        self.assertEqual(form.initial.get('ciudad'), "Mar del Plata")
+        self.assertEqual(form.initial.get('sede_direccion'), "Av. Constitución 5500")
+
+    def test_form_valido(self):
+        from .forms import TorneoAdminForm
+        form = TorneoAdminForm(data=self._data())
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_cierre_despues_del_inicio_bloquea(self):
+        from .forms import TorneoAdminForm
+        form = TorneoAdminForm(data=self._data(
+            fecha_limite_inscripcion='2030-01-10T10:00', fecha_inicio='2030-01-05'))
+        self.assertFalse(form.is_valid())
+        self.assertIn('fecha_limite_inscripcion', form.errors)
+
+    def test_cupos_insuficientes_grupos_bloquea(self):
+        from .forms import TorneoAdminForm
+        form = TorneoAdminForm(data=self._data(cupos_totales=2, tipo_torneo='G'))
+        self.assertFalse(form.is_valid())
+        self.assertIn('cupos_totales', form.errors)
+
+    def test_cupos_bajos_eliminacion_no_bloquea(self):
+        from .forms import TorneoAdminForm
+        form = TorneoAdminForm(data=self._data(cupos_totales=2, tipo_torneo='E'))
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_render_alta_secciones_y_preview(self):
+        self.client.force_login(self.organizador)
+        r = self.client.get(reverse('torneos:admin_crear'))
+        self.assertEqual(r.status_code, 200)
+        html = r.content.decode()
+        for needle in ['Lo básico', 'Cuándo y cuántos', 'id="preview-estructura"',
+                       'Opciones avanzadas', 'Usar los datos de mi organización',
+                       'admin/preview-estructura']:
+            self.assertIn(needle, html)
+        # La foto de campeones NO se pide al crear.
+        self.assertNotIn('id_foto_campeones', html)
+
+    def test_endpoint_preview_estructura(self):
+        self.client.force_login(self.organizador)
+        r = self.client.get(reverse('torneos:admin_preview_estructura'),
+                             {'n': 16, 'tipo': 'G'})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data['nivel'], 'ok')
+        self.assertEqual(len(data['zonas']), 5)

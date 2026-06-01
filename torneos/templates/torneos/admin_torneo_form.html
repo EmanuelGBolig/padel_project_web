@@ -1,74 +1,215 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
+{% load static %}
+{% load widget_tweaks %}
 {% block title %}
     {{ titulo }}
 {% endblock title %}
 {% block content %}
     <div class="max-w-3xl mx-auto mt-6 md:mt-10 px-4 sm:px-0">
-        <div class="card bg-base-100 dark:bg-base-200 shadow-xl rounded-2xl p-6 md:p-10">
-            <h2 class="text-3xl font-bold text-center mb-8 text-base-content">{{ titulo }}</h2>
-            <form method="post" enctype="multipart/form-data">
+        <div class="card bg-base-100 dark:bg-base-200 shadow-xl rounded-2xl p-5 md:p-10">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-2 text-base-content">{{ titulo }}</h2>
+            <p class="text-center text-sm text-base-content/60 mb-6 max-w-lg mx-auto">
+                Cargá lo esencial. Las decisiones técnicas (zonas, formato de llaves) las
+                resuelve el sistema solo y quedan en <b>Opciones avanzadas</b>.
+            </p>
+
+            {% if not object %}
+                <div class="text-center mb-6">
+                    <a href="{% url 'torneos:americano_crear' %}" class="link link-primary text-sm font-medium">
+                        ¿Buscás un americano / mexicano (social)? Crealo acá →
+                    </a>
+                </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data"
+                  data-preview-url="{% url 'torneos:admin_preview_estructura' %}">
                 {% csrf_token %}
-                {% load widget_tweaks %}
-                <div class="grid grid-cols-2 gap-x-4 md:gap-x-8 gap-y-2">
-                    {% for field in form %}
-                        <div class="form-control w-full {% if field.name == 'nombre' or field.name == 'descripcion' %}col-span-2{% endif %}">
-                            <label class="label py-1">
-                                <span class="label-text text-base-content font-medium text-[10px] md:text-sm">{{ field.label }}</span>
-                            </label>
-                            {% if field.errors %}
-                                {{ field|add_class:"input-error" }}
-                                {% for error in field.errors %}<span class="text-error text-[10px] mt-0.5 leading-none">{{ error }}</span>{% endfor %}
-                            {% else %}
-                                {% if field.name == 'foto_campeones' %}
-                                    <div class="flex flex-col gap-2 w-full">
-                                        {% if torneo.foto_campeones or object.foto_campeones %}
-                                            <div class="rounded-xl border border-base-300 overflow-hidden mb-2 relative group w-32 h-32 flex-shrink-0">
-                                                <img src="{{ torneo.foto_campeones.url|default:object.foto_campeones.url }}"
-                                                     alt="Campeones"
-                                                     class="w-full h-full object-cover">
-                                                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <span class="text-white text-xs font-bold text-center px-2">Imagen Actual</span>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                        <input type="file"
-                                               name="{{ field.html_name }}"
-                                               id="{{ field.id_for_label }}"
-                                               class="file-input file-input-bordered file-input-primary w-full bg-base-100 text-base-content"
-                                               accept="image/*">
-                                        {% if torneo.foto_campeones or object.foto_campeones %}
-                                            <label class="label cursor-pointer justify-start gap-2 mt-1">
-                                                <input type="checkbox"
-                                                       name="{{ field.html_name }}-clear"
-                                                       id="{{ field.html_name }}-clear_id"
-                                                       class="checkbox checkbox-error checkbox-sm">
-                                                <span class="label-text text-error font-medium">Eliminar imagen actual</span>
-                                            </label>
-                                        {% endif %}
-                                    </div>
-                                {% else %}
-                                    {{ field }}
-                                {% endif %}
-                            {% endif %}
-                            {% if field.help_text %}
-                                <label class="label py-0 mt-0.5">
-                                    <span class="label-text-alt text-base-content/60 text-[10px]">{{ field.help_text }}</span>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-error mb-4 text-sm">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                {# ============ 1 · LO BÁSICO ============ #}
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-6 h-6 rounded-md bg-primary/15 text-primary text-xs font-extrabold grid place-items-center">1</span>
+                        <h3 class="text-base font-bold text-base-content">Lo básico</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="form-control w-full sm:col-span-2">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.nombre.label }}</span></label>
+                            {{ form.nombre }}
+                            {% for e in form.nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.categoria.label }}</span></label>
+                            {{ form.categoria }}
+                            {% for e in form.categoria.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.division.label }}</span></label>
+                            {{ form.division }}
+                            <span class="label-text-alt text-base-content/60 text-xs mt-1">Dejala en “Libre” para que entre cualquier división.</span>
+                            {% for e in form.division.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                        <div class="form-control w-full sm:col-span-2">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">Tipo de competencia</span></label>
+                            {{ form.tipo_torneo }}
+                            <span class="label-text-alt text-base-content/60 text-xs mt-1">Fase de grupos = todos juegan varios partidos. Eliminación directa = el que pierde queda afuera.</span>
+                            {% for e in form.tipo_torneo.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                    </div>
+                </section>
+
+                {# ============ 2 · CUÁNDO Y CUÁNTOS ============ #}
+                <section class="mb-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-6 h-6 rounded-md bg-primary/15 text-primary text-xs font-extrabold grid place-items-center">2</span>
+                        <h3 class="text-base font-bold text-base-content">Cuándo y cuántos</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">Cierre de inscripción</span></label>
+                            {{ form.fecha_limite_inscripcion }}
+                            {% for e in form.fecha_limite_inscripcion.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">Fecha de inicio</span></label>
+                            {{ form.fecha_inicio }}
+                            {% for e in form.fecha_inicio.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                        <div class="form-control w-full sm:col-span-2">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">Cupos (parejas)</span></label>
+                            {{ form.cupos_totales }}
+                            <span class="label-text-alt text-base-content/60 text-xs mt-1">Cuántas parejas entran. La estructura se arma sola según este número (lo ves abajo).</span>
+                            {% for e in form.cupos_totales.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                        </div>
+                    </div>
+                </section>
+
+                {# ============ VISTA PREVIA (TP-17.3) ============ #}
+                {% include "torneos/_preview_estructura.html" with preview=preview_inicial %}
+
+                {# ============ 3 · SEDE Y DIFUSIÓN ============ #}
+                <section class="mb-7 mt-7">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-6 h-6 rounded-md bg-primary/15 text-primary text-xs font-extrabold grid place-items-center">3</span>
+                        <h3 class="text-base font-bold text-base-content">Sede y difusión</h3>
+                    </div>
+
+                    {% if org_data %}
+                        <button type="button" id="btn-usar-org"
+                                class="btn btn-outline btn-primary btn-sm w-full mb-3 normal-case"
+                                data-sede="{{ org_data.sede }}" data-ciudad="{{ org_data.ciudad }}"
+                                data-direccion="{{ org_data.direccion }}">
+                            Usar los datos de mi organización ({{ org_data.nombre }})
+                        </button>
+                        <p id="org-note" class="hidden text-primary text-xs mb-3">✓ Cargamos sede, ciudad y dirección desde tu organización. Editá lo que quieras.</p>
+                        {% if org_data.whatsapp %}
+                            <div class="badge badge-ghost gap-1 mb-3">🟢 WhatsApp de contacto: {{ org_data.whatsapp }} <span class="opacity-60">(de tu organización)</span></div>
+                        {% endif %}
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.ciudad.label }}</span></label>
+                            {{ form.ciudad }}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.sede_nombre.label }}</span></label>
+                            {{ form.sede_nombre }}
+                        </div>
+                        <div class="form-control w-full sm:col-span-2">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.sede_direccion.label }}</span></label>
+                            {{ form.sede_direccion }}
+                        </div>
+                        <div class="form-control w-full sm:col-span-2">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">Portada del torneo</span></label>
+                            {{ form.cover_image }}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.premio.label }}</span></label>
+                            {{ form.premio }}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.reglamento.label }}</span></label>
+                            {{ form.reglamento }}
+                        </div>
+                    </div>
+                </section>
+
+                {# ============ 4 · OPCIONES AVANZADAS (TP-17.2) ============ #}
+                <details id="adv-estructura" class="mb-6 border border-base-300 rounded-xl overflow-hidden">
+                    <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer bg-base-200 font-semibold text-sm">
+                        <span>⚙️ Opciones avanzadas de estructura</span>
+                        <span class="badge badge-primary badge-sm">Automático</span>
+                    </summary>
+                    <div class="p-4 border-t border-base-300">
+                        <p class="text-xs text-base-content/60 mb-4">
+                            Solo tocá esto si querés forzar una estructura distinta a la que el
+                            sistema elige solo. Si no, dejalo como está.
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                            <div class="form-control w-full">
+                                <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.equipos_por_grupo.label }}</span></label>
+                                {{ form.equipos_por_grupo }}
+                            </div>
+                            <div class="form-control w-full">
+                                <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.formato_grupos_4.label }}</span></label>
+                                {{ form.formato_grupos_4 }}
+                            </div>
+                            <div class="form-control w-full sm:col-span-2">
+                                <label class="label cursor-pointer justify-start gap-3">
+                                    {{ form.forzar_grupos_de_3 }}
+                                    <span class="label-text text-sm">{{ form.forzar_grupos_de_3.label }}
+                                        <span class="block text-xs text-base-content/60">Si lo activás, el total de parejas tiene que ser divisible por 3.</span>
+                                    </span>
                                 </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                {# ============ FOTO DE CAMPEONES (solo edición) ============ #}
+                {% if form.foto_campeones %}
+                    <section class="mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <h3 class="text-base font-bold text-base-content">🏆 Campeones</h3>
+                        </div>
+                        <div class="form-control w-full">
+                            {% if torneo.foto_campeones or object.foto_campeones %}
+                                <div class="rounded-xl border border-base-300 overflow-hidden mb-2 w-32 h-32">
+                                    <img src="{{ torneo.foto_campeones.url|default:object.foto_campeones.url }}" alt="Campeones" class="w-full h-full object-cover">
+                                </div>
+                            {% endif %}
+                            {{ form.foto_campeones }}
+                            {% if form.foto_campeones.help_text %}
+                                <span class="label-text-alt text-base-content/60 text-xs mt-1">{{ form.foto_campeones.help_text }}</span>
                             {% endif %}
                         </div>
-                    {% endfor %}
-                </div>
-                <div class="mt-8">
+                    </section>
+                {% endif %}
+
+                <div class="mt-4 sticky bottom-0 bg-base-100 dark:bg-base-200 pt-3">
                     <button type="submit" class="btn btn-primary w-full">Guardar Torneo</button>
+                    {% if not object %}
+                        <p class="text-center text-xs text-base-content/60 mt-2">
+                            La <b>foto de campeones</b> no se pide acá: la cargás al finalizar el torneo, cuando exista el ganador.
+                        </p>
+                    {% endif %}
                 </div>
             </form>
+
             {% if object or torneo %}
                 <div class="mt-6 text-center">
-                    <a href="{% url 'torneos:admin_editar' object.pk|default:torneo.pk %}"
-                       class="link link-primary text-sm font-medium">Ir a Editar Configuración</a>
+                    <a href="{% url 'torneos:admin_manage' object.pk|default:torneo.pk %}"
+                       class="link link-primary text-sm font-medium">Ir a Gestionar el torneo</a>
                 </div>
             {% endif %}
         </div>
     </div>
 {% endblock content %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'js/torneo_preview.js' %}" defer></script>
+{% endblock extra_js %}

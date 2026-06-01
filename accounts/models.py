@@ -186,6 +186,7 @@ class Organizacion(models.Model):
     nombre = models.CharField(max_length=150, unique=True)
     alias = models.SlugField(max_length=150, unique=True, help_text="URL amigable (ej: club-padel-mdq)")
     descripcion = models.TextField(blank=True, help_text="Descripción del organizador o sede.")
+    ciudad = models.CharField(max_length=100, blank=True, help_text="Ciudad/localidad de la sede.")
     direccion = models.CharField(max_length=255, blank=True)
     latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

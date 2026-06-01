@@ -1,0 +1,20 @@
+{# Vista previa de estructura (TP-17.3). Render server-side (fallback sin JS); #}
+{# torneo_preview.js reconstruye #pv-flow/#pv-zonas/#pv-note al cambiar los cupos. #}
+<div id="preview-estructura"
+     class="rounded-2xl p-4 md:p-5 border {% if preview.nivel == 'warn' %}border-error/40 bg-error/10{% else %}border-primary/35 bg-primary/10{% endif %}">
+    <div class="flex items-center gap-2 text-xs uppercase tracking-wide font-bold mb-2 {% if preview.nivel == 'warn' %}text-error{% else %}text-primary{% endif %}">
+        <span>◉</span> <span id="pv-title">{{ preview.titulo }}</span>
+    </div>
+    <div id="pv-flow" class="flex items-center flex-wrap gap-2 font-bold text-base-content">
+        {% for paso in preview.flujo %}
+            <span class="badge badge-lg bg-base-100 dark:bg-base-300 border-base-300">{{ paso }}</span>
+            {% if not forloop.last %}<span class="text-primary font-black">→</span>{% endif %}
+        {% endfor %}
+    </div>
+    <div id="pv-zonas" class="flex flex-wrap gap-1.5 mt-3">
+        {% for zona in preview.zonas %}
+            <span class="text-xs px-2 py-0.5 rounded-md bg-base-100 dark:bg-base-300 border border-base-300">Zona {{ zona.0 }}: {{ zona.1 }}</span>
+        {% endfor %}
+    </div>
+    <p id="pv-note" class="text-sm text-base-content/80 mt-3">{{ preview.mensaje }}</p>
+</div>

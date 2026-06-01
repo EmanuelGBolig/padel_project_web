@@ -43,6 +43,7 @@ urlpatterns = [
     # Vistas de Admin
     path('admin/listado/', views.AdminTorneoListView.as_view(), name='admin_list'),
     path('admin/crear/', views.AdminTorneoCreateView.as_view(), name='admin_crear'),
+    path('admin/preview-estructura/', views.PreviewEstructuraView.as_view(), name='admin_preview_estructura'),
     path(
         'admin/<int:pk>/editar/',
         views.AdminTorneoUpdateView.as_view(),

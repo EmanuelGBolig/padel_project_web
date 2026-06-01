@@ -32,13 +32,32 @@ class TorneoAdminForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # El user se pasa desde la vista (get_form_kwargs) para prefijar datos
+        # de la organización (TP-17.4) y validar permisos.
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
+
+        es_creacion = self.instance.pk is None
+
+        # TP-17.1: la foto de campeones no se pide al CREAR (todavía no hay ganador);
+        # solo aparece al editar/gestionar un torneo ya existente.
+        if es_creacion and 'foto_campeones' in self.fields:
+            del self.fields['foto_campeones']
+
+        # TP-17.4: al crear, prefijar sede/ciudad/dirección desde la organización
+        # del organizador, para no reescribirlas en cada torneo.
+        if es_creacion and self.user is not None:
+            org = getattr(self.user, 'organizacion', None)
+            if org is not None:
+                self.initial.setdefault('sede_nombre', org.nombre)
+                self.initial.setdefault('sede_direccion', org.direccion)
+                self.initial.setdefault('ciudad', org.ciudad)
+
         # Opción "Libre" para división
         self.fields['division'].empty_label = "Libre / General"
         self.fields['division'].required = False
         self.fields['division'].help_text = ""
-        
+
         # Estilo DaisyUI para todos los campos
         estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
         estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
@@ -84,6 +103,35 @@ class TorneoAdminForm(forms.ModelForm):
                 self.initial['fecha_inicio'] = self.instance.fecha_inicio.strftime(
                     '%Y-%m-%d'
                 )
+
+    def clean(self):
+        """TP-17.5: validaciones que avisan/bloquean según el matiz del backlog.
+
+        - Fechas: el cierre de inscripción no puede ser DESPUÉS del inicio
+          (se compara a fin del día de inicio). Bloquea.
+        - Cupos mínimos: con fase de grupos se necesitan al menos 4 parejas.
+          Bloquea (coherente con el corte real de la generación).
+        - Cupos "sin formato optimizado" NO se bloquean: la estructura real se
+          arma con los inscriptos reales; el aviso vive en la vista previa.
+        """
+        cleaned = super().clean()
+        limite = cleaned.get('fecha_limite_inscripcion')
+        inicio = cleaned.get('fecha_inicio')
+        if limite and inicio and limite.date() > inicio:
+            self.add_error(
+                'fecha_limite_inscripcion',
+                "El cierre de inscripción no puede ser después del inicio.",
+            )
+
+        cupos = cleaned.get('cupos_totales')
+        tipo = cleaned.get('tipo_torneo')
+        if tipo == Torneo.TipoTorneo.GRUPOS and cupos is not None and cupos < 4:
+            self.add_error(
+                'cupos_totales',
+                "Para fase de grupos necesitás al menos 4 parejas.",
+            )
+
+        return cleaned
 
 
 class CargarResultadoGrupoForm(forms.ModelForm):

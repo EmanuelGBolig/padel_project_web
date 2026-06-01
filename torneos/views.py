@@ -6,7 +6,8 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     TemplateView,
-    FormView
+    FormView,
+    View,
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
@@ -19,7 +20,7 @@ from random import shuffle
 from collections import defaultdict
 import math
 from itertools import combinations
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db import transaction
 
 from .models import (
@@ -41,7 +42,7 @@ from .forms import (
     AmericanoForm,
     JugadorAmericanoForm,
 )
-from .formats import get_format
+from .formats import get_format, calcular_estructura_grupos, describir_estructura
 from .emails import notificar_nuevo_torneo
 from equipos.models import Equipo
 import logging
@@ -309,34 +310,15 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
     # --- LÓGICA DE NEGOCIO INTERNA ---
 
     def _calcular_estructura_grupos(self, torneo, count):
-        """Retorna (num_grupos, sizes, prefijo_nombre, custom_format) sin crear nada en DB."""
-        custom_format = get_format(count)
-        letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        if custom_format:
-            num_grupos = custom_format.groups
-            teams_per_group_config = custom_format.teams_per_group
-            if isinstance(teams_per_group_config, int):
-                sizes = [teams_per_group_config] * num_grupos
-            else:
-                sizes = list(teams_per_group_config)
-            nombres = [f"Zona {letras[i]}" for i in range(num_grupos)]
-            return num_grupos, sizes, nombres, custom_format
-        else:
-            if torneo.forzar_grupos_de_3:
-                equipos_por_grupo = 3
-                num_grupos = count // 3
-            else:
-                equipos_por_grupo = torneo.equipos_por_grupo
-                num_grupos = (count + equipos_por_grupo - 1) // equipos_por_grupo
-            # Distribuir equipos equitativamente
-            sizes = []
-            resto = count
-            for i in range(num_grupos):
-                s = min(equipos_por_grupo, resto)
-                sizes.append(s)
-                resto -= s
-            nombres = [f"Grupo {letras[i]}" for i in range(num_grupos)]
-            return num_grupos, sizes, nombres, None
+        """Retorna (num_grupos, sizes, prefijo_nombre, custom_format) sin crear nada en DB.
+
+        Delega en torneos.formats.calcular_estructura_grupos (fuente de verdad
+        única, compartida con la vista previa del alta — TP-17)."""
+        return calcular_estructura_grupos(
+            count,
+            forzar_grupos_de_3=torneo.forzar_grupos_de_3,
+            equipos_por_grupo=torneo.equipos_por_grupo,
+        )
 
     def iniciar_torneo_logica(self, request, torneo):
         """PASO 1: Crea los grupos vacíos. El organizador asignará los equipos manualmente."""
@@ -1114,15 +1096,63 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
         return Torneo.objects.none().order_by('-fecha_inicio')
 
 
+def _org_data_para_alta(user):
+    """Datos de la organización del organizador para autocompletar el alta (TP-17.4)."""
+    org = getattr(user, 'organizacion', None)
+    if org is None:
+        return None
+    return {
+        'nombre': org.nombre,
+        'sede': org.nombre,
+        'ciudad': org.ciudad,
+        'direccion': org.direccion,
+        'whatsapp': org.whatsapp,
+        'logo': org.logo.url if org.logo else '',
+    }
+
+
+class PreviewEstructuraView(AdminRequiredMixin, View):
+    """TP-17.3: devuelve la proyección de estructura para la vista previa del alta.
+
+    GET /torneos/admin/preview-estructura/?n=16&tipo=G&forzar3=0&epg=3
+    """
+    def get(self, request, *args, **kwargs):
+        try:
+            n = int(request.GET.get('n') or 0)
+        except (TypeError, ValueError):
+            n = 0
+        n = max(0, min(n, 200))  # cota de seguridad
+        tipo = request.GET.get('tipo') or 'G'
+        if tipo not in ('G', 'E'):
+            tipo = 'G'
+        forzar3 = request.GET.get('forzar3') in ('1', 'true', 'True', 'on')
+        try:
+            epg = int(request.GET.get('epg') or 3)
+        except (TypeError, ValueError):
+            epg = 3
+        data = describir_estructura(n, tipo, forzar3=forzar3, equipos_por_grupo=epg)
+        return JsonResponse(data)
+
+
 class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
     model = Torneo
     form_class = TorneoAdminForm
     template_name = 'torneos/admin_torneo_form.html'
     success_url = reverse_lazy('torneos:admin_list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['titulo'] = "Crear Nuevo Torneo"
+        context['org_data'] = _org_data_para_alta(self.request.user)
+        # Proyección inicial server-side (fallback sin JS) con los cupos por defecto.
+        context['preview_inicial'] = describir_estructura(
+            self.object.cupos_totales if self.object else 16, 'G'
+        )
         return context
 
     def form_valid(self, form):
@@ -1148,6 +1178,11 @@ class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': self.object.pk})
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
@@ -1160,6 +1195,13 @@ class AdminTorneoUpdateView(AdminRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['titulo'] = f"Editar Torneo: {self.object.nombre}"
+        context['org_data'] = _org_data_para_alta(self.request.user)
+        context['preview_inicial'] = describir_estructura(
+            self.object.cupos_totales,
+            self.object.tipo_torneo,
+            forzar3=self.object.forzar_grupos_de_3,
+            equipos_por_grupo=self.object.equipos_por_grupo,
+        )
         return context
 
 

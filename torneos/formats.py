@@ -1,5 +1,8 @@
+import math
 from dataclasses import dataclass
 from typing import List, Tuple, Union, Optional
+
+LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 @dataclass
 class TournamentFormat:
@@ -634,3 +637,154 @@ FORMATS = {
 
 def get_format(num_teams: int) -> Optional[TournamentFormat]:
     return FORMATS.get(num_teams)
+
+
+# --- Estructura de zonas (fuente de verdad única) --------------------------
+# Nombre legible de la llave según el bracket_type de un TournamentFormat.
+_BRACKET_LABELS = {
+    'semis': 'semifinales',
+    'quarters': 'cuartos',
+    'octavos': 'octavos',
+    '16vos': '16avos',
+}
+
+# Nombre de la ronda inicial de un cuadro de eliminación directa de tamaño N.
+_RONDA_POR_TAMANO = {
+    2: 'la final', 4: 'semifinales', 8: 'cuartos',
+    16: 'octavos', 32: '16avos', 64: '32avos', 128: '64avos',
+}
+
+
+def _proxima_potencia_de_2(n: int) -> int:
+    """2 ** ceil(log2(n)) — el tamaño de cuadro que envuelve a n equipos."""
+    if n < 2:
+        return 0
+    return 2 ** math.ceil(math.log2(n))
+
+
+def calcular_estructura_grupos(count, *, forzar_grupos_de_3=False, equipos_por_grupo=3):
+    """Calcula la estructura de zonas para `count` equipos SIN tocar la DB.
+
+    Fuente de verdad única reutilizada por la generación real
+    (AdminTorneoManageView) y por la vista previa del alta (describir_estructura).
+    Devuelve (num_grupos, sizes, nombres, custom_format).
+    """
+    custom_format = get_format(count)
+    if custom_format:
+        num_grupos = custom_format.groups
+        teams_per_group_config = custom_format.teams_per_group
+        if isinstance(teams_per_group_config, int):
+            sizes = [teams_per_group_config] * num_grupos
+        else:
+            sizes = list(teams_per_group_config)
+        nombres = [f"Zona {LETRAS[i]}" for i in range(num_grupos)]
+        return num_grupos, sizes, nombres, custom_format
+
+    if forzar_grupos_de_3:
+        epg = 3
+        num_grupos = count // 3
+    else:
+        epg = equipos_por_grupo or 3
+        num_grupos = (count + epg - 1) // epg
+
+    sizes = []
+    resto = count
+    for _ in range(num_grupos):
+        s = min(epg, resto)
+        sizes.append(s)
+        resto -= s
+    nombres = [f"Grupo {LETRAS[i]}" for i in range(num_grupos)]
+    return num_grupos, sizes, nombres, None
+
+
+def describir_estructura(num_equipos, tipo, *, forzar3=False, equipos_por_grupo=3):
+    """Proyección legible de la estructura del torneo para la vista previa del alta.
+
+    `tipo`: 'G' (fase de grupos) o 'E' (eliminación directa), igual que
+    Torneo.TipoTorneo. NO decide la estructura real (eso se arma con los
+    inscriptos reales en Gestionar); es una proyección "si se llenan los cupos".
+
+    Devuelve un dict JSON-serializable:
+        {ok, nivel('ok'|'warn'), titulo, flujo:[str], zonas:[[letra,tam]],
+         byes:int, mensaje:str}
+    """
+    n = int(num_equipos or 0)
+
+    # --- Eliminación directa ---
+    if tipo == 'E':
+        if n < 2:
+            return {
+                'ok': False, 'nivel': 'warn', 'titulo': 'Eliminación directa',
+                'flujo': [], 'zonas': [], 'byes': 0,
+                'mensaje': 'Necesitás al menos 2 parejas.',
+            }
+        size = _proxima_potencia_de_2(n)
+        byes = size - n
+        ronda = _RONDA_POR_TAMANO.get(size, f'un cuadro de {size}')
+        flujo = [f'{n} parejas', f'cuadro de {size}', f'arranca en {ronda}']
+        if byes > 0:
+            mensaje = (
+                f'{byes} pareja{"s" if byes > 1 else ""} con bye '
+                f'(pasan libres a la 2da ronda) para completar el cuadro de {size}.'
+            )
+        else:
+            mensaje = 'Cuadro exacto, sin byes.'
+        return {
+            'ok': True, 'nivel': 'ok', 'titulo': 'Eliminación directa',
+            'flujo': flujo, 'zonas': [], 'byes': byes, 'mensaje': mensaje,
+        }
+
+    # --- Fase de grupos + eliminatoria ---
+    titulo = 'Fase de grupos + eliminatoria'
+    if n < 4:
+        return {
+            'ok': False, 'nivel': 'warn', 'titulo': titulo,
+            'flujo': [f'{n} parejas', 'sin estructura de zonas'], 'zonas': [],
+            'byes': 0,
+            'mensaje': 'Para fase de zonas necesitás al menos 4 parejas. '
+                       'Con menos, usá Eliminación directa.',
+        }
+
+    if forzar3 and n % 3 != 0:
+        bajo = n - (n % 3)
+        return {
+            'ok': False, 'nivel': 'warn', 'titulo': titulo,
+            'flujo': [f'{n} parejas', 'sin estructura de zonas'], 'zonas': [],
+            'byes': 0,
+            'mensaje': '“Forzar zonas de 3” está activo: el total tiene que ser '
+                       f'divisible por 3. Probá {bajo} o {bajo + 3}.',
+        }
+
+    num_grupos, sizes, _nombres, custom_format = calcular_estructura_grupos(
+        n, forzar_grupos_de_3=forzar3, equipos_por_grupo=equipos_por_grupo
+    )
+    zonas = [[LETRAS[i], s] for i, s in enumerate(sizes)]
+
+    # Etiqueta de la llave
+    if custom_format and custom_format.bracket_type in _BRACKET_LABELS:
+        llave = _BRACKET_LABELS[custom_format.bracket_type]
+    elif custom_format:
+        llave = 'llaves a medida'
+    else:
+        clasificados = max(4, num_grupos * 2)
+        llave = f'cuadro de {_proxima_potencia_de_2(clasificados)}'
+
+    flujo = [f'{n} parejas', f'{num_grupos} zona{"s" if num_grupos != 1 else ""}', llave]
+
+    if custom_format:
+        mensaje = f'Pasan los mejores de cada zona a la fase final ({llave}).'
+        nivel = 'ok'
+    else:
+        # Agrupación genérica: el sistema igual la genera, pero no es uno de los
+        # formatos optimizados (6–19, 21, 24).
+        mensaje = (
+            f'{num_grupos} zonas a medida. No es uno de los formatos optimizados, '
+            'pero el sistema arma las zonas y la llave igual.'
+        )
+        nivel = 'ok'
+
+    return {
+        'ok': True, 'nivel': nivel, 'titulo': titulo,
+        'flujo': flujo, 'zonas': zonas, 'byes': 0, 'mensaje': mensaje,
+    }
+
