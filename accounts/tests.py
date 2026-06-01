@@ -267,3 +267,52 @@ class DedupCuentasTests(TestCase):
         self.client.force_login(admin)
         resp = self.client.get(reverse('accounts:duplicados'))
         self.assertEqual(resp.status_code, 200)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class MultiLoginCuentasFusionadasTests(TestCase):
+    """TP-20 (etapa 2): entrar con cualquier mail de una persona cuyas cuentas se unificaron."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Tercera", orden=3)
+        self.p1 = User.objects.create_user(
+            email="canon@t.com", password="secret1", nombre="Leo", apellido="Gómez",
+            genero="MASCULINO", division=self.division)
+        self.p2 = User.objects.create_user(
+            email="vieja@t.com", password="secret2", nombre="Leo", apellido="Gomez",
+            genero="MASCULINO", division=self.division)
+        # Simular fusión p2 -> p1 (sin mover historial, alcanza para probar el backend)
+        self.p2.merged_into = self.p1
+        self.p2.is_active = False
+        self.p2.save(update_fields=['merged_into', 'is_active'])
+
+    def test_login_con_mail_viejo_y_pass_canonica(self):
+        from django.contrib.auth import authenticate
+        u = authenticate(None, username="vieja@t.com", password="secret1")
+        self.assertIsNotNone(u)
+        self.assertEqual(u.pk, self.p1.pk)
+
+    def test_login_con_mail_viejo_y_pass_vieja_falla(self):
+        from django.contrib.auth import authenticate
+        self.assertIsNone(authenticate(None, username="vieja@t.com", password="secret2"))
+
+    def test_login_normal_canonica_sigue_andando(self):
+        from django.contrib.auth import authenticate
+        u = authenticate(None, username="canon@t.com", password="secret1")
+        self.assertEqual(u.pk, self.p1.pk)
+
+    def test_cadena_de_fusiones(self):
+        from django.contrib.auth import authenticate
+        p3 = User.objects.create_user(
+            email="masvieja@t.com", password="secret3", nombre="Leo", apellido="G",
+            genero="MASCULINO", division=self.division)
+        p3.merged_into = self.p2  # p3 -> p2 -> p1
+        p3.is_active = False
+        p3.save(update_fields=['merged_into', 'is_active'])
+        u = authenticate(None, username="masvieja@t.com", password="secret1")
+        self.assertEqual(u.pk, self.p1.pk)
+
+    def test_client_login_con_cualquier_mail(self):
+        self.assertTrue(self.client.login(username="vieja@t.com", password="secret1"))
+        self.client.logout()
+        self.assertFalse(self.client.login(username="vieja@t.com", password="secret2"))

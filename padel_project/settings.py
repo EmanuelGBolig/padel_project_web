@@ -265,6 +265,8 @@ LOGOUT_REDIRECT_URL = 'core:home'
 # --- Autenticación Backends (Google OAuth2 + Django clásico) ---
 AUTHENTICATION_BACKENDS = [
     'social_core.backends.google.GoogleOAuth2',
+    # Resuelve el login de mails de cuentas fusionadas (TP-20) -> cuenta canónica.
+    'accounts.auth_backends.MergedAccountBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
