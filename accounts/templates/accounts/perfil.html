@@ -115,6 +115,24 @@
             {% if perfil_usuario.tipo_usuario == 'PLAYER' %}
                 {% include "accounts/_ficha.html" %}
             {% endif %}
+            {% if user.tipo_usuario == 'ADMIN' or user.is_staff %}
+                <!-- Herramientas de administración (TP-20) -->
+                <div class="card bg-base-100 shadow-xl border border-base-200">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg mb-2">🛠️ Herramientas de gestión</h2>
+                        <div class="flex flex-col gap-2">
+                            <a href="{% url 'accounts:duplicados' %}"
+                               class="btn btn-outline btn-warning btn-sm justify-start">
+                                🔎 Posibles cuentas duplicadas
+                            </a>
+                            <a href="{% url 'accounts:merge_usuarios' %}"
+                               class="btn btn-ghost btn-sm justify-start">
+                                Fusionar jugador (dummy → real)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
             {% if user.tipo_usuario == 'ORGANIZER' %}
                 <div class="card bg-base-100 shadow-xl border border-base-200">
                     <div class="card-body">
