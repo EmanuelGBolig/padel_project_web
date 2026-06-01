@@ -1,5 +1,5 @@
 from django.urls import reverse_lazy, reverse
-from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView, FormView
+from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView, FormView, TemplateView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
@@ -720,4 +720,51 @@ class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def get_success_url(self):
         return super().get_success_url()
+
+
+class PosiblesDuplicadosView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """TP-20: lista posibles cuentas duplicadas y permite fusionarlas (admin/organizador)."""
+    template_name = 'accounts/duplicados.html'
+
+    def test_func(self):
+        return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
+
+    def get_context_data(self, **kwargs):
+        from .utils import find_duplicate_candidates
+        context = super().get_context_data(**kwargs)
+        context['grupos'] = find_duplicate_candidates()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        canonical_id = request.POST.get('canonical_id')
+        source_ids = request.POST.getlist('source_ids')
+        if not canonical_id or not source_ids:
+            messages.error(request, "Elegí la cuenta principal y al menos una cuenta a fusionar.")
+            return redirect('accounts:duplicados')
+        try:
+            target = CustomUser.objects.get(pk=canonical_id)
+        except CustomUser.DoesNotExist:
+            messages.error(request, "La cuenta principal no existe.")
+            return redirect('accounts:duplicados')
+
+        fusionadas = 0
+        for sid in source_ids:
+            if str(sid) == str(canonical_id):
+                continue
+            try:
+                source = CustomUser.objects.get(pk=sid)
+                merge_users(source, target)
+                fusionadas += 1
+            except CustomUser.DoesNotExist:
+                continue
+            except Exception as e:
+                messages.error(request, f"No se pudo fusionar una cuenta: {e}")
+
+        if fusionadas:
+            messages.success(
+                request,
+                f"Se fusionaron {fusionadas} cuenta(s) en {target.full_name}. "
+                "El historial quedó unificado."
+            )
+        return redirect('accounts:duplicados')
 

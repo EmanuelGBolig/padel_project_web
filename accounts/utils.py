@@ -29,7 +29,9 @@ def get_division_rankings(division, genero=None, force_recalc=False):
             queryset=Equipo.objects.all().select_related('jugador1', 'jugador2', 'division')
         )
 
-        rankings_db = RankingJugador.objects.filter(division=division).select_related('jugador').prefetch_related(
+        rankings_db = RankingJugador.objects.filter(
+            division=division, jugador__merged_into__isnull=True
+        ).select_related('jugador').prefetch_related(
             equipos_prefetch, equipos_prefetch2
         ).order_by('-puntos', '-torneos_ganados', '-victorias')
 
@@ -60,8 +62,9 @@ def get_division_rankings(division, genero=None, force_recalc=False):
         
         # --- NUEVA LÓGICA: Añadir jugadores que están en la división pero no en la tabla RankingJugador ---
         jugadores_faltantes_qs = CustomUser.objects.filter(
-            division=division, 
-            tipo_usuario='PLAYER'
+            division=division,
+            tipo_usuario='PLAYER',
+            merged_into__isnull=True,
         ).exclude(id__in=jugadores_en_ranking).select_related('division').prefetch_related('equipos_como_jugador1', 'equipos_como_jugador2')
 
         if genero_key != 'ALL':
@@ -95,7 +98,7 @@ def get_division_rankings(division, genero=None, force_recalc=False):
 
     if not torneo_ids:
         jugadores_qs = CustomUser.objects.filter(
-            division=division, tipo_usuario='PLAYER'
+            division=division, tipo_usuario='PLAYER', merged_into__isnull=True
         ).select_related('division')
         if genero_key != 'ALL':
             jugadores_qs = jugadores_qs.filter(genero=genero_key)
@@ -224,7 +227,8 @@ def get_division_rankings(division, genero=None, force_recalc=False):
 
     jugadores_qs = CustomUser.objects.filter(
         Q(division=division) | Q(id__in=jugador_ids_con_datos),
-        tipo_usuario='PLAYER'
+        tipo_usuario='PLAYER',
+        merged_into__isnull=True,
     ).distinct().select_related('division').prefetch_related('equipos_como_jugador1', 'equipos_como_jugador2')
     if genero_key != 'ALL':
         jugadores_qs = jugadores_qs.filter(genero=genero_key)
@@ -644,18 +648,112 @@ def actualizar_rankings_en_bd(division):
         )
 
 
+def _normalizar_nombre(s):
+    """minúsculas + sin tildes + espacios colapsados (para comparar nombres)."""
+    import unicodedata
+    s = (s or '').strip().lower()
+    s = unicodedata.normalize('NFKD', s)
+    s = ''.join(c for c in s if not unicodedata.combining(c))
+    return ' '.join(s.split())
+
+
+def find_duplicate_candidates(limit_pairs=20000):
+    """Detecta posibles cuentas duplicadas de jugadores (TP-20).
+
+    Agrupa por nombre normalizado (sin tildes/mayúsculas):
+      - clave exacta igual  -> confianza 'alta'
+      - similitud >= 0.88    -> confianza 'media'
+    NUNCA fusiona sola: devuelve grupos para que un humano confirme. El canónico
+    sugerido es la cuenta real (no dummy) más antigua del grupo.
+    """
+    from difflib import SequenceMatcher
+
+    users = list(CustomUser.objects.filter(
+        tipo_usuario='PLAYER', merged_into__isnull=True
+    ).select_related('division').order_by('date_joined'))
+
+    info = [{'user': u, 'key': _normalizar_nombre(f"{u.nombre} {u.apellido}")} for u in users]
+
+    # Union-Find sobre los índices
+    parent = list(range(len(info)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    by_key = {}
+    for idx, it in enumerate(info):
+        if it['key']:
+            by_key.setdefault(it['key'], []).append(idx)
+
+    # 1) Claves exactas iguales -> mismo grupo
+    for idxs in by_key.values():
+        for j in idxs[1:]:
+            union(idxs[0], j)
+
+    # 2) Claves distintas pero muy similares -> mismo grupo
+    keys = list(by_key.keys())
+    pairs = 0
+    for i in range(len(keys)):
+        for j in range(i + 1, len(keys)):
+            pairs += 1
+            if pairs > limit_pairs:
+                break
+            ka, kb = keys[i], keys[j]
+            if abs(len(ka) - len(kb)) > 4:
+                continue
+            if SequenceMatcher(None, ka, kb).ratio() >= 0.88:
+                union(by_key[ka][0], by_key[kb][0])
+
+    grupos = {}
+    for idx, it in enumerate(info):
+        if it['key']:
+            grupos.setdefault(find(idx), []).append(it)
+
+    resultado = []
+    for items in grupos.values():
+        if len(items) < 2:
+            continue
+        usuarios = [x['user'] for x in items]
+        confianza = 'alta' if len({x['key'] for x in items}) == 1 else 'media'
+        reales = [u for u in usuarios if not u.is_dummy]
+        canonico = reales[0] if reales else usuarios[0]
+        resultado.append({
+            'confianza': confianza,
+            'usuarios': usuarios,
+            'sugerido_id': canonico.id,
+        })
+    resultado.sort(key=lambda g: (0 if g['confianza'] == 'alta' else 1, -len(g['usuarios'])))
+    return resultado
+
+
 def merge_users(dummy_user, real_user):
     """
-    Traspasa todo el historial de un usuario dummy a uno real y elimina el dummy.
+    Fusiona la cuenta `dummy_user` (origen) dentro de `real_user` (destino),
+    traspasando todo el historial. (TP-20)
+
+    - Si el origen es DUMMY: se elimina al terminar (no tiene login real).
+    - Si el origen es una cuenta REAL: se DESACTIVA y se marca `merged_into` al
+      destino (no se borra), para preservar su email y poder enrutar el login
+      a la cuenta canónica en la etapa 2.
+
+    El destino debe ser una cuenta real (no se fusiona dentro de un dummy).
     """
     from django.db import transaction
     from equipos.models import Equipo
     from torneos.models import Inscripcion, EquipoGrupo, PartidoGrupo, Partido, Torneo
-    
-    if not dummy_user.is_dummy:
-        raise ValueError("El usuario origen debe ser una cuenta Dummy.")
+
     if real_user.is_dummy:
         raise ValueError("El usuario destino debe ser una cuenta Real.")
+    if dummy_user.pk == real_user.pk:
+        raise ValueError("No se puede fusionar una cuenta consigo misma.")
 
     with transaction.atomic():
         # 1. Traspasar equipos
@@ -710,8 +808,15 @@ def merge_users(dummy_user, real_user):
                 canonical_team = Equipo.objects.get(id=canonical_id)
                 canonical_team.save()
 
-        # 3. Eliminar usuario dummy
-        dummy_user.delete()
+        # 3. Cerrar la cuenta origen
+        if dummy_user.is_dummy:
+            # Los dummies no tienen login ni valor propio: se eliminan.
+            dummy_user.delete()
+        else:
+            # Cuenta real: se desactiva y se enlaza a la canónica (no se borra).
+            dummy_user.is_active = False
+            dummy_user.merged_into = real_user
+            dummy_user.save(update_fields=['is_active', 'merged_into'])
 
         # 4. Forzar recalculo de rankings para las divisiones del usuario real
         from accounts.models import Division

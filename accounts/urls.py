@@ -26,6 +26,7 @@ urlpatterns = [
     path('organizacion/sponsors/<int:pk>/delete/', views.SponsorDeleteView.as_view(), name='eliminar_sponsor'),
     path('organizacion/detalle/<slug:slug>/', views.OrganizacionDetailView.as_view(), name='organizacion_detail'),
     path('usuarios/merge/', views.MergeUserView.as_view(), name='merge_usuarios'),
+    path('usuarios/duplicados/', views.PosiblesDuplicadosView.as_view(), name='duplicados'),
     path('organizador/crear-jugador-dummy/', views.DummyUserCreateView.as_view(), name='crear_dummy_user'),
     
     # Rutas de recuperación de contraseña (Django Auth)

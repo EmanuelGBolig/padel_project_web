@@ -188,3 +188,82 @@ class FichaLogrosCompletitudTests(TestCase):
         html = self.client.get(url).content.decode()
         self.assertIn('Mi juego', html)
         self.assertIn('Mar del Plata', html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class DedupCuentasTests(TestCase):
+    """TP-20 (etapa 1): detección de duplicados + merge real→real + exclusión de ranking."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.division = Division.objects.create(nombre="Cuarta", orden=4)
+
+    def _player(self, email, nombre, apellido, dummy=False):
+        return User.objects.create_user(
+            email=email, password="x", nombre=nombre, apellido=apellido,
+            genero="MASCULINO", division=self.division, is_dummy=dummy)
+
+    def test_detecta_variantes_de_nombre(self):
+        from accounts.utils import find_duplicate_candidates
+        a = self._player("a@t.com", "Juan", "Pérez")     # con tilde
+        b = self._player("b@t.com", "Juan", "Perez")     # sin tilde -> misma clave
+        c = self._player("c@t.com", "Juan", "Peres")     # typo -> similar
+        self._player("z@t.com", "María", "López")        # distinta, no agrupa
+        grupos = find_duplicate_candidates()
+        ids_en_grupos = [{u.id for u in g['usuarios']} for g in grupos]
+        # Existe un grupo que contiene a los tres Juan
+        self.assertTrue(any({a.id, b.id, c.id} <= s for s in ids_en_grupos))
+        # María no aparece agrupada con los Juan
+        self.assertFalse(any(self._maria_id in s and a.id in s for s in ids_en_grupos))
+
+    @property
+    def _maria_id(self):
+        return User.objects.get(email="z@t.com").id
+
+    def test_merge_real_desactiva_y_enlaza(self):
+        from accounts.utils import merge_users
+        from equipos.models import Equipo
+        p1 = self._player("p1@t.com", "Leo", "Gómez")
+        p2 = self._player("p2@t.com", "Leo", "Gomez")
+        compa = self._player("co@t.com", "Compa", "Uno")
+        eq = Equipo.objects.create(jugador1=p2, jugador2=compa, division=self.division)
+        merge_users(p2, p1)
+        p2.refresh_from_db()
+        self.assertFalse(p2.is_active)
+        self.assertEqual(p2.merged_into_id, p1.id)
+        # El equipo pasó a p1
+        eq.refresh_from_db()
+        self.assertEqual(eq.jugador1_id, p1.id)
+        # p1 sigue activo
+        p1.refresh_from_db()
+        self.assertTrue(p1.is_active)
+
+    def test_merge_no_permite_destino_dummy(self):
+        from accounts.utils import merge_users
+        real = self._player("r@t.com", "Ana", "Sosa")
+        dummy = self._player("d@t.com", "Ana", "Sosa", dummy=True)
+        with self.assertRaises(ValueError):
+            merge_users(real, dummy)
+
+    def test_ranking_excluye_fusionadas(self):
+        from accounts.utils import merge_users, get_division_rankings
+        from django.core.cache import cache
+        p1 = self._player("rp1@t.com", "Eva", "Diaz")
+        p2 = self._player("rp2@t.com", "Eva", "Diaz")
+        cache.clear()
+        ids_antes = {x['jugador'].id for x in get_division_rankings(self.division, force_recalc=True)}
+        self.assertIn(p2.id, ids_antes)
+        merge_users(p2, p1)
+        cache.clear()
+        ids_despues = {x['jugador'].id for x in get_division_rankings(self.division, force_recalc=True)}
+        self.assertNotIn(p2.id, ids_despues)
+        self.assertIn(p1.id, ids_despues)
+
+    def test_vista_duplicados_admin(self):
+        admin = User.objects.create_user(
+            email="adm@t.com", password="x", nombre="Adm", apellido="In",
+            genero="OTRO", tipo_usuario="ADMIN", is_staff=True)
+        self.client.force_login(admin)
+        resp = self.client.get(reverse('accounts:duplicados'))
+        self.assertEqual(resp.status_code, 200)

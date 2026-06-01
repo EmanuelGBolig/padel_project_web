@@ -123,6 +123,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         help_text="Indica si el usuario fue creado por un organizador para usar de relleno y no tiene cuenta real."
     )
 
+    # Deduplicación de cuentas (TP-20): si está seteado, esta cuenta fue
+    # fusionada dentro de otra. No aparece en rankings; en etapa 2 su email
+    # podrá usarse para entrar a la cuenta canónica.
+    merged_into = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cuentas_fusionadas',
+        help_text="Cuenta canónica en la que se fusionó esta cuenta."
+    )
+
     # Campos de Django
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

@@ -155,6 +155,10 @@
                                     </svg>
                                     Gestionar Sponsors
                                 </a>
+                                <a href="{% url 'accounts:duplicados' %}"
+                                   class="btn btn-outline btn-warning btn-sm justify-start">
+                                    🔎 Posibles cuentas duplicadas
+                                </a>
                                 <div class="divider my-1"></div>
                                 <a href="{% url 'accounts:organizador_detalle' user.organizacion.pk %}"
                                    class="btn btn-ghost btn-sm justify-start">

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Posibles cuentas duplicadas - TodoPadel{% endblock title %}
+{% block content %}
+    <div class="max-w-3xl mx-auto px-4 py-6">
+        <h1 class="text-2xl font-bold mb-1">Posibles cuentas duplicadas</h1>
+        <p class="text-sm text-base-content/70 mb-6 max-w-2xl">
+            Revisá cada grupo. Elegí la <b>cuenta principal</b> (la que queda) y tildá las que se
+            fusionan en ella. La fusión traspasa todo el historial y saca las repetidas del ranking.
+            <b>No se puede deshacer fácilmente</b>, así que confirmá bien antes.
+        </p>
+
+        {% if grupos %}
+            {% for g in grupos %}
+                <form method="post" class="card bg-base-100 border border-base-200 shadow-sm mb-4">
+                    {% csrf_token %}
+                    <div class="card-body p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="badge {% if g.confianza == 'alta' %}badge-error{% else %}badge-warning{% endif %} badge-sm font-bold">{{ g.confianza|capfirst }} coincidencia</span>
+                            <span class="text-xs opacity-60">{{ g.usuarios|length }} cuentas con nombre parecido</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr class="text-xs">
+                                        <th title="Cuenta que queda">Principal</th>
+                                        <th title="Cuentas que se fusionan">Fusionar</th>
+                                        <th>Nombre</th>
+                                        <th>Email</th>
+                                        <th>Tipo</th>
+                                        <th>División</th>
+                                        <th>Alta</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in g.usuarios %}
+                                        <tr>
+                                            <td><input type="radio" name="canonical_id" value="{{ u.id }}" class="radio radio-primary radio-sm" {% if u.id == g.sugerido_id %}checked{% endif %} {% if u.is_dummy %}disabled title="Un dummy no puede ser la cuenta principal"{% endif %}></td>
+                                            <td><input type="checkbox" name="source_ids" value="{{ u.id }}" class="checkbox checkbox-sm" checked></td>
+                                            <td class="font-medium whitespace-nowrap">{{ u.full_name }}</td>
+                                            <td class="text-xs opacity-70">{{ u.email }}</td>
+                                            <td>{% if u.is_dummy %}<span class="badge badge-ghost badge-xs">Dummy</span>{% else %}<span class="badge badge-outline badge-xs">Real</span>{% endif %}</td>
+                                            <td class="text-xs">{{ u.division.nombre|default:"—" }}</td>
+                                            <td class="text-xs opacity-60 whitespace-nowrap">{{ u.date_joined|date:"d/m/y" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="flex justify-end mt-2">
+                            <button type="submit" class="btn btn-primary btn-sm"
+                                    onclick="return confirm('¿Fusionar las cuentas tildadas en la principal? Traspasa el historial y no se puede deshacer fácilmente.')">
+                                Fusionar grupo
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-16 text-base-content/60">
+                <div class="text-4xl mb-2">✅</div>
+                <p>No se detectaron cuentas duplicadas por nombre.</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}
