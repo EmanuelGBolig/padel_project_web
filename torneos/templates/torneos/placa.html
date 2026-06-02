@@ -6,8 +6,9 @@
 <title>Placa para redes — TodoPadel</title>
 <style>
   :root{
+    /* Paleta de marca TodoPadel (igual que el sitio) */
     --green:#10B981; --green-2:#34d399; --green-soft:rgba(16,185,129,.14); --green-border:rgba(16,185,129,.4);
-    --base:#10151B; --line:#2A313A; --text:#A6ADBB; --strong:#ECF0F3; --muted:#7A828C; --live:#FF5861;
+    --base:#15191E; --base-2:#191E24; --line:#2A313A; --text:#A6ADBB; --strong:#ECF0F3; --muted:#7A828C; --live:#FF5861;
   }
   *{box-sizing:border-box}
   body{margin:0;background:#0C1014;color:var(--text);min-height:100vh;
@@ -25,11 +26,17 @@
     background-image:linear-gradient(var(--green-soft) 1px, transparent 1px), linear-gradient(90deg, var(--green-soft) 1px, transparent 1px);
     background-size:22px 22px;opacity:.5}
   .placa::after{content:"";position:absolute;inset:0;z-index:-1;
-    background:radial-gradient(120% 60% at 50% -5%, rgba(16,185,129,.28), transparent 55%)}
-  .p-glowbtm::after{background:radial-gradient(120% 60% at 50% -5%, rgba(16,185,129,.28), transparent 55%),radial-gradient(100% 40% at 50% 105%, rgba(16,185,129,.18), transparent 55%)}
+    background:radial-gradient(120% 55% at 50% -8%, rgba(16,185,129,.34), transparent 55%)}
+  .p-glowbtm::after{background:radial-gradient(120% 55% at 50% -8%, rgba(16,185,129,.34), transparent 55%),radial-gradient(100% 40% at 50% 108%, rgba(16,185,129,.22), transparent 55%)}
+  /* barra de acento de marca arriba */
+  .placa>.accent{position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--green),var(--green-2));z-index:1}
 
-  .brand-top{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.9rem;color:var(--strong)}
-  .brand-top .m{width:26px;height:26px;border-radius:7px;background:var(--green);display:grid;place-items:center;color:#06281f;font-weight:900;font-size:.8rem}
+  .logo-img{width:32px;height:32px;border-radius:9px;object-fit:cover;box-shadow:0 3px 10px rgba(16,185,129,.4)}
+  .brand-top{display:flex;align-items:center;gap:.55rem;font-weight:800;font-size:1rem;color:var(--strong)}
+  /* tira de marca al pie (todas las placas) */
+  .brandbar{display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:800;color:var(--strong)}
+  .brandbar small{font-weight:600;color:var(--muted)}
+  .title-underline{width:54px;height:4px;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--green-2));margin-top:-.2rem}
   .org{display:flex;align-items:center;gap:.55rem;font-size:.9rem;color:var(--text)}
   .org .logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#1f6f57,#0c3527);display:grid;place-items:center;font-weight:900;color:var(--green-2);font-size:.85rem;border:1px solid var(--green-border)}
 
@@ -94,12 +101,17 @@
   </div>
 
   <div id="placa" class="placa {% if tipo == 'campeones' or tipo == 'app' %}p-glowbtm{% endif %}">
+    <div class="accent"></div>
 
     {% if tipo == 'anuncio' %}
-      <div class="org"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</div>
+      <div class="org" style="justify-content:space-between;width:100%">
+        <span style="display:flex;align-items:center;gap:.55rem"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</span>
+        <span class="brandbar"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></span>
+      </div>
       <div class="grow">
         <span class="badge">● Inscripción abierta</span>
         <div class="title">{{ placa.titulo }}</div>
+        <div class="title-underline"></div>
         <div class="chips">
           <span class="chip">{{ placa.division }}</span>
           <span class="chip">{{ placa.categoria }}</span>
@@ -118,7 +130,7 @@
       </div>
 
     {% elif tipo == 'campeones' %}
-      <div class="brand-top"><span class="m">P</span> Todo<span style="color:var(--green-2)">Padel</span></div>
+      <div class="brand-top"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></div>
       <div class="grow" style="text-align:center;align-items:center">
         <div class="trophy">🏆</div>
         <span class="badge" style="align-self:center">Campeones</span>
@@ -134,10 +146,14 @@
       </div>
 
     {% elif tipo == 'vivo' %}
-      <div class="org"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</div>
+      <div class="org" style="justify-content:space-between;width:100%">
+        <span style="display:flex;align-items:center;gap:.55rem"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</span>
+        <span class="brandbar"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></span>
+      </div>
       <div class="grow">
         <span class="badge live"><span class="dot"></span> En vivo</span>
         <div class="title" style="font-size:1.6rem">{% if placa.cruce %}{{ placa.cruce.ronda }}{% else %}{{ placa.titulo }}{% endif %}</div>
+        <div class="title-underline"></div>
         <div class="chips"><span class="chip">{{ placa.division }}</span><span class="chip">{{ placa.categoria }}</span></div>
         {% if placa.cruce %}
           <div class="vs">
@@ -160,7 +176,7 @@
       </div>
 
     {% else %}{# app / genérica #}
-      <div class="brand-top"><span class="m">P</span> Todo<span style="color:var(--green-2)">Padel</span></div>
+      <div class="brand-top"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></div>
       <div class="grow">
         <div class="big-logo">Tu pádel,<br>sin <span>Excel</span>.</div>
         <div class="tagline">Torneos por categoría, de verdad.</div>
