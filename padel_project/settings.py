@@ -18,6 +18,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-tu-secret-key-local')
 
 # DEBUG es 'True' localmente, pero 'False' en producción
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Fail-safe: en Render (prod) NUNCA quedar en DEBUG, aunque falte/quede mal la env var.
+if os.environ.get('RENDER'):
+    DEBUG = False
 
 # ALLOWED_HOSTS para Render
 ALLOWED_HOSTS = []
@@ -39,11 +42,31 @@ if not RENDER_EXTERNAL_HOSTNAME and not CUSTOM_DOMAIN:
 
 # Confianza en el header de Render para HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# Forzar HTTPS en redirects al estar en producción
+
+# CSRF: orígenes confiables para POST con dominio propio (Django 4+).
+CSRF_TRUSTED_ORIGINS = []
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+if CUSTOM_DOMAIN:
+    base = CUSTOM_DOMAIN[4:] if CUSTOM_DOMAIN.startswith('www.') else CUSTOM_DOMAIN
+    CSRF_TRUSTED_ORIGINS.append(f"https://{base}")
+    CSRF_TRUSTED_ORIGINS.append(f"https://www.{base}")
+
+# Endurecimiento de seguridad en producción
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # HSTS: el navegador exige HTTPS para el dominio (1 año, subdominios, preload).
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Evita que el navegador "adivine" tipos MIME (anti content-sniffing).
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    # No filtrar la URL completa como referer hacia otros sitios.
+    SECURE_REFERRER_POLICY = 'same-origin'
+    # Cookies de sesión/CSRF no accesibles por JS (HttpOnly ya es default en sesión).
+    SESSION_COOKIE_HTTPONLY = True
 
 
 # Application definition

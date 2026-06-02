@@ -270,3 +270,31 @@ class Sponsor(models.Model):
 
     def __str__(self):
         return f"{self.nombre} (Sponsor de {self.organizacion.nombre})"
+
+
+class MergeAuditLog(models.Model):
+    """Registro de fusiones de cuentas (TP-21 seguridad). Quién fusionó qué y cuándo."""
+    actor = models.ForeignKey(
+        'accounts.CustomUser', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fusiones_realizadas'
+    )
+    actor_email = models.CharField(max_length=254, blank=True)
+    source_id = models.IntegerField()
+    source_email = models.CharField(max_length=254, blank=True)
+    source_nombre = models.CharField(max_length=210, blank=True)
+    source_was_dummy = models.BooleanField(default=False)
+    target = models.ForeignKey(
+        'accounts.CustomUser', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fusiones_recibidas'
+    )
+    target_email = models.CharField(max_length=254, blank=True)
+    target_nombre = models.CharField(max_length=210, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Registro de fusión"
+        verbose_name_plural = "Registros de fusión"
+
+    def __str__(self):
+        return f"{self.source_email} → {self.target_email} ({self.created_at:%d/%m/%Y})"

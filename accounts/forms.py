@@ -162,16 +162,35 @@ class CustomLoginForm(AuthenticationForm):
         for field_name, field in self.fields.items():
             field.widget.attrs['class'] = estilo_input
 
+    @staticmethod
+    def _client_ip(request):
+        if request is None:
+            return 'unknown'
+        xff = request.META.get('HTTP_X_FORWARDED_FOR')
+        if xff:
+            return xff.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', 'unknown')
+
     def clean(self):
         from django.contrib.auth import authenticate, get_user_model
         from django.core.exceptions import ValidationError
-        
+        from django.core.cache import cache
+
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
+
+        # Throttle anti fuerza-bruta: máx 20 intentos fallidos por IP en 10 min (TP-21).
+        throttle_key = f"login_fails_{self._client_ip(self.request)}"
+        if cache.get(throttle_key, 0) >= 20:
+            raise ValidationError(
+                "Demasiados intentos fallidos. Esperá unos minutos antes de volver a probar.",
+                code='throttled',
+            )
 
         if username is not None and password:
             self.user_cache = authenticate(self.request, username=username, password=password)
             if self.user_cache is None:
+                cache.set(throttle_key, cache.get(throttle_key, 0) + 1, 600)
                 # Revisar si el usuario existe, tiene password correcta pero está inactivo (o error de mayúsculas)
                 User = get_user_model()
                 try:

@@ -74,12 +74,27 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(CustomUser, CustomUserAdmin)
 
-from .models import Division, Organizacion, Sponsor
+from .models import Division, Organizacion, Sponsor, MergeAuditLog
 
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'orden')
     ordering = ('orden',)
+
+
+@admin.register(MergeAuditLog)
+class MergeAuditLogAdmin(admin.ModelAdmin):
+    """Auditoría de fusiones de cuentas (TP-21): solo lectura."""
+    list_display = ('created_at', 'actor_email', 'source_email', 'source_was_dummy', 'target_email')
+    list_filter = ('source_was_dummy', 'created_at')
+    search_fields = ('actor_email', 'source_email', 'target_email', 'source_nombre', 'target_nombre')
+    readonly_fields = [f.name for f in MergeAuditLog._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 class SponsorInline(admin.TabularInline):
     model = Sponsor

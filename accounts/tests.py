@@ -418,3 +418,50 @@ class MergeDummyADummyTests(TestCase):
         dummy = self._p("dummy_c@padel.local", dummy=True)
         with self.assertRaises(ValueError):
             merge_users(real, dummy)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class HardeningSeguridadTests(TestCase):
+    """TP-21: permisos de fusión, auditoría y throttling."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.division = Division.objects.create(nombre="Primera", orden=1)
+        self.p1 = User.objects.create_user(email="h1@t.com", password="x",
+                                            nombre="Uno", apellido="Real", division=self.division)
+        self.p2 = User.objects.create_user(email="h2@t.com", password="x",
+                                            nombre="Uno", apellido="Real", division=self.division)
+        self.org = User.objects.create_user(email="org@t.com", password="x",
+                                             nombre="Orga", apellido="X", genero="OTRO",
+                                             tipo_usuario="ORGANIZER")
+        self.admin = User.objects.create_user(email="adm@t.com", password="x",
+                                              nombre="Adm", apellido="In", genero="OTRO",
+                                              tipo_usuario="ADMIN", is_staff=True)
+
+    def test_organizador_no_puede_fusionar_reales(self):
+        self.client.force_login(self.org)
+        self.client.post(reverse('accounts:duplicados'),
+                         {'canonical_id': self.p1.id, 'source_ids': [self.p2.id]})
+        self.p2.refresh_from_db()
+        self.assertTrue(self.p2.is_active)            # no se fusionó
+        self.assertIsNone(self.p2.merged_into_id)
+
+    def test_admin_si_puede_y_se_audita(self):
+        from accounts.models import MergeAuditLog
+        self.client.force_login(self.admin)
+        self.client.post(reverse('accounts:duplicados'),
+                         {'canonical_id': self.p1.id, 'source_ids': [self.p2.id]})
+        self.p2.refresh_from_db()
+        self.assertFalse(self.p2.is_active)
+        self.assertEqual(self.p2.merged_into_id, self.p1.id)
+        log = MergeAuditLog.objects.filter(source_id=self.p2.id, target=self.p1).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.actor_id, self.admin.id)
+
+    def test_login_throttle(self):
+        from django.core.cache import cache
+        cache.set('login_fails_127.0.0.1', 20, 600)
+        resp = self.client.post(reverse('accounts:login'),
+                                {'username': 'h1@t.com', 'password': 'x'})
+        self.assertContains(resp, "Demasiados intentos")

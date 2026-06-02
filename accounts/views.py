@@ -123,9 +123,16 @@ class VerifyEmailView(FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
+        from django.core.cache import cache
         user_id = self.request.session.get('verification_user_id')
         user = CustomUser.objects.get(id=user_id)
         code = form.cleaned_data['code']
+
+        # Throttle anti fuerza-bruta del código de 6 dígitos: máx 8 intentos / 15 min (TP-21).
+        attempts_key = f"verify_attempts_{user_id}"
+        if cache.get(attempts_key, 0) >= 8:
+            form.add_error('code', 'Demasiados intentos. Pedí un código nuevo e intentá más tarde.')
+            return self.form_invalid(form)
 
         if user.verification_code == code:
             user.is_active = True
@@ -138,6 +145,7 @@ class VerifyEmailView(FormView):
             del self.request.session['verification_user_id']
             return super().form_valid(form)
         else:
+            cache.set(attempts_key, cache.get(attempts_key, 0) + 1, 900)
             form.add_error('code', 'Código incorrecto')
             return self.form_invalid(form)
 
@@ -722,10 +730,20 @@ class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super().get_initial()
 
     def form_valid(self, form):
+        from .models import MergeAuditLog
         dummy_user = form.cleaned_data['dummy_user']
         real_user = form.cleaned_data['real_user']
+        snap = {
+            'source_id': dummy_user.id, 'source_email': dummy_user.email or '',
+            'source_nombre': dummy_user.full_name, 'source_was_dummy': dummy_user.is_dummy,
+        }
         try:
             merge_users(dummy_user, real_user)
+            MergeAuditLog.objects.create(
+                actor=self.request.user, actor_email=self.request.user.email or '',
+                target=real_user, target_email=real_user.email or '',
+                target_nombre=real_user.full_name, **snap,
+            )
             messages.success(self.request, f"¡Éxito! El historial de {dummy_user.full_name} ha sido traspasado a {real_user.full_name}.")
         except Exception as e:
             messages.error(self.request, f"Error al fusionar jugadores: {str(e)}")
@@ -764,16 +782,41 @@ class PosiblesDuplicadosView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
             messages.error(request, "La cuenta principal no existe.")
             return redirect('accounts:duplicados')
 
+        from .models import MergeAuditLog
+        es_admin = request.user.tipo_usuario == 'ADMIN' or request.user.is_staff
+
         fusionadas = 0
         for sid in source_ids:
             if str(sid) == str(canonical_id):
                 continue
             try:
                 source = CustomUser.objects.get(pk=sid)
-                merge_users(source, target)
-                fusionadas += 1
             except CustomUser.DoesNotExist:
                 continue
+
+            # Seguridad (TP-21): fusionar una cuenta REAL la puede hacer solo un admin.
+            # Los organizadores solo pueden consolidar dummies.
+            if not source.is_dummy and not es_admin:
+                messages.error(
+                    request,
+                    f"Solo un administrador puede fusionar cuentas reales (ej: {source.full_name}). "
+                    "Como organizador podés consolidar cuentas dummy."
+                )
+                continue
+
+            # Capturar datos del origen ANTES de fusionar (si es dummy, se borra).
+            snap = {
+                'source_id': source.id, 'source_email': source.email or '',
+                'source_nombre': source.full_name, 'source_was_dummy': source.is_dummy,
+            }
+            try:
+                merge_users(source, target)
+                fusionadas += 1
+                MergeAuditLog.objects.create(
+                    actor=request.user, actor_email=request.user.email or '',
+                    target=target, target_email=target.email or '',
+                    target_nombre=target.full_name, **snap,
+                )
             except Exception as e:
                 messages.error(request, f"No se pudo fusionar una cuenta: {e}")
 
