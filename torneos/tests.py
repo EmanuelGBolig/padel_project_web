@@ -671,7 +671,7 @@ class PlacaRedesTests(TestCase):
         html = self.client.get(url).content.decode()
         self.assertIn("Inscripción abierta", html)
         self.assertIn("Abierto Placa", html)
-        self.assertIn("¡Quedan 16 cupos!", html)
+        self.assertIn("¡Quedan pocos cupos!", html)
 
     def test_placa_default_por_estado(self):
         # Torneo ABIERTO sin ?tipo -> anuncio

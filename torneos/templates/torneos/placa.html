@@ -125,7 +125,7 @@
           {% if placa.sede or placa.ciudad %}<div class="r"><span class="i">📍</span> {{ placa.sede }}{% if placa.sede and placa.ciudad %} · {% endif %}{{ placa.ciudad }}</div>{% endif %}
           {% if placa.premio %}<div class="r"><span class="i">🏆</span> {{ placa.premio }}</div>{% endif %}
         </div>
-        {% if placa.cupos_disponibles > 0 %}<span class="alert">🔥 ¡Quedan {{ placa.cupos_disponibles }} cupos!</span>{% endif %}
+        {% if placa.cupos_disponibles > 0 %}<span class="alert">🔥 ¡Quedan pocos cupos!</span>{% endif %}
       </div>
       <div class="foot">
         <div class="cta">Inscribite en<br><b>{{ placa.url_label }}</b><small>Anotate con tu pareja</small></div>
