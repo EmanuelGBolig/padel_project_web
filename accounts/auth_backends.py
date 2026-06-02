@@ -49,7 +49,12 @@ class MergedAccountBackend(ModelBackend):
         if canonica.pk == user.pk:
             return None  # cadena rota; no hay canónica distinta
 
-        # Validamos contra la contraseña de la cuenta canónica.
-        if canonica.check_password(password) and self.user_can_authenticate(canonica):
+        if not self.user_can_authenticate(canonica):
+            return None
+
+        # Aceptamos la contraseña de la cuenta canónica O la contraseña original
+        # de la cuenta vieja (más amable: si recordás cualquiera de tus claves,
+        # entrás igual). En ambos casos se ingresa a la cuenta canónica.
+        if canonica.check_password(password) or user.check_password(password):
             return canonica
         return None

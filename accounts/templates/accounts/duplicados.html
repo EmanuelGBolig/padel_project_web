@@ -34,7 +34,7 @@
                                 <tbody>
                                     {% for u in g.usuarios %}
                                         <tr>
-                                            <td><input type="radio" name="canonical_id" value="{{ u.id }}" class="radio radio-primary radio-sm" {% if u.id == g.sugerido_id %}checked{% endif %} {% if u.is_dummy %}disabled title="Un dummy no puede ser la cuenta principal"{% endif %}></td>
+                                            <td><input type="radio" name="canonical_id" value="{{ u.id }}" class="radio radio-primary radio-sm" {% if u.id == g.sugerido_id %}checked{% endif %}></td>
                                             <td><input type="checkbox" name="source_ids" value="{{ u.id }}" class="checkbox checkbox-sm" checked></td>
                                             <td class="font-medium whitespace-nowrap">{{ u.full_name }}</td>
                                             <td class="text-xs opacity-70">{{ u.email }}</td>

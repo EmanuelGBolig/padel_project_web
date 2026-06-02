@@ -292,9 +292,16 @@ class MultiLoginCuentasFusionadasTests(TestCase):
         self.assertIsNotNone(u)
         self.assertEqual(u.pk, self.p1.pk)
 
-    def test_login_con_mail_viejo_y_pass_vieja_falla(self):
+    def test_login_con_mail_viejo_y_pass_vieja_tambien_entra(self):
+        # TP-20: la contraseña original de la cuenta vieja también sirve (más amable).
         from django.contrib.auth import authenticate
-        self.assertIsNone(authenticate(None, username="vieja@t.com", password="secret2"))
+        u = authenticate(None, username="vieja@t.com", password="secret2")
+        self.assertIsNotNone(u)
+        self.assertEqual(u.pk, self.p1.pk)
+
+    def test_login_con_mail_viejo_y_pass_incorrecta_falla(self):
+        from django.contrib.auth import authenticate
+        self.assertIsNone(authenticate(None, username="vieja@t.com", password="no-es"))
 
     def test_login_normal_canonica_sigue_andando(self):
         from django.contrib.auth import authenticate
@@ -313,9 +320,14 @@ class MultiLoginCuentasFusionadasTests(TestCase):
         self.assertEqual(u.pk, self.p1.pk)
 
     def test_client_login_con_cualquier_mail(self):
+        # Entra con el mail viejo y la pass de la principal...
         self.assertTrue(self.client.login(username="vieja@t.com", password="secret1"))
         self.client.logout()
-        self.assertFalse(self.client.login(username="vieja@t.com", password="secret2"))
+        # ...y también con el mail viejo y su propia pass vieja.
+        self.assertTrue(self.client.login(username="vieja@t.com", password="secret2"))
+        self.client.logout()
+        # Una pass incorrecta no entra.
+        self.assertFalse(self.client.login(username="vieja@t.com", password="no-es"))
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -376,3 +388,33 @@ class MergeColisionEquipoTests(TestCase):
         p2.refresh_from_db()
         self.assertFalse(p2.is_active)
         self.assertEqual(p2.merged_into_id, p1.id)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class MergeDummyADummyTests(TestCase):
+    """TP-20: consolidar dos cuentas dummy en una; rechazar real->dummy."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.division = Division.objects.create(nombre="Novena", orden=9)
+
+    def _p(self, email, dummy=False):
+        return User.objects.create_user(
+            email=email, password="x", nombre="Carlos", apellido="Luzardi",
+            genero="MASCULINO", division=self.division, is_dummy=dummy)
+
+    def test_merge_dummy_en_dummy_consolida(self):
+        from accounts.utils import merge_users
+        d1 = self._p("dummy_a@padel.local", dummy=True)   # principal
+        d2 = self._p("dummy_b@padel.local", dummy=True)   # se fusiona
+        merge_users(d2, d1)
+        self.assertFalse(User.objects.filter(pk=d2.pk).exists())  # dummy origen borrado
+        self.assertTrue(User.objects.filter(pk=d1.pk).exists())   # principal queda
+
+    def test_no_permite_real_en_dummy(self):
+        from accounts.utils import merge_users
+        real = self._p("real@padel.local", dummy=False)
+        dummy = self._p("dummy_c@padel.local", dummy=True)
+        with self.assertRaises(ValueError):
+            merge_users(real, dummy)

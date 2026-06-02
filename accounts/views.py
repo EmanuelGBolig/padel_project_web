@@ -51,6 +51,23 @@ class CustomLoginView(LoginView):
     authentication_form = CustomLoginForm
     redirect_authenticated_user = True
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # TP-20: si entró con el mail de una cuenta fusionada, avisarle que se
+        # unificaron sus cuentas (entró a la principal, con historial/ranking completo).
+        try:
+            typed = (form.cleaned_data.get('username') or '').strip().lower()
+            user = form.get_user()
+            if user and typed and typed != (user.email or '').strip().lower():
+                messages.info(
+                    self.request,
+                    "Unificamos tus cuentas: entraste a tu cuenta principal, "
+                    "así tenés tu historial y ranking completos."
+                )
+        except Exception:
+            pass
+        return response
+
     def form_invalid(self, form):
         from django.shortcuts import redirect
         if form.errors.get('__all__'):

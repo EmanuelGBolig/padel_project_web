@@ -176,12 +176,15 @@ class CustomLoginForm(AuthenticationForm):
                 User = get_user_model()
                 try:
                     user = User.objects.get(email__iexact=username)
-                    # Cuenta fusionada (TP-20): el mail es válido pero la contraseña
-                    # de esta cuenta vieja ya no sirve; hay que usar la de la principal.
+                    # Cuenta fusionada (TP-20): el mail es válido. Unificamos tus
+                    # cuentas para juntar tu historial y ranking. Podés entrar con este
+                    # mismo mail usando la contraseña de cualquiera de tus cuentas; si no
+                    # recordás ninguna, usá "¿Olvidaste tu contraseña?".
                     if user.merged_into_id:
                         raise ValidationError(
-                            "Esta cuenta se unificó con otra. Entrá con este mismo mail "
-                            "pero usando la contraseña de tu cuenta principal.",
+                            "Unificamos tus cuentas para juntar tu historial y ranking. "
+                            "Entrá con este mismo mail, pero la contraseña no coincide. "
+                            "Probá con la de tu cuenta principal o usá “¿Olvidaste tu contraseña?”.",
                             code='merged',
                         )
                     if user.check_password(password):

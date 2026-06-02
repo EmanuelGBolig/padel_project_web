@@ -780,8 +780,10 @@ def merge_users(dummy_user, real_user):
     from django.db import transaction
     from equipos.models import Equipo
 
-    if real_user.is_dummy:
-        raise ValueError("El usuario destino debe ser una cuenta Real.")
+    # Se permite dummy->dummy (consolidar dummies) y *->real. Lo único que no:
+    # meter una cuenta REAL dentro de una dummy.
+    if real_user.is_dummy and not dummy_user.is_dummy:
+        raise ValueError("No se puede fusionar una cuenta real dentro de una cuenta dummy.")
     if dummy_user.pk == real_user.pk:
         raise ValueError("No se puede fusionar una cuenta consigo misma.")
 
