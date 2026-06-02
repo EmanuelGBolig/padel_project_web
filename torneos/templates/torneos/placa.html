@@ -22,12 +22,13 @@
   .placa{width:360px;aspect-ratio:9/16;border-radius:26px;overflow:hidden;position:relative;
     background:var(--base);color:var(--strong);box-shadow:0 20px 50px -16px rgba(0,0,0,.7);
     display:flex;flex-direction:column;padding:28px 26px;isolation:isolate}
-  .placa::before{content:"";position:absolute;inset:0;z-index:-2;
+  /* Fondos como divs reales (html2canvas renderiza mal los ::before/::after) */
+  .bg-grid{position:absolute;inset:0;z-index:-2;
     background-image:linear-gradient(var(--green-soft) 1px, transparent 1px), linear-gradient(90deg, var(--green-soft) 1px, transparent 1px);
     background-size:22px 22px;opacity:.5}
-  .placa::after{content:"";position:absolute;inset:0;z-index:-1;
+  .bg-glow{position:absolute;inset:0;z-index:-1;
     background:radial-gradient(120% 55% at 50% -8%, rgba(16,185,129,.34), transparent 55%)}
-  .p-glowbtm::after{background:radial-gradient(120% 55% at 50% -8%, rgba(16,185,129,.34), transparent 55%),radial-gradient(100% 40% at 50% 108%, rgba(16,185,129,.22), transparent 55%)}
+  .p-glowbtm .bg-glow{background:radial-gradient(120% 55% at 50% -8%, rgba(16,185,129,.34), transparent 55%),radial-gradient(100% 40% at 50% 108%, rgba(16,185,129,.22), transparent 55%)}
   /* barra de acento de marca arriba */
   .placa>.accent{position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--green),var(--green-2));z-index:1}
 
@@ -101,6 +102,8 @@
   </div>
 
   <div id="placa" class="placa {% if tipo == 'campeones' or tipo == 'app' %}p-glowbtm{% endif %}">
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
     <div class="accent"></div>
 
     {% if tipo == 'anuncio' %}

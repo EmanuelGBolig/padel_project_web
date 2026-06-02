@@ -1,6 +1,6 @@
-// Placas para redes (TP-placas): genera el QR y exporta la placa a PNG 1080×1920
-// (html2canvas, scale 3 sobre un nodo base de 360px). Compartir nativo en mobile
-// (Web Share API nivel 2) con fallback a descarga en desktop.
+// Placas para redes: genera el QR y exporta la placa a PNG 1080×1920 (html2canvas,
+// scale 3 sobre un nodo base de 360px). Compartir nativo en mobile (Web Share API)
+// con fallback a descarga. Robusto: si algo falla, resetea el botón y avisa.
 (function () {
   'use strict';
 
@@ -20,19 +20,27 @@
   var btnShare = document.getElementById('btn-share');
   var btnDownload = document.getElementById('btn-download');
 
-  function nombreArchivo() {
-    return 'todopadel-placa.png';
-  }
-
   function exportarBlob() {
+    if (typeof html2canvas !== 'function') {
+      return Promise.reject(new Error('No se cargó el generador de imagen. Revisá tu conexión y recargá la página.'));
+    }
+    var w = placa.offsetWidth || 360;
+    var h = placa.offsetHeight || 640;
     return html2canvas(placa, {
-      scale: 3,                 // 360px * 3 = 1080px de ancho -> 1080×1920
-      backgroundColor: null,
-      useCORS: true,
+      scale: 3,                 // 360px * 3 = 1080px -> 1080×1920
+      backgroundColor: '#15191E',
+      // Sin useCORS: las imágenes (logo, QR) son del mismo origen; forzar crossorigin
+      // las hacía fallar y colgaba la captura ~15s.
       logging: false,
+      width: w, height: h, windowWidth: w, windowHeight: h,
+      imageTimeout: 8000,
     }).then(function (canvas) {
-      return new Promise(function (resolve) {
-        canvas.toBlob(function (b) { resolve(b); }, 'image/png');
+      return new Promise(function (resolve, reject) {
+        try {
+          canvas.toBlob(function (b) {
+            b ? resolve(b) : reject(new Error('No se pudo crear el PNG.'));
+          }, 'image/png');
+        } catch (e) { reject(e); }
       });
     });
   }
@@ -40,7 +48,7 @@
   function descargar(blob) {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = nombreArchivo();
+    a.download = 'todopadel-placa.png';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -53,8 +61,11 @@
       var txt = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Generando…';
-      Promise.resolve(fn())
-        .catch(function () {})
+      Promise.resolve()
+        .then(fn)
+        .catch(function (e) {
+          alert('No se pudo generar la imagen.\n' + (e && e.message ? e.message : e));
+        })
         .then(function () {
           btn.disabled = false;
           btn.textContent = txt;
@@ -64,19 +75,18 @@
 
   conEstado(btnShare, function () {
     return exportarBlob().then(function (blob) {
-      if (!blob) return;
-      var file = new File([blob], nombreArchivo(), { type: 'image/png' });
+      var file = new File([blob], 'todopadel-placa.png', { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         return navigator.share({ files: [file], title: 'TodoPadel' }).catch(function (e) {
           if (e && e.name === 'AbortError') return;   // el usuario canceló
-          descargar(blob);
+          descargar(blob);                            // cualquier otro error -> descarga
         });
       }
-      descargar(blob);
+      descargar(blob);                                // desktop / sin Web Share -> descarga
     });
   });
 
   conEstado(btnDownload, function () {
-    return exportarBlob().then(function (blob) { if (blob) descargar(blob); });
+    return exportarBlob().then(descargar);
   });
 })();
