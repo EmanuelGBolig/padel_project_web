@@ -897,6 +897,29 @@
 {{ block.super }}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<style>
+    /* Alinear select2 al look de DaisyUI (select-sm, tema del sitio) */
+    .select2-container .select2-selection--single{
+        height:2rem;min-height:2rem;
+        background-color:hsl(var(--b1));
+        border:1px solid hsl(var(--bc)/.2);
+        border-radius:var(--rounded-btn,.5rem);
+        display:flex;align-items:center;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered{
+        color:hsl(var(--bc));line-height:2rem;padding-left:.75rem;padding-right:2rem;font-size:.875rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder{color:hsl(var(--bc)/.5)}
+    .select2-container--default .select2-selection--single .select2-selection__arrow{height:1.9rem;right:.35rem}
+    .select2-container--default .select2-selection--single .select2-selection__clear{color:hsl(var(--bc)/.5);margin-right:.4rem}
+    .select2-container--open .select2-selection--single{border-color:hsl(var(--p))}
+    .select2-dropdown{background-color:hsl(var(--b1));border:1px solid hsl(var(--bc)/.2);color:hsl(var(--bc))}
+    .select2-container--default .select2-results__option{color:hsl(var(--bc));font-size:.875rem}
+    .select2-container--default .select2-results__option--highlighted[aria-selected]{background-color:hsl(var(--p));color:hsl(var(--pc))}
+    .select2-container--default .select2-search--dropdown .select2-search__field{
+        background-color:hsl(var(--b2));color:hsl(var(--bc));border:1px solid hsl(var(--bc)/.2);border-radius:.4rem;
+    }
+</style>
 <script>
     $(document).ready(function() {
         $('.select2-enable').select2({
