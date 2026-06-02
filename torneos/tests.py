@@ -638,3 +638,56 @@ class WalkoverAbandonoTests(TestCase):
         p = form.save()
         self.assertEqual(p.ganador, self.e1)
         self.assertIn("abandono", p.resultado)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PlacaRedesTests(TestCase):
+    """TP-placas: kit de placas 9:16 para redes."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.torneo = Torneo.objects.create(
+            nombre="Abierto Placa", division=self.division, categoria='X',
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO,
+            sede_nombre="Club Test", ciudad="Mar del Plata", premio="Trofeos")
+
+    def _eq(self):
+        c = getattr(self, '_c', 0) + 1
+        self._c = c
+        j1 = User.objects.create_user(email=f"pl{c}a@t.com", password="x", nombre="Gabi", apellido="Tesoriere", division=self.division)
+        j2 = User.objects.create_user(email=f"pl{c}b@t.com", password="x", nombre="Marta", apellido="Lopez", division=self.division)
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def test_placa_app_generica(self):
+        html = self.client.get(reverse('torneos:placa_app')).content.decode()
+        self.assertIn("Tu pádel", html)
+        self.assertIn("js/placa.js", html)
+        self.assertIn("html2canvas", html)
+
+    def test_placa_anuncio(self):
+        url = reverse('torneos:placa', kwargs={'pk': self.torneo.pk}) + '?tipo=anuncio'
+        html = self.client.get(url).content.decode()
+        self.assertIn("Inscripción abierta", html)
+        self.assertIn("Abierto Placa", html)
+        self.assertIn("¡Quedan 16 cupos!", html)
+
+    def test_placa_default_por_estado(self):
+        # Torneo ABIERTO sin ?tipo -> anuncio
+        html = self.client.get(reverse('torneos:placa', kwargs={'pk': self.torneo.pk})).content.decode()
+        self.assertIn("Inscripción abierta", html)
+
+    def test_placa_campeones(self):
+        eq = self._eq()
+        self.torneo.estado = Torneo.Estado.FINALIZADO
+        self.torneo.ganador_del_torneo = eq
+        self.torneo.save()
+        Partido.objects.create(
+            torneo=self.torneo, ronda=2, orden_partido=1,
+            equipo1=eq, equipo2=self._eq(), ganador=eq, resultado="6-3 6-4")
+        url = reverse('torneos:placa', kwargs={'pk': self.torneo.pk}) + '?tipo=campeones'
+        html = self.client.get(url).content.decode()
+        self.assertIn("Campeones", html)
+        self.assertIn("6-3 6-4", html)
+        self.assertIn("Tesoriere", html)

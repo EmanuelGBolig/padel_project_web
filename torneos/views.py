@@ -1111,6 +1111,124 @@ def _org_data_para_alta(user):
     }
 
 
+def _iniciales(texto, n=2):
+    palabras = [p for p in (texto or '').split() if p]
+    return ''.join(p[0] for p in palabras[:n]).upper() or '?'
+
+
+def _equipo_nombres(equipo):
+    if not equipo:
+        return ''
+    js = [j for j in (equipo.jugador1, equipo.jugador2) if j]
+    return ' & '.join(j.full_name for j in js) if js else (equipo.nombre or '')
+
+
+def _equipo_iniciales(equipo):
+    out = []
+    if equipo:
+        for j in (equipo.jugador1, equipo.jugador2):
+            if j:
+                out.append(((j.nombre or ' ')[0] + (j.apellido or ' ')[0]).upper())
+    return out or ['?']
+
+
+class PlacaView(TemplateView):
+    """Placas para redes 9:16 (TP-placas). Renderiza una placa a tamaño real para
+    exportar a 1080×1920 PNG en el cliente (html2canvas). tipo: anuncio|campeones|vivo|app."""
+    template_name = 'torneos/placa.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pk = self.kwargs.get('pk')
+
+        if not pk:
+            context['tipo'] = 'app'
+            context['placa'] = {'url_label': 'todopadel.club'}
+            context['share_url'] = self.request.build_absolute_uri('/')
+            return context
+
+        torneo = get_object_or_404(
+            Torneo.objects.select_related(
+                'division', 'organizacion',
+                'ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2',
+            ), pk=pk
+        )
+        tipo = self.request.GET.get('tipo', '')
+        if tipo not in ('anuncio', 'campeones', 'vivo', 'app'):
+            tipo = {'AB': 'anuncio', 'EJ': 'vivo', 'FN': 'campeones'}.get(torneo.estado, 'anuncio')
+
+        org = torneo.organizacion
+        placa = {
+            'org_nombre': org.nombre if org else 'TodoPadel',
+            'org_iniciales': _iniciales(org.nombre) if org else 'TP',
+            'org_logo': org.logo.url if (org and org.logo) else '',
+            'titulo': torneo.nombre,
+            'categoria': torneo.get_categoria_display(),
+            'division': torneo.division.nombre if torneo.division else 'Libre',
+            'fecha': torneo.fecha_inicio,
+            'sede': torneo.sede_nombre or '',
+            'ciudad': torneo.ciudad or '',
+            'premio': torneo.premio or '',
+            'cupos_disponibles': torneo.cupos_disponibles,
+            'cupos_totales': torneo.cupos_totales,
+            'url_label': 'todopadel.club',
+        }
+
+        if tipo == 'campeones':
+            eq = torneo.ganador_del_torneo
+            placa['campeon_nombres'] = _equipo_nombres(eq)
+            placa['campeon_iniciales'] = _equipo_iniciales(eq)
+            final = torneo.partidos.filter(
+                ganador=eq, siguiente_partido__isnull=True
+            ).order_by('-ronda').first() if eq else None
+            placa['score'] = (final.resultado if final else '') or ''
+
+        if tipo == 'vivo':
+            placa['cruce'] = self._featured_match(torneo)
+
+        context['tipo'] = tipo
+        context['torneo'] = torneo
+        context['placa'] = placa
+        context['share_url'] = self.request.build_absolute_uri(torneo.get_absolute_url())
+        return context
+
+    def _featured_match(self, torneo):
+        """Elige un partido destacado para la placa 'en vivo' (mejor esfuerzo)."""
+        from .models import PartidoGrupo
+
+        def sets_pg(p, lado):
+            vals = []
+            for i in (1, 2, 3):
+                v = getattr(p, f'e{lado}_set{i}')
+                if v is not None:
+                    vals.append(v)
+            return vals
+
+        # 1) Partido de bracket pendiente con ambos equipos, más próximo
+        pe = torneo.partidos.filter(
+            ganador__isnull=True, equipo1__isnull=False, equipo2__isnull=False
+        ).select_related('equipo1', 'equipo2').order_by('fecha_hora').first()
+        if pe:
+            return {
+                'ronda': pe.nombre_ronda,
+                'e1': pe.equipo1.nombre, 'e2': pe.equipo2.nombre,
+                's1': (pe.sets_local or [])[:3], 's2': (pe.sets_visitante or [])[:3],
+                'hora': pe.fecha_hora,
+            }
+        # 2) Partido de zona pendiente
+        pg = PartidoGrupo.objects.filter(
+            grupo__torneo=torneo, ganador__isnull=True
+        ).select_related('grupo', 'equipo1', 'equipo2').order_by('fecha_hora').first()
+        if pg:
+            return {
+                'ronda': pg.grupo.nombre,
+                'e1': pg.equipo1.nombre, 'e2': pg.equipo2.nombre,
+                's1': sets_pg(pg, 1), 's2': sets_pg(pg, 2),
+                'hora': pg.fecha_hora,
+            }
+        return None
+
+
 class PreviewEstructuraView(AdminRequiredMixin, View):
     """TP-17.3: devuelve la proyección de estructura para la vista previa del alta.
 

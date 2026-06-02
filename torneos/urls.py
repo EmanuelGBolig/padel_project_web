@@ -18,6 +18,9 @@ urlpatterns = [
         'abiertos/', views.TorneoAbiertoListView.as_view(), name='abierto_list'
     ),
     path('ciudad/<str:ciudad>/', views.TorneoPorCiudadView.as_view(), name='ciudad'),
+    # Placas para redes (9:16)
+    path('placa/', views.PlacaView.as_view(), name='placa_app'),
+    path('<int:pk>/placa/', views.PlacaView.as_view(), name='placa'),
     # Circuitos (TP-12)
     path('circuitos/', views.CircuitoListView.as_view(), name='circuito_list'),
     path('circuito/<int:pk>/', views.CircuitoDetailView.as_view(), name='circuito_detail'),

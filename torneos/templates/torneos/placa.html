@@ -1,0 +1,195 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Placa para redes — TodoPadel</title>
+<style>
+  :root{
+    --green:#10B981; --green-2:#34d399; --green-soft:rgba(16,185,129,.14); --green-border:rgba(16,185,129,.4);
+    --base:#10151B; --line:#2A313A; --text:#A6ADBB; --strong:#ECF0F3; --muted:#7A828C; --live:#FF5861;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0C1014;color:var(--text);min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.4;
+    display:flex;flex-direction:column;align-items:center;padding:1rem 1rem 6rem}
+  a{color:var(--green-2);text-decoration:none}
+  .topbar{width:100%;max-width:420px;display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+  .topbar .back{color:var(--text);font-size:.9rem}
+
+  /* ===== PLACA 9:16 (base 360 -> export x3 = 1080x1920) ===== */
+  .placa{width:360px;aspect-ratio:9/16;border-radius:26px;overflow:hidden;position:relative;
+    background:var(--base);color:var(--strong);box-shadow:0 20px 50px -16px rgba(0,0,0,.7);
+    display:flex;flex-direction:column;padding:28px 26px;isolation:isolate}
+  .placa::before{content:"";position:absolute;inset:0;z-index:-2;
+    background-image:linear-gradient(var(--green-soft) 1px, transparent 1px), linear-gradient(90deg, var(--green-soft) 1px, transparent 1px);
+    background-size:22px 22px;opacity:.5}
+  .placa::after{content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(120% 60% at 50% -5%, rgba(16,185,129,.28), transparent 55%)}
+  .p-glowbtm::after{background:radial-gradient(120% 60% at 50% -5%, rgba(16,185,129,.28), transparent 55%),radial-gradient(100% 40% at 50% 105%, rgba(16,185,129,.18), transparent 55%)}
+
+  .brand-top{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:.9rem;color:var(--strong)}
+  .brand-top .m{width:26px;height:26px;border-radius:7px;background:var(--green);display:grid;place-items:center;color:#06281f;font-weight:900;font-size:.8rem}
+  .org{display:flex;align-items:center;gap:.55rem;font-size:.9rem;color:var(--text)}
+  .org .logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#1f6f57,#0c3527);display:grid;place-items:center;font-weight:900;color:var(--green-2);font-size:.85rem;border:1px solid var(--green-border)}
+
+  .grow{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.8rem}
+  .badge{align-self:flex-start;display:inline-flex;align-items:center;gap:.4rem;background:var(--green);color:#06281f;
+    font-weight:900;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.4rem .75rem;border-radius:999px}
+  .badge.live{background:rgba(255,88,97,.16);color:var(--live);border:1px solid rgba(255,88,97,.5)}
+  .dot{width:8px;height:8px;border-radius:999px;background:var(--live)}
+  .title{font-size:2rem;line-height:1.05;font-weight:900;color:#fff;letter-spacing:-.01em}
+  .chips{display:flex;gap:.4rem;flex-wrap:wrap}
+  .chip{font-size:.74rem;font-weight:700;padding:.28rem .6rem;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--text)}
+  .info{display:flex;flex-direction:column;gap:.55rem;margin-top:.2rem}
+  .info .r{display:flex;align-items:center;gap:.6rem;font-size:.95rem;color:var(--strong)}
+  .info .r .i{width:22px;text-align:center;opacity:.9}
+  .alert{align-self:flex-start;display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,88,97,.14);border:1px solid rgba(255,88,97,.45);
+    color:#ffb4b8;font-weight:800;font-size:.85rem;padding:.45rem .75rem;border-radius:10px}
+
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-top:.4rem}
+  .cta{font-weight:800;font-size:.95rem;color:#fff}
+  .cta b{color:var(--green-2)}
+  .cta small{display:block;font-size:.74rem;color:var(--muted);font-weight:600;margin-top:.1rem}
+  .qr{width:64px;height:64px;border-radius:10px;background:#fff;padding:5px;flex:0 0 auto}
+  .qr img,.qr svg{display:block;width:100%;height:100%}
+
+  .champ-photo{height:154px;border-radius:16px;border:1px solid var(--green-border);
+    background:linear-gradient(135deg,#14241d,#0c1714);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .champ-photo .av{width:80px;height:80px;border-radius:999px;background:#0e1a15;border:3px solid var(--green);display:grid;place-items:center;font-size:1.6rem;font-weight:900;color:var(--green-2)}
+  .champ-photo .av:nth-child(2){margin-left:-22px}
+  .trophy{font-size:2.6rem}
+  .names{font-size:1.55rem;font-weight:900;color:#fff;line-height:1.15}
+  .score{align-self:center;font-size:1.5rem;font-weight:900;color:#06281f;background:var(--green);padding:.25rem 1rem;border-radius:12px}
+
+  .vs{display:flex;flex-direction:column;gap:.5rem;margin-top:.3rem}
+  .team{display:flex;align-items:center;justify-content:space-between;gap:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:.7rem .85rem}
+  .team .nm{font-weight:800;color:#fff;font-size:1rem}
+  .team .sc{display:flex;gap:.35rem}
+  .team .sc span{width:30px;height:34px;border-radius:8px;background:#0c1116;border:1px solid var(--line);display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:var(--strong)}
+
+  .big-logo{font-size:2.6rem;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.05}
+  .big-logo span{color:var(--green-2)}
+  .tagline{font-size:1.2rem;font-weight:800;color:var(--strong)}
+  .props{display:flex;flex-direction:column;gap:.6rem;margin-top:.3rem}
+  .props .p{display:flex;align-items:center;gap:.6rem;font-size:.98rem;color:var(--strong)}
+  .props .p .ic{width:30px;height:30px;border-radius:9px;background:var(--green-soft);border:1px solid var(--green-border);display:grid;place-items:center;color:var(--green-2);font-weight:900}
+  .ctas2{display:flex;flex-direction:column;gap:.5rem;margin-top:.2rem}
+  .ctas2 .b1{background:var(--green);color:#06281f;font-weight:900;text-align:center;padding:.6rem;border-radius:12px;font-size:.95rem}
+  .ctas2 .b2{border:1px solid var(--green-border);color:var(--green-2);font-weight:800;text-align:center;padding:.6rem;border-radius:12px;font-size:.95rem}
+
+  /* Barra de acciones */
+  .actions{position:fixed;bottom:0;left:0;right:0;background:#0A0D11;border-top:1px solid var(--line);
+    display:flex;gap:.6rem;justify-content:center;padding:.8rem 1rem;z-index:10}
+  .btn{border:none;border-radius:12px;padding:.7rem 1.1rem;font-weight:800;font-size:.95rem;cursor:pointer}
+  .btn-primary{background:var(--green);color:#06281f}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--strong)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:.8rem;text-align:center;max-width:360px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="{% if torneo %}{% url 'torneos:detail' torneo.pk %}{% else %}/{% endif %}">← Volver</a>
+    <span style="font-size:.8rem;color:var(--muted)">Placa para Historia / Estado</span>
+  </div>
+
+  <div id="placa" class="placa {% if tipo == 'campeones' or tipo == 'app' %}p-glowbtm{% endif %}">
+
+    {% if tipo == 'anuncio' %}
+      <div class="org"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</div>
+      <div class="grow">
+        <span class="badge">● Inscripción abierta</span>
+        <div class="title">{{ placa.titulo }}</div>
+        <div class="chips">
+          <span class="chip">{{ placa.division }}</span>
+          <span class="chip">{{ placa.categoria }}</span>
+          <span class="chip">{{ placa.cupos_totales }} parejas</span>
+        </div>
+        <div class="info">
+          <div class="r"><span class="i">📅</span> {{ placa.fecha|date:"l j \d\e F" }}</div>
+          {% if placa.sede or placa.ciudad %}<div class="r"><span class="i">📍</span> {{ placa.sede }}{% if placa.sede and placa.ciudad %} · {% endif %}{{ placa.ciudad }}</div>{% endif %}
+          {% if placa.premio %}<div class="r"><span class="i">🏆</span> {{ placa.premio }}</div>{% endif %}
+        </div>
+        {% if placa.cupos_disponibles > 0 %}<span class="alert">🔥 ¡Quedan {{ placa.cupos_disponibles }} cupos!</span>{% endif %}
+      </div>
+      <div class="foot">
+        <div class="cta">Inscribite en<br><b>{{ placa.url_label }}</b><small>Anotate con tu pareja</small></div>
+        <div class="qr" id="qr" data-url="{{ share_url }}"></div>
+      </div>
+
+    {% elif tipo == 'campeones' %}
+      <div class="brand-top"><span class="m">P</span> Todo<span style="color:var(--green-2)">Padel</span></div>
+      <div class="grow" style="text-align:center;align-items:center">
+        <div class="trophy">🏆</div>
+        <span class="badge" style="align-self:center">Campeones</span>
+        <div class="champ-photo" style="width:100%">
+          {% for ini in placa.campeon_iniciales %}<div class="av">{{ ini }}</div>{% endfor %}
+        </div>
+        <div class="names">{{ placa.campeon_nombres|default:"Campeones" }}</div>
+        {% if placa.score %}<div class="score">{{ placa.score }}</div>{% endif %}
+        <div style="font-size:.95rem;color:var(--text)">{{ placa.titulo }} · {{ placa.division }}</div>
+      </div>
+      <div class="foot" style="justify-content:center">
+        <div class="cta" style="text-align:center">Mirá el cuadro completo en <b>{{ placa.url_label }}</b></div>
+      </div>
+
+    {% elif tipo == 'vivo' %}
+      <div class="org"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</div>
+      <div class="grow">
+        <span class="badge live"><span class="dot"></span> En vivo</span>
+        <div class="title" style="font-size:1.6rem">{% if placa.cruce %}{{ placa.cruce.ronda }}{% else %}{{ placa.titulo }}{% endif %}</div>
+        <div class="chips"><span class="chip">{{ placa.division }}</span><span class="chip">{{ placa.categoria }}</span></div>
+        {% if placa.cruce %}
+          <div class="vs">
+            <div class="team">
+              <span class="nm">{{ placa.cruce.e1 }}</span>
+              <span class="sc">{% for s in placa.cruce.s1 %}<span>{{ s }}</span>{% endfor %}</span>
+            </div>
+            <div class="team">
+              <span class="nm">{{ placa.cruce.e2 }}</span>
+              <span class="sc">{% for s in placa.cruce.s2 %}<span>{{ s }}</span>{% endfor %}</span>
+            </div>
+          </div>
+        {% else %}
+          <div class="info"><div class="r"><span class="i">🎾</span> Seguí el torneo en vivo</div></div>
+        {% endif %}
+      </div>
+      <div class="foot">
+        <div class="cta">Seguilo en vivo<br><b>{{ placa.url_label }}</b><small>{{ placa.titulo }}</small></div>
+        <div class="qr" id="qr" data-url="{{ share_url }}"></div>
+      </div>
+
+    {% else %}{# app / genérica #}
+      <div class="brand-top"><span class="m">P</span> Todo<span style="color:var(--green-2)">Padel</span></div>
+      <div class="grow">
+        <div class="big-logo">Tu pádel,<br>sin <span>Excel</span>.</div>
+        <div class="tagline">Torneos por categoría, de verdad.</div>
+        <div class="props">
+          <div class="p"><span class="ic">✓</span> Zonas y llaves automáticas</div>
+          <div class="p"><span class="ic">✓</span> Ranking por categoría</div>
+          <div class="p"><span class="ic">✓</span> Resultados en vivo y difusión</div>
+        </div>
+        <div class="ctas2">
+          <div class="b1">Encontrá tu próximo torneo</div>
+          <div class="b2">¿Organizás? Creá el tuyo gratis</div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="cta"><b>{{ placa.url_label }}</b><small>Mar del Plata y toda Argentina</small></div>
+        <div class="qr" id="qr" data-url="{{ share_url }}"></div>
+      </div>
+    {% endif %}
+  </div>
+
+  <p class="hint">En el celular, “Compartir” abre el menú para postear directo a Instagram o WhatsApp. En la compu, se descarga el PNG (1080×1920).</p>
+
+  <div class="actions">
+    <button id="btn-share" class="btn btn-primary">Compartir / Descargar</button>
+    <button id="btn-download" class="btn btn-ghost">Descargar PNG</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script src="{% static 'js/placa.js' %}"></script>
+</body>
+</html>
