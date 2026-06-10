@@ -744,3 +744,59 @@ class PushEventosTests(TestCase):
         with patch('accounts.push.send_push_to_users') as m:
             _push_resultado(p, self.torneo)
         m.assert_not_called()
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ElegibilidadNotificacionesTests(TestCase):
+    """Filtros de 'compatibilidad' para notificar un torneo nuevo (email + push)."""
+
+    def setUp(self):
+        self.septima = Division.objects.create(nombre="Séptima", orden=7)
+        self.sexta = Division.objects.create(nombre="Sexta", orden=6)
+        self.octava = Division.objects.create(nombre="Octava", orden=8)
+        self.cuarta = Division.objects.create(nombre="Cuarta", orden=4)
+        self.torneo = Torneo.objects.create(
+            nombre="Abierto MDQ", division=self.septima, categoria='F',
+            ciudad="Mar del Plata",
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=3))
+
+    def _j(self, email, division, genero='FEMENINO', ciudad='', dummy=False):
+        return User.objects.create_user(
+            email=email, password="x", nombre="N", apellido="A",
+            genero=genero, division=division, ciudad=ciudad, is_dummy=dummy)
+
+    def test_filtros_completos(self):
+        from torneos.emails import jugadores_elegibles_para_torneo
+        ok_misma_div = self._j("a@t.com", self.septima, ciudad="Mar del Plata")
+        ok_div_arriba = self._j("b@t.com", self.sexta, ciudad="mar del plata")  # normaliza mayúsculas
+        ok_div_abajo = self._j("c@t.com", self.octava)                          # sin ciudad -> recibe igual
+        no_div_lejana = self._j("d@t.com", self.cuarta)                         # división muy lejos
+        no_genero = self._j("e@t.com", self.septima, genero='MASCULINO')        # torneo femenino
+        no_otra_ciudad = self._j("f@t.com", self.septima, ciudad="Córdoba")     # otra ciudad
+        no_dummy = self._j("g@t.com", self.septima, dummy=True)                 # dummy
+
+        ids = {j.id for j in jugadores_elegibles_para_torneo(self.torneo)}
+        self.assertIn(ok_misma_div.id, ids)
+        self.assertIn(ok_div_arriba.id, ids)
+        self.assertIn(ok_div_abajo.id, ids)
+        self.assertNotIn(no_div_lejana.id, ids)
+        self.assertNotIn(no_genero.id, ids)
+        self.assertNotIn(no_otra_ciudad.id, ids)
+        self.assertNotIn(no_dummy.id, ids)
+
+    def test_ciudad_con_tildes_matchea(self):
+        from torneos.emails import jugadores_elegibles_para_torneo
+        self.torneo.ciudad = "Córdoba"
+        self.torneo.save()
+        j = self._j("h@t.com", self.septima, ciudad="cordoba")  # sin tilde
+        ids = {x.id for x in jugadores_elegibles_para_torneo(self.torneo)}
+        self.assertIn(j.id, ids)
+
+    def test_torneo_sin_ciudad_no_filtra(self):
+        from torneos.emails import jugadores_elegibles_para_torneo
+        self.torneo.ciudad = ""
+        self.torneo.save()
+        j = self._j("i@t.com", self.septima, ciudad="Córdoba")
+        ids = {x.id for x in jugadores_elegibles_para_torneo(self.torneo)}
+        self.assertIn(j.id, ids)

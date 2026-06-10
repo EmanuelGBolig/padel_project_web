@@ -7,49 +7,41 @@ from django.utils.html import strip_tags
 logger = logging.getLogger(__name__)
 
 
-def notificar_nuevo_torneo(torneo):
-    """
-    Envía un email a todos los jugadores elegibles cuando se crea un nuevo torneo.
+def jugadores_elegibles_para_torneo(torneo):
+    """Jugadores 'compatibles' con un torneo, para notificarlos (email + push).
+
     Elegibilidad:
-    - tipo_usuario == PLAYER, is_active=True, is_dummy=False
-    - División dentro del rango ±1 del torneo (o cualquier división si el torneo es libre)
-    - Género compatible con la categoría del torneo
+    - tipo_usuario == PLAYER, is_active=True, is_dummy=False, con email.
+    - No inscriptos todavía en este torneo.
+    - Género compatible con la categoría (M→masculino, F→femenino, X→todos).
+    - División dentro de ±1 de la del torneo (o cualquiera si es libre).
+    - Ciudad: si el torneo tiene ciudad, se excluye a quienes cargaron una ciudad
+      DISTINTA (sin tildes/mayúsculas). Los que no cargaron ciudad reciben igual,
+      para no silenciar a la mayoría que aún no completó su perfil.
     """
-    from django.core.mail import send_mail, get_connection
     from django.db import models
     from accounts.models import CustomUser
+    from accounts.utils import _normalizar_nombre
     from torneos.models import Inscripcion
 
-    # 1. Obtener equipos ya inscritos en este torneo
     equipos_inscritos_ids = Inscripcion.objects.filter(torneo=torneo).values_list('equipo_id', flat=True)
 
-    # Usar Brevo para notificaciones de torneos (cupo de 300)
-    connection = get_connection('accounts.brevo_backend.BrevoBackend')
-
-    # 2. Filtrar jugadores base
     jugadores = CustomUser.objects.filter(
         tipo_usuario=CustomUser.TipoUsuario.PLAYER,
         is_active=True,
         is_dummy=False,
     ).exclude(email='')
 
-    # 3. Excluir jugadores que ya están inscritos (ya sea como jugador1 o jugador2)
     jugadores = jugadores.exclude(
         models.Q(equipos_como_jugador1__id__in=equipos_inscritos_ids) |
         models.Q(equipos_como_jugador2__id__in=equipos_inscritos_ids)
     )
 
-    logger.info(f"[emails] Torneo '{torneo.nombre}': {jugadores.count()} jugadores PLAYER elegibles (excluyendo ya inscritos).")
-
-    # --- Filtro por género / categoría ---
     if torneo.categoria == 'M':
         jugadores = jugadores.filter(genero='MASCULINO')
     elif torneo.categoria == 'F':
         jugadores = jugadores.filter(genero='FEMENINO')
 
-    logger.info(f"[emails] Tras filtro género ({torneo.get_categoria_display()}): {jugadores.count()} jugadores.")
-
-    # --- Filtro por división ---
     if torneo.division is not None:
         orden_torneo = torneo.division.orden
         jugadores = jugadores.filter(
@@ -57,15 +49,38 @@ def notificar_nuevo_torneo(torneo):
             division__orden__lte=orden_torneo + 1,
         )
 
-    logger.info(f"[emails] Tras filtro división ({torneo.division}): {jugadores.count()} jugadores elegibles.")
+    lista = list(jugadores)
 
-    if not jugadores.exists():
+    # --- Filtro por ciudad (en Python: comparación sin tildes/mayúsculas) ---
+    ciudad_torneo = _normalizar_nombre(getattr(torneo, 'ciudad', '') or '')
+    if ciudad_torneo:
+        lista = [
+            j for j in lista
+            if not (getattr(j, 'ciudad', '') or '').strip()
+            or _normalizar_nombre(j.ciudad) == ciudad_torneo
+        ]
+
+    return lista
+
+
+def notificar_nuevo_torneo(torneo):
+    """
+    Envía email + push a todos los jugadores elegibles cuando se crea un torneo.
+    (La elegibilidad vive en jugadores_elegibles_para_torneo.)
+    """
+    from django.core.mail import send_mail, get_connection
+
+    # Usar Brevo para notificaciones de torneos (cupo de 300)
+    connection = get_connection('accounts.brevo_backend.BrevoBackend')
+
+    lista_jugadores = jugadores_elegibles_para_torneo(torneo)
+    total_elegibles = len(lista_jugadores)
+    logger.info(f"[emails] Torneo '{torneo.nombre}': {total_elegibles} jugadores elegibles "
+                "(género + división ±1 + ciudad + no inscriptos).")
+
+    if not lista_jugadores:
         logger.info(f"[emails] Torneo '{torneo.nombre}': no hay jugadores elegibles, no se envían emails.")
         return 0, 0
-
-    # Materializar el queryset para contar sin releer la DB
-    lista_jugadores = list(jugadores)
-    total_elegibles = len(lista_jugadores)
 
     # Notificación push a los mismos elegibles (TP-11; no-op si VAPID no está configurado)
     try:
