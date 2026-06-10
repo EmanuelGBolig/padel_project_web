@@ -4,86 +4,104 @@
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-8">
 
-    <div class="text-center mb-8">
-        <div class="text-5xl mb-3">📲</div>
-        <h1 class="text-3xl font-black text-base-content">Instalá TodoPadel en tu celu</h1>
-        <p class="text-base-content/70 mt-2 max-w-lg mx-auto">
-            Sumá la app a tu pantalla de inicio: se abre a pantalla completa, carga más rápido
-            y vas a poder recibir <b>notificaciones</b> de torneos, parejas y resultados.
-        </p>
+    <!-- HERO -->
+    <div class="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/15 to-transparent text-center px-6 py-10 mb-8">
+        <div class="absolute inset-0 opacity-40 pointer-events-none"
+             style="background-image:linear-gradient(rgba(16,185,129,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,.12) 1px, transparent 1px); background-size:24px 24px;"></div>
+        <div class="relative">
+            <img src="{% static 'img/favicon_192.png' %}" alt="TodoPadel"
+                 class="w-20 h-20 mx-auto rounded-3xl shadow-lg shadow-primary/30 mb-4">
+            <h1 class="text-3xl md:text-4xl font-black text-base-content leading-tight">
+                Llevá <span class="text-primary">TodoPadel</span><br>en tu celu
+            </h1>
+            <p class="text-base-content/70 mt-3 max-w-md mx-auto">
+                Instalá la app en tu pantalla de inicio: abre a pantalla completa,
+                carga más rápido y te avisa de todo.
+            </p>
+            <div class="flex flex-wrap justify-center gap-2 mt-5">
+                <span class="badge badge-lg bg-base-100/80 border-base-300 gap-1">🔔 Notificaciones</span>
+                <span class="badge badge-lg bg-base-100/80 border-base-300 gap-1">⚡ Más rápida</span>
+                <span class="badge badge-lg bg-base-100/80 border-base-300 gap-1">📱 Pantalla completa</span>
+                <span class="badge badge-lg bg-base-100/80 border-base-300 gap-1">🆓 Gratis, sin tienda</span>
+            </div>
+        </div>
     </div>
 
     <!-- Ya instalada -->
-    <div id="ya-instalada" class="hidden alert alert-success mb-6">
+    <div id="ya-instalada" class="hidden alert alert-success mb-6 rounded-2xl">
         <span>✅ ¡Ya tenés la app instalada! Abrila desde el ícono de TodoPadel en tu pantalla de inicio.</span>
     </div>
 
     <!-- Botón de instalar directo (Android/desktop con soporte) -->
     <div id="install-cta" class="hidden text-center mb-8">
-        <button id="btn-install" class="btn btn-primary btn-lg gap-2 shadow-lg">
-            ⬇️ Instalar la app
+        <button id="btn-install" class="btn btn-primary btn-lg gap-2 shadow-lg shadow-primary/30 animate-pulse hover:animate-none">
+            ⬇️ Instalar la app ahora
         </button>
         <p class="text-xs text-base-content/50 mt-2">Un toque y queda en tu pantalla de inicio.</p>
     </div>
 
     <!-- Selector de plataforma -->
     <div class="flex justify-center mb-5">
-        <div role="tablist" class="tabs tabs-boxed">
-            <button role="tab" class="tab" data-plat="android">🤖 Android</button>
-            <button role="tab" class="tab" data-plat="ios">🍎 iPhone</button>
-            <button role="tab" class="tab" data-plat="desktop">💻 Compu</button>
+        <div role="tablist" class="tabs tabs-boxed bg-base-200 p-1.5 rounded-2xl">
+            <button role="tab" class="tab rounded-xl font-semibold" data-plat="android">🤖 Android</button>
+            <button role="tab" class="tab rounded-xl font-semibold" data-plat="ios">🍎 iPhone</button>
+            <button role="tab" class="tab rounded-xl font-semibold" data-plat="desktop">💻 Compu</button>
         </div>
     </div>
 
     <!-- ANDROID -->
-    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm" data-steps="android">
+    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm rounded-3xl" data-steps="android">
         <div class="card-body">
-            <h2 class="card-title text-lg">En Android (Chrome)</h2>
-            <ol class="steps-list space-y-3 mt-2">
-                <li class="flex gap-3"><span class="step-n">1</span><span>Tocá el menú <b>⋮</b> arriba a la derecha de Chrome.</span></li>
-                <li class="flex gap-3"><span class="step-n">2</span><span>Elegí <b>“Instalar app”</b> o <b>“Agregar a la pantalla de inicio”</b>.</span></li>
-                <li class="flex gap-3"><span class="step-n">3</span><span>Confirmá con <b>“Instalar”</b>. Listo: el ícono de TodoPadel queda en tu inicio.</span></li>
+            <h2 class="card-title text-lg">En Android <span class="badge badge-ghost badge-sm">Chrome</span></h2>
+            <ol class="steps-list space-y-4 mt-2">
+                <li class="flex gap-3 items-start"><span class="step-n">1</span><span>Tocá el menú <b class="kbd kbd-sm">⋮</b> arriba a la derecha de Chrome.</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">2</span><span>Elegí <b>“Instalar app”</b> o <b>“Agregar a la pantalla de inicio”</b>.</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">3</span><span>Confirmá con <b>“Instalar”</b>. Listo: la paleta de TodoPadel queda en tu inicio. 🎾</span></li>
             </ol>
-            <p class="text-sm text-base-content/60 mt-2">💡 Si te aparece el botón verde <b>“Instalar la app”</b> de arriba, podés usarlo directo.</p>
+            <div class="alert bg-primary/10 border-primary/20 text-sm rounded-2xl mt-3 py-2">
+                <span>💡 Si arriba ves el botón verde <b>“Instalar la app ahora”</b>, es un atajo: hace todo solo.</span>
+            </div>
         </div>
     </div>
 
     <!-- IOS -->
-    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm hidden" data-steps="ios">
+    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm rounded-3xl hidden" data-steps="ios">
         <div class="card-body">
-            <h2 class="card-title text-lg">En iPhone / iPad (Safari)</h2>
-            <ol class="steps-list space-y-3 mt-2">
-                <li class="flex gap-3"><span class="step-n">1</span><span>Abrí TodoPadel en <b>Safari</b> (no en Chrome).</span></li>
-                <li class="flex gap-3"><span class="step-n">2</span><span>Tocá el botón <b>Compartir</b> (el cuadrado con la flecha ↑) en la barra de abajo.</span></li>
-                <li class="flex gap-3"><span class="step-n">3</span><span>Bajá y elegí <b>“Agregar a inicio”</b> (Add to Home Screen).</span></li>
-                <li class="flex gap-3"><span class="step-n">4</span><span>Tocá <b>“Agregar”</b> arriba a la derecha.</span></li>
+            <h2 class="card-title text-lg">En iPhone / iPad <span class="badge badge-ghost badge-sm">Safari</span></h2>
+            <ol class="steps-list space-y-4 mt-2">
+                <li class="flex gap-3 items-start"><span class="step-n">1</span><span>Abrí <b>todopadel.club</b> en <b>Safari</b> (no en Chrome).</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">2</span><span>Tocá el botón <b>Compartir</b> <span class="kbd kbd-sm">⬆️</span> en la barra de abajo.</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">3</span><span>Deslizá hacia abajo y elegí <b>“Agregar a inicio”</b>.</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">4</span><span>Tocá <b>“Agregar”</b> arriba a la derecha. ¡Y a jugar! 🎾</span></li>
             </ol>
-            <p class="text-sm text-base-content/60 mt-2">⚠️ En iPhone la instalación es solo desde <b>Safari</b>; desde Chrome no aparece la opción.</p>
+            <div class="alert bg-warning/10 border-warning/30 text-sm rounded-2xl mt-3 py-2">
+                <span>⚠️ En iPhone la instalación es solo desde <b>Safari</b>. Y las notificaciones funcionan únicamente abriendo la app desde el ícono instalado.</span>
+            </div>
         </div>
     </div>
 
     <!-- DESKTOP -->
-    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm hidden" data-steps="desktop">
+    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm rounded-3xl hidden" data-steps="desktop">
         <div class="card-body">
-            <h2 class="card-title text-lg">En la computadora (Chrome / Edge)</h2>
-            <ol class="steps-list space-y-3 mt-2">
-                <li class="flex gap-3"><span class="step-n">1</span><span>Mirá la barra de direcciones: a la derecha aparece un ícono de <b>instalar</b> (una pantalla con una flecha ⬇️).</span></li>
-                <li class="flex gap-3"><span class="step-n">2</span><span>Si no lo ves, abrí el menú <b>⋮</b> → <b>“Instalar TodoPadel…”</b>.</span></li>
-                <li class="flex gap-3"><span class="step-n">3</span><span>Confirmá <b>“Instalar”</b> y se abre en su propia ventana.</span></li>
+            <h2 class="card-title text-lg">En la computadora <span class="badge badge-ghost badge-sm">Chrome / Edge</span></h2>
+            <ol class="steps-list space-y-4 mt-2">
+                <li class="flex gap-3 items-start"><span class="step-n">1</span><span>Mirá la barra de direcciones: a la derecha aparece el ícono de <b>instalar</b> (una pantalla con flecha ⬇️).</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">2</span><span>Si no lo ves, menú <b class="kbd kbd-sm">⋮</b> → <b>“Instalar TodoPadel…”</b>.</span></li>
+                <li class="flex gap-3 items-start"><span class="step-n">3</span><span>Confirmá <b>“Instalar”</b> y se abre en su propia ventana.</span></li>
             </ol>
         </div>
     </div>
 
     <!-- Notificaciones -->
-    <div class="card bg-base-100 border border-base-200 shadow-sm mt-6">
+    <div class="card bg-gradient-to-b from-primary/10 to-transparent border border-primary/30 shadow-sm rounded-3xl mt-6">
         <div class="card-body">
-            <h2 class="card-title text-lg">🔔 Notificaciones</h2>
+            <h2 class="card-title text-lg">🔔 Activá las notificaciones</h2>
             <p class="text-sm text-base-content/70 mb-2">
-                Recibí avisos de <b>torneos nuevos de tu categoría</b> e
-                <b>invitaciones de pareja</b> directo en tu celular, aunque tengas la app cerrada.
+                Te avisamos de <b>torneos nuevos de tu categoría</b>, <b>invitaciones de pareja</b>,
+                <b>tus partidos programados</b> y <b>resultados</b> — directo al celular, aunque tengas la app cerrada.
             </p>
             {% if user.is_authenticated %}
-                <button id="btn-push" class="btn btn-primary w-full sm:w-auto"
+                <button id="btn-push" class="btn btn-primary w-full sm:w-auto shadow-lg shadow-primary/20"
                         data-vapid-key="{{ vapid_public_key }}"
                         data-subscribe-url="{% url 'accounts:push_subscribe' %}"
                         data-csrf="{{ csrf_token }}">🔔 Activar notificaciones</button>
@@ -100,12 +118,12 @@
         </div>
     </div>
 </div>
-<script src="{% static 'js/push.js' %}" defer></script>
 
 <style>
-    .step-n{flex:0 0 auto;width:28px;height:28px;border-radius:999px;background:rgba(16,185,129,.15);
-        color:#10b981;font-weight:800;display:grid;place-items:center;font-size:.85rem}
-    .steps-list li{align-items:flex-start;color:var(--bc,#cbd5e1)}
+    .step-n{flex:0 0 auto;width:30px;height:30px;border-radius:999px;background:rgba(16,185,129,.15);
+        border:1px solid rgba(16,185,129,.35);color:#10b981;font-weight:800;display:grid;place-items:center;font-size:.9rem}
+    .steps-list li{align-items:flex-start}
+    .tab.tab-active{background:#10b981 !important;color:#06281f !important}
 </style>
 
 <script>
@@ -150,4 +168,5 @@
     }
 })();
 </script>
+<script src="{% static 'js/push.js' %}" defer></script>
 {% endblock content %}
