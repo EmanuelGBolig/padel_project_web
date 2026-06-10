@@ -318,6 +318,19 @@ class AceptarInvitacionView(LoginRequiredMixin, View):
                 status=Invitation.Status.PENDING
             ).exclude(pk=invitation.pk).update(status=Invitation.Status.REJECTED)
 
+        # Push al que invitó: su invitación fue aceptada (TP-11)
+        try:
+            from accounts.push import send_push_to_user
+            send_push_to_user(
+                invitation.inviter,
+                title="🎾 ¡Invitación aceptada!",
+                body=f"{invitation.invited.full_name} aceptó. Ya tienen equipo: {equipo.nombre}.",
+                url="/equipos/mi-equipo/",
+                tag=f"inv-aceptada-{invitation.pk}",
+            )
+        except Exception:
+            pass
+
         messages.success(request, f"¡Invitación aceptada! Equipo '{equipo.nombre}' creado exitosamente.")
         return redirect('equipos:mi_equipo')
 

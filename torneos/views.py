@@ -979,6 +979,46 @@ class TorneoReplaceTeamView(AdminRequiredMixin, FormView):
             return self.form_invalid(form)
 
 
+def _push_resultado(partido, torneo):
+    """Push a los jugadores de ambos equipos cuando se carga un resultado (TP-11)."""
+    try:
+        from accounts.push import send_push_to_users, jugadores_de_equipos
+        if not partido.ganador:
+            return
+        e1 = partido.equipo1.nombre if partido.equipo1 else '—'
+        e2 = partido.equipo2.nombre if partido.equipo2 else '—'
+        res = partido.resultado or ''
+        send_push_to_users(
+            jugadores_de_equipos(partido.equipo1, partido.equipo2),
+            title="📊 Resultado cargado",
+            body=f"{e1} vs {e2}: {res} — {torneo.nombre}",
+            url=f"/torneos/{torneo.pk}/",
+            tag=f"resultado-{partido.__class__.__name__}-{partido.pk}",
+        )
+    except Exception:
+        pass
+
+
+def _push_programado(partido, torneo):
+    """Push a ambas parejas cuando se programa día/hora del partido (TP-11)."""
+    try:
+        from accounts.push import send_push_to_users, jugadores_de_equipos
+        if not partido.fecha_hora:
+            return
+        e1 = partido.equipo1.nombre if partido.equipo1 else '—'
+        e2 = partido.equipo2.nombre if partido.equipo2 else '—'
+        cuando = partido.fecha_hora.strftime('%d/%m %H:%M')
+        send_push_to_users(
+            jugadores_de_equipos(partido.equipo1, partido.equipo2),
+            title="📅 Partido programado",
+            body=f"{e1} vs {e2} — {cuando} hs · {torneo.nombre}",
+            url=f"/torneos/{torneo.pk}/",
+            tag=f"programado-{partido.__class__.__name__}-{partido.pk}",
+        )
+    except Exception:
+        pass
+
+
 class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
     model = PartidoGrupo
     form_class = CargarResultadoGrupoForm
@@ -998,6 +1038,7 @@ class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        _push_resultado(self.object, self.object.grupo.torneo)
         if self.request.headers.get('HX-Request'):
             return HttpResponse('<script>window.location.reload();</script>')
         return response
@@ -1023,6 +1064,7 @@ class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        _push_resultado(self.object, self.object.torneo)
         if self.request.headers.get('HX-Request'):
             return HttpResponse('<script>window.location.reload();</script>')
         return response
@@ -1048,6 +1090,7 @@ class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        _push_programado(self.object, self.object.grupo.torneo)
         if self.request.headers.get('HX-Request'):
             return HttpResponse('<script>window.location.reload();</script>')
         return response
@@ -1072,6 +1115,7 @@ class SchedulePartidoView(AdminRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        _push_programado(self.object, self.object.torneo)
         if self.request.headers.get('HX-Request'):
             return HttpResponse('<script>window.location.reload();</script>')
         return response

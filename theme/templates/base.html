@@ -691,6 +691,33 @@
                         {% endif %}
                         {% block content_title %}
                         {% endblock content_title %}
+                        <!-- BANNER INSTALAR APP (solo mobile, fuera de la app instalada, descartable) -->
+                        <div id="banner-instalar" style="display:none"
+                             class="alert bg-primary/15 border border-primary/30 shadow-md flex items-center gap-3 py-2.5 px-4 rounded-2xl mb-2 transition-all duration-300">
+                            <span class="text-2xl">📲</span>
+                            <div class="flex-1 text-sm">
+                                <span class="font-bold">¡Llevá TodoPadel en tu celu!</span>
+                                <span class="opacity-70 hidden sm:inline"> Instalá la app y recibí avisos de torneos, partidos y parejas.</span>
+                            </div>
+                            <a href="{% url 'core:instalar' %}" class="btn btn-primary btn-sm rounded-xl shrink-0 animate-pulse hover:animate-none">Instalar</a>
+                            <button onclick="dismissInstallBanner()" class="btn btn-ghost btn-xs btn-circle shrink-0 opacity-50 hover:opacity-100">✕</button>
+                        </div>
+                        <script>
+                        (function () {
+                            var esMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+                            var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+                            var enInstalar = window.location.pathname.indexOf('/instalar') === 0;
+                            if (esMobile && !standalone && !enInstalar && !localStorage.getItem('tp_install_dismiss')) {
+                                var b = document.getElementById('banner-instalar');
+                                if (b) b.style.display = 'flex';
+                            }
+                        })();
+                        function dismissInstallBanner() {
+                            localStorage.setItem('tp_install_dismiss', '1');
+                            var b = document.getElementById('banner-instalar');
+                            if (b) { b.style.opacity = '0'; setTimeout(function(){ b.style.display='none'; }, 300); }
+                        }
+                        </script>
                         <!-- BANNERS DE INCENTIVO (solo para jugadores sin foto / sin pareja) -->
                         {% if user_sin_foto or user_sin_equipo %}
                             <div id="incentive-banners" class="flex flex-col gap-2 mb-2">

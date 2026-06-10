@@ -691,3 +691,56 @@ class PlacaRedesTests(TestCase):
         self.assertIn("Campeones", html)
         self.assertIn("6-3 6-4", html)
         self.assertIn("Tesoriere", html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PushEventosTests(TestCase):
+    """TP-11: eventos de push adicionales (resultado, programado)."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Once", orden=11)
+        self.torneo = Torneo.objects.create(
+            nombre="Push Cup", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            estado=Torneo.Estado.EN_JUEGO)
+        self.grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        js = []
+        for i in range(4):
+            js.append(User.objects.create_user(
+                email=f"pe{i}@t.com", password="x", nombre=f"J{i}", apellido="Push",
+                division=self.division))
+        self.e1 = Equipo.objects.create(jugador1=js[0], jugador2=js[1], division=self.division)
+        self.e2 = Equipo.objects.create(jugador1=js[2], jugador2=js[3], division=self.division)
+
+    def test_push_resultado_notifica_a_ambos_equipos(self):
+        from unittest.mock import patch
+        from torneos.views import _push_resultado
+        p = PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.e1, equipo2=self.e2,
+            e1_set1=6, e2_set1=3, e1_sets_ganados=2, e2_sets_ganados=0, ganador=self.e1)
+        with patch('accounts.push.send_push_to_users') as m:
+            _push_resultado(p, self.torneo)
+        m.assert_called_once()
+        users = m.call_args.args[0]
+        self.assertEqual(len(users), 4)
+        self.assertEqual(m.call_args.kwargs['title'], "📊 Resultado cargado")
+
+    def test_push_programado_notifica(self):
+        from unittest.mock import patch
+        from torneos.views import _push_programado
+        p = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.e1, equipo2=self.e2, fecha_hora=timezone.now())
+        with patch('accounts.push.send_push_to_users') as m:
+            _push_programado(p, self.torneo)
+        m.assert_called_once()
+        self.assertIn("Partido programado", m.call_args.kwargs['title'])
+
+    def test_sin_ganador_no_notifica(self):
+        from unittest.mock import patch
+        from torneos.views import _push_resultado
+        p = PartidoGrupo.objects.create(grupo=self.grupo, equipo1=self.e1, equipo2=self.e2)
+        with patch('accounts.push.send_push_to_users') as m:
+            _push_resultado(p, self.torneo)
+        m.assert_not_called()

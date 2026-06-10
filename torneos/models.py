@@ -394,11 +394,24 @@ class Partido(models.Model):
                  self.torneo.ganador_del_torneo = self.ganador
                  self.torneo.estado = 'FN'
                  self.torneo.save()
-                  
+
                  # Disolver las parejas al terminar el torneo para que los jugadores queden libres
                  from equipos.models import Equipo
                  equipos_ids = self.torneo.inscripciones.values_list('equipo_id', flat=True)
                  Equipo.objects.filter(id__in=equipos_ids).update(esta_activo=False)
+
+                 # Push a los campeones (TP-11; no-op si VAPID no está configurado)
+                 try:
+                     from accounts.push import send_push_to_users, jugadores_de_equipos
+                     send_push_to_users(
+                         jugadores_de_equipos(self.ganador),
+                         title="🏆 ¡Felicitaciones, campeones!",
+                         body=f"Ganaron {self.torneo.nombre}. ¡Enorme torneo!",
+                         url=f"/torneos/{self.torneo.pk}/",
+                         tag=f"campeon-{self.torneo.pk}",
+                     )
+                 except Exception:
+                     pass
 
         # 2. Avance en el bracket (Solo si cambió el ganador)
         if self.ganador != self.__original_ganador and self.ganador is not None:

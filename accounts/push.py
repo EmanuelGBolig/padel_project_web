@@ -77,3 +77,15 @@ def send_push_to_users(users, *, title, body, url='/', tag=None):
 
 def send_push_to_user(user, **kwargs):
     send_push_to_users([user], **kwargs)
+
+
+def jugadores_de_equipos(*equipos):
+    """Jugadores reales (no dummy) de uno o más equipos, para notificarlos."""
+    out = []
+    for eq in equipos:
+        if not eq:
+            continue
+        for j in (eq.jugador1, eq.jugador2):
+            if j and not getattr(j, 'is_dummy', False):
+                out.append(j)
+    return out

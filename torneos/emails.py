@@ -139,15 +139,32 @@ def notificar_nueva_inscripcion(inscripcion):
         
     receptor = torneo.organizacion.receptor_notificaciones
     emails_organizadores = []
-    
+    destinatario_push = None
+
     if receptor and receptor.email:
         emails_organizadores.append(receptor.email)
+        destinatario_push = receptor
     else:
         # Fallback al primer organizador si no hay uno explícitamente seleccionado
         organizador_fallback = torneo.organizacion.miembros.filter(tipo_usuario='ORGANIZER').exclude(email='').first()
         if organizador_fallback:
             emails_organizadores.append(organizador_fallback.email)
-            
+            destinatario_push = organizador_fallback
+
+    # Push al organizador (TP-11; no-op si VAPID no está configurado)
+    if destinatario_push:
+        try:
+            from accounts.push import send_push_to_user
+            send_push_to_user(
+                destinatario_push,
+                title="📝 Nueva inscripción",
+                body=f"{equipo.nombre} se anotó en {torneo.nombre}.",
+                url=f"/torneos/admin/{torneo.pk}/gestionar/",
+                tag=f"inscripcion-{inscripcion.pk}",
+            )
+        except Exception:
+            pass
+
     if not emails_organizadores:
         return
     
