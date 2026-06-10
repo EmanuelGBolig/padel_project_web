@@ -465,3 +465,83 @@ class HardeningSeguridadTests(TestCase):
         resp = self.client.post(reverse('accounts:login'),
                                 {'username': 'h1@t.com', 'password': 'x'})
         self.assertContains(resp, "Demasiados intentos")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PushNotificacionesTests(TestCase):
+    """TP-11: suscripción Web Push + envío."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Decima", orden=10)
+        self.user = User.objects.create_user(
+            email="push@t.com", password="x", nombre="Pu", apellido="Sh",
+            genero="OTRO", division=self.division)
+
+    def _payload(self, **over):
+        data = {
+            'endpoint': 'https://fcm.googleapis.com/fcm/send/abc123',
+            'keys': {'p256dh': 'clave-p', 'auth': 'clave-a'},
+        }
+        data.update(over)
+        return data
+
+    def test_subscribe_requiere_login(self):
+        r = self.client.post(reverse('accounts:push_subscribe'),
+                             data='{}', content_type='application/json')
+        self.assertEqual(r.status_code, 302)  # redirect a login
+
+    def test_subscribe_crea_y_unsubscribe_borra(self):
+        import json
+        from accounts.models import PushSubscription
+        self.client.force_login(self.user)
+        r = self.client.post(reverse('accounts:push_subscribe'),
+                             data=json.dumps(self._payload()),
+                             content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(PushSubscription.objects.filter(user=self.user).count(), 1)
+        # Re-suscribir mismo endpoint no duplica
+        self.client.post(reverse('accounts:push_subscribe'),
+                         data=json.dumps(self._payload()),
+                         content_type='application/json')
+        self.assertEqual(PushSubscription.objects.count(), 1)
+        # Unsubscribe borra
+        r2 = self.client.post(
+            reverse('accounts:push_subscribe'),
+            data=json.dumps({'action': 'unsubscribe',
+                             'endpoint': self._payload()['endpoint']}),
+            content_type='application/json')
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(PushSubscription.objects.count(), 0)
+
+    def test_subscribe_payload_invalido(self):
+        self.client.force_login(self.user)
+        r = self.client.post(reverse('accounts:push_subscribe'),
+                             data='{"endpoint": ""}', content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_envio_es_noop_sin_vapid(self):
+        # Sin claves configuradas no debe fallar ni crear hilos de envío.
+        from accounts.push import send_push_to_users, push_activo
+        self.assertFalse(push_activo())
+        send_push_to_users([self.user], title="t", body="b")  # no lanza
+
+    @override_settings(VAPID_PRIVATE_KEY='k-priv', VAPID_PUBLIC_KEY='k-pub')
+    def test_suscripcion_vencida_se_borra(self):
+        from unittest.mock import patch, MagicMock
+        from accounts.models import PushSubscription
+        from accounts import push as push_mod
+        from pywebpush import WebPushException
+
+        sub = PushSubscription.objects.create(
+            user=self.user, endpoint='https://x/1', p256dh='p', auth='a')
+        resp = MagicMock(status_code=410)
+        with patch.object(push_mod, 'webpush', create=True):
+            with patch('pywebpush.webpush', side_effect=WebPushException('gone', response=resp)):
+                vencida = push_mod._enviar_a_suscripcion(sub, '{}')
+        self.assertTrue(vencida)
+
+    def test_instalar_muestra_boton_logueado(self):
+        self.client.force_login(self.user)
+        html = self.client.get(reverse('core:instalar')).content.decode()
+        self.assertIn('btn-push', html)
+        self.assertIn('js/push.js', html)

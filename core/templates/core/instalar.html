@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block head_title %}Instalar la app · {% endblock head_title %}
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-8">
@@ -77,14 +78,29 @@
     <div class="card bg-base-100 border border-base-200 shadow-sm mt-6">
         <div class="card-body">
             <h2 class="card-title text-lg">🔔 Notificaciones</h2>
-            <p class="text-sm text-base-content/70">
-                Tener la app instalada es el primer paso para recibir <b>avisos de torneos nuevos,
-                invitaciones de pareja y resultados</b> directo en tu celular. Estamos terminando
-                de activarlas — cuando estén, te las vamos a ofrecer desde acá.
+            <p class="text-sm text-base-content/70 mb-2">
+                Recibí avisos de <b>torneos nuevos de tu categoría</b> e
+                <b>invitaciones de pareja</b> directo en tu celular, aunque tengas la app cerrada.
             </p>
+            {% if user.is_authenticated %}
+                <button id="btn-push" class="btn btn-primary w-full sm:w-auto"
+                        data-vapid-key="{{ vapid_public_key }}"
+                        data-subscribe-url="{% url 'accounts:push_subscribe' %}"
+                        data-csrf="{{ csrf_token }}">🔔 Activar notificaciones</button>
+                <p id="push-estado" class="text-sm mt-2 text-base-content/60"></p>
+                <p class="text-xs text-base-content/50 mt-1">
+                    💡 En iPhone, primero <b>instalá la app</b> (pasos de arriba) y abrila desde el
+                    ícono: las notificaciones solo funcionan desde la app instalada (iOS 16.4+).
+                </p>
+            {% else %}
+                <a href="{% url 'accounts:login' %}?next={% url 'core:instalar' %}" class="btn btn-outline btn-primary w-full sm:w-auto">
+                    Iniciá sesión para activar notificaciones
+                </a>
+            {% endif %}
         </div>
     </div>
 </div>
+<script src="{% static 'js/push.js' %}" defer></script>
 
 <style>
     .step-n{flex:0 0 auto;width:28px;height:28px;border-radius:999px;background:rgba(16,185,129,.15);

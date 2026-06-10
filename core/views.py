@@ -66,6 +66,12 @@ class InstalarAppView(TemplateView):
     """Tutorial para instalar la web app (PWA) en Android / iPhone."""
     template_name = "core/instalar.html"
 
+    def get_context_data(self, **kwargs):
+        from django.conf import settings
+        context = super().get_context_data(**kwargs)
+        context['vapid_public_key'] = settings.VAPID_PUBLIC_KEY
+        return context
+
 
 class GlobalSearchView(TemplateView):
     template_name = "core/search_results.html"

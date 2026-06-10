@@ -67,6 +67,19 @@ def notificar_nuevo_torneo(torneo):
     lista_jugadores = list(jugadores)
     total_elegibles = len(lista_jugadores)
 
+    # Notificación push a los mismos elegibles (TP-11; no-op si VAPID no está configurado)
+    try:
+        from accounts.push import send_push_to_users
+        send_push_to_users(
+            lista_jugadores,
+            title="🎾 Nuevo torneo disponible",
+            body=f"{torneo.nombre} — ya podés inscribirte con tu pareja.",
+            url=f"/torneos/{torneo.pk}/",
+            tag=f"torneo-{torneo.pk}",
+        )
+    except Exception as e:
+        logger.warning(f"[push] No se pudo encolar la notificación del torneo: {e}")
+
     # --- Armar y enviar los mensajes ---
     site_url = getattr(settings, 'SITE_URL', 'https://todopadel.club')
     torneo_url = f"{site_url}/torneos/{torneo.pk}/"

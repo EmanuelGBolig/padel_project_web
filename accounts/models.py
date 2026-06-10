@@ -272,6 +272,29 @@ class Sponsor(models.Model):
         return f"{self.nombre} (Sponsor de {self.organizacion.nombre})"
 
 
+class PushSubscription(models.Model):
+    """Suscripción Web Push de un dispositivo del usuario (TP-11).
+
+    Un usuario puede tener varias (celu + compu). Si el endpoint devuelve
+    404/410 al enviar, la suscripción está vencida y se borra.
+    """
+    user = models.ForeignKey(
+        'accounts.CustomUser', on_delete=models.CASCADE, related_name='push_subscriptions'
+    )
+    endpoint = models.URLField(max_length=500, unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Suscripción push"
+        verbose_name_plural = "Suscripciones push"
+
+    def __str__(self):
+        return f"Push de {self.user} ({self.endpoint[:40]}…)"
+
+
 class MergeAuditLog(models.Model):
     """Registro de fusiones de cuentas (TP-21 seguridad). Quién fusionó qué y cuándo."""
     actor = models.ForeignKey(

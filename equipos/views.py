@@ -255,6 +255,19 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
             recipient_list=[jugador2.email]
         )
 
+        # Notificación push al invitado (TP-11; no-op si VAPID no está configurado)
+        try:
+            from accounts.push import send_push_to_user
+            send_push_to_user(
+                jugador2,
+                title="🤝 Te invitaron a formar pareja",
+                body=f"{self.request.user.full_name} quiere jugar con vos. Entrá a aceptar.",
+                url="/accounts/perfil/",
+                tag=f"invitacion-{invitation.pk}",
+            )
+        except Exception:
+            pass
+
         messages.success(
             self.request,
             f"¡Invitación enviada a {jugador2.full_name}! El equipo se creará cuando acepte."

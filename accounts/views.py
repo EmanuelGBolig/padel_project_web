@@ -757,6 +757,45 @@ class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super().get_success_url()
 
 
+class PushSubscribeView(LoginRequiredMixin, FormView):
+    """TP-11: registra/elimina la suscripción Web Push del dispositivo (JSON)."""
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        import json
+        from django.http import JsonResponse
+        from .models import PushSubscription
+
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+
+        accion = data.get('action', 'subscribe')
+        endpoint = (data.get('endpoint') or '').strip()
+        if not endpoint:
+            return JsonResponse({'ok': False, 'error': 'Falta endpoint'}, status=400)
+
+        if accion == 'unsubscribe':
+            PushSubscription.objects.filter(endpoint=endpoint).delete()
+            return JsonResponse({'ok': True})
+
+        keys = data.get('keys') or {}
+        if not keys.get('p256dh') or not keys.get('auth'):
+            return JsonResponse({'ok': False, 'error': 'Faltan claves'}, status=400)
+
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={
+                'user': request.user,
+                'p256dh': keys['p256dh'],
+                'auth': keys['auth'],
+                'user_agent': (request.META.get('HTTP_USER_AGENT') or '')[:255],
+            },
+        )
+        return JsonResponse({'ok': True})
+
+
 class PosiblesDuplicadosView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     """TP-20: lista posibles cuentas duplicadas y permite fusionarlas (admin/organizador)."""
     template_name = 'accounts/duplicados.html'
