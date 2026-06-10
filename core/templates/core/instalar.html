@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block head_title %}Instalar la app · {% endblock head_title %}
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+
+    <div class="text-center mb-8">
+        <div class="text-5xl mb-3">📲</div>
+        <h1 class="text-3xl font-black text-base-content">Instalá TodoPadel en tu celu</h1>
+        <p class="text-base-content/70 mt-2 max-w-lg mx-auto">
+            Sumá la app a tu pantalla de inicio: se abre a pantalla completa, carga más rápido
+            y vas a poder recibir <b>notificaciones</b> de torneos, parejas y resultados.
+        </p>
+    </div>
+
+    <!-- Ya instalada -->
+    <div id="ya-instalada" class="hidden alert alert-success mb-6">
+        <span>✅ ¡Ya tenés la app instalada! Abrila desde el ícono de TodoPadel en tu pantalla de inicio.</span>
+    </div>
+
+    <!-- Botón de instalar directo (Android/desktop con soporte) -->
+    <div id="install-cta" class="hidden text-center mb-8">
+        <button id="btn-install" class="btn btn-primary btn-lg gap-2 shadow-lg">
+            ⬇️ Instalar la app
+        </button>
+        <p class="text-xs text-base-content/50 mt-2">Un toque y queda en tu pantalla de inicio.</p>
+    </div>
+
+    <!-- Selector de plataforma -->
+    <div class="flex justify-center mb-5">
+        <div role="tablist" class="tabs tabs-boxed">
+            <button role="tab" class="tab" data-plat="android">🤖 Android</button>
+            <button role="tab" class="tab" data-plat="ios">🍎 iPhone</button>
+            <button role="tab" class="tab" data-plat="desktop">💻 Compu</button>
+        </div>
+    </div>
+
+    <!-- ANDROID -->
+    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm" data-steps="android">
+        <div class="card-body">
+            <h2 class="card-title text-lg">En Android (Chrome)</h2>
+            <ol class="steps-list space-y-3 mt-2">
+                <li class="flex gap-3"><span class="step-n">1</span><span>Tocá el menú <b>⋮</b> arriba a la derecha de Chrome.</span></li>
+                <li class="flex gap-3"><span class="step-n">2</span><span>Elegí <b>“Instalar app”</b> o <b>“Agregar a la pantalla de inicio”</b>.</span></li>
+                <li class="flex gap-3"><span class="step-n">3</span><span>Confirmá con <b>“Instalar”</b>. Listo: el ícono de TodoPadel queda en tu inicio.</span></li>
+            </ol>
+            <p class="text-sm text-base-content/60 mt-2">💡 Si te aparece el botón verde <b>“Instalar la app”</b> de arriba, podés usarlo directo.</p>
+        </div>
+    </div>
+
+    <!-- IOS -->
+    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm hidden" data-steps="ios">
+        <div class="card-body">
+            <h2 class="card-title text-lg">En iPhone / iPad (Safari)</h2>
+            <ol class="steps-list space-y-3 mt-2">
+                <li class="flex gap-3"><span class="step-n">1</span><span>Abrí TodoPadel en <b>Safari</b> (no en Chrome).</span></li>
+                <li class="flex gap-3"><span class="step-n">2</span><span>Tocá el botón <b>Compartir</b> (el cuadrado con la flecha ↑) en la barra de abajo.</span></li>
+                <li class="flex gap-3"><span class="step-n">3</span><span>Bajá y elegí <b>“Agregar a inicio”</b> (Add to Home Screen).</span></li>
+                <li class="flex gap-3"><span class="step-n">4</span><span>Tocá <b>“Agregar”</b> arriba a la derecha.</span></li>
+            </ol>
+            <p class="text-sm text-base-content/60 mt-2">⚠️ En iPhone la instalación es solo desde <b>Safari</b>; desde Chrome no aparece la opción.</p>
+        </div>
+    </div>
+
+    <!-- DESKTOP -->
+    <div class="plat-steps card bg-base-100 border border-base-200 shadow-sm hidden" data-steps="desktop">
+        <div class="card-body">
+            <h2 class="card-title text-lg">En la computadora (Chrome / Edge)</h2>
+            <ol class="steps-list space-y-3 mt-2">
+                <li class="flex gap-3"><span class="step-n">1</span><span>Mirá la barra de direcciones: a la derecha aparece un ícono de <b>instalar</b> (una pantalla con una flecha ⬇️).</span></li>
+                <li class="flex gap-3"><span class="step-n">2</span><span>Si no lo ves, abrí el menú <b>⋮</b> → <b>“Instalar TodoPadel…”</b>.</span></li>
+                <li class="flex gap-3"><span class="step-n">3</span><span>Confirmá <b>“Instalar”</b> y se abre en su propia ventana.</span></li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div class="card bg-base-100 border border-base-200 shadow-sm mt-6">
+        <div class="card-body">
+            <h2 class="card-title text-lg">🔔 Notificaciones</h2>
+            <p class="text-sm text-base-content/70">
+                Tener la app instalada es el primer paso para recibir <b>avisos de torneos nuevos,
+                invitaciones de pareja y resultados</b> directo en tu celular. Estamos terminando
+                de activarlas — cuando estén, te las vamos a ofrecer desde acá.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .step-n{flex:0 0 auto;width:28px;height:28px;border-radius:999px;background:rgba(16,185,129,.15);
+        color:#10b981;font-weight:800;display:grid;place-items:center;font-size:.85rem}
+    .steps-list li{align-items:flex-start;color:var(--bc,#cbd5e1)}
+</style>
+
+<script>
+(function(){
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isAndroid = /Android/i.test(ua);
+    var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    var plat = isIOS ? 'ios' : (isAndroid ? 'android' : 'desktop');
+
+    function mostrar(p){
+        document.querySelectorAll('.plat-steps').forEach(function(el){
+            el.classList.toggle('hidden', el.getAttribute('data-steps') !== p);
+        });
+        document.querySelectorAll('[data-plat]').forEach(function(t){
+            t.classList.toggle('tab-active', t.getAttribute('data-plat') === p);
+        });
+    }
+    mostrar(plat);
+    document.querySelectorAll('[data-plat]').forEach(function(t){
+        t.addEventListener('click', function(){ mostrar(t.getAttribute('data-plat')); });
+    });
+
+    if (standalone) {
+        document.getElementById('ya-instalada').classList.remove('hidden');
+    }
+
+    var cta = document.getElementById('install-cta');
+    var btn = document.getElementById('btn-install');
+    function showCta(){ if (cta) cta.classList.remove('hidden'); }
+    if (window.deferredPWAPrompt) showCta();
+    window.addEventListener('pwa-installable', showCta);
+
+    if (btn) {
+        btn.addEventListener('click', function(){
+            if (window.deferredPWAPrompt) {
+                window.deferredPWAPrompt.prompt();
+                window.deferredPWAPrompt.userChoice.then(function(){ window.deferredPWAPrompt = null; });
+            }
+        });
+    }
+})();
+</script>
+{% endblock content %}

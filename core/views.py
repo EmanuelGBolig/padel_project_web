@@ -62,6 +62,11 @@ class ParaOrganizadoresView(TemplateView):
     template_name = "core/para_organizadores.html"
 
 
+class InstalarAppView(TemplateView):
+    """Tutorial para instalar la web app (PWA) en Android / iPhone."""
+    template_name = "core/instalar.html"
+
+
 class GlobalSearchView(TemplateView):
     template_name = "core/search_results.html"
 

@@ -19,6 +19,9 @@ urlpatterns = [
     path('googleed7ca9e7f31e28a7.html', TemplateView.as_view(template_name="googleed7ca9e7f31e28a7.html", content_type="text/html")),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'img/favicon.ico', permanent=True)),
+    # PWA: servidos en la raíz para que el scope del service worker sea "/"
+    path('sw.js', TemplateView.as_view(template_name="pwa/sw.js", content_type="application/javascript")),
+    path('manifest.webmanifest', TemplateView.as_view(template_name="pwa/manifest.webmanifest", content_type="application/manifest+json")),
     # URLs de Core (Home)
     path('', include('core.urls')),
     # URLs de Accounts (Login, Logout, Registro, Perfil)

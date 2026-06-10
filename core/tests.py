@@ -36,3 +36,38 @@ class LandingOrganizadoresTests(TestCase):
         resp = self.client.get(reverse("core:home"))
         # El hero usa una foto de cancha de fondo (stock Pexels).
         self.assertIn("fondos/padel-court", resp.content.decode())
+
+
+from django.test import TestCase as _TC, override_settings as _ov
+
+_TS = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+
+@_ov(STORAGES=_TS)
+class PWAInstalarTests(_TC):
+    """PWA: manifest, service worker y tutorial de instalación."""
+
+    def test_service_worker(self):
+        r = self.client.get('/sw.js')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('application/javascript', r['Content-Type'])
+        self.assertIn("addEventListener", r.content.decode())
+        self.assertIn("showNotification", r.content.decode())
+
+    def test_manifest(self):
+        r = self.client.get('/manifest.webmanifest')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('manifest', r['Content-Type'])
+        self.assertIn('"standalone"', r.content.decode())
+
+    def test_tutorial_instalar(self):
+        from django.urls import reverse
+        r = self.client.get(reverse('core:instalar'))
+        self.assertEqual(r.status_code, 200)
+        html = r.content.decode()
+        self.assertIn('Android', html)
+        self.assertIn('iPhone', html)
+        self.assertIn('Agregar a inicio', html)

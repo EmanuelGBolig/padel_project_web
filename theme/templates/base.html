@@ -13,6 +13,13 @@
               sizes="192x192"
               href="{% static 'img/favicon_192.png' %}">
         <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}">
+        <!-- PWA (instalable + listo para notificaciones) -->
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#10B981">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="TodoPadel">
         <!-- SEO Meta Tags -->
         <title>
             {% block head_title %}
@@ -1135,6 +1142,7 @@
                         <li><a href="{% url 'torneos:placa_app' %}">🎨 Crear placa para redes</a></li>
                     </ul>
                 </div>
+                <a href="{% url 'core:instalar' %}" class="link link-hover text-xs text-primary font-semibold">📲 Instalar la app en tu celular</a>
                 <p class="text-xs opacity-80">
                     Desarrollado por
                     <a href="https://emanuelgbolig.github.io/portfolio/"
@@ -1244,6 +1252,25 @@
                     setTimeout(() => loader.remove(), 500);
                 }
             }, loaderDelay);
+        });
+        </script>
+        <!-- PWA: registrar service worker + capturar el prompt de instalación -->
+        <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
+        window.deferredPWAPrompt = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.deferredPWAPrompt = e;
+            document.documentElement.classList.add('pwa-installable');
+            window.dispatchEvent(new Event('pwa-installable'));
+        });
+        window.addEventListener('appinstalled', function () {
+            window.deferredPWAPrompt = null;
+            document.documentElement.classList.remove('pwa-installable');
         });
         </script>
     </body>
