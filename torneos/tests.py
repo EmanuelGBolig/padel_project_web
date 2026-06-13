@@ -893,3 +893,30 @@ class AgregarZonaTests(TestCase):
         rondas = set(Partido.objects.filter(torneo=self.torneo).values_list('ronda', flat=True))
         self.assertTrue(Partido.objects.filter(torneo=self.torneo).exists())
         self.assertGreaterEqual(len(rondas), 3)
+        # Las parejas de la zona nueva (1ro y 2do) deben aparecer en el cuadro.
+        zona_e = self.torneo.grupos.get(nombre="Zona E")
+        ids_zona_e = set(zona_e.tabla.values_list('equipo_id', flat=True))
+        ids_en_cuadro = set()
+        for p in Partido.objects.filter(torneo=self.torneo):
+            if p.equipo1_id:
+                ids_en_cuadro.add(p.equipo1_id)
+            if p.equipo2_id:
+                ids_en_cuadro.add(p.equipo2_id)
+        self.assertTrue(ids_zona_e & ids_en_cuadro,
+                        "Las parejas de la zona nueva deben clasificar al cuadro")
+
+    def test_agregar_zona_resetea_llave_existente(self):
+        from torneos.models import Partido
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        # Cerrar las 4 zonas y armar la llave (formato de 12)
+        for pg in PartidoGrupo.objects.filter(grupo__torneo=self.torneo, ganador__isnull=True):
+            pg.e1_sets_ganados, pg.e2_sets_ganados = 2, 0
+            pg.ganador = pg.equipo1
+            pg.save()
+        self.client.post(url, {"action": "generar_octavos"})
+        self.assertTrue(Partido.objects.filter(torneo=self.torneo).exists())
+        # Agregar zona -> la llave obsoleta se borra automáticamente
+        self.client.post(url, {"action": "agregar_zona",
+                               "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
+        self.assertFalse(Partido.objects.filter(torneo=self.torneo).exists())

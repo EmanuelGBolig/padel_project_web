@@ -515,12 +515,16 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             torneo.estructura_manual = True
             torneo.save(update_fields=['estructura_manual'])
 
-        if torneo.partidos.exists():
+        # Si ya había una llave armada, quedó obsoleta (no incluye esta zona): la
+        # borramos para que el organizador la regenere ya con la zona nueva adentro.
+        tenia_llave = torneo.partidos.exists()
+        if tenia_llave:
+            torneo.partidos.all().delete()
             messages.success(
                 request,
                 f"Se agregó {nombre_zona} con {len(equipos_zona)} parejas y sus partidos. "
-                "Como ya tenías la llave armada, reseteá el cuadro y volvé a generarlo "
-                "para que incluya esta zona."
+                "Borramos la llave anterior porque no incluía esta zona: cuando todas las "
+                "zonas estén cerradas, volvé a generar la llave (incluirá la zona nueva)."
             )
         else:
             messages.success(
