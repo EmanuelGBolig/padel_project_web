@@ -515,11 +515,19 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             torneo.estructura_manual = True
             torneo.save(update_fields=['estructura_manual'])
 
-        messages.success(
-            request,
-            f"Se agregó {nombre_zona} con {len(equipos_zona)} parejas y sus partidos. "
-            "Al armar la llave, esta zona se va a incluir automáticamente."
-        )
+        if torneo.partidos.exists():
+            messages.success(
+                request,
+                f"Se agregó {nombre_zona} con {len(equipos_zona)} parejas y sus partidos. "
+                "Como ya tenías la llave armada, reseteá el cuadro y volvé a generarlo "
+                "para que incluya esta zona."
+            )
+        else:
+            messages.success(
+                request,
+                f"Se agregó {nombre_zona} con {len(equipos_zona)} parejas y sus partidos. "
+                "Al armar la llave, esta zona se va a incluir automáticamente."
+            )
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
     def _zona_completa(self, grupo):
