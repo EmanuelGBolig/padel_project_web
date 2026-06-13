@@ -1061,6 +1061,14 @@ class FormatoPersonalizadoTests(TestCase):
         r = self.client.get(reverse("torneos:formatos_list"))
         self.assertEqual(r.status_code, 200)
 
+    def test_editor_render_interactivo(self):
+        self.client.force_login(self.org_user)
+        html = self.client.get(reverse("torneos:formato_crear")).content.decode()
+        self.assertIn("Agregar zona", html)
+        self.assertIn('id="zonas-list"', html)
+        self.assertIn('id="sizes_texto"', html)
+        self.assertIn("Así queda", html)
+
     def test_alta_torneo_ofrece_solo_formatos_de_la_org(self):
         from accounts.models import Organizacion
         from torneos.models import FormatoPersonalizado
