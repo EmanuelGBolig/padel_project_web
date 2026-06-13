@@ -1061,6 +1061,31 @@ class FormatoPersonalizadoTests(TestCase):
         r = self.client.get(reverse("torneos:formatos_list"))
         self.assertEqual(r.status_code, 200)
 
+    def test_clasifican_uno_cuadro_solo_primeros(self):
+        # Formato con "pasa 1 por zona": el cuadro vacío debe tener solo labels 1X.
+        from torneos.models import FormatoPersonalizado, Partido
+        fmt = FormatoPersonalizado.objects.create(
+            nombre="1x5", organizacion=self.org, sizes=[3, 3, 3, 3, 3], clasifican_por_grupo=1)
+        torneo = Torneo.objects.create(
+            nombre="Pasa Uno", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=15, estado=Torneo.Estado.ABIERTO, formato_personalizado=fmt)
+        for i in range(15):
+            j1 = User.objects.create_user(email=f"u1{i}@t.com", password="x", nombre=f"P{i}", apellido="A", division=self.division)
+            j2 = User.objects.create_user(email=f"u2{i}@t.com", password="x", nombre=f"Q{i}", apellido="B", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+        self.client.force_login(self.org_user)
+        url = reverse("torneos:admin_manage", kwargs={"pk": torneo.pk})
+        self.client.post(url, {"action": "iniciar_torneo"})
+        labels = []
+        for p in Partido.objects.filter(torneo=torneo):
+            labels += [x for x in (p.placeholder_e1, p.placeholder_e2) if x]
+        self.assertTrue(labels)
+        self.assertTrue(all(x.startswith("1") for x in labels),
+                        f"con clasifican=1 solo deben aparecer primeros: {labels}")
+
     def test_editor_render_interactivo(self):
         self.client.force_login(self.org_user)
         html = self.client.get(reverse("torneos:formato_crear")).content.decode()

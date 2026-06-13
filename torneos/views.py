@@ -120,19 +120,22 @@ def _seed_con_byes(items, bracket_size):
     return slots
 
 
-def _orden_seed(primeros, segundos, num_byes):
+def _orden_seed(niveles, num_byes):
     """Orden de los clasificados para sembrar el cuadro genérico.
 
-    - Con byes (play-in): los PRIMEROS de cada zona pasan DIRECTO a la 2da ronda;
-      los SEGUNDOS juegan el play-in. Se devuelve [primeros..., segundos...] y
-      _seed_con_byes manda los primeros (al frente) a bye y los segundos (al final)
-      a los partidos -> en el ejemplo de 5 zonas: 2B vs 2C, 2D vs 2E.
-    - Sin byes (cuadro potencia de 2): cruce clásico 1A-2B, 1B-2C... (segundos
-      rotados, intercalados con los primeros)."""
-    primeros = list(primeros)
-    segundos = list(segundos)
-    if num_byes > 0:
-        return primeros + segundos
+    `niveles` es una lista por posición de clasificación: niveles[0] = primeros de
+    cada zona, niveles[1] = segundos, niveles[2] = terceros... (según cuántos pasan).
+
+    - Con byes (play-in): se devuelve aplanado [primeros..., segundos..., terceros...].
+      _seed_con_byes manda los del frente (los mejores, primeros) a bye y los del final
+      (los peores) al play-in. Ej 5 zonas, pasan 2: octavos = 2B vs 2C, 2D vs 2E.
+    - Sin byes con exactamente 2 niveles (cuadro potencia de 2): cruce clásico
+      1A-2B, 1B-2C... (segundos rotados, intercalados con los primeros)."""
+    niveles = [list(n) for n in niveles]
+    plano = [x for nivel in niveles for x in nivel]
+    if num_byes > 0 or len(niveles) != 2:
+        return plano
+    primeros, segundos = niveles[0], niveles[1]
     seg = segundos[1:] + segundos[:1] if segundos else []
     from itertools import zip_longest
     out = []
@@ -822,19 +825,20 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 )
                 return redirect('torneos:admin_manage', pk=torneo.pk)
 
-            primeros = []
-            segundos = []
+            # Cuántas parejas pasan por zona (del formato personalizado, si hay).
+            clasif = (torneo.formato_personalizado.clasifican_por_grupo
+                      if torneo.formato_personalizado else 2) or 2
+            clasif = min(3, max(1, clasif))  # avanzar_grupo_logica resuelve hasta 3 (1X/2X/3X)
+
             grupos = torneo.grupos.all().order_by('nombre')
-    
+            niveles = [[] for _ in range(clasif)]
             for grupo in grupos:
-                tabla = grupo.tabla.all()  # Ya viene ordenada por mérito (PG, DS, DG)
-                # Clasifican los primeros 2 de cada grupo
-                if len(tabla) >= 1:
-                    primeros.append(tabla[0].equipo)
-                if len(tabla) >= 2:
-                    segundos.append(tabla[1].equipo)
-    
-            num_equipos = len(primeros) + len(segundos)
+                tabla = list(grupo.tabla.all())  # ordenada por mérito (PG, DS, DG)
+                for k in range(clasif):
+                    if len(tabla) > k:
+                        niveles[k].append(tabla[k].equipo)
+
+            num_equipos = sum(len(nv) for nv in niveles)
             if num_equipos < 4:
                 messages.error(
                     request,
@@ -848,28 +852,28 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         if not solo_estructura:
             bracket_size = 2 ** math.ceil(math.log2(num_equipos))
             num_byes = bracket_size - num_equipos
-            # Seeding: con byes los primeros pasan directo y los segundos juegan el
-            # play-in; sin byes, cruce clasico 1A-2B...
-            clasificados = _orden_seed(primeros, segundos, num_byes)
+            # Seeding: con byes los mejores (primeros) pasan directo y los peores
+            # juegan el play-in; sin byes (2 niveles), cruce clasico 1A-2B...
+            clasificados = _orden_seed(niveles, num_byes)
             slots = _seed_con_byes(clasificados, bracket_size)
         else:
-            # Si es solo estructura, calculamos clasificados teóricos (1ro y 2do de cada grupo)
+            # Cuadro vacío (placeholders): mismos clasificados teóricos por zona.
             grupos_all = list(torneo.grupos.all().order_by('nombre'))
             num_grupos_count = len(grupos_all)
-            num_equipos_teorico = num_grupos_count * 2
-            if num_equipos_teorico < 4:
-                num_equipos_teorico = 4
-            
+            clasif = (torneo.formato_personalizado.clasifican_por_grupo
+                      if torneo.formato_personalizado else 2) or 2
+            clasif = min(3, max(1, clasif))
+
+            num_equipos_teorico = max(4, num_grupos_count * clasif)
             bracket_size = 2 ** math.ceil(math.log2(num_equipos_teorico))
 
             letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-            teoricos_1 = [f"1{letras[i]}" for i in range(num_grupos_count)]
-            teoricos_2 = [f"2{letras[i]}" for i in range(num_grupos_count)]
-
-            num_byes = bracket_size - (len(teoricos_1) + len(teoricos_2))
-            # Mismo seeding que el cuadro real: con byes los 1ros pasan directo y los
-            # 2dos juegan el play-in (2B vs 2C, ...).
-            slots_labels = _orden_seed(teoricos_1, teoricos_2, num_byes)
+            niveles_labels = [
+                [f"{k + 1}{letras[i]}" for i in range(num_grupos_count)]
+                for k in range(clasif)
+            ]
+            num_byes = bracket_size - sum(len(nv) for nv in niveles_labels)
+            slots_labels = _orden_seed(niveles_labels, num_byes)
             slots = _seed_con_byes(slots_labels, bracket_size)
 
         # 3. Calcular número de rondas
