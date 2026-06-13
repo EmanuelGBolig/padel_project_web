@@ -1121,6 +1121,15 @@ class CrucesManualesTests(TestCase):
         self.org_user.organizacion = self.org
         self.org_user.save()
 
+    def test_form_page_incluye_preview_bracket(self):
+        # La página del editor renderiza sin errores e incluye la vista previa del cuadro.
+        self.client.force_login(self.org_user)
+        resp = self.client.get(reverse("torneos:formato_crear"))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn('id="bracket-preview"', html)
+        self.assertIn('renderBracket', html)
+
     def test_form_cruces_validos_se_guardan(self):
         import json
         from torneos.forms import FormatoPersonalizadoForm

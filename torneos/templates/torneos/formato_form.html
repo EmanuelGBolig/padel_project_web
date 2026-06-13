@@ -59,6 +59,14 @@
                            data-initial='{{ form.instance.cruces_manuales|default:"[]"|safe }}'>
                 </div>
 
+                <!-- Vista previa del cuadro de la fase final -->
+                <div class="rounded-2xl border border-base-200 bg-base-200/30 p-4">
+                    <div class="text-xs uppercase tracking-wide font-bold text-base-content/60 mb-2">
+                        🏆 Cuadro de la fase final
+                    </div>
+                    <div id="bracket-preview" class="bk-wrap"></div>
+                </div>
+
                 <div class="flex gap-2 justify-end pt-1">
                     <a href="{% url 'torneos:formatos_list' %}" class="btn btn-ghost">Cancelar</a>
                     <button type="submit" class="btn btn-primary">Guardar formato</button>
@@ -68,6 +76,17 @@
     </div>
 </div>
 
+<style>
+    .bk-wrap { overflow-x: auto; padding-bottom: .25rem; }
+    .bk-cols { display: flex; gap: .75rem; min-height: 60px; }
+    .bk-col { display: flex; flex-direction: column; justify-content: space-around; gap: .4rem; min-width: 108px; }
+    .bk-col-t { font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; opacity: .55; text-align: center; }
+    .bk-match { border: 1px solid oklch(var(--bc) / .18); border-radius: .5rem; overflow: hidden; background: oklch(var(--b1)); }
+    .bk-team { padding: .2rem .45rem; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .bk-team + .bk-team { border-top: 1px solid oklch(var(--bc) / .12); }
+    .bk-bye { opacity: .5; font-weight: 400; font-style: italic; }
+    .bk-ganador { opacity: .55; font-weight: 400; }
+</style>
 <script>
 (function () {
     var LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -243,11 +262,91 @@
         else if (nUsados !== total) { crucesError.textContent = 'Faltan ubicar ' + (total - nUsados) + ' clasificado(s).'; crucesError.classList.remove('hidden'); }
         else crucesError.classList.add('hidden');
         crucesJson.value = ok ? JSON.stringify(pares) : '[]';
+        renderBracket();
     }
 
-    if (crucesToggle) crucesToggle.addEventListener('change', function () { renderCruces(); });
+    // --- Vista previa del cuadro de la fase final ---
+    var bracketBox = document.getElementById('bracket-preview');
 
-    function fullRender() { render(); renderCruces(); }
+    function nombreRonda(m) {
+        return ({ 16: '16avos', 8: 'Octavos', 4: 'Cuartos', 2: 'Semis', 1: 'Final' })[m] || ('Ronda de ' + m);
+    }
+
+    // Toma el arreglo a visualizar: los cruces manuales si están activos, o el
+    // armado automático por defecto.
+    function arregloActual() {
+        var labels = clasificados();
+        if (labels.length < 4) return null;
+        var numPos = posCuadro(labels.length);
+        var rows;
+        if (crucesToggle && crucesToggle.checked && crucesBox.querySelector('.cruce-row')) {
+            rows = [];
+            crucesBox.querySelectorAll('.cruce-row').forEach(function (r) {
+                rows.push([r.querySelector('.cruce-a').value, r.querySelector('.cruce-b').value]);
+            });
+        } else {
+            rows = autoFill(labels.slice(), numPos);
+        }
+        return { rows: rows, numPos: numPos };
+    }
+
+    function renderBracket() {
+        if (!bracketBox) return;
+        var a = arregloActual();
+        if (!a) { bracketBox.innerHTML = '<div class="text-xs text-base-content/50">Necesitás al menos 4 clasificados para ver el cuadro.</div>'; return; }
+        var rows = a.rows, numPos = a.numPos;
+        var numRondas = Math.round(Math.log2(numPos * 2));
+
+        // Quién llega a la ronda 2 desde la posición p (bye = pasa la pareja).
+        function llegada(p) {
+            var r = rows[p] || ['', ''];
+            var x = r[0] || '', y = r[1] || '';
+            if (x && !y) return '<div class="bk-team">' + x + '</div>';
+            if (!x && !y) return '<div class="bk-team bk-ganador">?</div>';
+            return '<div class="bk-team bk-ganador">Ganador</div>';
+        }
+
+        var cols = [];
+
+        // Columna 1: posiciones (partidos y byes).
+        var c1 = rows.map(function (r) {
+            var x = r[0] || '?', y = r[1] || '';
+            return y
+                ? '<div class="bk-team">' + x + '</div><div class="bk-team">' + y + '</div>'
+                : '<div class="bk-team">' + x + '</div><div class="bk-team bk-bye">pasa directo</div>';
+        });
+        cols.push({ t: nombreRonda(numPos), cells: c1 });
+
+        // Columna 2: cruces de la ronda 2 según quién llega.
+        if (numRondas >= 2) {
+            var m2 = numPos / 2, c2 = [];
+            for (var i = 0; i < m2; i++) c2.push(llegada(2 * i) + llegada(2 * i + 1));
+            cols.push({ t: nombreRonda(m2), cells: c2 });
+
+            // Rondas más profundas: ganadores genéricos.
+            var count = m2 / 2;
+            while (count >= 1) {
+                var cn = [];
+                for (var j = 0; j < count; j++)
+                    cn.push('<div class="bk-team bk-ganador">Ganador</div><div class="bk-team bk-ganador">Ganador</div>');
+                cols.push({ t: nombreRonda(count), cells: cn });
+                if (count === 1) break;
+                count = count / 2;
+            }
+        }
+
+        var html = '<div class="bk-cols">';
+        cols.forEach(function (col) {
+            html += '<div class="bk-col"><div class="bk-col-t">' + col.t + '</div>';
+            col.cells.forEach(function (c) { html += '<div class="bk-match">' + c + '</div>'; });
+            html += '</div>';
+        });
+        bracketBox.innerHTML = html + '</div>';
+    }
+
+    if (crucesToggle) crucesToggle.addEventListener('change', function () { renderCruces(); renderBracket(); });
+
+    function fullRender() { render(); renderCruces(); renderBracket(); }
 
     list.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-act]');
@@ -262,13 +361,14 @@
     document.getElementById('add-zona').addEventListener('click', function () {
         if (sizes.length < 26) { sizes.push(3); fullRender(); }
     });
-    if (clasifSel) clasifSel.addEventListener('change', function () { preview(); renderCruces(); });
+    if (clasifSel) clasifSel.addEventListener('change', function () { preview(); renderCruces(); renderBracket(); });
 
     // Si venía con cruces guardados, activar el modo manual.
     try { if (JSON.parse(crucesJson.value || '[]').length) crucesToggle.checked = true; } catch (e) {}
 
     render();
     renderCruces();
+    renderBracket();
 })();
 </script>
 {% endblock content %}
