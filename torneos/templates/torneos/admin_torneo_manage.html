@@ -460,6 +460,32 @@
                     </div>
                     <h2 class="text-2xl font-bold text-base-content">Fase de Zonas</h2>
                 </div>
+
+                {% if not fase_eliminatoria_existente %}
+                    <!-- Agregar una zona nueva con parejas (torneo ya iniciado) -->
+                    <details class="collapse collapse-arrow bg-base-100 border border-primary/30 rounded-2xl mb-4">
+                        <summary class="collapse-title font-semibold text-primary">➕ Agregar una zona con parejas nuevas</summary>
+                        <div class="collapse-content">
+                            <p class="text-sm text-base-content/70 mb-3">
+                                ¿Se sumaron parejas después de armar las zonas? Cargalas acá: se crea una
+                                <b>zona nueva</b> (sin tocar las otras) con sus partidos. Cuando armes la llave,
+                                esta zona se incluye sola.
+                            </p>
+                            <form method="post"
+                                  onsubmit="return confirm('¿Crear una zona nueva con estas parejas? Se generan sus partidos.')">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="agregar_zona">
+                                <label class="label py-1"><span class="label-text font-medium">Parejas (una por línea)</span></label>
+                                <textarea name="nombres_parejas" rows="3"
+                                          class="textarea textarea-bordered w-full bg-base-100"
+                                          placeholder="Bigoni/Sanchez&#10;Perez/Lopez"></textarea>
+                                <p class="text-xs text-base-content/50 mt-1">Mínimo 2. Ej: “Apellido1/Apellido2”. Después se pueden vincular a cuentas reales desde “Posibles duplicados”.</p>
+                                <button type="submit" class="btn btn-primary btn-sm mt-3">Crear zona</button>
+                            </form>
+                        </div>
+                    </details>
+                {% endif %}
+
                 <div class="space-y-2" id="groupsContainer">
                     {% for grupo in grupos %}
                         <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm">

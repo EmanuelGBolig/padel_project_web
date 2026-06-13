@@ -102,6 +102,10 @@ class Torneo(models.Model):
     premio = models.CharField(max_length=255, blank=True, help_text="Ej: Trofeos + $100.000 + indumentaria.")
     reglamento = models.TextField(blank=True, help_text="Reglas del torneo (texto libre).")
 
+    # Si se agregó/editó una zona a mano (torneo ya iniciado), la estructura deja de
+    # coincidir con get_format(cupos) -> el bracket debe usar la lógica genérica.
+    estructura_manual = models.BooleanField(default=False)
+
     organizacion = models.ForeignKey(
         'accounts.Organizacion',
         on_delete=models.CASCADE,

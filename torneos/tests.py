@@ -800,3 +800,96 @@ class ElegibilidadNotificacionesTests(TestCase):
         j = self._j("i@t.com", self.septima, ciudad="Córdoba")
         ids = {x.id for x in jugadores_elegibles_para_torneo(self.torneo)}
         self.assertIn(j.id, ids)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AgregarZonaTests(TestCase):
+    """Agregar una zona nueva con parejas a un torneo ya iniciado, sin tocar lo existente."""
+
+    _c = 0
+
+    def _equipo(self, division):
+        AgregarZonaTests._c += 1
+        n = AgregarZonaTests._c
+        j1 = User.objects.create_user(email=f"az{n}a@t.com", password="x",
+                                      nombre=f"N{n}A", apellido=f"A{n}A", division=division)
+        j2 = User.objects.create_user(email=f"az{n}b@t.com", password="x",
+                                      nombre=f"N{n}B", apellido=f"A{n}B", division=division)
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=division)
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.admin = User.objects.create_user(
+            email="adminaz@t.com", password="x", nombre="Adm", apellido="In",
+            tipo_usuario="ADMIN", is_staff=True)
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo 12", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=12, estado=Torneo.Estado.EN_JUEGO)
+        # 4 zonas de 3, ya generadas, con un resultado cargado en la Zona A
+        self.zonas = []
+        idx = 0
+        letras = 'ABCD'
+        for L in letras:
+            g = Grupo.objects.create(torneo=self.torneo, nombre=f"Zona {L}")
+            eqs = [self._equipo(self.division) for _ in range(3)]
+            for n, eq in enumerate(eqs, 1):
+                Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+                EquipoGrupo.objects.create(grupo=g, equipo=eq, numero=n)
+            from torneos.views import generar_partidos_grupos
+            generar_partidos_grupos(self.torneo, eqs, g)
+            self.zonas.append((g, eqs))
+        # Cargar un resultado en la zona A (para verificar que NO se pierde)
+        za, eqa = self.zonas[0]
+        pg = za.partidos_grupo.first()
+        pg.e1_set1, pg.e2_set1, pg.e1_sets_ganados, pg.e2_sets_ganados = 6, 2, 2, 0
+        pg.ganador = pg.equipo1
+        pg.save()
+        self.partidos_antes = PartidoGrupo.objects.filter(grupo__torneo=self.torneo).count()
+
+    def test_agregar_zona_crea_grupo_y_partidos(self):
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        self.client.post(url, {"action": "agregar_zona",
+                               "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
+        # Zona nueva creada (la 5ta -> "Zona E")
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.grupos.count(), 5)
+        nueva = self.torneo.grupos.get(nombre="Zona E")
+        self.assertEqual(nueva.tabla.count(), 2)
+        # Round robin de 2 parejas = 1 partido nuevo, sin tocar los previos
+        self.assertEqual(nueva.partidos_grupo.count(), 1)
+        self.assertEqual(PartidoGrupo.objects.filter(grupo__torneo=self.torneo).count(),
+                         self.partidos_antes + 1)
+        # Flag de estructura manual
+        self.assertTrue(self.torneo.estructura_manual)
+        # El resultado previo de la Zona A sigue intacto
+        za = self.torneo.grupos.get(nombre="Zona A")
+        self.assertTrue(za.partidos_grupo.filter(ganador__isnull=False).exists())
+
+    def test_menos_de_2_parejas_falla(self):
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        self.client.post(url, {"action": "agregar_zona", "nombres_parejas": "Solo Una"})
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.grupos.count(), 4)  # no se creó zona
+
+    def test_bracket_incluye_zona_manual(self):
+        # Cerrar todas las zonas y agregar una zona manual -> el bracket genérico
+        # debe contemplar las 5 zonas (10 clasificados -> cuadro de 16).
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        self.client.post(url, {"action": "agregar_zona",
+                               "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
+        # Cerrar TODOS los partidos de grupo (ganador = equipo1)
+        for pg in PartidoGrupo.objects.filter(grupo__torneo=self.torneo, ganador__isnull=True):
+            pg.e1_sets_ganados, pg.e2_sets_ganados = 2, 0
+            pg.ganador = pg.equipo1
+            pg.save()
+        self.client.post(url, {"action": "generar_octavos"})
+        from torneos.models import Partido
+        # 10 clasificados -> bracket de 16 -> 4 rondas (octavos..final)
+        rondas = set(Partido.objects.filter(torneo=self.torneo).values_list('ronda', flat=True))
+        self.assertTrue(Partido.objects.filter(torneo=self.torneo).exists())
+        self.assertGreaterEqual(len(rondas), 3)

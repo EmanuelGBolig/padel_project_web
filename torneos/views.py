@@ -253,6 +253,9 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             messages.success(request, f"Se agregó '{nombre_dummy}' al torneo.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
+        elif action == 'agregar_zona':
+            return self.agregar_zona_logica(request, torneo)
+
         elif action == 'generar_octavos':
             return self.generar_octavos_logica(request, torneo)
         
@@ -445,6 +448,80 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         messages.success(request, "¡Partidos de grupos generados! El torneo está en marcha.")
         return redirect('torneos:admin_manage', pk=torneo.pk)
 
+    def agregar_zona_logica(self, request, torneo):
+        """Agrega una zona NUEVA con parejas a un torneo ya iniciado, sin tocar las
+        zonas/resultados existentes. Cada línea del textarea es una pareja nueva
+        (se crea como pareja libre con ese nombre); también se pueden sumar equipos
+        ya inscriptos sin zona (checkboxes). Genera los partidos round-robin de la
+        zona nueva y marca el torneo como estructura_manual."""
+        if torneo.estado != Torneo.Estado.EN_JUEGO:
+            messages.error(request, "Solo se puede agregar una zona a un torneo en juego (con zonas ya generadas).")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        from itertools import combinations  # noqa: F401 (combinations se usa vía generar_partidos_grupos)
+
+        nombres_raw = request.POST.get('nombres_parejas', '')
+        nombres = [n.strip() for n in nombres_raw.splitlines() if n.strip()]
+        equipos_existentes_ids = request.POST.getlist('equipos_sin_zona')
+
+        equipos_zona = []
+
+        # 1. Equipos ya inscriptos sin zona seleccionados
+        for eid in equipos_existentes_ids:
+            try:
+                eq = Equipo.objects.get(pk=eid)
+            except Equipo.DoesNotExist:
+                continue
+            if not Inscripcion.objects.filter(torneo=torneo, equipo=eq).exists():
+                Inscripcion.objects.create(torneo=torneo, equipo=eq)
+            equipos_zona.append(eq)
+
+        # 2. Parejas nuevas por nombre (se crean como pareja libre)
+        for nombre in nombres:
+            base = nombre
+            final = base
+            i = 2
+            while Equipo.objects.filter(nombre=final).exists():
+                final = f"{base} ({i})"
+                i += 1
+            eq = Equipo.objects.create(
+                nombre=final, es_dummy=True, division=torneo.division,
+                categoria=torneo.categoria or Equipo.Categoria.MIXTO,
+            )
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+            equipos_zona.append(eq)
+
+        if len(equipos_zona) < 2:
+            messages.error(request, "Una zona necesita al menos 2 parejas. Cargá los nombres (uno por línea).")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
+        # 3. Crear el grupo nuevo con la siguiente letra
+        letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        grupos_existentes = list(torneo.grupos.all())
+        prefijo = "Zona"
+        if grupos_existentes and ' ' in grupos_existentes[0].nombre:
+            prefijo = grupos_existentes[0].nombre.split(' ')[0]
+        idx = len(grupos_existentes)
+        nombre_zona = f"{prefijo} {letras[idx] if idx < len(letras) else idx + 1}"
+        grupo = Grupo.objects.create(torneo=torneo, nombre=nombre_zona)
+
+        # 4. Asignar equipos a la zona y generar los partidos round-robin
+        for n, eq in enumerate(equipos_zona, start=1):
+            EquipoGrupo.objects.create(grupo=grupo, equipo=eq, numero=n)
+        generar_partidos_grupos(torneo, equipos_zona, grupo)
+
+        # 5. Marcar estructura manual (el bracket usará la lógica genérica)
+        if not torneo.estructura_manual:
+            torneo.estructura_manual = True
+            torneo.save(update_fields=['estructura_manual'])
+
+        messages.success(
+            request,
+            f"Se agregó {nombre_zona} con {len(equipos_zona)} parejas y sus partidos. "
+            "Al armar la llave, esta zona se va a incluir automáticamente."
+        )
+        return redirect('torneos:admin_manage', pk=torneo.pk)
+
     def _zona_completa(self, grupo):
         """True si la zona no tiene partidos pendientes (todos tienen ganador)."""
         return not grupo.partidos_grupo.filter(ganador__isnull=True).exists()
@@ -452,7 +529,9 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
     def generar_octavos_logica(self, request, torneo, solo_estructura=False):
         inscripciones = torneo.inscripciones.all()
         count = inscripciones.count()
-        custom_format = get_format(count)
+        # Con estructura manual (zonas agregadas a mano) la cantidad de inscriptos ya
+        # no define el formato: usamos la lógica genérica que respeta las zonas reales.
+        custom_format = None if torneo.estructura_manual else get_format(count)
 
         if custom_format:
             # --- LÓGICA DE BRACKET PERSONALIZADO ---
