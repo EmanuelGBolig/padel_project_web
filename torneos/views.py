@@ -98,20 +98,49 @@ def _seed_con_byes(items, bracket_size):
             pos_partido.add(i)
             i += 1
 
+    # Los PRIMEROS items (mejores) reciben bye; los ÚLTIMOS juegan el play-in.
+    bye_items = items[:byes]
+    play_items = items[byes:]
     slots = [None] * bracket_size
-    it = iter(items)
+    play_it = iter(play_items)
+    bye_it = iter(bye_items)
     for pos in range(num_pos):
         if pos in pos_partido:
-            slots[2 * pos] = next(it, None)
-            slots[2 * pos + 1] = next(it, None)
+            slots[2 * pos] = next(play_it, None)
+            slots[2 * pos + 1] = next(play_it, None)
         else:
-            slots[2 * pos] = next(it, None)   # un real + bye (None al lado)
-    for x in it:                              # por si sobró algún item
-        for j in range(bracket_size):
-            if slots[j] is None:
-                slots[j] = x
-                break
+            slots[2 * pos] = next(bye_it, None)   # un real + bye (None al lado)
+    for it in (play_it, bye_it):                  # por si sobró algún item
+        for x in it:
+            for j in range(bracket_size):
+                if slots[j] is None:
+                    slots[j] = x
+                    break
     return slots
+
+
+def _orden_seed(primeros, segundos, num_byes):
+    """Orden de los clasificados para sembrar el cuadro genérico.
+
+    - Con byes (play-in): los PRIMEROS de cada zona pasan DIRECTO a la 2da ronda;
+      los SEGUNDOS juegan el play-in. Se devuelve [primeros..., segundos...] y
+      _seed_con_byes manda los primeros (al frente) a bye y los segundos (al final)
+      a los partidos -> en el ejemplo de 5 zonas: 2B vs 2C, 2D vs 2E.
+    - Sin byes (cuadro potencia de 2): cruce clásico 1A-2B, 1B-2C... (segundos
+      rotados, intercalados con los primeros)."""
+    primeros = list(primeros)
+    segundos = list(segundos)
+    if num_byes > 0:
+        return primeros + segundos
+    seg = segundos[1:] + segundos[:1] if segundos else []
+    from itertools import zip_longest
+    out = []
+    for p, s in zip_longest(primeros, seg):
+        if p is not None:
+            out.append(p)
+        if s is not None:
+            out.append(s)
+    return out
 
 
 def generar_partidos_grupos(torneo, equipos, grupo_obj):
@@ -793,24 +822,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 if len(tabla) >= 2:
                     segundos.append(tabla[1].equipo)
     
-            # Emparejamiento cruzado:
-            # Rotamos la lista de segundos para que el 1ro del Grupo A no juegue con el 2do del Grupo A
-            # Ejemplo con 3 grupos:
-            # Primeros: [A1, B1, C1]
-            # Segundos: [A2, B2, C2] -> Rotado: [B2, C2, A2]
-            # Resultado: A1 vs B2, B1 vs C2, C1 vs A2
-            if segundos:
-                segundos = segundos[1:] + segundos[:1]
-    
-            # Intercalar: [A1, B2, B1, C2, C1, A2]
-            # Usamos zip_longest por si hay diferente cantidad (aunque no debería en grupos balanceados)
-            from itertools import zip_longest
-            for p, s in zip_longest(primeros, segundos):
-                if p: clasificados.append(p)
-                if s: clasificados.append(s)
-    
-            num_equipos = len(clasificados)
-    
+            num_equipos = len(primeros) + len(segundos)
             if num_equipos < 4:
                 messages.error(
                     request,
@@ -820,10 +832,13 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         # 2. Calcular tamaño del bracket (Potencia de 2)
         import math
-        
+
         if not solo_estructura:
             bracket_size = 2 ** math.ceil(math.log2(num_equipos))
             num_byes = bracket_size - num_equipos
+            # Seeding: con byes los primeros pasan directo y los segundos juegan el
+            # play-in; sin byes, cruce clasico 1A-2B...
+            clasificados = _orden_seed(primeros, segundos, num_byes)
             slots = _seed_con_byes(clasificados, bracket_size)
         else:
             # Si es solo estructura, calculamos clasificados teóricos (1ro y 2do de cada grupo)
@@ -834,30 +849,15 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 num_equipos_teorico = 4
             
             bracket_size = 2 ** math.ceil(math.log2(num_equipos_teorico))
-            
-            # Slots con labels (1A, 2B, 1B, 2A...)
-            slots_labels = []
+
             letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-            
-            # Generar lista teórica de primeros y segundos
-            teoricos_1 = []
-            teoricos_2 = []
-            for i in range(num_grupos_count):
-                teoricos_1.append(f"1{letras[i]}")
-                teoricos_2.append(f"2{letras[i]}")
-            
-            # Rotar segundos (igual que arriba)
-            if teoricos_2:
-                teoricos_2 = teoricos_2[1:] + teoricos_2[:1]
-            
-            # Intercalar
-            from itertools import zip_longest
-            for p, s in zip_longest(teoricos_1, teoricos_2):
-                if p: slots_labels.append(p)
-                if s: slots_labels.append(s)
-            
-            # Byes intercalados (no todos al final -> sin cruces fantasma)
-            num_byes = bracket_size - len(slots_labels)
+            teoricos_1 = [f"1{letras[i]}" for i in range(num_grupos_count)]
+            teoricos_2 = [f"2{letras[i]}" for i in range(num_grupos_count)]
+
+            num_byes = bracket_size - (len(teoricos_1) + len(teoricos_2))
+            # Mismo seeding que el cuadro real: con byes los 1ros pasan directo y los
+            # 2dos juegan el play-in (2B vs 2C, ...).
+            slots_labels = _orden_seed(teoricos_1, teoricos_2, num_byes)
             slots = _seed_con_byes(slots_labels, bracket_size)
 
         # 3. Calcular número de rondas

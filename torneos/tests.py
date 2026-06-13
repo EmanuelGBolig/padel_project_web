@@ -929,6 +929,31 @@ class AgregarZonaTests(TestCase):
         cuartos = Partido.objects.filter(torneo=self.torneo, ronda=min_ronda + 1)
         self.assertEqual(cuartos.count(), 4)
 
+    def test_octavos_son_solo_segundos(self):
+        # Criterio: los PRIMEROS de zona pasan directo; los octavos los juegan los
+        # SEGUNDOS. En el cuadro vacio, los placeholders de octavos deben ser todos 2X.
+        from torneos.models import Partido
+        from django.db.models import Min
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        self.client.post(url, {"action": "agregar_zona",
+                               "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
+        self.client.post(url, {"action": "forzar_cuadro_vacio"})
+        min_ronda = Partido.objects.filter(torneo=self.torneo).aggregate(Min("ronda"))["ronda__min"]
+        octavos = Partido.objects.filter(torneo=self.torneo, ronda=min_ronda)
+        self.assertEqual(octavos.count(), 2)
+        for o in octavos:
+            for ph in (o.placeholder_e1, o.placeholder_e2):
+                self.assertTrue(ph and ph.startswith("2"),
+                                f"octavos deben ser solo segundos, vino {ph}")
+        # Los 5 primeros (1A-1E) arrancan directo en cuartos
+        cuartos = Partido.objects.filter(torneo=self.torneo, ronda=min_ronda + 1)
+        phs = []
+        for c in cuartos:
+            phs += [c.placeholder_e1, c.placeholder_e2]
+        primeros = [p for p in phs if p and p.startswith("1")]
+        self.assertEqual(len(primeros), 5)
+
     def test_cuadro_vacio_sin_cruces_fantasma(self):
         # 5 zonas (14 equipos) -> cuadro de 16 con byes intercalados, sin (vacio vs vacio).
         from torneos.models import Partido
