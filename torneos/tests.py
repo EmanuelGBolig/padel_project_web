@@ -1105,3 +1105,71 @@ class FormatoPersonalizadoTests(TestCase):
         qs = form.fields['formato_personalizado'].queryset
         self.assertIn(mio, qs)
         self.assertNotIn(ajeno, qs)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CrucesManualesTests(TestCase):
+    """Editor de cruces manuales de la fase final."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.org = Organizacion.objects.create(nombre="OrgCM", alias="orgcm")
+        self.org_user = User.objects.create_user(
+            email="ocm@t.com", password="x", nombre="O", apellido="C",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.org_user.organizacion = self.org
+        self.org_user.save()
+
+    def test_form_cruces_validos_se_guardan(self):
+        import json
+        from torneos.forms import FormatoPersonalizadoForm
+        data = {"nombre": "M4", "sizes_texto": "3,3", "clasifican_por_grupo": 2,
+                "cruces_json": json.dumps([["1A", "2B"], ["1B", "2A"]])}
+        f = FormatoPersonalizadoForm(data=data)
+        self.assertTrue(f.is_valid(), f.errors)
+        obj = f.save(commit=False); obj.organizacion = self.org; obj.save()
+        self.assertEqual(len(obj.cruces_manuales), 2)
+
+    def test_form_cruces_repetido_invalido(self):
+        import json
+        from torneos.forms import FormatoPersonalizadoForm
+        data = {"nombre": "M", "sizes_texto": "3,3", "clasifican_por_grupo": 2,
+                "cruces_json": json.dumps([["1A", "2B"], ["1A", "2A"]])}
+        self.assertFalse(FormatoPersonalizadoForm(data=data).is_valid())
+
+    def test_form_cruces_incompletos_invalido(self):
+        import json
+        from torneos.forms import FormatoPersonalizadoForm
+        # solo 1 cruce -> no cubre los 4 clasificados
+        data = {"nombre": "M", "sizes_texto": "3,3", "clasifican_por_grupo": 2,
+                "cruces_json": json.dumps([["1A", "2B"]])}
+        self.assertFalse(FormatoPersonalizadoForm(data=data).is_valid())
+
+    def test_generacion_usa_los_cruces(self):
+        from torneos.models import FormatoPersonalizado, Partido
+        from django.db.models import Min
+        fmt = FormatoPersonalizado.objects.create(
+            nombre="Manual8", organizacion=self.org, sizes=[3, 3, 3, 3], clasifican_por_grupo=2,
+            cruces_manuales=[["1A", "2B"], ["1C", "2D"], ["1B", "2A"], ["1D", "2C"]])
+        torneo = Torneo.objects.create(
+            nombre="Con Cruces", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=12, estado=Torneo.Estado.ABIERTO, formato_personalizado=fmt)
+        for i in range(12):
+            j1 = User.objects.create_user(email=f"cm{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"cm{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+        self.client.force_login(self.org_user)
+        url = reverse("torneos:admin_manage", kwargs={"pk": torneo.pk})
+        self.client.post(url, {"action": "iniciar_torneo"})
+        min_ronda = Partido.objects.filter(torneo=torneo).aggregate(Min("ronda"))["ronda__min"]
+        r1 = Partido.objects.filter(torneo=torneo, ronda=min_ronda)
+        self.assertEqual(r1.count(), 4)
+        cruces = set()
+        for p in r1:
+            cruces.add(frozenset([p.placeholder_e1, p.placeholder_e2]))
+        self.assertIn(frozenset(["1A", "2B"]), cruces)
+        self.assertIn(frozenset(["1C", "2D"]), cruces)

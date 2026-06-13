@@ -623,9 +623,86 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         """True si la zona no tiene partidos pendientes (todos tienen ganador)."""
         return not grupo.partidos_grupo.filter(ganador__isnull=True).exists()
 
+    def _resolver_clasificado(self, label, solo_estructura, grupos_map):
+        """De una etiqueta tipo '2B' devuelve (equipo, placeholder). El equipo sólo
+        se asigna si la zona ya terminó; si no, queda el placeholder."""
+        label = str(label).strip()
+        pos = int(label[0]) if label[:1].isdigit() else 1
+        letra = label[1:].upper()
+        if solo_estructura:
+            return None, label
+        g = grupos_map.get(letra)
+        if g and self._zona_completa(g):
+            tabla = list(g.tabla.all())
+            if len(tabla) >= pos:
+                return tabla[pos - 1].equipo, label
+        return None, label
+
+    def _generar_bracket_manual(self, request, torneo, solo_estructura, cruces):
+        """Arma la fase final con los cruces de 1ra ronda definidos a mano por el
+        organizador. La cantidad de cruces debe ser potencia de 2; el árbol superior
+        (semis, final) se conecta solo."""
+        import math
+        num_r1 = len(cruces)
+        if num_r1 < 1 or (num_r1 & (num_r1 - 1)) != 0:
+            if not solo_estructura:
+                messages.error(
+                    request,
+                    "Los cruces manuales tienen que ser una potencia de 2 (1, 2, 4, 8…). "
+                    "Revisá el formato."
+                )
+                return redirect('torneos:admin_manage', pk=torneo.pk)
+            return None
+
+        grupos_map = {}
+        for g in torneo.grupos.all():
+            letra = g.nombre.split(' ')[-1] if ' ' in g.nombre else g.nombre
+            grupos_map[letra.upper()] = g
+
+        bracket_size = num_r1 * 2
+        num_rondas = int(math.log2(bracket_size))
+        partidos_por_ronda = {}
+
+        # Rondas superiores (vacías) + enlace
+        for ronda_num in range(2, num_rondas + 1):
+            cant = bracket_size // (2 ** ronda_num)
+            partidos_por_ronda[ronda_num] = [
+                Partido.objects.create(torneo=torneo, ronda=ronda_num, orden_partido=i + 1)
+                for i in range(cant)
+            ]
+        for ronda_num in range(2, num_rondas):
+            for i, p in enumerate(partidos_por_ronda[ronda_num]):
+                p.siguiente_partido = partidos_por_ronda[ronda_num + 1][i // 2]
+                p.save()
+
+        # Primera ronda con los cruces definidos
+        partidos_por_ronda[1] = []
+        for i, par in enumerate(cruces):
+            la, lb = (par + ['', ''])[:2]
+            e1, p1 = self._resolver_clasificado(la, solo_estructura, grupos_map)
+            e2, p2 = self._resolver_clasificado(lb, solo_estructura, grupos_map)
+            destino = partidos_por_ronda[2][i // 2] if num_rondas >= 2 else None
+            Partido.objects.create(
+                torneo=torneo, ronda=1, orden_partido=i + 1,
+                equipo1=e1, equipo2=e2, placeholder_e1=p1, placeholder_e2=p2,
+                siguiente_partido=destino,
+            )
+
+        if not solo_estructura:
+            self._resolver_byes(torneo)
+            messages.success(request, "Cuadro generado con los cruces del formato.")
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+        return None
+
     def generar_octavos_logica(self, request, torneo, solo_estructura=False):
         inscripciones = torneo.inscripciones.all()
         count = inscripciones.count()
+
+        # Cruces de fase final definidos a mano en el formato personalizado.
+        fmt = torneo.formato_personalizado
+        if fmt and fmt.cruces_manuales:
+            return self._generar_bracket_manual(request, torneo, solo_estructura, fmt.cruces_manuales)
+
         # Con estructura manual (zonas agregadas a mano) la cantidad de inscriptos ya
         # no define el formato: usamos la lógica genérica que respeta las zonas reales.
         custom_format = None if torneo.estructura_manual else get_format(count)

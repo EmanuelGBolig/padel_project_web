@@ -23,6 +23,10 @@ class FormatoPersonalizado(models.Model):
     clasifican_por_grupo = models.PositiveSmallIntegerField(
         default=2, help_text="Cuántas parejas pasan de cada zona a la fase final."
     )
+    # Cruces de la 1ra ronda de la fase final definidos a mano (opcional). Lista de
+    # pares de etiquetas, ej [["1A","2B"],["1C","2D"],...]. Si está vacío, los cruces
+    # se arman solos con el seeding estándar.
+    cruces_manuales = models.JSONField(default=list, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:

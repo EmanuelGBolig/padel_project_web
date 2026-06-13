@@ -53,9 +53,54 @@ class FormatoPersonalizadoForm(forms.ModelForm):
         self._sizes = sizes
         return crudo
 
+    def clean(self):
+        cleaned = super().clean()
+        import json
+        crudo = (self.data.get('cruces_json') or '').strip()
+        self._cruces = []
+        if not crudo or crudo in ('[]', 'null'):
+            return cleaned
+        try:
+            cruces = json.loads(crudo)
+        except Exception:
+            raise forms.ValidationError("No se pudieron leer los cruces de la fase final.")
+
+        sizes = getattr(self, '_sizes', None) or []
+        try:
+            clasif = int(cleaned.get('clasifican_por_grupo') or 2)
+        except (TypeError, ValueError):
+            clasif = 2
+        letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        validos = {f"{k + 1}{letras[i]}" for i in range(len(sizes)) for k in range(clasif)}
+
+        usados, pares = [], []
+        for par in cruces:
+            if not isinstance(par, (list, tuple)) or len(par) != 2:
+                raise forms.ValidationError("Hay un cruce mal formado.")
+            a, b = str(par[0]).strip().upper(), str(par[1]).strip().upper()
+            for x in (a, b):
+                if x not in validos:
+                    raise forms.ValidationError(f"“{x}” no es un clasificado válido para este formato.")
+                if x in usados:
+                    raise forms.ValidationError(f"“{x}” aparece en más de un cruce.")
+                usados.append(x)
+            pares.append([a, b])
+
+        n = len(pares)
+        if n and (n & (n - 1)) != 0:
+            raise forms.ValidationError("La cantidad de cruces debe ser potencia de 2 (1, 2, 4, 8…).")
+        if pares and len(usados) != len(validos):
+            raise forms.ValidationError(
+                "Si definís los cruces a mano, tenés que emparejar a TODOS los clasificados "
+                f"({len(validos)})."
+            )
+        self._cruces = pares
+        return cleaned
+
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.sizes = getattr(self, '_sizes', obj.sizes)
+        obj.cruces_manuales = getattr(self, '_cruces', [])
         if commit:
             obj.save()
         return obj
