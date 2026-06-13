@@ -72,14 +72,19 @@
                             {% ifchanged p.ronda %}
                                 <div class="text-sm uppercase tracking-widest opacity-60 mt-3">{% nombre_ronda_dinamico p.ronda total_rondas %}</div>
                             {% endifchanged %}
-                            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 bg-base-200/40 rounded-lg px-4 py-2 text-lg">
-                                <span class="min-w-0 break-words {% if p.ganador and p.ganador == p.equipo1 %}font-black text-primary{% endif %}">
-                                    {{ p.equipo1.nombre|default:p.placeholder_e1|default:"—" }}
-                                </span>
-                                <span class="font-mono opacity-70 text-center whitespace-nowrap px-2">{{ p.resultado|default:"vs" }}</span>
-                                <span class="min-w-0 break-words text-right {% if p.ganador and p.ganador == p.equipo2 %}font-black text-primary{% endif %}">
-                                    {{ p.equipo2.nombre|default:p.placeholder_e2|default:"—" }}
-                                </span>
+                            <div class="bg-base-200/40 rounded-lg px-4 py-2">
+                                <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-lg">
+                                    <span class="min-w-0 break-words {% if p.ganador and p.ganador == p.equipo1 %}font-black text-primary{% endif %}">
+                                        {{ p.equipo1.nombre|default:p.placeholder_e1|default:"—" }}
+                                    </span>
+                                    <span class="font-mono opacity-70 text-center whitespace-nowrap px-2">{{ p.resultado|default:"vs" }}</span>
+                                    <span class="min-w-0 break-words text-right {% if p.ganador and p.ganador == p.equipo2 %}font-black text-primary{% endif %}">
+                                        {{ p.equipo2.nombre|default:p.placeholder_e2|default:"—" }}
+                                    </span>
+                                </div>
+                                {% if p.fecha_hora %}
+                                    <div class="text-center text-[11px] opacity-40 mt-1">🕑 {{ p.fecha_hora|date:"D d/m H:i" }} hs</div>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>

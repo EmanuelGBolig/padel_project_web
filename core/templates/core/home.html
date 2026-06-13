@@ -436,13 +436,13 @@
                                             {% if torneo.pk in torneos_inscritos_ids %}<div class="badge badge-success text-white">Jugando</div>{% endif %}
                                         </div>
                                         <div class="card-actions mt-auto flex-col gap-2">
-                                            <a href="{% url 'torneos:vivo' torneo.pk %}"
-                                               class="btn btn-primary w-full gap-2">
-                                                <span class="live-dot"></span> Ver en vivo
-                                            </a>
                                             <a href="{% url 'torneos:detail' torneo.pk %}"
-                                               class="btn btn-ghost btn-sm w-full">
+                                               class="btn btn-primary w-full">
                                                 Ver llaves y resultados
+                                            </a>
+                                            <a href="{% url 'torneos:vivo' torneo.pk %}"
+                                               class="btn btn-ghost btn-sm w-full gap-2">
+                                                <span class="live-dot"></span> Ver en vivo
                                             </a>
                                             {% if user.is_staff %}
                                                 <a href="{% url 'torneos:admin_manage' torneo.pk %}"
