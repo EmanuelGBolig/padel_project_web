@@ -1146,6 +1146,66 @@ class CrucesManualesTests(TestCase):
                 "cruces_json": json.dumps([["1A", "2B"]])}
         self.assertFalse(FormatoPersonalizadoForm(data=data).is_valid())
 
+    def test_form_cruces_con_byes_validos(self):
+        # 5 zonas x 2 = 10 clasificados -> cuadro de 16 -> 8 posiciones (2 partidos + 6 byes)
+        import json
+        from torneos.forms import FormatoPersonalizadoForm
+        cruces = [["1A", "2B"], ["1C", ""], ["1D", ""], ["1E", ""],
+                  ["2A", ""], ["2C", ""], ["2D", "2E"], ["1B", ""]]
+        data = {"nombre": "M10", "sizes_texto": "2,2,2,2,2", "clasifican_por_grupo": 2,
+                "cruces_json": json.dumps(cruces)}
+        f = FormatoPersonalizadoForm(data=data)
+        self.assertTrue(f.is_valid(), f.errors)
+        obj = f.save(commit=False); obj.organizacion = self.org; obj.save()
+        self.assertEqual(len(obj.cruces_manuales), 8)
+
+    def test_form_cruces_byes_posiciones_incorrectas(self):
+        # 10 clasificados requieren 8 posiciones; definir 4 -> inválido
+        import json
+        from torneos.forms import FormatoPersonalizadoForm
+        cruces = [["1A", "2B"], ["1C", "2D"], ["1E", "2A"], ["1B", "2C"]]
+        data = {"nombre": "M", "sizes_texto": "2,2,2,2,2", "clasifican_por_grupo": 2,
+                "cruces_json": json.dumps(cruces)}
+        self.assertFalse(FormatoPersonalizadoForm(data=data).is_valid())
+
+    def test_generacion_con_byes(self):
+        from torneos.models import FormatoPersonalizado, Partido
+        from django.db.models import Min
+        cruces = [["1A", "2B"], ["1C", ""], ["1D", ""], ["1E", ""],
+                  ["2A", ""], ["2C", ""], ["2D", "2E"], ["1B", ""]]
+        fmt = FormatoPersonalizado.objects.create(
+            nombre="Manual10", organizacion=self.org, sizes=[2, 2, 2, 2, 2],
+            clasifican_por_grupo=2, cruces_manuales=cruces)
+        torneo = Torneo.objects.create(
+            nombre="Con Byes", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=20, estado=Torneo.Estado.ABIERTO, formato_personalizado=fmt)
+        for i in range(10):
+            j1 = User.objects.create_user(email=f"by{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"by{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+        self.client.force_login(self.org_user)
+        url = reverse("torneos:admin_manage", kwargs={"pk": torneo.pk})
+        self.client.post(url, {"action": "iniciar_torneo"})
+        min_ronda = Partido.objects.filter(torneo=torneo).aggregate(Min("ronda"))["ronda__min"]
+        r1 = Partido.objects.filter(torneo=torneo, ronda=min_ronda)
+        # Solo se juegan los 2 cruces de la 1ra ronda; los 6 byes están en ronda 2.
+        self.assertEqual(r1.count(), 2)
+        cruces_r1 = set()
+        for p in r1:
+            cruces_r1.add(frozenset([p.placeholder_e1, p.placeholder_e2]))
+        self.assertEqual(cruces_r1, {frozenset(["1A", "2B"]), frozenset(["2D", "2E"])})
+        # Todos los 10 clasificados aparecen (4 en ronda 1 + 6 byes en ronda 2).
+        todos = set()
+        for p in Partido.objects.filter(torneo=torneo):
+            for ph in (p.placeholder_e1, p.placeholder_e2):
+                if ph:
+                    todos.add(ph)
+        esperados = {f"{k}{z}" for z in "ABCDE" for k in "12"}
+        self.assertEqual(todos, esperados)
+
     def test_generacion_usa_los_cruces(self):
         from torneos.models import FormatoPersonalizado, Partido
         from django.db.models import Min

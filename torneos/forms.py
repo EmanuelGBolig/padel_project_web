@@ -72,13 +72,27 @@ class FormatoPersonalizadoForm(forms.ModelForm):
             clasif = 2
         letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
         validos = {f"{k + 1}{letras[i]}" for i in range(len(sizes)) for k in range(clasif)}
+        total = len(validos)
+
+        def next_pow2(x):
+            p = 1
+            while p < x:
+                p *= 2
+            return p
+
+        # El cuadro siempre tiene nextPow2(total)/2 posiciones (potencia de 2). Cada
+        # posición es un partido (a vs b) o un bye (sólo a, pasa directo).
+        pos_esperadas = next_pow2(total) // 2 if total >= 2 else 0
 
         usados, pares = [], []
         for par in cruces:
-            if not isinstance(par, (list, tuple)) or len(par) != 2:
+            if not isinstance(par, (list, tuple)) or not (1 <= len(par) <= 2):
                 raise forms.ValidationError("Hay un cruce mal formado.")
-            a, b = str(par[0]).strip().upper(), str(par[1]).strip().upper()
-            for x in (a, b):
+            a = str(par[0]).strip().upper()
+            b = str(par[1]).strip().upper() if len(par) > 1 else ''
+            if not a:
+                raise forms.ValidationError("Cada posición del cuadro necesita al menos un clasificado.")
+            for x in ([a] + ([b] if b else [])):
                 if x not in validos:
                     raise forms.ValidationError(f"“{x}” no es un clasificado válido para este formato.")
                 if x in usados:
@@ -86,13 +100,17 @@ class FormatoPersonalizadoForm(forms.ModelForm):
                 usados.append(x)
             pares.append([a, b])
 
-        n = len(pares)
-        if n and (n & (n - 1)) != 0:
-            raise forms.ValidationError("La cantidad de cruces debe ser potencia de 2 (1, 2, 4, 8…).")
-        if pares and len(usados) != len(validos):
+        num_pos = len(pares)
+        if num_pos and (num_pos & (num_pos - 1)) != 0:
+            raise forms.ValidationError("La cantidad de posiciones del cuadro debe ser potencia de 2.")
+        if pares and num_pos != pos_esperadas:
             raise forms.ValidationError(
-                "Si definís los cruces a mano, tenés que emparejar a TODOS los clasificados "
-                f"({len(validos)})."
+                f"Para {total} clasificados el cuadro tiene {pos_esperadas} posiciones; "
+                f"definiste {num_pos}."
+            )
+        if pares and len(usados) != total:
+            raise forms.ValidationError(
+                f"Tenés que ubicar a TODOS los clasificados exactamente una vez ({total})."
             )
         self._cruces = pares
         return cleaned

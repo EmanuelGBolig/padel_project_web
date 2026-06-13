@@ -639,17 +639,21 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         return None, label
 
     def _generar_bracket_manual(self, request, torneo, solo_estructura, cruces):
-        """Arma la fase final con los cruces de 1ra ronda definidos a mano por el
-        organizador. La cantidad de cruces debe ser potencia de 2; el árbol superior
-        (semis, final) se conecta solo."""
+        """Arma la fase final con la 1ra ronda definida a mano por el organizador.
+
+        Cada entrada es ``[a, b]``: si ``b`` está vacío, ``a`` pasa directo (bye) y
+        se ubica en la ronda 2. La cantidad de POSICIONES (entradas) debe ser
+        potencia de 2 — siempre lo es, porque es ``nextPow2(N)/2`` — así soporta
+        cualquier cantidad de clasificados, con o sin byes. El árbol superior
+        (cuartos, semis, final) se conecta solo."""
         import math
-        num_r1 = len(cruces)
-        if num_r1 < 1 or (num_r1 & (num_r1 - 1)) != 0:
+        num_pos = len(cruces)
+        if num_pos < 1 or (num_pos & (num_pos - 1)) != 0:
             if not solo_estructura:
                 messages.error(
                     request,
-                    "Los cruces manuales tienen que ser una potencia de 2 (1, 2, 4, 8…). "
-                    "Revisá el formato."
+                    "El formato de cruces manuales es inválido (las posiciones del "
+                    "cuadro deben ser potencia de 2). Revisá el formato."
                 )
                 return redirect('torneos:admin_manage', pk=torneo.pk)
             return None
@@ -659,7 +663,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             letra = g.nombre.split(' ')[-1] if ' ' in g.nombre else g.nombre
             grupos_map[letra.upper()] = g
 
-        bracket_size = num_r1 * 2
+        bracket_size = num_pos * 2
         num_rondas = int(math.log2(bracket_size))
         partidos_por_ronda = {}
 
@@ -675,18 +679,32 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 p.siguiente_partido = partidos_por_ronda[ronda_num + 1][i // 2]
                 p.save()
 
-        # Primera ronda con los cruces definidos
+        # Ronda 1: las posiciones con dos clasificados son partido; las que tienen
+        # uno solo son un bye y la pareja pasa directo a su lugar en la ronda 2.
         partidos_por_ronda[1] = []
         for i, par in enumerate(cruces):
-            la, lb = (par + ['', ''])[:2]
-            e1, p1 = self._resolver_clasificado(la, solo_estructura, grupos_map)
-            e2, p2 = self._resolver_clasificado(lb, solo_estructura, grupos_map)
+            la, lb = (list(par) + ['', ''])[:2]
+            la, lb = str(la).strip(), str(lb).strip()
             destino = partidos_por_ronda[2][i // 2] if num_rondas >= 2 else None
-            Partido.objects.create(
-                torneo=torneo, ronda=1, orden_partido=i + 1,
-                equipo1=e1, equipo2=e2, placeholder_e1=p1, placeholder_e2=p2,
-                siguiente_partido=destino,
-            )
+            es_equipo1 = (i % 2 == 0)  # coherente con Partido.save (orden impar -> equipo1)
+
+            if la and lb:
+                e1, p1 = self._resolver_clasificado(la, solo_estructura, grupos_map)
+                e2, p2 = self._resolver_clasificado(lb, solo_estructura, grupos_map)
+                p = Partido.objects.create(
+                    torneo=torneo, ronda=1, orden_partido=i + 1,
+                    equipo1=e1, equipo2=e2, placeholder_e1=p1, placeholder_e2=p2,
+                    siguiente_partido=destino,
+                )
+                partidos_por_ronda[1].append(p)
+            elif la and destino is not None:
+                # Bye: pasa directo a la ronda 2.
+                e, p = self._resolver_clasificado(la, solo_estructura, grupos_map)
+                if es_equipo1:
+                    destino.equipo1, destino.placeholder_e1 = e, p
+                else:
+                    destino.equipo2, destino.placeholder_e2 = e, p
+                destino.save()
 
         if not solo_estructura:
             self._resolver_byes(torneo)

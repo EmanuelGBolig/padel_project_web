@@ -146,18 +146,34 @@
             for (var k = 0; k < clasif; k++) out.push((k + 1) + (LETRAS[i] || (i + 1)));
         return out;
     }
-    function esPot2(n) { return n >= 2 && (n & (n - 1)) === 0; }
+    function posCuadro(total) { var p = 1; while (p < total) p *= 2; return p / 2; }
 
-    function renderCruces() {
+    // Arreglo válido por defecto: los primeros byes spread, el resto emparejado.
+    function autoFill(labels, numPos) {
+        var byes = 2 * numPos - labels.length;
+        var byeRows = labels.slice(0, byes).map(function (l) { return [l, '']; });
+        var play = labels.slice(byes), matches = [];
+        for (var i = 0; i + 1 < play.length; i += 2) matches.push([play[i], play[i + 1]]);
+        var rows = [], t = 0;
+        while (byeRows.length || matches.length) {
+            if (t % 2 === 0 && matches.length) rows.push(matches.shift());
+            else if (byeRows.length) rows.push(byeRows.shift());
+            else if (matches.length) rows.push(matches.shift());
+            t++;
+        }
+        return rows;
+    }
+
+    function renderCruces(forzarAuto) {
         var labels = clasificados();
-        var puede = esPot2(labels.length);
-        if (!puede) {
+        var total = labels.length;
+        if (total < 4) {
             crucesToggle.checked = false;
             crucesToggle.disabled = true;
-            crucesAviso.textContent = 'Cruces a mano: disponible solo con 4, 8 o 16 clasificados (ahora hay ' + labels.length + ').';
+            crucesAviso.textContent = 'Cruces a mano: necesitás al menos 4 clasificados (ahora hay ' + total + ').';
         } else {
             crucesToggle.disabled = false;
-            crucesAviso.textContent = 'Por defecto se arman solos. Activá esto para elegir vos los enfrentamientos.';
+            crucesAviso.textContent = 'Por defecto se arman solos. Activá esto para elegir quién juega contra quién (y quién pasa directo).';
         }
         if (!crucesToggle.checked) {
             crucesBox.classList.add('hidden');
@@ -166,46 +182,70 @@
             return;
         }
         crucesBox.classList.remove('hidden');
+
+        var numPos = posCuadro(total);
+        var byes = 2 * numPos - total;
+        var nMatches = total - numPos;
+
         var prev = [];
         try { prev = JSON.parse(crucesJson.value || '[]'); } catch (e) {}
-        var opts = function (sel) {
+        if (forzarAuto || prev.length !== numPos) prev = autoFill(labels.slice(), numPos);
+
+        var optsA = function (sel) {
             var h = '<option value="">—</option>';
             labels.forEach(function (l) { h += '<option value="' + l + '"' + (l === sel ? ' selected' : '') + '>' + l + '</option>'; });
             return h;
         };
-        crucesBox.innerHTML = '';
-        for (var i = 0; i < labels.length / 2; i++) {
+        var optsB = function (sel) {
+            var h = '<option value="">⤳ pasa directo</option>';
+            labels.forEach(function (l) { h += '<option value="' + l + '"' + (l === sel ? ' selected' : '') + '>' + l + '</option>'; });
+            return h;
+        };
+
+        var html =
+            '<div class="flex items-center justify-between gap-2 mb-1">' +
+              '<span class="text-xs text-base-content/60">' + numPos + ' posiciones · ' +
+              nMatches + ' partido' + (nMatches !== 1 ? 's' : '') +
+              (byes > 0 ? ' + ' + byes + ' pasan directo' : '') + '</span>' +
+              '<button type="button" id="cruces-auto" class="btn btn-ghost btn-xs">↻ Auto</button>' +
+            '</div>';
+        for (var i = 0; i < numPos; i++) {
             var a = (prev[i] && prev[i][0]) || '';
             var b = (prev[i] && prev[i][1]) || '';
-            var row = document.createElement('div');
-            row.className = 'cruce-row flex items-center gap-2';
-            row.innerHTML =
-                '<span class="text-xs text-base-content/50 w-5">' + (i + 1) + '.</span>' +
-                '<select class="cruce-sel select select-bordered select-sm flex-1 bg-base-100">' + opts(a) + '</select>' +
-                '<span class="text-xs opacity-50">vs</span>' +
-                '<select class="cruce-sel select select-bordered select-sm flex-1 bg-base-100">' + opts(b) + '</select>';
-            crucesBox.appendChild(row);
+            html +=
+                '<div class="cruce-row flex items-center gap-2">' +
+                  '<span class="text-xs text-base-content/50 w-5">' + (i + 1) + '.</span>' +
+                  '<select class="cruce-a select select-bordered select-sm flex-1 bg-base-100">' + optsA(a) + '</select>' +
+                  '<span class="text-xs opacity-50">vs</span>' +
+                  '<select class="cruce-b select select-bordered select-sm flex-1 bg-base-100">' + optsB(b) + '</select>' +
+                '</div>';
         }
-        crucesBox.querySelectorAll('.cruce-sel').forEach(function (s) { s.addEventListener('change', validarCruces); });
+        crucesBox.innerHTML = html;
+        crucesBox.querySelectorAll('select').forEach(function (s) { s.addEventListener('change', validarCruces); });
+        var autoBtn = document.getElementById('cruces-auto');
+        if (autoBtn) autoBtn.addEventListener('click', function () { renderCruces(true); });
         validarCruces();
     }
 
     function validarCruces() {
-        var pares = [], usados = {}, dup = false, incompleto = false;
+        var total = clasificados().length;
+        var pares = [], usados = {}, dup = false, faltaA = false;
         crucesBox.querySelectorAll('.cruce-row').forEach(function (row) {
-            var sels = row.querySelectorAll('.cruce-sel');
-            var a = sels[0].value, b = sels[1].value;
-            if (!a || !b) incompleto = true;
+            var a = row.querySelector('.cruce-a').value, b = row.querySelector('.cruce-b').value;
+            if (!a) faltaA = true;
             [a, b].forEach(function (x) { if (x) { if (usados[x]) dup = true; usados[x] = true; } });
             pares.push([a, b]);
         });
-        if (dup) { crucesError.textContent = 'Hay un clasificado repetido en más de un cruce.'; crucesError.classList.remove('hidden'); }
-        else if (incompleto) { crucesError.textContent = 'Completá todos los cruces para que se guarden.'; crucesError.classList.remove('hidden'); }
+        var nUsados = Object.keys(usados).length;
+        var ok = !dup && !faltaA && nUsados === total;
+        if (dup) { crucesError.textContent = 'Hay un clasificado repetido.'; crucesError.classList.remove('hidden'); }
+        else if (faltaA) { crucesError.textContent = 'Cada posición necesita al menos un clasificado.'; crucesError.classList.remove('hidden'); }
+        else if (nUsados !== total) { crucesError.textContent = 'Faltan ubicar ' + (total - nUsados) + ' clasificado(s).'; crucesError.classList.remove('hidden'); }
         else crucesError.classList.add('hidden');
-        crucesJson.value = (dup || incompleto) ? '[]' : JSON.stringify(pares);
+        crucesJson.value = ok ? JSON.stringify(pares) : '[]';
     }
 
-    if (crucesToggle) crucesToggle.addEventListener('change', renderCruces);
+    if (crucesToggle) crucesToggle.addEventListener('change', function () { renderCruces(); });
 
     function fullRender() { render(); renderCruces(); }
 
