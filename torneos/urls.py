@@ -46,6 +46,8 @@ urlpatterns = [
     # Vistas de Admin
     path('admin/listado/', views.AdminTorneoListView.as_view(), name='admin_list'),
     path('admin/crear/', views.AdminTorneoCreateView.as_view(), name='admin_crear'),
+    # Dashboard del organizador
+    path('admin/dashboard/', views.OrganizadorDashboardView.as_view(), name='dashboard'),
     # Formatos personalizados (creador de torneos)
     path('admin/formatos/', views.FormatoPersonalizadoListView.as_view(), name='formatos_list'),
     path('admin/formatos/nuevo/', views.FormatoPersonalizadoCreateView.as_view(), name='formato_crear'),

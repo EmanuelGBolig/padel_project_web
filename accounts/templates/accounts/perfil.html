@@ -121,6 +121,10 @@
                     <div class="card-body">
                         <h2 class="card-title text-lg mb-2">🛠️ Herramientas de gestión</h2>
                         <div class="flex flex-col gap-2">
+                            <a href="{% url 'torneos:dashboard' %}"
+                               class="btn btn-primary btn-sm justify-start">
+                                📊 Panel del organizador
+                            </a>
                             <a href="{% url 'torneos:formatos_list' %}"
                                class="btn btn-outline btn-secondary btn-sm justify-start">
                                 🏗️ Formatos de torneo
@@ -153,6 +157,10 @@
                         </h2>
                         {% if user.organizacion %}
                             <div class="flex flex-col gap-2">
+                                <a href="{% url 'torneos:dashboard' %}"
+                                   class="btn btn-primary btn-sm justify-start">
+                                    📊 Panel del organizador
+                                </a>
                                 <a href="{% url 'accounts:organizacion_settings' %}"
                                    class="btn btn-outline btn-primary btn-sm justify-start">
                                     <svg xmlns="http://www.w3.org/2000/svg"

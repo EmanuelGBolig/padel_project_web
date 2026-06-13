@@ -1594,6 +1594,92 @@ class PreviewEstructuraView(AdminRequiredMixin, View):
         return JsonResponse(data)
 
 
+class OrganizadorDashboardView(AdminRequiredMixin, TemplateView):
+    """Panel de métricas del organizador: resumen de sus torneos, inscripciones
+    y actividad. Los ADMIN ven todos los torneos."""
+    template_name = 'torneos/dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        from django.db.models import Count, Q
+        from django.utils import timezone
+        from .models import Torneo, Inscripcion, Partido, Equipo, FormatoPersonalizado
+
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        es_admin = user.tipo_usuario == 'ADMIN' or user.is_staff
+
+        torneos = Torneo.objects.all() if es_admin else \
+            Torneo.objects.filter(organizacion=user.organizacion)
+
+        hoy = timezone.now().date()
+        E = Torneo.Estado
+
+        # Conteos por estado (una sola query).
+        por_estado = {row['estado']: row['n'] for row in
+                      torneos.values('estado').annotate(n=Count('id'))}
+        total_torneos = sum(por_estado.values())
+
+        # Inscripciones y jugadores únicos sobre los torneos del organizador.
+        inscripciones = Inscripcion.objects.filter(torneo__in=torneos)
+        total_inscripciones = inscripciones.count()
+        equipos_ids = inscripciones.values_list('equipo', flat=True).distinct()
+        jugadores = set()
+        for j1, j2 in Equipo.objects.filter(id__in=equipos_ids).values_list('jugador1', 'jugador2'):
+            if j1:
+                jugadores.add(j1)
+            if j2:
+                jugadores.add(j2)
+
+        # Ocupación de los torneos con inscripción abierta.
+        abiertos = list(torneos.filter(estado=E.ABIERTO).annotate(insc=Count('inscripciones')))
+        cupos_tot = sum(t.cupos_totales for t in abiertos)
+        cupos_ocup = sum(min(t.insc, t.cupos_totales) for t in abiertos)
+        ocupacion_pct = round(100 * cupos_ocup / cupos_tot) if cupos_tot else 0
+
+        # Partidos: jugados vs pendientes.
+        partidos = Partido.objects.filter(torneo__in=torneos)
+        partidos_agg = partidos.aggregate(
+            total=Count('id'), jugados=Count('id', filter=Q(ganador__isnull=False)))
+        partidos_total = partidos_agg['total'] or 0
+        partidos_jugados = partidos_agg['jugados'] or 0
+
+        # Próximos torneos (los que aún no terminaron, por fecha).
+        proximos = list(
+            torneos.exclude(estado=E.FINALIZADO)
+                   .annotate(insc=Count('inscripciones'))
+                   .order_by('fecha_inicio')[:6])
+        for t in proximos:
+            t.ocupacion = round(100 * min(t.insc, t.cupos_totales) / t.cupos_totales) if t.cupos_totales else 0
+
+        # Últimos finalizados.
+        recientes = list(
+            torneos.filter(estado=E.FINALIZADO)
+                   .select_related('ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2')
+                   .order_by('-fecha_inicio')[:5])
+
+        formatos_n = (FormatoPersonalizado.objects.all() if es_admin else
+                      FormatoPersonalizado.objects.filter(organizacion=user.organizacion)).count()
+
+        ctx.update({
+            'total_torneos': total_torneos,
+            'n_abiertos': por_estado.get(E.ABIERTO, 0),
+            'n_en_juego': por_estado.get(E.EN_JUEGO, 0),
+            'n_finalizados': por_estado.get(E.FINALIZADO, 0),
+            'total_inscripciones': total_inscripciones,
+            'total_jugadores': len(jugadores),
+            'ocupacion_pct': ocupacion_pct,
+            'partidos_total': partidos_total,
+            'partidos_jugados': partidos_jugados,
+            'partidos_pendientes': partidos_total - partidos_jugados,
+            'proximos': proximos,
+            'recientes': recientes,
+            'formatos_n': formatos_n,
+            'es_admin': es_admin,
+            'hoy': hoy,
+        })
+        return ctx
+
+
 class AdminTorneoCreateView(AdminRequiredMixin, CreateView):
     model = Torneo
     form_class = TorneoAdminForm

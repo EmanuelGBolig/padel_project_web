@@ -1173,3 +1173,55 @@ class CrucesManualesTests(TestCase):
             cruces.add(frozenset([p.placeholder_e1, p.placeholder_e2]))
         self.assertIn(frozenset(["1A", "2B"]), cruces)
         self.assertIn(frozenset(["1C", "2D"]), cruces)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class DashboardOrganizadorTests(TestCase):
+    """Panel de métricas del organizador."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgDash", alias="orgdash")
+        self.org_user = User.objects.create_user(
+            email="dash@t.com", password="x", nombre="D", apellido="A",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.org_user.organizacion = self.org
+        self.org_user.save()
+        self.torneo = Torneo.objects.create(
+            nombre="T Dash", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.ABIERTO)
+        for i in range(4):
+            j1 = User.objects.create_user(email=f"d{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"d{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+
+    def test_dashboard_requiere_login_admin(self):
+        # Anónimo -> redirige
+        resp = self.client.get(reverse("torneos:dashboard"))
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_dashboard_muestra_metricas(self):
+        self.client.force_login(self.org_user)
+        resp = self.client.get(reverse("torneos:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context["total_torneos"], 1)
+        self.assertEqual(resp.context["total_inscripciones"], 4)
+        self.assertEqual(resp.context["total_jugadores"], 8)
+        self.assertEqual(resp.context["ocupacion_pct"], 50)  # 4 de 8 cupos
+        self.assertEqual(len(resp.context["proximos"]), 1)
+
+    def test_dashboard_aisla_por_organizacion(self):
+        from accounts.models import Organizacion
+        otra = Organizacion.objects.create(nombre="Otra", alias="otra")
+        Torneo.objects.create(
+            nombre="Ajena", division=self.division, organizacion=otra,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.ABIERTO)
+        self.client.force_login(self.org_user)
+        resp = self.client.get(reverse("torneos:dashboard"))
+        self.assertEqual(resp.context["total_torneos"], 1)  # no cuenta la ajena
