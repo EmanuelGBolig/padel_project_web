@@ -46,6 +46,11 @@ urlpatterns = [
     # Vistas de Admin
     path('admin/listado/', views.AdminTorneoListView.as_view(), name='admin_list'),
     path('admin/crear/', views.AdminTorneoCreateView.as_view(), name='admin_crear'),
+    # Formatos personalizados (creador de torneos)
+    path('admin/formatos/', views.FormatoPersonalizadoListView.as_view(), name='formatos_list'),
+    path('admin/formatos/nuevo/', views.FormatoPersonalizadoCreateView.as_view(), name='formato_crear'),
+    path('admin/formatos/<int:pk>/editar/', views.FormatoPersonalizadoUpdateView.as_view(), name='formato_editar'),
+    path('admin/formatos/<int:pk>/eliminar/', views.FormatoPersonalizadoDeleteView.as_view(), name='formato_eliminar'),
     path('admin/preview-estructura/', views.PreviewEstructuraView.as_view(), name='admin_preview_estructura'),
     path(
         'admin/<int:pk>/editar/',

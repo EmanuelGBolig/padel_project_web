@@ -5,6 +5,49 @@ from equipos.models import Equipo
 from accounts.models import Division
 
 
+class FormatoPersonalizado(models.Model):
+    """Plantilla de formato de torneo guardable por el organizador (semi-automático):
+    define la cantidad de zonas y el tamaño de cada una; los cruces de la fase final
+    se arman solos con el seeding estándar. Reutilizable por nombre."""
+    nombre = models.CharField(max_length=80)
+    organizacion = models.ForeignKey(
+        'accounts.Organizacion', on_delete=models.CASCADE,
+        related_name='formatos', null=True, blank=True,
+    )
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='formatos_creados',
+    )
+    # Tamaños de cada zona, ej [3, 3, 3, 3, 2]. La cantidad de zonas = len(sizes).
+    sizes = models.JSONField(default=list)
+    clasifican_por_grupo = models.PositiveSmallIntegerField(
+        default=2, help_text="Cuántas parejas pasan de cada zona a la fase final."
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = "Formato personalizado"
+        verbose_name_plural = "Formatos personalizados"
+
+    def __str__(self):
+        return f"{self.nombre} ({self.total_parejas} parejas)"
+
+    @property
+    def num_grupos(self):
+        return len(self.sizes or [])
+
+    @property
+    def total_parejas(self):
+        return sum(self.sizes or [])
+
+    @property
+    def resumen(self):
+        """Ej: '5 zonas (3-3-3-3-2)'."""
+        sz = self.sizes or []
+        return f"{len(sz)} zona{'s' if len(sz) != 1 else ''} ({'-'.join(str(s) for s in sz)})"
+
+
 class ResolucionPartido(models.TextChoices):
     """Cómo se resolvió un partido (TP-18). Compartido por PartidoGrupo y Partido."""
     NORMAL = 'N', 'Normal'
@@ -105,6 +148,13 @@ class Torneo(models.Model):
     # Si se agregó/editó una zona a mano (torneo ya iniciado), la estructura deja de
     # coincidir con get_format(cupos) -> el bracket debe usar la lógica genérica.
     estructura_manual = models.BooleanField(default=False)
+
+    # Formato personalizado guardado por el organizador (opcional). Si está, define
+    # la estructura de zonas al iniciar el torneo.
+    formato_personalizado = models.ForeignKey(
+        'torneos.FormatoPersonalizado', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='torneos',
+    )
 
     organizacion = models.ForeignKey(
         'accounts.Organizacion',

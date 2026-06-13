@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block head_title %}Formatos personalizados · {% endblock head_title %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-1 gap-3 flex-wrap">
+        <h1 class="text-2xl font-bold">🏗️ Formatos de torneo</h1>
+        <a href="{% url 'torneos:formato_crear' %}" class="btn btn-primary btn-sm">+ Nuevo formato</a>
+    </div>
+    <p class="text-sm text-base-content/60 mb-6 max-w-xl">
+        Guardá tu propia estructura de zonas (cuántas y de qué tamaño) y reusala en cualquier
+        torneo. La fase final se arma sola con el seeding estándar.
+    </p>
+
+    {% if formatos %}
+        <div class="space-y-3">
+            {% for f in formatos %}
+                <div class="card bg-base-100 border border-base-200 shadow-sm rounded-2xl">
+                    <div class="card-body p-4 flex-row items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="font-bold truncate">{{ f.nombre }}</div>
+                            <div class="text-sm text-base-content/60">{{ f.resumen }} · pasan {{ f.clasifican_por_grupo }} por zona · {{ f.total_parejas }} parejas</div>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <a href="{% url 'torneos:formato_editar' f.pk %}" class="btn btn-ghost btn-sm">Editar</a>
+                            <a href="{% url 'torneos:formato_eliminar' f.pk %}" class="btn btn-ghost btn-sm text-error">Eliminar</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-14 text-base-content/60 border-2 border-dashed border-base-300 rounded-2xl">
+            <div class="text-4xl mb-2">🏗️</div>
+            <p>Todavía no creaste ningún formato. Tocá <b>“Nuevo formato”</b> para empezar.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock content %}

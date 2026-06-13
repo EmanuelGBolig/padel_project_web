@@ -1,8 +1,64 @@
 from django import forms
 from .models import (
     Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo,
-    Americano, JugadorAmericano, ResolucionPartido,
+    Americano, JugadorAmericano, ResolucionPartido, FormatoPersonalizado,
 )
+
+
+class FormatoPersonalizadoForm(forms.ModelForm):
+    """Crear/editar un formato de torneo guardable (semi-automático)."""
+    sizes_texto = forms.CharField(
+        label="Tamaño de cada zona",
+        help_text="Parejas por zona, separadas por coma. Ej: 3,3,3,3,2 (5 zonas).",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full bg-base-100 text-base-content',
+            'placeholder': '3,3,3,3,2',
+        }),
+    )
+
+    class Meta:
+        model = FormatoPersonalizado
+        fields = ['nombre', 'clasifican_por_grupo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full bg-base-100 text-base-content',
+                'placeholder': 'Ej: Liga 16 (5 zonas)',
+            }),
+            'clasifican_por_grupo': forms.Select(
+                choices=[(1, '1 (solo el primero)'), (2, '2 (primero y segundo)')],
+                attrs={'class': 'select select-bordered w-full bg-base-100 text-base-content'},
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.sizes:
+            self.initial['sizes_texto'] = ','.join(str(s) for s in self.instance.sizes)
+
+    def clean_sizes_texto(self):
+        crudo = (self.cleaned_data.get('sizes_texto') or '').strip()
+        partes = [p.strip() for p in crudo.replace(' ', ',').split(',') if p.strip()]
+        sizes = []
+        for p in partes:
+            if not p.isdigit():
+                raise forms.ValidationError("Usá solo números separados por coma. Ej: 3,3,3,3,2")
+            n = int(p)
+            if n < 2:
+                raise forms.ValidationError("Cada zona necesita al menos 2 parejas.")
+            sizes.append(n)
+        if len(sizes) < 2:
+            raise forms.ValidationError("El formato necesita al menos 2 zonas.")
+        if len(sizes) > 26:
+            raise forms.ValidationError("Máximo 26 zonas.")
+        self._sizes = sizes
+        return crudo
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.sizes = getattr(self, '_sizes', obj.sizes)
+        if commit:
+            obj.save()
+        return obj
 
 
 class TorneoAdminForm(forms.ModelForm):
@@ -14,6 +70,7 @@ class TorneoAdminForm(forms.ModelForm):
             'fecha_limite_inscripcion',
             'fecha_inicio',
             'cupos_totales',
+            'formato_personalizado',
             'equipos_por_grupo',
             'forzar_grupos_de_3',
             'formato_grupos_4',
@@ -41,6 +98,20 @@ class TorneoAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         es_creacion = self.instance.pk is None
+
+        # Formato personalizado: ofrecer solo los de la organización del usuario.
+        if 'formato_personalizado' in self.fields:
+            self.fields['formato_personalizado'].label = "Formato personalizado"
+            self.fields['formato_personalizado'].required = False
+            self.fields['formato_personalizado'].empty_label = "Automático (según cupos)"
+            self.fields['formato_personalizado'].help_text = (
+                "Opcional: usá una estructura de zonas guardada."
+            )
+            org = getattr(self.user, 'organizacion', None) if self.user else None
+            qs = self.fields['formato_personalizado'].queryset
+            self.fields['formato_personalizado'].queryset = (
+                qs.filter(organizacion=org) if org else qs.none()
+            )
 
         # TP-17.1: la foto de campeones no se pide al CREAR (todavía no hay ganador);
         # solo aparece al editar/gestionar un torneo ya existente.

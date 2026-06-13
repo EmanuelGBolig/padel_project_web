@@ -998,3 +998,77 @@ class SeedConByesTests(TestCase):
                 self.assertFalse(slots[i] is None and slots[i + 1] is None,
                                  f"par vacío con n={n}, bs={bs}")
             self.assertEqual(sorted(x for x in slots if x is not None), list(range(n)))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class FormatoPersonalizadoTests(TestCase):
+    """Creador de formatos: guardar estructura de zonas y usarla al iniciar el torneo."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgFmt", alias="orgfmt")
+        self.org_user = User.objects.create_user(
+            email="orgf@t.com", password="x", nombre="Org", apellido="F",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.org_user.organizacion = self.org
+        self.org_user.save()
+
+    def test_form_parsea_sizes(self):
+        from torneos.forms import FormatoPersonalizadoForm
+        f = FormatoPersonalizadoForm(data={"nombre": "Liga 14", "sizes_texto": "3,3,3,3,2", "clasifican_por_grupo": 2})
+        self.assertTrue(f.is_valid(), f.errors)
+        obj = f.save(commit=False)
+        obj.organizacion = self.org
+        obj.save()
+        self.assertEqual(obj.sizes, [3, 3, 3, 3, 2])
+        self.assertEqual(obj.num_grupos, 5)
+        self.assertEqual(obj.total_parejas, 14)
+
+    def test_form_rechaza_grupo_de_uno_y_un_solo_grupo(self):
+        from torneos.forms import FormatoPersonalizadoForm
+        self.assertFalse(FormatoPersonalizadoForm(
+            data={"nombre": "x", "sizes_texto": "3,1", "clasifican_por_grupo": 2}).is_valid())
+        self.assertFalse(FormatoPersonalizadoForm(
+            data={"nombre": "x", "sizes_texto": "4", "clasifican_por_grupo": 2}).is_valid())
+
+    def test_iniciar_torneo_con_formato_crea_esas_zonas(self):
+        from torneos.models import FormatoPersonalizado
+        fmt = FormatoPersonalizado.objects.create(
+            nombre="3+3+2", organizacion=self.org, sizes=[3, 3, 2], clasifican_por_grupo=2)
+        torneo = Torneo.objects.create(
+            nombre="Con Formato", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.ABIERTO,
+            formato_personalizado=fmt)
+        # 8 inscriptos
+        for i in range(8):
+            j1 = User.objects.create_user(email=f"f{i}a@t.com", password="x", nombre=f"J{i}", apellido="A", division=self.division)
+            j2 = User.objects.create_user(email=f"f{i}b@t.com", password="x", nombre=f"K{i}", apellido="B", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+        self.client.force_login(self.org_user)
+        url = reverse("torneos:admin_manage", kwargs={"pk": torneo.pk})
+        self.client.post(url, {"action": "iniciar_torneo"})
+        torneo.refresh_from_db()
+        self.assertEqual(torneo.grupos.count(), 3)            # 3 zonas del formato
+        self.assertTrue(torneo.estructura_manual)             # llave usa la genérica
+        self.assertEqual(torneo.estado, Torneo.Estado.EN_JUEGO)
+
+    def test_lista_formatos_accesible(self):
+        self.client.force_login(self.org_user)
+        r = self.client.get(reverse("torneos:formatos_list"))
+        self.assertEqual(r.status_code, 200)
+
+    def test_alta_torneo_ofrece_solo_formatos_de_la_org(self):
+        from accounts.models import Organizacion
+        from torneos.models import FormatoPersonalizado
+        from torneos.forms import TorneoAdminForm
+        otra = Organizacion.objects.create(nombre="Otra", alias="otra")
+        mio = FormatoPersonalizado.objects.create(nombre="Mío", organizacion=self.org, sizes=[3, 3])
+        ajeno = FormatoPersonalizado.objects.create(nombre="Ajeno", organizacion=otra, sizes=[3, 3])
+        form = TorneoAdminForm(user=self.org_user)
+        qs = form.fields['formato_personalizado'].queryset
+        self.assertIn(mio, qs)
+        self.assertNotIn(ajeno, qs)

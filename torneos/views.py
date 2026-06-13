@@ -41,6 +41,7 @@ from .forms import (
     TorneoReplaceTeamForm,
     AmericanoForm,
     JugadorAmericanoForm,
+    FormatoPersonalizadoForm,
 )
 from .formats import get_format, calcular_estructura_grupos, describir_estructura
 from .emails import notificar_nuevo_torneo
@@ -385,8 +386,15 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
     def _calcular_estructura_grupos(self, torneo, count):
         """Retorna (num_grupos, sizes, prefijo_nombre, custom_format) sin crear nada en DB.
 
-        Delega en torneos.formats.calcular_estructura_grupos (fuente de verdad
-        única, compartida con la vista previa del alta — TP-17)."""
+        Si el torneo tiene un formato personalizado, usa sus tamaños de zona. Si no,
+        delega en torneos.formats.calcular_estructura_grupos (fuente de verdad única,
+        compartida con la vista previa del alta — TP-17)."""
+        fmt = torneo.formato_personalizado
+        if fmt and fmt.sizes:
+            sizes = list(fmt.sizes)
+            letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            nombres = [f"Zona {letras[i]}" for i in range(len(sizes))]
+            return len(sizes), sizes, nombres, None
         return calcular_estructura_grupos(
             count,
             forzar_grupos_de_3=torneo.forzar_grupos_de_3,
@@ -425,6 +433,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             Grupo.objects.create(torneo=torneo, nombre=nombres[i])
 
         torneo.estado = Torneo.Estado.EN_JUEGO
+        # Con formato personalizado la estructura no surge de los cupos -> la llave
+        # debe usar la lógica genérica (seeding play-in).
+        if torneo.formato_personalizado:
+            torneo.estructura_manual = True
         torneo.save()
 
         # Generar estructura de bracket (con placeholders)
@@ -1416,6 +1428,66 @@ class PlacaView(TemplateView):
                 'hora': pg.fecha_hora,
             }
         return None
+
+
+class FormatoPersonalizadoListView(AdminRequiredMixin, ListView):
+    """Lista los formatos personalizados del organizador."""
+    template_name = 'torneos/formatos_list.html'
+    context_object_name = 'formatos'
+
+    def get_queryset(self):
+        from .models import FormatoPersonalizado
+        user = self.request.user
+        if user.tipo_usuario == 'ADMIN' or user.is_staff:
+            return FormatoPersonalizado.objects.all()
+        return FormatoPersonalizado.objects.filter(organizacion=user.organizacion)
+
+
+class FormatoPersonalizadoCreateView(AdminRequiredMixin, CreateView):
+    form_class = FormatoPersonalizadoForm
+    template_name = 'torneos/formato_form.html'
+    success_url = reverse_lazy('torneos:formatos_list')
+
+    def form_valid(self, form):
+        form.instance.creado_por = self.request.user
+        form.instance.organizacion = self.request.user.organizacion
+        messages.success(self.request, f"Formato “{form.instance.nombre}” guardado.")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['titulo'] = "Nuevo formato personalizado"
+        return ctx
+
+
+class FormatoPersonalizadoUpdateView(AdminRequiredMixin, UpdateView):
+    form_class = FormatoPersonalizadoForm
+    template_name = 'torneos/formato_form.html'
+    success_url = reverse_lazy('torneos:formatos_list')
+
+    def get_queryset(self):
+        from .models import FormatoPersonalizado
+        user = self.request.user
+        if user.tipo_usuario == 'ADMIN' or user.is_staff:
+            return FormatoPersonalizado.objects.all()
+        return FormatoPersonalizado.objects.filter(organizacion=user.organizacion)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['titulo'] = f"Editar formato: {self.object.nombre}"
+        return ctx
+
+
+class FormatoPersonalizadoDeleteView(AdminRequiredMixin, DeleteView):
+    template_name = 'torneos/formato_confirm_delete.html'
+    success_url = reverse_lazy('torneos:formatos_list')
+
+    def get_queryset(self):
+        from .models import FormatoPersonalizado
+        user = self.request.user
+        if user.tipo_usuario == 'ADMIN' or user.is_staff:
+            return FormatoPersonalizado.objects.all()
+        return FormatoPersonalizado.objects.filter(organizacion=user.organizacion)
 
 
 class PreviewEstructuraView(AdminRequiredMixin, View):

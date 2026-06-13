@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block head_title %}Eliminar formato · {% endblock head_title %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-10">
+    <div class="card bg-base-100 shadow-xl border border-error/30 rounded-3xl">
+        <div class="card-body text-center">
+            <h1 class="text-xl font-bold">¿Eliminar el formato?</h1>
+            <p class="text-base-content/70 my-2">“{{ object.nombre }}” — {{ object.resumen }}</p>
+            <p class="text-sm text-base-content/50">Los torneos que ya lo usaron no se ven afectados.</p>
+            <form method="post" class="flex gap-2 justify-center mt-4">
+                {% csrf_token %}
+                <a href="{% url 'torneos:formatos_list' %}" class="btn btn-ghost">Cancelar</a>
+                <button type="submit" class="btn btn-error">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

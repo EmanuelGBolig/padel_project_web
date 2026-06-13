@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block head_title %}{{ titulo }} · {% endblock head_title %}
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-8">
+    <div class="card bg-base-100 shadow-xl border border-base-200 rounded-3xl">
+        <div class="card-body">
+            <h1 class="text-2xl font-bold mb-1">{{ titulo }}</h1>
+            <p class="text-sm text-base-content/60 mb-4">
+                Definí las zonas; los cruces de la fase final se arman solos.
+            </p>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-control w-full">
+                        <label class="label py-1"><span class="label-text font-medium">{{ field.label }}</span></label>
+                        {{ field }}
+                        {% if field.help_text %}<span class="label-text-alt text-base-content/50 text-xs mt-1">{{ field.help_text }}</span>{% endif %}
+                        {% for e in field.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="alert bg-primary/10 border-primary/20 text-sm rounded-2xl py-2">
+                    <span>💡 Ej: <b>3,3,3,3,2</b> = 5 zonas (cuatro de 3 y una de 2) = 14 parejas. La llave toma los que pasan de cada zona.</span>
+                </div>
+                <div class="flex gap-2 justify-end pt-2">
+                    <a href="{% url 'torneos:formatos_list' %}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar formato</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}
