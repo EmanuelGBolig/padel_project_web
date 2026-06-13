@@ -73,6 +73,31 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 # --- FUNCIONES AUXILIARES ---
 
 
+def _seed_con_byes(items, bracket_size):
+    """Distribuye `items` (clasificados reales o labels 1A/2B...) en `bracket_size`
+    posiciones, intercalando los byes (None) de modo que NUNCA se enfrenten dos byes.
+
+    Antes los byes iban todos al final -> aparecían cruces (None, None), partidos
+    fantasma. Acá los pares 'real-real' van primero y el resto de reales se aparea
+    cada uno con un bye (pasan directo a la ronda siguiente)."""
+    items = list(items)
+    n = len(items)
+    num_pares = bracket_size // 2
+    byes = bracket_size - n
+    pares_rr = max(0, num_pares - byes)  # pares con dos reales
+    result = []
+    it = iter(items)
+    for _ in range(pares_rr):
+        result.append(next(it, None))
+        result.append(next(it, None))
+    for x in it:                          # reales restantes: cada uno con un bye
+        result.append(x)
+        result.append(None)
+    while len(result) < bracket_size:
+        result.append(None)
+    return result[:bracket_size]
+
+
 def generar_partidos_grupos(torneo, equipos, grupo_obj):
     """Crea un partido de 'todos contra todos' para los equipos dentro de un grupo."""
     partidos_a_crear = []
@@ -783,7 +808,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         if not solo_estructura:
             bracket_size = 2 ** math.ceil(math.log2(num_equipos))
             num_byes = bracket_size - num_equipos
-            slots = clasificados + [None] * num_byes
+            slots = _seed_con_byes(clasificados, bracket_size)
         else:
             # Si es solo estructura, calculamos clasificados teóricos (1ro y 2do de cada grupo)
             grupos_all = list(torneo.grupos.all().order_by('nombre'))
@@ -815,10 +840,9 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 if p: slots_labels.append(p)
                 if s: slots_labels.append(s)
             
-            # Byes
+            # Byes intercalados (no todos al final -> sin cruces fantasma)
             num_byes = bracket_size - len(slots_labels)
-            slots_labels += [None] * num_byes
-            slots = slots_labels
+            slots = _seed_con_byes(slots_labels, bracket_size)
 
         # 3. Calcular número de rondas
         # bracket_size = 4 -> 2 rondas (Semifinal=1, Final=2)
@@ -981,12 +1005,38 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         
         updates_count += (up1 + up2 + up3 + up4 + up5 + up6)
         
+        # Resolver byes: si al llenar un placeholder el partido quedó (equipo, bye),
+        # el equipo avanza automáticamente a la ronda siguiente.
+        self._resolver_byes(torneo)
+
         if updates_count > 0:
             messages.success(request, f"¡Clasificados del {grupo.nombre} avanzados al cuadro ({updates_count} posiciones actualizadas)!")
         else:
             messages.warning(request, f"Se procesó el {grupo.nombre}, pero no se encontraron posiciones libres con etiquetas '{label1}' o '{label2}' en el cuadro.")
 
         return redirect('torneos:admin_manage', pk=torneo.pk)
+
+    def _resolver_byes(self, torneo):
+        """En la ronda inicial del cuadro, si un partido quedó con un equipo real y el
+        otro lado es un bye (sin equipo ni placeholder), el equipo gana por bye y
+        avanza (Partido.save lo propaga a la ronda siguiente)."""
+        from django.db.models import Min
+        min_ronda = torneo.partidos.aggregate(Min('ronda'))['ronda__min']
+        if min_ronda is None:
+            return
+        for p in torneo.partidos.filter(ronda=min_ronda, ganador__isnull=True):
+            e1_def = p.equipo1_id is not None
+            e2_def = p.equipo2_id is not None
+            e1_bye = (not e1_def) and not p.placeholder_e1
+            e2_bye = (not e2_def) and not p.placeholder_e2
+            if e1_def and e2_bye:
+                p.ganador = p.equipo1
+                p.resultado = "Bye"
+                p.save()
+            elif e2_def and e1_bye:
+                p.ganador = p.equipo2
+                p.resultado = "Bye"
+                p.save()
 
 
 # --- OTRAS VISTAS (Carga de Resultados, etc.) ---

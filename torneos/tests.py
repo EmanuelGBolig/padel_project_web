@@ -905,6 +905,21 @@ class AgregarZonaTests(TestCase):
         self.assertTrue(ids_zona_e & ids_en_cuadro,
                         "Las parejas de la zona nueva deben clasificar al cuadro")
 
+    def test_cuadro_vacio_sin_cruces_fantasma(self):
+        # 5 zonas (14 equipos) -> cuadro de 16 con byes intercalados, sin (vacio vs vacio).
+        from torneos.models import Partido
+        from django.db.models import Min
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        self.client.post(url, {"action": "agregar_zona",
+                               "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
+        self.client.post(url, {"action": "forzar_cuadro_vacio"})
+        min_ronda = Partido.objects.filter(torneo=self.torneo).aggregate(Min("ronda"))["ronda__min"]
+        for p in Partido.objects.filter(torneo=self.torneo, ronda=min_ronda):
+            vacio = (not p.equipo1_id and not p.placeholder_e1
+                     and not p.equipo2_id and not p.placeholder_e2)
+            self.assertFalse(vacio, "no debe haber cruces totalmente vacios en el cuadro")
+
     def test_agregar_zona_resetea_llave_existente(self):
         from torneos.models import Partido
         self.client.force_login(self.admin)
@@ -920,3 +935,17 @@ class AgregarZonaTests(TestCase):
         self.client.post(url, {"action": "agregar_zona",
                                "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
         self.assertFalse(Partido.objects.filter(torneo=self.torneo).exists())
+
+
+class SeedConByesTests(TestCase):
+    """El cuadro genérico distribuye los byes sin enfrentar dos byes (sin cruces fantasma)."""
+
+    def test_distribucion_sin_pares_vacios(self):
+        from torneos.views import _seed_con_byes
+        for n, bs in [(10, 16), (6, 8), (12, 16), (8, 8), (5, 8), (3, 4), (9, 16)]:
+            slots = _seed_con_byes(list(range(n)), bs)
+            self.assertEqual(len(slots), bs)
+            for i in range(0, bs, 2):
+                self.assertFalse(slots[i] is None and slots[i + 1] is None,
+                                 f"par vacío con n={n}, bs={bs}")
+            self.assertEqual(sorted(x for x in slots if x is not None), list(range(n)))
