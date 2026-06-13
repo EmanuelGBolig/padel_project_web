@@ -905,6 +905,30 @@ class AgregarZonaTests(TestCase):
         self.assertTrue(ids_zona_e & ids_en_cuadro,
                         "Las parejas de la zona nueva deben clasificar al cuadro")
 
+    def test_play_in_octavos_solo_dos_cruces(self):
+        # 5 zonas (14 eq) cerradas -> 10 clasificados -> cuadro 16 con play-in:
+        # la 1ra ronda (octavos) tiene SOLO 2 cruces; el resto arranca en cuartos.
+        from torneos.models import Partido
+        from django.db.models import Min
+        self.client.force_login(self.admin)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        self.client.post(url, {"action": "agregar_zona",
+                               "nombres_parejas": "Bigoni/Sanchez\nPerez/Lopez"})
+        for pg in PartidoGrupo.objects.filter(grupo__torneo=self.torneo, ganador__isnull=True):
+            pg.e1_sets_ganados, pg.e2_sets_ganados = 2, 0
+            pg.ganador = pg.equipo1
+            pg.save()
+        self.client.post(url, {"action": "generar_octavos"})
+        min_ronda = Partido.objects.filter(torneo=self.torneo).aggregate(Min("ronda"))["ronda__min"]
+        octavos = Partido.objects.filter(torneo=self.torneo, ronda=min_ronda)
+        self.assertEqual(octavos.count(), 2, "octavos debe tener solo 2 cruces (play-in)")
+        for o in octavos:
+            self.assertIsNotNone(o.equipo1_id)
+            self.assertIsNotNone(o.equipo2_id)
+        # Cuartos: 4 partidos, con las 6 parejas directas ya colocadas
+        cuartos = Partido.objects.filter(torneo=self.torneo, ronda=min_ronda + 1)
+        self.assertEqual(cuartos.count(), 4)
+
     def test_cuadro_vacio_sin_cruces_fantasma(self):
         # 5 zonas (14 equipos) -> cuadro de 16 con byes intercalados, sin (vacio vs vacio).
         from torneos.models import Partido

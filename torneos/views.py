@@ -74,28 +74,44 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 
 def _seed_con_byes(items, bracket_size):
-    """Distribuye `items` (clasificados reales o labels 1A/2B...) en `bracket_size`
-    posiciones, intercalando los byes (None) de modo que NUNCA se enfrenten dos byes.
+    """Ubica `items` (clasificados reales o labels 1A/2B...) en `bracket_size`
+    posiciones para un cuadro con byes / play-in.
 
-    Antes los byes iban todos al final -> aparecían cruces (None, None), partidos
-    fantasma. Acá los pares 'real-real' van primero y el resto de reales se aparea
-    cada uno con un bye (pasan directo a la ronda siguiente)."""
+    Las posiciones que serán PARTIDO (dos items) se reparten de forma separada para
+    que alimenten cruces distintos de la ronda siguiente; el resto de items recibe un
+    bye (None) al lado y pasa directo. Nunca enfrenta dos byes. La generación luego
+    crea Partido solo para las posiciones con dos items: por eso la 1ra ronda muestra
+    únicamente los cruces que se juegan y las parejas con bye arrancan en la 2da."""
     items = list(items)
     n = len(items)
-    num_pares = bracket_size // 2
+    num_pos = bracket_size // 2            # posiciones (partidos) de la 1ra ronda
     byes = bracket_size - n
-    pares_rr = max(0, num_pares - byes)  # pares con dos reales
-    result = []
+    pares_rr = max(0, num_pos - byes)      # cuántas posiciones serán partido
+
+    pos_partido = set()
+    if pares_rr > 0:
+        step = num_pos / pares_rr
+        for k in range(pares_rr):
+            pos_partido.add(min(num_pos - 1, int(round(k * step))))
+        i = 0
+        while len(pos_partido) < pares_rr and i < num_pos:
+            pos_partido.add(i)
+            i += 1
+
+    slots = [None] * bracket_size
     it = iter(items)
-    for _ in range(pares_rr):
-        result.append(next(it, None))
-        result.append(next(it, None))
-    for x in it:                          # reales restantes: cada uno con un bye
-        result.append(x)
-        result.append(None)
-    while len(result) < bracket_size:
-        result.append(None)
-    return result[:bracket_size]
+    for pos in range(num_pos):
+        if pos in pos_partido:
+            slots[2 * pos] = next(it, None)
+            slots[2 * pos + 1] = next(it, None)
+        else:
+            slots[2 * pos] = next(it, None)   # un real + bye (None al lado)
+    for x in it:                              # por si sobró algún item
+        for j in range(bracket_size):
+            if slots[j] is None:
+                slots[j] = x
+                break
+    return slots
 
 
 def generar_partidos_grupos(torneo, equipos, grupo_obj):
@@ -849,71 +865,59 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         # bracket_size = 8 -> 3 rondas (Cuartos=1, Semifinal=2, Final=3)
         # bracket_size = 16 -> 4 rondas (Octavos=1, Cuartos=2, Semifinal=3, Final=4)
         num_rondas = int(math.log2(bracket_size))
-        ronda_inicio = 1  # Siempre empezamos en ronda 1
-        
-        # 4. Generar todas las rondas desde la primera hasta la final
+
         partidos_por_ronda = {}
-        
-        # Generar partidos de la ronda inicial (la más grande)
-        cant_partidos_r1 = bracket_size // 2
-        partidos_por_ronda[ronda_inicio] = []
-        
-        for i in range(cant_partidos_r1):
-            s1 = slots.pop(0) if slots else None
-            s2 = slots.pop(0) if slots else None
-            
-            e1, p1_label = (None, s1) if solo_estructura else (s1, None)
-            e2, p2_label = (None, s2) if solo_estructura else (s2, None)
 
-            p = Partido.objects.create(
-                torneo=torneo,
-                ronda=ronda_inicio,
-                orden_partido=i + 1,
-                equipo1=e1,
-                equipo2=e2,
-                placeholder_e1=p1_label,
-                placeholder_e2=p2_label
-            )
-            partidos_por_ronda[ronda_inicio].append(p)
-
-            # MANEJO DE BYES (Solo si no es estructura vacía)
-            if not solo_estructura:
-                if e1 and not e2:
-                    p.ganador = e1
-                    p.resultado = "Bye"
-                    p.save()
-                elif not e1 and e2:
-                    p.ganador = e2
-                    p.resultado = "Bye"
-                    p.save()
-                elif not e1 and not e2:
-                    p.resultado = "Bye"
-                    p.save()
-
-        # 5. Generar las rondas superiores (vacías por ahora)
+        # 4. Crear primero las rondas 2..final (vacías) y enlazarlas entre sí.
         for ronda_num in range(2, num_rondas + 1):
-            cant_partidos = bracket_size // (2 ** ronda_num)
-            partidos_por_ronda[ronda_num] = []
-            
-            for i in range(cant_partidos):
-                p = Partido.objects.create(
-                    torneo=torneo,
-                    ronda=ronda_num,
-                    orden_partido=i + 1,
-                )
-                partidos_por_ronda[ronda_num].append(p)
+            cant = bracket_size // (2 ** ronda_num)
+            partidos_por_ronda[ronda_num] = [
+                Partido.objects.create(torneo=torneo, ronda=ronda_num, orden_partido=i + 1)
+                for i in range(cant)
+            ]
+        for ronda_num in range(2, num_rondas):
+            for i, p in enumerate(partidos_por_ronda[ronda_num]):
+                p.siguiente_partido = partidos_por_ronda[ronda_num + 1][i // 2]
+                p.save()
 
-        # 6. Enlazar partidos con siguiente_partido
-        for ronda_num in range(1, num_rondas):
-            partidos_actuales = partidos_por_ronda[ronda_num]
-            partidos_siguientes = partidos_por_ronda.get(ronda_num + 1, [])
-            
-            for i, partido in enumerate(partidos_actuales):
-                if partidos_siguientes:
-                    partido.siguiente_partido = partidos_siguientes[i // 2]
-                    partido.save()
+        # 5. Ronda 1 (play-in): SOLO se crea partido para las posiciones con dos
+        # clasificados. Las parejas con bye se colocan directo en la ronda 2 -> la
+        # primera columna del cuadro muestra únicamente los cruces que se juegan.
+        partidos_por_ronda[1] = []
+        for i in range(bracket_size // 2):
+            s1 = slots[2 * i]
+            s2 = slots[2 * i + 1]
+            destino = partidos_por_ronda[2][i // 2] if num_rondas >= 2 else None
+            es_equipo1 = (i % 2 == 0)  # coherente con Partido.save (orden impar -> equipo1)
+
+            if s1 is not None and s2 is not None:
+                e1, p1 = (None, s1) if solo_estructura else (s1, None)
+                e2, p2 = (None, s2) if solo_estructura else (s2, None)
+                p = Partido.objects.create(
+                    torneo=torneo, ronda=1, orden_partido=i + 1,
+                    equipo1=e1, equipo2=e2, placeholder_e1=p1, placeholder_e2=p2,
+                    siguiente_partido=destino,
+                )
+                partidos_por_ronda[1].append(p)
+            else:
+                # Bye: el slot con valor pasa directo a su lugar en la ronda 2.
+                s = s1 if s1 is not None else s2
+                if s is None or destino is None:
+                    continue
+                if solo_estructura:
+                    if es_equipo1:
+                        destino.placeholder_e1 = s
+                    else:
+                        destino.placeholder_e2 = s
+                else:
+                    if es_equipo1:
+                        destino.equipo1 = s
+                    else:
+                        destino.equipo2 = s
+                destino.save()
 
         if not solo_estructura:
+            self._resolver_byes(torneo)
             messages.success(
                 request, f"Bracket de {bracket_size} generado con {num_equipos} equipos."
             )
