@@ -1,639 +1,565 @@
+"""Formatos oficiales de torneo basados en las llaves de la Federación
+Argentina de Pádel (FAP) — documento "Llaves todas" (6 a 48 parejas).
+
+Cada llave define los cruces EXACTOS de la fase final (quién juega contra
+quién y quién pasa directo), garantizando que parejas de la misma zona no
+se re-crucen antes de lo que indica el cuadro oficial.
+
+Convenciones FAP de numeración de partidos (cuadro de 64):
+    33-48 = 16avos · 49-56 = octavos · 57-60 = cuartos · 61-62 = semis · 64 = final
+Los números se conservan como `id`/`orden_partido` para que el cuadro se lea
+igual que la planilla oficial.
+
+Zonas: n // 3 zonas; las primeras (n % 3) tienen 4 parejas y el resto 3.
+Clasifican 1º y 2º de cada zona, más los 3º que indique la llave (3ºA/3ºB).
+"""
 import math
 from dataclasses import dataclass
 from typing import List, Tuple, Union, Optional
 
 LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
+
 @dataclass
 class TournamentFormat:
     teams: int
     groups: int
-    teams_per_group: Union[int, List[int]]  # Can be a fixed number or a list of sizes per group
+    teams_per_group: Union[int, List[int]]  # nº fijo o lista de tamaños por zona
     bracket_type: str  # 'semis', 'quarters', 'octavos', '16vos', 'custom'
-    # Legacy crossings (for simple symmetric brackets)
+    # Cruces legacy (brackets simétricos simples) — ya no se usa, se mantiene
+    # por compatibilidad con la rama legacy de la generación.
     crossings: Optional[List[Tuple[Tuple[str, int], Tuple[str, int]]]] = None
-    # New explicit structure for complex/asymmetric brackets
-    # List of dicts: {'id': int, 'round': int, 't1': Source, 't2': Source, 'next': int}
-    # Source can be: ('A', 1) [Group A Pos 1] or None [Winner of previous match]
+    # Estructura explícita: [{'id', 'round', 't1', 't2', 'next'}, ...]
+    # t1/t2: ('A', 1) = 1º de la Zona A, o None = ganador del partido que llega.
     bracket_structure: Optional[List[dict]] = None
-    
+
     group_names: Optional[List[str]] = None
 
-# Registry of formats
-# Key: Number of teams
-# Value: TournamentFormat instance
-FORMATS = {
-    6: TournamentFormat(
-        teams=6,
-        groups=2,
-        teams_per_group=3,
-        bracket_type='semis',
-        crossings=[
-            # Semifinal 1: 1º Zona A vs 2º Zona B
-            (('A', 1), ('B', 2)),
-            # Semifinal 2: 1º Zona B vs 2º Zona A
-            (('B', 1), ('A', 2)),
-        ]
-    ),
-    12: TournamentFormat(
-        teams=12,
-        groups=4,
-        teams_per_group=3,
-        bracket_type='quarters',
-        crossings=[
-            # Cuartos 1: 1º A vs 2º B
-            (('A', 1), ('B', 2)),
-            # Cuartos 2: 2º C vs 1º D
-            (('C', 2), ('D', 1)),
-            # Cuartos 3: 1º C vs 2º D
-            (('C', 1), ('D', 2)),
-            # Cuartos 4: 2º A vs 1º B
-            (('A', 2), ('B', 1)),
-        ]
-    ),
-    7: TournamentFormat(
-        teams=7,
-        groups=2,
-        teams_per_group=[4, 3], # Zona A: 4, Zona B: 3
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Cuartos / Play-in)
-            {
-                'id': 1, 
-                'round': 1, 
-                't1': ('A', 3), 
-                't2': ('B', 2), 
-                'next': 2
-            },
-            # Round 2 (Semifinales)
-            {
-                'id': 2, 
-                'round': 2, 
-                't1': ('A', 1), 
-                't2': None, # Winner of Match 1
-                'next': 4
-            },
-            {
-                'id': 3, 
-                'round': 2, 
-                't1': ('A', 2), 
-                't2': ('B', 1), 
-                'next': 4
-            },
-            # Round 3 (Final)
-            {
-                'id': 4, 
-                'round': 3, 
-                't1': None, # Winner of Match 2
-                't2': None, # Winner of Match 3
-                'next': None
-            }
-        ]
-    ),
-    8: TournamentFormat(
-        teams=8,
-        groups=2,
-        teams_per_group=4,
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Cuartos / Play-in)
-            # Match 58: 3º A vs 2º B -> Winner to Semis (Match 61)
-            {
-                'id': 58, 
-                'round': 1, 
-                't1': ('A', 3), 
-                't2': ('B', 2), 
-                'next': 61
-            },
-            # Match 59: 2º A vs 3º B -> Winner to Semis (Match 62)
-            {
-                'id': 59, 
-                'round': 1, 
-                't1': ('A', 2), 
-                't2': ('B', 3), 
-                'next': 62
-            },
-            # Round 2 (Semifinales)
-            # Match 61: 1º A vs Winner(58) -> Winner to Final (Match 64)
-            {
-                'id': 61, 
-                'round': 2, 
-                't1': ('A', 1), 
-                't2': None, # Winner of Match 58
-                'next': 64
-            },
-            # Match 62: Winner(59) vs 1º B -> Winner to Final (Match 64)
-            {
-                'id': 62, 
-                'round': 2, 
-                't1': None, # Winner of Match 59
-                't2': ('B', 1), 
-                'next': 64
-            },
-            # Round 3 (Final)
-            # Match 64: Winner(61) vs Winner(62)
-            {
-                'id': 64, 
-                'round': 3, 
-                't1': None, # Winner of Match 61
-                't2': None, # Winner of Match 62
-                'next': None
-            }
-        ]
-    ),
-    9: TournamentFormat(
-        teams=9,
-        groups=3,
-        teams_per_group=3,
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Cuartos)
-            # Match 58: 2º B vs 2º C -> Winner to Semis (Match 61)
-            {
-                'id': 58, 
-                'round': 1, 
-                't1': ('B', 2), 
-                't2': ('C', 2), 
-                'next': 61
-            },
-            # Match 59: 1º C vs 2º A -> Winner to Semis (Match 62)
-            {
-                'id': 59, 
-                'round': 1, 
-                't1': ('C', 1), 
-                't2': ('A', 2), 
-                'next': 62
-            },
-            # Round 2 (Semifinales)
-            # Match 61: 1º A vs Winner(58) -> Winner to Final (Match 64)
-            {
-                'id': 61, 
-                'round': 2, 
-                't1': ('A', 1), 
-                't2': None, # Winner of Match 58
-                'next': 64
-            },
-            # Match 62: Winner(59) vs 1º B -> Winner to Final (Match 64)
-            {
-                'id': 62, 
-                'round': 2, 
-                't1': None, # Winner of Match 59
-                't2': ('B', 1), 
-                'next': 64
-            },
-            # Round 3 (Final)
-            {
-                'id': 64, 
-                'round': 3, 
-                't1': None, # Winner of Match 61
-                't2': None, # Winner of Match 62
-                'next': None
-            }
-        ]
-    ),
-    10: TournamentFormat(
-        teams=10,
-        groups=3,
-        teams_per_group=[4, 3, 3], # Zona A: 4, Zona B: 3, Zona C: 3
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Cuartos)
-            # Match 58: 2º B vs 2º C -> Winner to Semis (Match 61)
-            {
-                'id': 58, 
-                'round': 1, 
-                't1': ('B', 2), 
-                't2': ('C', 2), 
-                'next': 61
-            },
-            # Match 59: 1º C vs 2º A -> Winner to Semis (Match 62)
-            {
-                'id': 59, 
-                'round': 1, 
-                't1': ('C', 1), 
-                't2': ('A', 2), 
-                'next': 62
-            },
-            # Match 60: 3º A vs 1º B -> Winner to Semis (Match 62) ? Wait, image shows 3º A vs 1º B going to Match 62 side?
-            # Let's re-verify image 10.
-            # Match 60 is right side bottom. 3º A vs 1º B.
-            # Match 62 connects Winner 59 (top right bracket) and Winner 60 (bottom right bracket).
-            # Winner 62 goes to Final.
-            # Match 61 connects 1º A (bye) and Winner 58.
-            {
-                'id': 60, 
-                'round': 1, 
-                't1': ('A', 3), 
-                't2': ('B', 1), 
-                'next': 62
-            },
-            # Round 2 (Semifinales)
-            # Match 61: 1º A vs Winner(58)
-            {
-                'id': 61, 
-                'round': 2, 
-                't1': ('A', 1), 
-                't2': None, # Winner 58
-                'next': 64
-            },
-            # Match 62: Winner(59) vs Winner(60)
-            {
-                'id': 62, 
-                'round': 2, 
-                't1': None, # Winner 59
-                't2': None, # Winner 60
-                'next': 64
-            },
-            # Round 3 (Final)
-            {
-                'id': 64, 
-                'round': 3, 
-                't1': None, 
-                't2': None, 
-                'next': None
-            }
-        ]
-    ),
-    11: TournamentFormat(
-        teams=11,
-        groups=3,
-        teams_per_group=[4, 4, 3], # A:4, B:4, C:3
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Cuartos)
-            # Match 57: 1º A vs 3º B -> Winner to Semis (Match 61)
-            {
-                'id': 57, 
-                'round': 1, 
-                't1': ('A', 1), 
-                't2': ('B', 3), 
-                'next': 61
-            },
-            # Match 58: 2º B vs 2º C -> Winner to Semis (Match 61)
-            {
-                'id': 58, 
-                'round': 1, 
-                't1': ('B', 2), 
-                't2': ('C', 2), 
-                'next': 61
-            },
-            # Match 59: 1º C vs 2º A -> Winner to Semis (Match 62)
-            {
-                'id': 59, 
-                'round': 1, 
-                't1': ('C', 1), 
-                't2': ('A', 2), 
-                'next': 62
-            },
-            # Match 60: 3º A vs 1º B -> Winner to Semis (Match 62)
-            {
-                'id': 60, 
-                'round': 1, 
-                't1': ('A', 3), 
-                't2': ('B', 1), 
-                'next': 62
-            },
-            # Round 2 (Semifinales)
-            # Match 61: Winner(57) vs Winner(58)
-            {
-                'id': 61, 
-                'round': 2, 
-                't1': None, # Win 57
-                't2': None, # Win 58
-                'next': 64
-            },
-            # Match 62: Winner(59) vs Winner(60)
-            {
-                'id': 62, 
-                'round': 2, 
-                't1': None, # Win 59
-                't2': None, # Win 60
-                'next': 64
-            },
-            # Round 3 (Final)
-            {
-                'id': 64, 
-                'round': 3, 
-                't1': None, 
-                't2': None, 
-                'next': None
-            }
-        ]
-    ),
-    13: TournamentFormat(
-        teams=13,
-        groups=4,
-        teams_per_group=[4, 3, 3, 3], # A:4, B:3, C:3, D:3
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Play-in / Octavos parciales)
-            # Match 50: 3º A vs 2º B -> Winner to QF (Match 57)
-            {
-                'id': 50, 
-                'round': 1, 
-                't1': ('A', 3), 
-                't2': ('B', 2), 
-                'next': 57
-            },
-            # Round 2 (Cuartos)
-            # Match 57: 1º A vs Winner(50) -> Winner to Semis (Match 61)
-            {
-                'id': 57, 
-                'round': 2, 
-                't1': ('A', 1), 
-                't2': None, # Win 50
-                'next': 61
-            },
-            # Match 58: 2º C vs 1º D -> Winner to Semis (Match 61)
-            {
-                'id': 58, 
-                'round': 2, 
-                't1': ('C', 2), 
-                't2': ('D', 1), 
-                'next': 61
-            },
-            # Match 59: 1º C vs 2º D -> Winner to Semis (Match 62)
-            {
-                'id': 59, 
-                'round': 2, 
-                't1': ('C', 1), 
-                't2': ('D', 2), 
-                'next': 62
-            },
-            # Match 60: 2º A vs 1º B -> Winner to Semis (Match 62)
-            {
-                'id': 60, 
-                'round': 2, 
-                't1': ('A', 2), 
-                't2': ('B', 1), 
-                'next': 62
-            },
-            # Round 3 (Semis)
-            {
-                'id': 61, 
-                'round': 3, 
-                't1': None, # Win 57
-                't2': None, # Win 58
-                'next': 64
-            },
-            {
-                'id': 62, 
-                'round': 3, 
-                't1': None, # Win 59
-                't2': None, # Win 60
-                'next': 64
-            },
-            # Final
-            {
-                'id': 64, 
-                'round': 4, 
-                't1': None, 
-                't2': None, 
-                'next': None
-            }
-        ]
-    ),
-    14: TournamentFormat(
-        teams=14,
-        groups=4,
-        teams_per_group=[4, 4, 3, 3], # A:4, B:4, C:3, D:3
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Play-in / Octavos parciales)
-            {
-                'id': 49, 
-                'round': 1, 
-                't1': ('A', 2), 
-                't2': ('B', 3), 
-                'next': 60
-            },
-            {
-                'id': 50, 
-                'round': 1, 
-                't1': ('A', 3), 
-                't2': ('B', 2), 
-                'next': 57
-            },
-            # Round 2 (Cuartos)
-            {
-                'id': 57, 
-                'round': 2, 
-                't1': ('A', 1), 
-                't2': None, # Win 50
-                'next': 61
-            },
-            {
-                'id': 58, 
-                'round': 2, 
-                't1': ('C', 2), 
-                't2': ('D', 1), 
-                'next': 61
-            },
-            {
-                'id': 59, 
-                'round': 2, 
-                't1': ('C', 1), 
-                't2': ('D', 2), 
-                'next': 62
-            },
-            {
-                'id': 60, 
-                'round': 2, 
-                't1': None, # Win 49
-                't2': ('B', 1), 
-                'next': 62
-            },
-            # Round 3 (Semis)
-            {
-                'id': 61, 
-                'round': 3, 
-                't1': None, # Win 57
-                't2': None, # Win 58
-                'next': 64
-            },
-            {
-                'id': 62, 
-                'round': 3, 
-                't1': None, # Win 59
-                't2': None, # Win 60
-                'next': 64
-            },
-            # Final
-            {
-                'id': 64, 
-                'round': 4, 
-                't1': None, 
-                't2': None, 
-                'next': None
-            }
-        ]
-    ),
-    15: TournamentFormat(
-        teams=15,
-        groups=5,
-        teams_per_group=3,
-        bracket_type='custom',
-        bracket_structure=[
-            # R1 (Previas)
-            { 'id': 50, 'round': 1, 't1': ('B', 2), 't2': ('C', 2), 'next': 57 },
-            { 'id': 55, 'round': 1, 't1': ('D', 2), 't2': ('A', 2), 'next': 60 },
-            # R2 (Cuartos)
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 }, # Winner 50
-            { 'id': 58, 'round': 2, 't1': ('E', 1), 't2': ('D', 1), 'next': 61 },
-            { 'id': 59, 'round': 2, 't1': ('C', 1), 't2': ('E', 2), 'next': 62 },
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 }, # Winner 55
-            # R3 (Semis)
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Final
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
-    16: TournamentFormat(
-        teams=16,
-        groups=5,
-        teams_per_group=[4, 3, 3, 3, 3], # A=4
-        bracket_type='custom',
-        bracket_structure=[
-            # R1
-            { 'id': 50, 'round': 1, 't1': ('B', 2), 't2': ('C', 2), 'next': 57 },
-            { 'id': 54, 'round': 1, 't1': ('A', 3), 't2': ('E', 2), 'next': 59 },
-            { 'id': 55, 'round': 1, 't1': ('D', 2), 't2': ('A', 2), 'next': 60 },
-            # R2
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 },
-            { 'id': 58, 'round': 2, 't1': ('E', 1), 't2': ('D', 1), 'next': 61 },
-            { 'id': 59, 'round': 2, 't1': ('C', 1), 't2': None, 'next': 62 },
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 },
-            # R3
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Final
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
-    17: TournamentFormat(
-        teams=17,
-        groups=6,
-        teams_per_group=[3, 3, 3, 3, 3, 2], # A-E=3, F=2
-        bracket_type='custom',
-        bracket_structure=[
-            # R1
-            { 'id': 50, 'round': 1, 't1': ('C', 2), 't2': ('F', 2), 'next': 57 },
-            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('B', 2), 'next': 58 }, # 1E vs 2B -> plays 1D
-            { 'id': 54, 'round': 1, 't1': ('A', 3), 't2': ('E', 2), 'next': 59 },
-            { 'id': 55, 'round': 1, 't1': ('D', 2), 't2': ('A', 2), 'next': 60 },
-            # R2
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 },
-            { 'id': 58, 'round': 2, 't1': None, 't2': ('D', 1), 'next': 61 },
-            { 'id': 59, 'round': 2, 't1': ('C', 1), 't2': None, 'next': 62 },
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 },
-            # R3
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Final
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
-    18: TournamentFormat(
-        teams=18,
-        groups=6,
-        teams_per_group=3,
-        bracket_type='custom',
-        bracket_structure=[
-            # R1
-            { 'id': 50, 'round': 1, 't1': ('C', 2), 't2': ('F', 2), 'next': 57 },
-            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('B', 2), 'next': 58 },
-            { 'id': 54, 'round': 1, 't1': ('A', 2), 't2': ('F', 1), 'next': 59 },
-            { 'id': 55, 'round': 1, 't1': ('E', 2), 't2': ('D', 2), 'next': 60 },
-            # R2
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 },
-            { 'id': 58, 'round': 2, 't1': None, 't2': ('D', 1), 'next': 61 },
-            { 'id': 59, 'round': 2, 't1': ('C', 1), 't2': None, 'next': 62 },
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 },
-            # R3
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Final
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
-    19: TournamentFormat(
-        teams=19,
-        groups=6,
-        teams_per_group=[4, 3, 3, 3, 3, 3], # A=4
-        bracket_type='custom',
-        bracket_structure=[
-            # R1
-            { 'id': 50, 'round': 1, 't1': ('C', 2), 't2': ('F', 2), 'next': 57 },
-            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('B', 2), 'next': 58 },
-            { 'id': 52, 'round': 1, 't1': ('A', 3), 't2': ('D', 1), 'next': 58 }, # 3A vs 1D -> Plays winner 51
-            { 'id': 54, 'round': 1, 't1': ('A', 2), 't2': ('F', 1), 'next': 59 },
-            { 'id': 55, 'round': 1, 't1': ('E', 2), 't2': ('D', 2), 'next': 60 },
-            # R2
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 },
-            { 'id': 58, 'round': 2, 't1': None, 't2': None, 'next': 61 }, # Win51 vs Win52
-            { 'id': 59, 'round': 2, 't1': ('C', 1), 't2': None, 'next': 62 },
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 },
-            # R3
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Final
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
-    21: TournamentFormat(
-        teams=21,
-        groups=7,
-        teams_per_group=3, # A-G=3
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Octavos)
-            { 'id': 50, 'round': 1, 't1': ('F', 2), 't2': ('G', 2), 'next': 57 }, # 2ºF vs 2ºG -> plays 1A
-            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('C', 2), 'next': 58 }, # 1ºE vs 2ºC
-            { 'id': 52, 'round': 1, 't1': ('B', 2), 't2': ('D', 1), 'next': 58 }, # 2ºB vs 1ºD
-            { 'id': 53, 'round': 1, 't1': ('C', 1), 't2': ('A', 2), 'next': 59 }, # 1ºC vs 2ºA
-            { 'id': 54, 'round': 1, 't1': ('D', 2), 't2': ('F', 1), 'next': 59 }, # 2ºD vs 1ºF
-            { 'id': 55, 'round': 1, 't1': ('G', 1), 't2': ('E', 2), 'next': 60 }, # 1ºG vs 2ºE -> plays 1B
-            # Round 2 (Cuartos)
-            { 'id': 57, 'round': 2, 't1': ('A', 1), 't2': None, 'next': 61 }, # 1ºA vs Win50
-            { 'id': 58, 'round': 2, 't1': None, 't2': None, 'next': 61 }, # Win51 vs Win52
-            { 'id': 59, 'round': 2, 't1': None, 't2': None, 'next': 62 }, # Win53 vs Win54
-            { 'id': 60, 'round': 2, 't1': None, 't2': ('B', 1), 'next': 62 }, # Win55 vs 1ºB
-            # Round 3 (Semis)
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Final
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
-    24: TournamentFormat(
-        teams=24,
-        groups=8,
-        teams_per_group=3, # All groups A-H has 3 teams
-        bracket_type='custom',
-        bracket_structure=[
-            # Round 1 (Octavos)
-            { 'id': 49, 'round': 1, 't1': ('A', 1), 't2': ('B', 2), 'next': 57 },
-            { 'id': 50, 'round': 1, 't1': ('G', 2), 't2': ('H', 1), 'next': 57 },
-            { 'id': 51, 'round': 1, 't1': ('E', 1), 't2': ('F', 2), 'next': 58 },
-            { 'id': 52, 'round': 1, 't1': ('C', 2), 't2': ('D', 1), 'next': 58 },
-            { 'id': 53, 'round': 1, 't1': ('C', 1), 't2': ('D', 2), 'next': 59 },
-            { 'id': 54, 'round': 1, 't1': ('E', 2), 't2': ('F', 1), 'next': 59 },
-            { 'id': 55, 'round': 1, 't1': ('G', 1), 't2': ('H', 2), 'next': 60 },
-            { 'id': 56, 'round': 1, 't1': ('A', 2), 't2': ('B', 1), 'next': 60 },
-            # Round 2 (Cuartos)
-            { 'id': 57, 'round': 2, 't1': None, 't2': None, 'next': 61 },
-            { 'id': 58, 'round': 2, 't1': None, 't2': None, 'next': 61 },
-            { 'id': 59, 'round': 2, 't1': None, 't2': None, 'next': 62 },
-            { 'id': 60, 'round': 2, 't1': None, 't2': None, 'next': 62 },
-            # Round 3 (Semifinales)
-            { 'id': 61, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            { 'id': 62, 'round': 3, 't1': None, 't2': None, 'next': 64 },
-            # Round 4 (Final)
-            { 'id': 64, 'round': 4, 't1': None, 't2': None, 'next': None }
-        ]
-    ),
+
+# --- Llaves oficiales FAP -----------------------------------------------------
+# {parejas: [(id_partido, t1, t2, id_siguiente), ...]}
+# t1/t2: '1A' = 1º de la Zona A; None = lo ocupa el ganador del partido previo.
+# El partido con next=None es la final.
+FAP_LLAVES = {
+    6: [
+        (61, '1A', '2B', 64), (62, '2A', '1B', 64),
+        (64, None, None, None),
+    ],
+    7: [
+        (58, '3A', '2B', 61),
+        (61, '1A', None, 64), (62, '2A', '1B', 64),
+        (64, None, None, None),
+    ],
+    8: [
+        (58, '3A', '2B', 61), (59, '2A', '3B', 62),
+        (61, '1A', None, 64), (62, None, '1B', 64),
+        (64, None, None, None),
+    ],
+    9: [
+        (58, '2B', '2C', 61), (59, '1C', '2A', 62),
+        (61, '1A', None, 64), (62, None, '1B', 64),
+        (64, None, None, None),
+    ],
+    10: [
+        (58, '2B', '2C', 61), (59, '1C', '2A', 62), (60, '3A', '1B', 62),
+        (61, '1A', None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    11: [
+        (57, '1A', '3B', 61), (58, '2B', '2C', 61),
+        (59, '1C', '2A', 62), (60, '3A', '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    12: [
+        (57, '1A', '2B', 61), (58, '2C', '1D', 61),
+        (59, '1C', '2D', 62), (60, '2A', '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    13: [
+        (50, '3A', '2B', 57),
+        (57, '1A', None, 61), (58, '2C', '1D', 61),
+        (59, '1C', '2D', 62), (60, '2A', '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    14: [
+        (50, '3A', '2B', 57), (55, '2A', '3B', 60),
+        (57, '1A', None, 61), (58, '2C', '1D', 61),
+        (59, '1C', '2D', 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    15: [
+        (50, '2B', '2C', 57), (55, '2D', '2A', 60),
+        (57, '1A', None, 61), (58, '1E', '1D', 61),
+        (59, '1C', '2E', 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    16: [
+        (50, '2B', '2C', 57), (54, '3A', '2E', 59), (55, '2D', '2A', 60),
+        (57, '1A', None, 61), (58, '1E', '1D', 61),
+        (59, '1C', None, 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    17: [
+        (50, '2B', '2C', 57), (51, '1E', '3B', 58),
+        (54, '3A', '2E', 59), (55, '2D', '2A', 60),
+        (57, '1A', None, 61), (58, None, '1D', 61),
+        (59, '1C', None, 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    18: [
+        (50, '2C', '2F', 57), (51, '1E', '2B', 58),
+        (54, '2A', '1F', 59), (55, '2E', '2D', 60),
+        (57, '1A', None, 61), (58, None, '1D', 61),
+        (59, '1C', None, 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    19: [
+        (50, '2C', '2F', 57), (51, '1E', '2B', 58), (52, '3A', '1D', 58),
+        (54, '2A', '1F', 59), (55, '2E', '2D', 60),
+        (57, '1A', None, 61), (58, None, None, 61),
+        (59, '1C', None, 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    20: [
+        (50, '2C', '2F', 57), (51, '1E', '2B', 58), (52, '3A', '1D', 58),
+        (53, '1C', '3B', 59), (54, '2A', '1F', 59), (55, '2E', '2D', 60),
+        (57, '1A', None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    21: [
+        (50, '2F', '2G', 57), (51, '1E', '2C', 58), (52, '2B', '1D', 58),
+        (53, '1C', '2A', 59), (54, '2D', '1F', 59), (55, '1G', '2E', 60),
+        (57, '1A', None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, '1B', 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    22: [
+        (50, '2F', '2G', 57), (51, '1E', '2C', 58), (52, '2B', '1D', 58),
+        (53, '1C', '2A', 59), (54, '2D', '1F', 59), (55, '1G', '2E', 60),
+        (56, '3A', '1B', 60),
+        (57, '1A', None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    23: [
+        (49, '1A', '3B', 57), (50, '2F', '2G', 57),
+        (51, '1E', '2C', 58), (52, '2B', '1D', 58),
+        (53, '1C', '2A', 59), (54, '2D', '1F', 59),
+        (55, '1G', '2E', 60), (56, '3A', '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    24: [
+        (49, '1A', '2B', 57), (50, '2G', '1H', 57),
+        (51, '1E', '2F', 58), (52, '2C', '1D', 58),
+        (53, '1C', '2D', 59), (54, '2E', '1F', 59),
+        (55, '1G', '2H', 60), (56, '2A', '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    25: [
+        (34, '3A', '2B', 49),
+        (49, '1A', None, 57), (50, '2G', '1H', 57),
+        (51, '1E', '2F', 58), (52, '2C', '1D', 58),
+        (53, '1C', '2D', 59), (54, '2E', '1F', 59),
+        (55, '1G', '2H', 60), (56, '2A', '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    26: [
+        (34, '3A', '2B', 49), (47, '2A', '3B', 56),
+        (49, '1A', None, 57), (50, '2G', '1H', 57),
+        (51, '1E', '2F', 58), (52, '2C', '1D', 58),
+        (53, '1C', '2D', 59), (54, '2E', '1F', 59),
+        (55, '1G', '2H', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    27: [
+        (34, '2B', '2C', 49), (47, '2D', '2A', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', '2G', 58), (52, '2F', '1D', 58),
+        (53, '1C', '2E', 59), (54, '2H', '1F', 59),
+        (55, '1G', '2I', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    28: [
+        (34, '2B', '2C', 49), (42, '3A', '2E', 53), (47, '2D', '2A', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', '2G', 58), (52, '2F', '1D', 58),
+        (53, '1C', None, 59), (54, '2H', '1F', 59),
+        (55, '1G', '2I', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    29: [
+        (34, '2B', '2C', 49), (39, '2F', '3B', 52),
+        (42, '3A', '2E', 53), (47, '2D', '2A', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', '2G', 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, '2H', '1F', 59),
+        (55, '1G', '2I', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    30: [
+        (34, '2C', '2F', 49), (39, '2G', '2B', 52),
+        (42, '2A', '2H', 53), (47, '2E', '2D', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', '2J', 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, '2I', '1F', 59),
+        (55, '1G', '1J', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    31: [
+        (34, '2C', '2F', 49), (39, '2G', '2B', 52),
+        (42, '2A', '2H', 53), (43, '2I', '3A', 54), (47, '2E', '2D', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', '2J', 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', '1J', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    32: [
+        (34, '2C', '2F', 49), (38, '3B', '2J', 51), (39, '2G', '2B', 52),
+        (42, '2A', '2H', 53), (43, '2I', '3A', 54), (47, '2E', '2D', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', '1J', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    33: [
+        (34, '2F', '2G', 49), (38, '2B', '2K', 51), (39, '2J', '2C', 52),
+        (42, '2D', '2I', 53), (43, '1K', '2A', 54), (47, '2H', '2E', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', '1J', 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    34: [
+        (34, '2F', '2G', 49), (38, '2B', '2K', 51), (39, '2J', '2C', 52),
+        (42, '2D', '2I', 53), (43, '1K', '2A', 54),
+        (46, '3A', '1J', 55), (47, '2H', '2E', 56),
+        (49, '1A', None, 57), (50, '1I', '1H', 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    35: [
+        (34, '2F', '2G', 49), (35, '1I', '3B', 50),
+        (38, '2B', '2K', 51), (39, '2J', '2C', 52),
+        (42, '2D', '2I', 53), (43, '1K', '2A', 54),
+        (46, '3A', '1J', 55), (47, '2H', '2E', 56),
+        (49, '1A', None, 57), (50, None, '1H', 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    36: [
+        (34, '2G', '2J', 49), (35, '1I', '2B', 50),
+        (38, '2C', '1L', 51), (39, '2K', '2F', 52),
+        (42, '2E', '2L', 53), (43, '1K', '2D', 54),
+        (46, '2A', '1J', 55), (47, '2I', '2H', 56),
+        (49, '1A', None, 57), (50, None, '1H', 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    37: [
+        (34, '2G', '2J', 49), (35, '1I', '2B', 50), (36, '3A', '1H', 50),
+        (38, '2C', '1L', 51), (39, '2K', '2F', 52),
+        (42, '2E', '2L', 53), (43, '1K', '2D', 54),
+        (46, '2A', '1J', 55), (47, '2I', '2H', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, '1G', None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    38: [
+        (34, '2G', '2J', 49), (35, '1I', '2B', 50), (36, '3A', '1H', 50),
+        (38, '2C', '1L', 51), (39, '2K', '2F', 52),
+        (42, '2E', '2L', 53), (43, '1K', '2D', 54),
+        (45, '1G', '3B', 55), (46, '2A', '1J', 55), (47, '2I', '2H', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    39: [
+        (34, '2J', '2K', 49), (35, '1I', '2C', 50), (36, '2B', '1H', 50),
+        (38, '2F', '1L', 51), (39, '1M', '2G', 52),
+        (42, '2H', '2M', 53), (43, '1K', '2E', 54),
+        (45, '1G', '2A', 55), (46, '2D', '1J', 55), (47, '2L', '2I', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, '1F', 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    40: [
+        (34, '2J', '2K', 49), (35, '1I', '2C', 50), (36, '2B', '1H', 50),
+        (38, '2F', '1L', 51), (39, '1M', '2G', 52),
+        (42, '2H', '2M', 53), (43, '1K', '2E', 54), (44, '3A', '1F', 54),
+        (45, '1G', '2A', 55), (46, '2D', '1J', 55), (47, '2L', '2I', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, '1E', None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    41: [
+        (34, '2J', '2K', 49), (35, '1I', '2C', 50), (36, '2B', '1H', 50),
+        (37, '1E', '3B', 51), (38, '2F', '1L', 51), (39, '1M', '2G', 52),
+        (42, '2H', '2M', 53), (43, '1K', '2E', 54), (44, '3A', '1F', 54),
+        (45, '1G', '2A', 55), (46, '2D', '1J', 55), (47, '2L', '2I', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    42: [
+        (34, '2N', '2K', 49), (35, '1I', '2F', 50), (36, '2C', '1H', 50),
+        (37, '1E', '2B', 51), (38, '2G', '1L', 51), (39, '1M', '2J', 52),
+        (42, '2I', '1N', 53), (43, '1K', '2H', 54), (44, '2A', '1F', 54),
+        (45, '1G', '2D', 55), (46, '2E', '1J', 55), (47, '2M', '2L', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, '1D', 58),
+        (53, '1C', None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    43: [
+        (34, '2N', '2K', 49), (35, '1I', '2F', 50), (36, '2C', '1H', 50),
+        (37, '1E', '2B', 51), (38, '2G', '1L', 51),
+        (39, '1M', '2J', 52), (40, '3A', '1D', 52),
+        (42, '2I', '1N', 53), (43, '1K', '2H', 54), (44, '2A', '1F', 54),
+        (45, '1G', '2D', 55), (46, '2E', '1J', 55), (47, '2M', '2L', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, None, 58),
+        (53, '1C', None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    44: [
+        (34, '2N', '2K', 49), (35, '1I', '2F', 50), (36, '2C', '1H', 50),
+        (37, '1E', '2B', 51), (38, '2G', '1L', 51),
+        (39, '1M', '2J', 52), (40, '3A', '1D', 52),
+        (41, '1C', '3B', 53), (42, '2I', '1N', 53),
+        (43, '1K', '2H', 54), (44, '2A', '1F', 54),
+        (45, '1G', '2D', 55), (46, '2E', '1J', 55), (47, '2M', '2L', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, None, 58),
+        (53, None, None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    45: [
+        (34, '2N', '2O', 49), (35, '1I', '2G', 50), (36, '2F', '1H', 50),
+        (37, '1E', '2C', 51), (38, '2J', '1L', 51),
+        (39, '1M', '2K', 52), (40, '2B', '1D', 52),
+        (41, '1C', '2A', 53), (42, '2L', '1N', 53),
+        (43, '1K', '2I', 54), (44, '2D', '1F', 54),
+        (45, '1G', '2E', 55), (46, '2H', '1J', 55), (47, '1O', '2M', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, None, 58),
+        (53, None, None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, '1B', 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    46: [
+        (34, '2N', '2O', 49), (35, '1I', '2G', 50), (36, '2F', '1H', 50),
+        (37, '1E', '2C', 51), (38, '2J', '1L', 51),
+        (39, '1M', '2K', 52), (40, '2B', '1D', 52),
+        (41, '1C', '2A', 53), (42, '2L', '1N', 53),
+        (43, '1K', '2I', 54), (44, '2D', '1F', 54),
+        (45, '1G', '2E', 55), (46, '2H', '1J', 55),
+        (47, '1O', '2M', 56), (48, '3A', '1B', 56),
+        (49, '1A', None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, None, 58),
+        (53, None, None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, None, 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    47: [
+        (33, '1A', '3B', 49), (34, '2N', '2O', 49),
+        (35, '1I', '2G', 50), (36, '2F', '1H', 50),
+        (37, '1E', '2C', 51), (38, '2J', '1L', 51),
+        (39, '1M', '2K', 52), (40, '2B', '1D', 52),
+        (41, '1C', '2A', 53), (42, '2L', '1N', 53),
+        (43, '1K', '2I', 54), (44, '2D', '1F', 54),
+        (45, '1G', '2E', 55), (46, '2H', '1J', 55),
+        (47, '1O', '2M', 56), (48, '3A', '1B', 56),
+        (49, None, None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, None, 58),
+        (53, None, None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, None, 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
+    48: [
+        (33, '1A', '2B', 49), (34, '2O', '1P', 49),
+        (35, '1I', '2J', 50), (36, '2G', '1H', 50),
+        (37, '1E', '2F', 51), (38, '2K', '1L', 51),
+        (39, '1M', '2N', 52), (40, '2C', '1D', 52),
+        (41, '1C', '2D', 53), (42, '2M', '1N', 53),
+        (43, '1K', '2L', 54), (44, '2E', '1F', 54),
+        (45, '1G', '2H', 55), (46, '2I', '1J', 55),
+        (47, '1O', '2P', 56), (48, '2A', '1B', 56),
+        (49, None, None, 57), (50, None, None, 57),
+        (51, None, None, 58), (52, None, None, 58),
+        (53, None, None, 59), (54, None, None, 59),
+        (55, None, None, 60), (56, None, None, 60),
+        (57, None, None, 61), (58, None, None, 61),
+        (59, None, None, 62), (60, None, None, 62),
+        (61, None, None, 64), (62, None, None, 64),
+        (64, None, None, None),
+    ],
 }
+
+_BRACKET_TYPE_POR_RONDAS = {2: 'semis', 3: 'quarters', 4: 'octavos', 5: '16vos'}
+
+
+def _parse_seed(s):
+    """'1A' -> ('A', 1); None -> None."""
+    if s is None:
+        return None
+    return (s[1], int(s[0]))
+
+
+def fap_sizes(n):
+    """Tamaños de zona FAP: n // 3 zonas; las primeras n % 3 tienen 4 parejas."""
+    zonas, extra = divmod(n, 3)
+    return [4] * extra + [3] * (zonas - extra)
+
+
+def _build_format(n, entries):
+    """Construye un TournamentFormat desde la tabla compacta FAP_LLAVES."""
+    by_id = {e[0]: e for e in entries}
+
+    # Ronda = distancia a la final (la final es la ronda más alta).
+    depth_cache = {}
+
+    def depth(mid):
+        if mid not in depth_cache:
+            nxt = by_id[mid][3]
+            depth_cache[mid] = 1 if nxt is None else 1 + depth(nxt)
+        return depth_cache[mid]
+
+    total_rondas = max(depth(e[0]) for e in entries)
+    structure = [
+        {
+            'id': mid,
+            'round': total_rondas - depth(mid) + 1,
+            't1': _parse_seed(t1),
+            't2': _parse_seed(t2),
+            'next': nxt,
+        }
+        for (mid, t1, t2, nxt) in entries
+    ]
+    structure.sort(key=lambda m: (m['round'], m['id']))
+
+    sizes = fap_sizes(n)
+    return TournamentFormat(
+        teams=n,
+        groups=len(sizes),
+        teams_per_group=sizes[0] if len(set(sizes)) == 1 else sizes,
+        bracket_type=_BRACKET_TYPE_POR_RONDAS.get(total_rondas, 'custom'),
+        bracket_structure=structure,
+    )
+
+
+# Registro de formatos: {cantidad de parejas: TournamentFormat}
+FORMATS = {n: _build_format(n, entries) for n, entries in FAP_LLAVES.items()}
+
 
 def get_format(num_teams: int) -> Optional[TournamentFormat]:
     return FORMATS.get(num_teams)
@@ -772,14 +698,14 @@ def describir_estructura(num_equipos, tipo, *, forzar3=False, equipos_por_grupo=
     flujo = [f'{n} parejas', f'{num_grupos} zona{"s" if num_grupos != 1 else ""}', llave]
 
     if custom_format:
-        mensaje = f'Pasan los mejores de cada zona a la fase final ({llave}).'
+        mensaje = f'Cuadro oficial FAP: pasan los mejores de cada zona a la fase final ({llave}).'
         nivel = 'ok'
     else:
-        # Agrupación genérica: el sistema igual la genera, pero no es uno de los
-        # formatos optimizados (6–19, 21, 24).
+        # Agrupación genérica: fuera del rango de llaves oficiales (6–48),
+        # el sistema arma las zonas y la llave igual.
         mensaje = (
-            f'{num_grupos} zonas a medida. No es uno de los formatos optimizados, '
-            'pero el sistema arma las zonas y la llave igual.'
+            f'{num_grupos} zonas a medida. No es una de las llaves oficiales '
+            '(6–48 parejas), pero el sistema arma las zonas y el cuadro igual.'
         )
         nivel = 'ok'
 
@@ -787,4 +713,3 @@ def describir_estructura(num_equipos, tipo, *, forzar3=False, equipos_por_grupo=
         'ok': True, 'nivel': nivel, 'titulo': titulo,
         'flujo': flujo, 'zonas': zonas, 'byes': 0, 'mensaje': mensaje,
     }
-

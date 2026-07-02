@@ -133,22 +133,24 @@ class GenerarBracketZonaIncompletaTests(TestCase):
         url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
         return self.client.post(url, {"action": "generar_octavos"})
 
+    def _equipo_en_slot(self, ph):
+        """Equipo asignado al slot con placeholder `ph`, sin importar el lado."""
+        from django.db.models import Q
+        from .models import Partido
+        p = Partido.objects.filter(torneo=self.torneo).filter(
+            Q(placeholder_e1=ph) | Q(placeholder_e2=ph)).get()
+        return p.equipo1 if p.placeholder_e1 == ph else p.equipo2
+
     def test_zona_completa_llena_slots(self):
         self._generar_bracket()
-        from .models import Partido
-        p1a = Partido.objects.get(torneo=self.torneo, placeholder_e1="1A")
-        p2a = Partido.objects.get(torneo=self.torneo, placeholder_e2="2A")
-        self.assertIsNotNone(p1a.equipo1, "1A debería estar lleno (Zona A cerrada)")
-        self.assertIsNotNone(p2a.equipo2, "2A debería estar lleno (Zona A cerrada)")
+        self.assertIsNotNone(self._equipo_en_slot("1A"), "1A debería estar lleno (Zona A cerrada)")
+        self.assertIsNotNone(self._equipo_en_slot("2A"), "2A debería estar lleno (Zona A cerrada)")
 
     def test_zona_incompleta_queda_placeholder(self):
         self._generar_bracket()
-        from .models import Partido
         # 2B y 1B pertenecen a la Zona B (incompleta) -> NO deben tener equipo.
-        p2b = Partido.objects.get(torneo=self.torneo, placeholder_e2="2B")
-        p1b = Partido.objects.get(torneo=self.torneo, placeholder_e1="1B")
-        self.assertIsNone(p2b.equipo2, "2B NO debe estar lleno: la Zona B no terminó")
-        self.assertIsNone(p1b.equipo1, "1B NO debe estar lleno: la Zona B no terminó")
+        self.assertIsNone(self._equipo_en_slot("2B"), "2B NO debe estar lleno: la Zona B no terminó")
+        self.assertIsNone(self._equipo_en_slot("1B"), "1B NO debe estar lleno: la Zona B no terminó")
 
 
 from unittest import skipUnless
@@ -394,21 +396,59 @@ class DescribirEstructuraTests(TestCase):
     """TP-17.3: proyección de estructura para la vista previa del alta."""
 
     def test_grupos_con_formato_optimizado(self):
+        # Zonas según la llave oficial FAP: n//3 zonas, las primeras n%3 de 4.
         from .formats import describir_estructura
-        for n, num_zonas in [(6, 2), (8, 2), (12, 4), (13, 4), (16, 5), (17, 6), (24, 8)]:
+        for n, num_zonas in [(6, 2), (8, 2), (12, 4), (13, 4), (16, 5), (17, 5), (24, 8), (26, 8), (48, 16)]:
             r = describir_estructura(n, 'G')
             self.assertTrue(r['ok'], f"n={n} debería ser ok")
             self.assertEqual(r['nivel'], 'ok')
             self.assertEqual(len(r['zonas']), num_zonas, f"n={n}")
 
     def test_grupos_sin_formato_optimizado_igual_genera(self):
-        # 20/22/23 no tienen formato en FORMATS pero el sistema arma zonas genéricas.
+        # Fuera del rango FAP (6-48) el sistema arma zonas genéricas igual.
         from .formats import describir_estructura
-        for n in (20, 22, 23):
+        for n in (5, 49, 60):
             r = describir_estructura(n, 'G')
             self.assertTrue(r['ok'], f"n={n}")
             self.assertEqual(r['nivel'], 'ok')
             self.assertTrue(r['zonas'])
+
+    def test_llaves_fap_consistentes(self):
+        # Invariantes de TODAS las llaves oficiales (6-48): cada clasificado se usa
+        # exactamente una vez, cada partido recibe 2 entradas (seed o ganador),
+        # hay una sola final y 1º y 2º de cada zona siempre clasifican.
+        from .formats import FORMATS, fap_sizes, LETRAS
+        self.assertEqual(sorted(FORMATS), list(range(6, 49)))
+        for n, fmt in FORMATS.items():
+            st = fmt.bracket_structure
+            by_id = {m['id']: m for m in st}
+            feeders, finals, seeds = {}, [], []
+            for m in st:
+                nx = m['next']
+                if nx is None:
+                    finals.append(m['id'])
+                else:
+                    self.assertIn(nx, by_id, f"n={n}: {m['id']}.next={nx} inexistente")
+                    self.assertGreater(by_id[nx]['round'], m['round'], f"n={n}: ronda no crece en {m['id']}->{nx}")
+                    feeders[nx] = feeders.get(nx, 0) + 1
+                seeds += [t for t in (m['t1'], m['t2']) if t is not None]
+            self.assertEqual(len(finals), 1, f"n={n}")
+            # 2 entradas por partido
+            for m in st:
+                direct = len([t for t in (m['t1'], m['t2']) if t is not None])
+                self.assertEqual(direct + feeders.get(m['id'], 0), 2, f"n={n} partido {m['id']}")
+            self.assertEqual(len(seeds), len(st) + 1, f"n={n}: clasificados != partidos+1")
+            self.assertEqual(len(seeds), len(set(seeds)), f"n={n}: clasificado repetido")
+            sizes = fap_sizes(n)
+            self.assertEqual(sum(sizes), n)
+            by_zone = {}
+            for (letra, pos) in seeds:
+                by_zone.setdefault(letra, set()).add(pos)
+            for i in range(len(sizes)):
+                letra = LETRAS[i]
+                self.assertIn(1, by_zone.get(letra, set()), f"n={n}: 1º de {letra} no clasifica")
+                self.assertIn(2, by_zone.get(letra, set()), f"n={n}: 2º de {letra} no clasifica")
+                self.assertLessEqual(max(by_zone[letra]), sizes[i], f"n={n}: zona {letra}")
 
     def test_grupos_pocas_parejas_avisa(self):
         from .formats import describir_estructura
