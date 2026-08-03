@@ -11,11 +11,17 @@ python manage.py collectstatic --no-input
 python manage.py migrate
 python manage.py createcachetable
 
-
-# Scripts de automatización
+# Siembra idempotente de las 8 divisiones (get_or_create, no pisa nada).
 python scripts/seed_divisions.py
-python scripts/create_initial_superuser.py
-# Reparación y recalculo de rankings (Añadido para corregir anomalías en producción)
-python manage.py reparar_rankings
 
-# migrar_rankings_historicos es un script puntual, NO debe correr en cada deploy
+# --- NO agregar scripts de reparación puntual acá ---
+# Un script de arreglo se corre UNA vez, a mano, desde el shell de Render:
+#     python manage.py <comando>
+# Si se deja en el build, se re-ejecuta en cada deploy.
+#
+# Sacados a propósito:
+#   - scripts/create_initial_superuser.py  -> el superusuario ya existe; recrearlo en cada
+#     deploy no aporta nada y el script arrastra credenciales por defecto.
+#   - python manage.py reparar_rankings    -> fusiona parejas duplicadas y BORRA Equipos,
+#     Inscripciones y EquipoGrupo. Era un arreglo puntual de una anomalía vieja.
+#   - python manage.py migrar_rankings_historicos -> también puntual.

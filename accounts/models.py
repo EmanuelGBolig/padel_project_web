@@ -8,6 +8,7 @@ from django.contrib.auth.models import (
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
+from core.validators import validar_imagen
 
 
 # --- ¡NUEVO MODELO AÑADIDO AQUÍ! ---
@@ -78,7 +79,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     numero_telefono = models.CharField(max_length=20, blank=True)
-    imagen = models.ImageField(upload_to='perfiles/', blank=True, null=True)
+    imagen = models.ImageField(
+        upload_to='perfiles/', blank=True, null=True, validators=[validar_imagen]
+    )
 
     # --- Ficha de jugador (TP-19.3) ---
     posicion_cancha = models.CharField(max_length=1, choices=Posicion.choices, blank=True)
@@ -218,7 +221,9 @@ class Organizacion(models.Model):
     direccion = models.CharField(max_length=255, blank=True)
     latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    logo = models.ImageField(upload_to='organizadores/logos/', blank=True, null=True)
+    logo = models.ImageField(
+        upload_to='organizadores/logos/', blank=True, null=True, validators=[validar_imagen]
+    )
     receptor_notificaciones = models.ForeignKey(
         'accounts.CustomUser',
         on_delete=models.SET_NULL,
@@ -261,7 +266,7 @@ class Sponsor(models.Model):
         blank=True
     )
     nombre = models.CharField(max_length=100)
-    imagen = models.ImageField(upload_to='sponsors/')
+    imagen = models.ImageField(upload_to='sponsors/', validators=[validar_imagen])
     link = models.URLField(blank=True)
     orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición en el carrusel")
 

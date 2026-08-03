@@ -1,4 +1,5 @@
 from django.db import models
+from core.validators import validar_imagen
 
 
 class Testimonio(models.Model):
@@ -6,7 +7,9 @@ class Testimonio(models.Model):
     autor = models.CharField(max_length=100)
     rol = models.CharField(max_length=100, blank=True, help_text="Ej: Jugador 7ma · Organizador")
     texto = models.TextField()
-    foto = models.ImageField(upload_to='testimonios/', blank=True, null=True)
+    foto = models.ImageField(
+        upload_to='testimonios/', blank=True, null=True, validators=[validar_imagen]
+    )
     activo = models.BooleanField(default=True)
     orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición")
 

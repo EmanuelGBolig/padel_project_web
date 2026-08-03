@@ -11,6 +11,7 @@ from django.views.generic import (
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -69,6 +70,48 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def handle_no_permission(self):
         messages.error(self.request, "Acceso denegado: solo administradores u organizadores.")
         return redirect('core:home')
+
+
+class OrgScopedQuerysetMixin:
+    """Acota el queryset de la vista a la organización del usuario.
+
+    `AdminRequiredMixin` deja pasar a los ORGANIZER, así que sin este filtro
+    cualquier organizador puede operar sobre objetos de OTRO club con sólo
+    cambiar el pk de la URL (IDOR).
+
+    Definir `org_lookup` con el camino desde el modelo de la vista hasta la
+    organización, p. ej. `'torneo__organizacion'`. Los ADMIN y el staff no se
+    filtran.
+    """
+    org_lookup = None
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_staff or user.tipo_usuario == 'ADMIN':
+            return qs
+        if not self.org_lookup:
+            raise ImproperlyConfigured(
+                f"{self.__class__.__name__} usa OrgScopedQuerysetMixin sin definir org_lookup."
+            )
+        if not user.organizacion_id:
+            return qs.none()
+        return qs.filter(**{self.org_lookup: user.organizacion_id})
+
+
+def objeto_de_mi_organizacion(user, obj, org_lookup):
+    """Igual que OrgScopedQuerysetMixin pero para vistas que no tienen queryset
+    (FormView que resuelve el objeto a mano). Devuelve True si puede operarlo."""
+    if user.is_staff or user.tipo_usuario == 'ADMIN':
+        return True
+    if not user.organizacion_id:
+        return False
+    actual = obj
+    for parte in org_lookup.split('__'):
+        actual = getattr(actual, parte, None)
+        if actual is None:
+            return False
+    return actual == user.organizacion_id or getattr(actual, 'pk', None) == user.organizacion_id
 
 
 # --- FUNCIONES AUXILIARES ---
@@ -2328,90 +2371,11 @@ class InscripcionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
 
 # --- UTILIDAD: Crear Torneo de Prueba ---
 
-@login_required
-def crear_torneo_prueba(request):
-    """
-    Vista protegida para admins que crea un torneo de prueba con 24 equipos.
-    Accesible desde la interfaz web sin necesidad de shell.
-    """
-    # Verificar que el usuario sea admin
-    if request.user.tipo_usuario != 'ADMIN':
-        messages.error(request, "Acceso denegado: solo administradores.")
-        return redirect('core:home')
-    
-    from accounts.models import Division
-    from django.contrib.auth import get_user_model
-    from datetime import timedelta
-    import string
-    
-    User = get_user_model()
-    
-    # Limpiar datos de prueba anteriores
-    Torneo.objects.filter(nombre__startswith="Torneo 24 Equipos").delete()
-    User.objects.filter(email__contains='@ejemplo.com').delete()
-    
-    # Crear división
-    division, _ = Division.objects.get_or_create(nombre="Séptima")
-    
-    # Crear torneo
-    torneo_nombre = f"Torneo 24 Equipos - {timezone.now().strftime('%Y-%m-%d %H:%M')}"
-    torneo = Torneo.objects.create(
-        nombre=torneo_nombre,
-        division=division,
-        fecha_inicio=timezone.now().date(),
-        fecha_limite_inscripcion=timezone.now() + timedelta(days=7),
-        cupos_totales=24,
-        equipos_por_grupo=3,
-        estado=Torneo.Estado.ABIERTO
-    )
-    
-    # Crear 24 equipos
-    for i in range(1, 25):
-        sufijo = string.ascii_lowercase[i % 26] if i > 26 else ''
-        email1 = f"jugador{i}a{sufijo}@ejemplo.com"
-        email2 = f"jugador{i}b{sufijo}@ejemplo.com"
-        
-        jugador1 = User.objects.create_user(
-            email=email1,
-            nombre=f'Jugador{i}A',
-            apellido=f'Sim{i}A',
-            division=division,
-            tipo_usuario='PLAYER',
-            password='sim123456'
-        )
-        
-        jugador2 = User.objects.create_user(
-            email=email2,
-            nombre=f'Jugador{i}B',
-            apellido=f'Sim{i}B',
-            division=division,
-            tipo_usuario='PLAYER',
-            password='sim123456'
-        )
-        
-        equipo = Equipo.objects.create(
-            jugador1=jugador1,
-            jugador2=jugador2,
-            division=division
-        )
-        
-        Inscripcion.objects.create(
-            torneo=torneo,
-            equipo=equipo
-        )
-    
-    messages.success(
-        request, 
-        f"✓ Torneo de prueba creado con 24 equipos. "
-        f"Ahora puedes iniciar el torneo para crear los grupos."
-    )
-    return redirect('torneos:admin_manage', pk=torneo.pk)
-
-
-class ReplacePartidoTeamsView(AdminRequiredMixin, UpdateView):
+class ReplacePartidoTeamsView(AdminRequiredMixin, OrgScopedQuerysetMixin, UpdateView):
     model = Partido
     form_class = PartidoReplaceTeamsForm
     template_name = 'torneos/replace_teams_form.html'
+    org_lookup = 'torneo__organizacion'
 
     def get_success_url(self):
         return reverse_lazy(
@@ -2425,10 +2389,11 @@ class ReplacePartidoTeamsView(AdminRequiredMixin, UpdateView):
         return response
 
 
-class ReplacePartidoGrupoTeamsView(AdminRequiredMixin, UpdateView):
+class ReplacePartidoGrupoTeamsView(AdminRequiredMixin, OrgScopedQuerysetMixin, UpdateView):
     model = PartidoGrupo
     form_class = PartidoGrupoReplaceTeamsForm
     template_name = 'torneos/replace_teams_form.html'
+    org_lookup = 'grupo__torneo__organizacion'
 
     def get_success_url(self):
         return reverse_lazy(
@@ -2517,10 +2482,19 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
     template_name = 'torneos/replace_teams_form.html'
     form_class = SwapGroupTeamsForm
 
+    def get_grupo(self):
+        """Resuelve el grupo acotado a la organización del usuario (evita IDOR)."""
+        qs = Grupo.objects.all()
+        user = self.request.user
+        if not (user.is_staff or user.tipo_usuario == 'ADMIN'):
+            if not user.organizacion_id:
+                raise PermissionDenied
+            qs = qs.filter(torneo__organizacion=user.organizacion_id)
+        return get_object_or_404(qs, pk=self.kwargs['pk'])
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
-        kwargs['grupo'] = grupo
+        kwargs['grupo'] = self.get_grupo()
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -2529,7 +2503,7 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
         return context
 
     def form_valid(self, form):
-        grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
+        grupo = self.get_grupo()
         equipo_origen = form.cleaned_data['equipo_origen']
         equipo_destino = form.cleaned_data['equipo_destino']
         
@@ -2568,7 +2542,7 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        grupo = get_object_or_404(Grupo, pk=self.kwargs['pk'])
+        grupo = self.get_grupo()
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
 
 

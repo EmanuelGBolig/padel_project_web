@@ -1334,3 +1334,88 @@ class DashboardOrganizadorTests(TestCase):
         self.client.force_login(self.org_user)
         resp = self.client.get(reverse("torneos:dashboard"))
         self.assertEqual(resp.context["total_torneos"], 1)  # no cuenta la ajena
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AislamientoOrganizacionTests(TestCase):
+    """Un ORGANIZER no puede operar sobre objetos de OTRA organizacion (IDOR).
+
+    AdminRequiredMixin deja pasar a los organizadores, asi que sin un filtro por
+    organizacion alcanzaba con cambiar el pk de la URL.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Septima", orden=7)
+        self.org_a = Organizacion.objects.create(nombre="Club A", alias="club-a")
+        self.org_b = Organizacion.objects.create(nombre="Club B", alias="club-b")
+
+        self.user_a = User.objects.create_user(
+            email="a@t.com", password="x", nombre="Ana", apellido="A",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.user_a.organizacion = self.org_a
+        self.user_a.save()
+
+        # Torneo del club B, con una zona y un partido de zona.
+        self.torneo_b = Torneo.objects.create(
+            nombre="Torneo del B", division=self.division, organizacion=self.org_b,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.EN_JUEGO)
+        self.grupo_b = Grupo.objects.create(torneo=self.torneo_b, nombre="Zona A")
+
+        equipos = []
+        for i in range(2):
+            j1 = User.objects.create_user(email=f"b{i}a@t.com", password="x", nombre=f"J{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"b{i}b@t.com", password="x", nombre=f"K{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=self.torneo_b, equipo=eq)
+            EquipoGrupo.objects.create(grupo=self.grupo_b, equipo=eq)
+            equipos.append(eq)
+        self.pg_b = PartidoGrupo.objects.create(
+            grupo=self.grupo_b, equipo1=equipos[0], equipo2=equipos[1])
+        self.partido_b = Partido.objects.create(torneo=self.torneo_b, ronda=1, orden_partido=1)
+
+    def _assert_no_accede(self, url):
+        """La vista no debe servir el objeto ajeno (404/403/redirect, nunca 200)."""
+        resp = self.client.get(url)
+        self.assertNotEqual(
+            resp.status_code, 200,
+            f"{url} devolvio 200: un organizador de otro club pudo abrir el objeto")
+
+    def test_replace_partido_teams_ajeno(self):
+        self.client.force_login(self.user_a)
+        self._assert_no_accede(
+            reverse("torneos:replace_partido_teams", kwargs={"pk": self.partido_b.pk}))
+
+    def test_replace_partido_grupo_teams_ajeno(self):
+        self.client.force_login(self.user_a)
+        self._assert_no_accede(
+            reverse("torneos:replace_partido_grupo_teams", kwargs={"pk": self.pg_b.pk}))
+
+    def test_swap_group_teams_ajeno(self):
+        self.client.force_login(self.user_a)
+        self._assert_no_accede(
+            reverse("torneos:swap_group_teams", kwargs={"pk": self.grupo_b.pk}))
+
+    def test_el_dueno_si_accede(self):
+        """Control: el organizador del club B si puede entrar (no rompimos lo legitimo)."""
+        user_b = User.objects.create_user(
+            email="bb@t.com", password="x", nombre="Beto", apellido="B",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        user_b.organizacion = self.org_b
+        user_b.save()
+        self.client.force_login(user_b)
+        resp = self.client.get(
+            reverse("torneos:replace_partido_teams", kwargs={"pk": self.partido_b.pk}))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_accede_a_todo(self):
+        """Control: un ADMIN no queda filtrado por organizacion."""
+        admin = User.objects.create_user(
+            email="adm@t.com", password="x", nombre="Adm", apellido="In",
+            genero="OTRO", tipo_usuario="ADMIN")
+        self.client.force_login(admin)
+        resp = self.client.get(
+            reverse("torneos:replace_partido_teams", kwargs={"pk": self.partido_b.pk}))
+        self.assertEqual(resp.status_code, 200)

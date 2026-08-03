@@ -164,11 +164,19 @@ class CustomLoginForm(AuthenticationForm):
 
     @staticmethod
     def _client_ip(request):
+        """IP del cliente para el throttle.
+
+        Toma el ÚLTIMO salto de X-Forwarded-For, que es el que agrega el proxy de
+        Render y el cliente no puede falsificar. Usar el primero permitía evadir el
+        throttle mandando un XFF distinto en cada intento.
+        """
         if request is None:
             return 'unknown'
         xff = request.META.get('HTTP_X_FORWARDED_FOR')
         if xff:
-            return xff.split(',')[0].strip()
+            saltos = [p.strip() for p in xff.split(',') if p.strip()]
+            if saltos:
+                return saltos[-1]
         return request.META.get('REMOTE_ADDR', 'unknown')
 
     def clean(self):
@@ -179,9 +187,17 @@ class CustomLoginForm(AuthenticationForm):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
 
-        # Throttle anti fuerza-bruta: máx 20 intentos fallidos por IP en 10 min (TP-21).
+        # Throttle anti fuerza-bruta (TP-21): 20 fallos por IP en 10 min, y además
+        # 10 por cuenta — rotar la IP ya no alcanza para atacar un email concreto.
         throttle_key = f"login_fails_{self._client_ip(self.request)}"
-        if cache.get(throttle_key, 0) >= 20:
+        email_key = None
+        if username:
+            email_key = f"login_fails_email_{str(username).strip().lower()}"
+
+        throttled = cache.get(throttle_key, 0) >= 20 or (
+            email_key is not None and cache.get(email_key, 0) >= 10
+        )
+        if throttled:
             raise ValidationError(
                 "Demasiados intentos fallidos. Esperá unos minutos antes de volver a probar.",
                 code='throttled',
@@ -191,6 +207,8 @@ class CustomLoginForm(AuthenticationForm):
             self.user_cache = authenticate(self.request, username=username, password=password)
             if self.user_cache is None:
                 cache.set(throttle_key, cache.get(throttle_key, 0) + 1, 600)
+                if email_key:
+                    cache.set(email_key, cache.get(email_key, 0) + 1, 600)
                 # Revisar si el usuario existe, tiene password correcta pero está inactivo (o error de mayúsculas)
                 User = get_user_model()
                 try:
@@ -379,5 +397,29 @@ class MergeUserForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
+        # TP-21: un ORGANIZER sólo puede fusionar dummies de SU organización.
+        # Sin esto podía tomar un dummy de otro club y traspasarle el historial.
+        self.actor = kwargs.pop('actor', None)
         super().__init__(*args, **kwargs)
-        # Filtros opcionales pueden añadirse aquí si se pasan desde la vista
+
+        actor = self.actor
+        if actor is not None and not (actor.is_staff or actor.tipo_usuario == 'ADMIN'):
+            if actor.organizacion_id:
+                self.fields['dummy_user'].queryset = self.fields['dummy_user'].queryset.filter(
+                    organizacion=actor.organizacion_id
+                )
+            else:
+                self.fields['dummy_user'].queryset = CustomUser.objects.none()
+
+    def clean_dummy_user(self):
+        """Defensa en profundidad: el origen SIEMPRE tiene que ser un dummy.
+
+        Si alguna vez se amplía el queryset, esto sigue impidiendo que se
+        absorba una cuenta real (que borraría o desactivaría a una persona).
+        """
+        dummy = self.cleaned_data['dummy_user']
+        if not dummy.is_dummy:
+            raise forms.ValidationError(
+                "El origen tiene que ser un jugador sin cuenta (dummy)."
+            )
+        return dummy

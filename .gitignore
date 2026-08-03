@@ -43,3 +43,18 @@ yarn-error.log
 # IDE
 .vscode/
 .idea/
+
+# Dumps de la base — CONTIENEN DATOS PERSONALES DE USUARIOS REALES.
+# Nunca commitear: emails, teléfonos y hashes de contraseña.
+backup_*.json
+*.sql
+*.dump
+
+# Salida de scripts de debug
+output.txt
+schema.txt
+migrations.txt
+simple_check.txt
+test_output.txt
+verify_output.txt
+divisions_debug.txt

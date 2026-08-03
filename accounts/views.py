@@ -723,6 +723,12 @@ class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def test_func(self):
         return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
 
+    def get_form_kwargs(self):
+        # El form acota los dummies elegibles a la organización del actor.
+        kwargs = super().get_form_kwargs()
+        kwargs['actor'] = self.request.user
+        return kwargs
+
     def get_initial(self):
         dummy_id = self.request.GET.get('dummy_id')
         if dummy_id:
@@ -777,17 +783,29 @@ class PushSubscribeView(LoginRequiredMixin, FormView):
             return JsonResponse({'ok': False, 'error': 'Falta endpoint'}, status=400)
 
         if accion == 'unsubscribe':
-            PushSubscription.objects.filter(endpoint=endpoint).delete()
+            # Acotado al usuario: sin esto, con el endpoint de otra persona se le
+            # podían borrar las notificaciones.
+            PushSubscription.objects.filter(
+                endpoint=endpoint, user=request.user
+            ).delete()
             return JsonResponse({'ok': True})
 
         keys = data.get('keys') or {}
         if not keys.get('p256dh') or not keys.get('auth'):
             return JsonResponse({'ok': False, 'error': 'Faltan claves'}, status=400)
 
+        # `endpoint` es unique: si ya pertenece a otro usuario no lo reasignamos,
+        # porque eso redirigiría sus push a la cuenta que hace el pedido.
+        existente = PushSubscription.objects.filter(endpoint=endpoint).first()
+        if existente and existente.user_id != request.user.id:
+            return JsonResponse(
+                {'ok': False, 'error': 'Suscripción de otro usuario'}, status=403
+            )
+
         PushSubscription.objects.update_or_create(
             endpoint=endpoint,
+            user=request.user,
             defaults={
-                'user': request.user,
                 'p256dh': keys['p256dh'],
                 'auth': keys['auth'],
                 'user_agent': (request.META.get('HTTP_USER_AGENT') or '')[:255],

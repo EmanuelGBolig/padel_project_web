@@ -3,6 +3,7 @@ from django.conf import settings
 from django.db.models import F
 from equipos.models import Equipo
 from accounts.models import Division
+from core.validators import validar_imagen
 
 
 class FormatoPersonalizado(models.Model):
@@ -135,12 +136,13 @@ class Torneo(models.Model):
         upload_to='torneos/campeones/',
         null=True,
         blank=True,
+        validators=[validar_imagen],
         help_text="Opcional: Sube la foto del equipo ganador al finalizar el torneo. La imagen se mostrará en los detalles de la competencia."
     )
 
     # --- Ficha "vendedora" (TP-03) ---
     cover_image = models.ImageField(
-        upload_to='torneos/portadas/', null=True, blank=True,
+        upload_to='torneos/portadas/', null=True, blank=True, validators=[validar_imagen],
         help_text="Imagen de portada del torneo (banner)."
     )
     ciudad = models.CharField(max_length=100, blank=True, help_text="Ciudad/localidad de la sede.")

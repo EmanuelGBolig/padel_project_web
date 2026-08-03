@@ -110,12 +110,8 @@ urlpatterns = [
         views.SwapGroupTeamsView.as_view(),
         name='swap_group_teams',
     ),
-    # Utilidad: Crear torneo de prueba
-    path(
-        'admin/crear-torneo-prueba/',
-        views.crear_torneo_prueba,
-        name='crear_torneo_prueba',
-    ),
+    # (Se quitó 'admin/crear-torneo-prueba/': era un GET que borraba datos en masa.
+    #  El equivalente seguro es `python manage.py crear_torneo_24`.)
     # Redirección de seguridad para el path base /torneos/
     path('', lambda r: redirect('torneos:abierto_list'), name='base_redirect'),
 ]
