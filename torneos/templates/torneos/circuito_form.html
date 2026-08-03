@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block head_title %}{{ titulo }} · {% endblock head_title %}
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-8">
+    <div class="card bg-base-100 shadow-xl border border-base-200 rounded-3xl">
+        <div class="card-body">
+            <h1 class="text-2xl font-bold mb-1">{{ titulo }}</h1>
+            <p class="text-sm text-base-content/60 mb-4">
+                Elegí qué torneos suman puntos. El ranking acumulado se calcula solo.
+            </p>
+
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-error text-sm">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                {% for field in form %}
+                    {% if field.name == 'activo' %}
+                        <label class="label cursor-pointer justify-start gap-3 py-0" for="{{ field.id_for_label }}">
+                            {{ field }}
+                            <span class="label-text font-medium">{{ field.label }}</span>
+                        </label>
+                    {% else %}
+                        <div class="form-control w-full">
+                            <label class="label py-1" for="{{ field.id_for_label }}">
+                                <span class="label-text font-medium">{{ field.label }}</span>
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <span class="label-text-alt text-base-content/50 text-xs mt-1">{{ field.help_text }}</span>
+                            {% endif %}
+                            {% for e in field.errors %}
+                                <span class="text-error text-xs mt-1" role="alert">⚠ {{ e }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <div class="flex gap-2 justify-end pt-1">
+                    <a href="{% url 'torneos:circuito_admin_list' %}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar circuito</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

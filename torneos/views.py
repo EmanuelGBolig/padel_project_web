@@ -12,6 +12,8 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
+from django.utils.text import slugify
+from urllib.parse import quote
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -43,6 +45,7 @@ from .forms import (
     AmericanoForm,
     JugadorAmericanoForm,
     FormatoPersonalizadoForm,
+    CircuitoForm,
 )
 from .formats import get_format, calcular_estructura_grupos, describir_estructura
 from .emails import notificar_nuevo_torneo
@@ -226,6 +229,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             torneo.inscripciones.all()
             .select_related('equipo', 'equipo__jugador1', 'equipo__jugador2', 'equipo__division')
             .order_by('fecha_inscripcion')
+        )
+        # Texto pre-cargado del botón de WhatsApp de cada inscripto.
+        context['mensaje_whatsapp'] = quote(
+            f"Hola! Te escribo por el torneo {torneo.nombre}."
         )
 
         # Fase de Grupos
@@ -2090,6 +2097,71 @@ class CircuitoListView(ListView):
         return Circuito.objects.filter(activo=True).prefetch_related('torneos')
 
 
+class CircuitoAdminListView(AdminRequiredMixin, ListView):
+    """Circuitos del organizador, para administrarlos sin entrar al admin (TP-12)."""
+    model = Circuito
+    template_name = 'torneos/circuitos_admin_list.html'
+    context_object_name = 'circuitos'
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Circuito.objects.prefetch_related('torneos')
+        if user.is_staff or user.tipo_usuario == 'ADMIN':
+            return qs
+        if not user.organizacion_id:
+            return qs.none()
+        return qs.filter(organizacion=user.organizacion_id)
+
+
+class _CircuitoScopedMixin(OrgScopedQuerysetMixin):
+    """Los circuitos ajenos no se editan ni se borran."""
+    model = Circuito
+    org_lookup = 'organizacion'
+    form_class = CircuitoForm
+    template_name = 'torneos/circuito_form.html'
+    success_url = reverse_lazy('torneos:circuito_admin_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['actor'] = self.request.user
+        return kwargs
+
+
+class CircuitoCreateView(AdminRequiredMixin, CreateView):
+    form_class = CircuitoForm
+    template_name = 'torneos/circuito_form.html'
+    success_url = reverse_lazy('torneos:circuito_admin_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['actor'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.organizacion = self.request.user.organizacion
+        messages.success(self.request, f"Circuito «{form.instance.nombre}» creado.")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['titulo'] = "Nuevo circuito"
+        return ctx
+
+
+class CircuitoUpdateView(AdminRequiredMixin, _CircuitoScopedMixin, UpdateView):
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['titulo'] = f"Editar circuito: {self.object.nombre}"
+        return ctx
+
+
+class CircuitoDeleteView(AdminRequiredMixin, OrgScopedQuerysetMixin, DeleteView):
+    model = Circuito
+    org_lookup = 'organizacion'
+    template_name = 'torneos/circuito_confirm_delete.html'
+    success_url = reverse_lazy('torneos:circuito_admin_list')
+
+
 class CircuitoDetailView(DetailView):
     """Detalle de un circuito con ranking acumulado (TP-12)."""
     model = Circuito
@@ -2297,6 +2369,16 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
             messages.error(request, "La fecha límite de inscripción ha pasado.")
             return redirect('torneos:detail', pk=torneo.pk)
 
+        # Cupos: hasta acá sólo se validaban en el template (`hay_cupos`), así que
+        # un POST directo entraba igual y el torneo se pasaba del límite.
+        if torneo.cupos_disponibles <= 0:
+            messages.error(
+                request,
+                f"«{torneo.nombre}» ya cubrió sus {torneo.cupos_totales} cupos. "
+                "Escribile al organizador por si se libera un lugar."
+            )
+            return redirect('torneos:detail', pk=torneo.pk)
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -2306,19 +2388,37 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        from django.db import IntegrityError
-        
+        from django.db import IntegrityError, transaction
+
         torneo = self.torneo
         equipo = self.request.user.equipo
-        
+
         # Validación extra de seguridad
         if Inscripcion.objects.filter(torneo=torneo, equipo=equipo).exists():
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
             return redirect('torneos:detail', pk=torneo.pk)
 
+        # Re-chequeo del cupo bajo lock: entre el dispatch y este punto pudo
+        # entrar otra pareja. Sin el select_for_update, dos inscripciones
+        # simultáneas se pasan del límite.
+        try:
+            with transaction.atomic():
+                bloqueado = Torneo.objects.select_for_update().get(pk=torneo.pk)
+                ocupados = bloqueado.inscripciones.count()
+                if ocupados >= bloqueado.cupos_totales:
+                    messages.error(
+                        self.request,
+                        "Justo se completaron los cupos. Escribile al organizador "
+                        "por si se libera un lugar."
+                    )
+                    return redirect('torneos:detail', pk=torneo.pk)
+        except Torneo.DoesNotExist:
+            messages.error(self.request, "El torneo ya no existe.")
+            return redirect('core:home')
+
         form.instance.torneo = torneo
         form.instance.equipo = equipo
-        
+
         try:
             response = super().form_valid(form)
             messages.success(self.request, "¡Inscripción confirmada!")
@@ -2554,6 +2654,70 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
     def get_success_url(self):
         grupo = self.get_grupo()
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
+
+
+class ExportarInscriptosView(AdminRequiredMixin, View):
+    """Descarga los inscriptos del torneo en CSV.
+
+    El organizador necesita esta lista todo el tiempo (confirmar pagos, avisar
+    cambios de horario, imprimirla). Hasta acá tenía que copiarla a mano de la
+    pantalla.
+    """
+
+    def get(self, request, pk, *args, **kwargs):
+        import csv
+
+        qs = Torneo.objects.all()
+        user = request.user
+        if not (user.is_staff or user.tipo_usuario == 'ADMIN'):
+            if not user.organizacion_id:
+                raise PermissionDenied
+            qs = qs.filter(organizacion=user.organizacion_id)
+        torneo = get_object_or_404(qs, pk=pk)
+
+        inscripciones = (
+            torneo.inscripciones
+            .select_related(
+                'equipo', 'equipo__division',
+                'equipo__jugador1', 'equipo__jugador2',
+            )
+            .order_by('fecha_inscripcion')
+        )
+
+        # utf-8-sig para que Excel en Windows respete los acentos.
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+        nombre_archivo = slugify(torneo.nombre) or f'torneo-{torneo.pk}'
+        response['Content-Disposition'] = (
+            f'attachment; filename="inscriptos-{nombre_archivo}.csv"'
+        )
+        response.write('﻿')
+
+        writer = csv.writer(response, delimiter=';')
+        writer.writerow([
+            '#', 'Pareja', 'Jugador 1', 'Email 1', 'Teléfono 1',
+            'Jugador 2', 'Email 2', 'Teléfono 2', 'División', 'Inscripción',
+        ])
+
+        def datos(jugador):
+            if not jugador:
+                return ('', '', '')
+            email = '' if getattr(jugador, 'is_dummy', False) else (jugador.email or '')
+            return (jugador.full_name, email, jugador.numero_telefono or '')
+
+        for i, inscripcion in enumerate(inscripciones, start=1):
+            equipo = inscripcion.equipo
+            n1, e1, t1 = datos(equipo.jugador1)
+            n2, e2, t2 = datos(equipo.jugador2)
+            writer.writerow([
+                i,
+                equipo.nombre,
+                n1, e1, t1,
+                n2, e2, t2,
+                equipo.division.nombre if equipo.division else '',
+                inscripcion.fecha_inscripcion.strftime('%d/%m/%Y %H:%M'),
+            ])
+
+        return response
 
 
 class MisTorneosView(PlayerRequiredMixin, TemplateView):

@@ -2,6 +2,7 @@ from django import forms
 from .models import (
     Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo,
     Americano, JugadorAmericano, ResolucionPartido, FormatoPersonalizado,
+    Circuito,
 )
 
 
@@ -892,3 +893,58 @@ class JugadorAmericanoForm(forms.ModelForm):
                 'placeholder': 'Tu nombre y apellido',
             }),
         }
+
+
+class CircuitoForm(forms.ModelForm):
+    """Alta/edición de un circuito por parte del organizador (TP-12).
+
+    El motor de ranking acumulado ya existía; faltaba la pantalla para
+    administrarlos sin entrar al admin de Django.
+    """
+
+    class Meta:
+        model = Circuito
+        fields = ['nombre', 'descripcion', 'torneos', 'activo',
+                  'cupos_ascenso', 'cupos_descenso']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full bg-base-100 text-base-content',
+                'placeholder': 'Ej: Circuito Verano 2026',
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full bg-base-100 text-base-content',
+                'rows': 3,
+                'placeholder': 'Cómo funciona, premios, reglas…',
+            }),
+            'torneos': forms.SelectMultiple(attrs={
+                'class': 'select select-bordered w-full bg-base-100 text-base-content',
+                'size': 10,
+            }),
+            'activo': forms.CheckboxInput(attrs={'class': 'checkbox checkbox-primary'}),
+            'cupos_ascenso': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full bg-base-100 text-base-content',
+                'min': 0,
+            }),
+            'cupos_descenso': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full bg-base-100 text-base-content',
+                'min': 0,
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.actor = kwargs.pop('actor', None)
+        super().__init__(*args, **kwargs)
+        self.fields['torneos'].help_text = (
+            "Los torneos que suman puntos al circuito. Ctrl/Cmd + clic para elegir varios."
+        )
+        # Un organizador sólo puede armar circuitos con SUS torneos.
+        actor = self.actor
+        if actor is not None and not (actor.is_staff or actor.tipo_usuario == 'ADMIN'):
+            if actor.organizacion_id:
+                self.fields['torneos'].queryset = Torneo.objects.filter(
+                    organizacion=actor.organizacion_id
+                ).order_by('-fecha_inicio')
+            else:
+                self.fields['torneos'].queryset = Torneo.objects.none()
+        else:
+            self.fields['torneos'].queryset = Torneo.objects.all().order_by('-fecha_inicio')

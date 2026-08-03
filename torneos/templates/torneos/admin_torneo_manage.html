@@ -178,8 +178,20 @@
                              class="w-6 h-6 text-primary">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                         </svg>
-                        Parejas Inscritos ({{ inscripciones.count }})
+                        Parejas Inscritas ({{ inscripciones.count }})
                     </h2>
+                    {% if inscripciones %}
+                        <a href="{% url 'torneos:exportar_inscriptos' torneo.pk %}"
+                           class="btn btn-sm btn-outline gap-2"
+                           title="Descargar la lista con emails y teléfonos para tu planilla">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                 stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Exportar CSV
+                        </a>
+                    {% endif %}
                     {% if torneo.forzar_grupos_de_3 %}
                         <form method="post" action="" class="w-full xl:w-auto">
                             {% csrf_token %}
@@ -261,6 +273,19 @@
                                         <td>{{ inscripcion.equipo.get_categoria_display }}</td>
                                         <td class="text-sm opacity-70">{{ inscripcion.fecha_inscripcion|date:"d/m/Y H:i" }}</td>
                                         <td class="text-center">
+                                            {# Contacto directo: avisar un cambio de horario no deberia
+                                               obligar a buscar el telefono en otro lado. #}
+                                            {% for jugador in inscripcion.equipo.jugadores_con_telefono %}
+                                                <a href="https://wa.me/{{ jugador.telefono_numero }}?text={{ mensaje_whatsapp }}"
+                                                   target="_blank"
+                                                   rel="noopener"
+                                                   class="btn btn-xs btn-ghost text-success"
+                                                   title="Escribirle a {{ jugador.full_name }} por WhatsApp">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.52 14.97c-.25.7-1.47 1.34-2.02 1.39-.52.05-1.18.22-3.86-.81-3.24-1.28-5.32-4.58-5.48-4.79-.16-.21-1.31-1.74-1.31-3.32s.83-2.36 1.12-2.68c.29-.32.64-.4.85-.4l.61.01c.2.01.46-.07.72.55.25.61.86 2.11.94 2.26.08.16.13.34.02.55-.11.21-.16.34-.32.53-.16.18-.34.41-.48.55-.16.16-.33.34-.14.66.19.32.84 1.39 1.8 2.25 1.24 1.1 2.28 1.45 2.6 1.61.32.16.51.13.7-.08.19-.21.81-.94 1.02-1.27.21-.32.43-.27.72-.16.29.11 1.86.88 2.18 1.04.32.16.53.24.61.37.08.14.08.78-.17 1.48z" />
+                                                    </svg>
+                                                </a>
+                                            {% endfor %}
                                             <form method="post"
                                                   class="inline"
                                                   onsubmit="return confirm('¿Eliminar a {{ inscripcion.equipo.nombre }} del torneo?')">

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block head_title %}Eliminar circuito · {% endblock head_title %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-10">
+    <div class="card bg-base-100 shadow-xl border border-error/30 rounded-3xl">
+        <div class="card-body">
+            <h1 class="text-xl font-bold">¿Eliminar «{{ object.nombre }}»?</h1>
+            <p class="text-sm text-base-content/70 mt-2">
+                Se borra el circuito y su ranking acumulado.
+                <b>Los torneos que lo componen NO se borran</b>: siguen existiendo con sus
+                resultados intactos.
+            </p>
+            <form method="post" class="flex gap-2 justify-end pt-4">
+                {% csrf_token %}
+                <a href="{% url 'torneos:circuito_admin_list' %}" class="btn btn-ghost">Cancelar</a>
+                <button type="submit" class="btn btn-error text-white">Sí, eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

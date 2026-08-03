@@ -232,6 +232,17 @@ class Equipo(models.Model):
         
         return resultados[:limit]
     
+    @property
+    def jugadores_con_telefono(self):
+        """Jugadores de la pareja que tienen teléfono cargado.
+
+        Lo usa el panel del organizador para el botón de WhatsApp.
+        """
+        return [
+            j for j in (self.jugador1, self.jugador2)
+            if j is not None and (j.numero_telefono or '').strip()
+        ]
+
     def get_puntos_ranking(self):
         """Devuelve los puntos totales promediados de ambos jugadores desde RankingJugador"""
         from equipos.models import RankingJugador

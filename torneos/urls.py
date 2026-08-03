@@ -24,6 +24,11 @@ urlpatterns = [
     # Circuitos (TP-12)
     path('circuitos/', views.CircuitoListView.as_view(), name='circuito_list'),
     path('circuito/<int:pk>/', views.CircuitoDetailView.as_view(), name='circuito_detail'),
+    # Administración de circuitos (el motor ya existía; faltaba la pantalla)
+    path('admin/circuitos/', views.CircuitoAdminListView.as_view(), name='circuito_admin_list'),
+    path('admin/circuitos/nuevo/', views.CircuitoCreateView.as_view(), name='circuito_crear'),
+    path('admin/circuitos/<int:pk>/editar/', views.CircuitoUpdateView.as_view(), name='circuito_editar'),
+    path('admin/circuitos/<int:pk>/eliminar/', views.CircuitoDeleteView.as_view(), name='circuito_eliminar'),
     # Americano / Mexicano (TP-09)
     path('americanos/', views.AmericanoListView.as_view(), name='americano_list'),
     path('americano/crear/', views.AmericanoCreateView.as_view(), name='americano_crear'),
@@ -63,6 +68,11 @@ urlpatterns = [
         'admin/<int:pk>/eliminar/',
         views.AdminTorneoDeleteView.as_view(),
         name='admin_eliminar',
+    ),
+    path(
+        'admin/<int:pk>/inscriptos.csv',
+        views.ExportarInscriptosView.as_view(),
+        name='exportar_inscriptos',
     ),
     path(
         'admin/<int:pk>/gestionar/',

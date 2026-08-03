@@ -1519,3 +1519,139 @@ class RendimientoTablaPosicionesTests(TestCase):
         self.assertEqual(
             queries_zona_de_4, queries_zona_de_8,
             "El recalculo escala con la cantidad de equipos: volvio el N+1")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CuposYExportTests(TestCase):
+    """Cupos con tope real y export de inscriptos."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Primera", orden=1)
+        self.org = Organizacion.objects.create(nombre="OrgCupos", alias="orgcupos")
+        self.org_user = User.objects.create_user(
+            email="oc@t.com", password="x", nombre="O", apellido="C",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.org_user.organizacion = self.org
+        self.org_user.save()
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo Chico", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=5),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=2, estado=Torneo.Estado.ABIERTO)
+
+    def _pareja(self, i):
+        j1 = User.objects.create_user(email=f"c{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division, genero="MASCULINO")
+        j2 = User.objects.create_user(email=f"c{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division, genero="MASCULINO")
+        j1.numero_telefono = f"+54911{i:07d}"
+        j1.save()
+        return j1, Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def test_no_se_puede_pasar_del_cupo(self):
+        """Un POST directo no debe entrar cuando el torneo esta lleno."""
+        for i in range(2):
+            _, eq = self._pareja(i)
+            Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+        self.assertEqual(self.torneo.cupos_disponibles, 0)
+
+        jugador, _ = self._pareja(9)
+        self.client.force_login(jugador)
+        url = reverse("torneos:inscribirse", kwargs={"torneo_pk": self.torneo.pk})
+        self.client.post(url, {})
+        self.assertEqual(
+            Inscripcion.objects.filter(torneo=self.torneo).count(), 2,
+            "Entro una inscripcion por encima del cupo")
+
+    def test_export_csv_del_dueno(self):
+        _, eq = self._pareja(0)
+        Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+        self.client.force_login(self.org_user)
+        resp = self.client.get(
+            reverse("torneos:exportar_inscriptos", kwargs={"pk": self.torneo.pk}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("text/csv", resp["Content-Type"])
+        self.assertIn("attachment", resp["Content-Disposition"])
+        cuerpo = resp.content.decode("utf-8-sig")
+        self.assertIn("Pareja", cuerpo)
+        self.assertIn(eq.nombre, cuerpo)
+
+    def test_export_csv_aislado_por_organizacion(self):
+        """Un organizador de otro club no puede bajarse los inscriptos."""
+        from accounts.models import Organizacion
+        otra = Organizacion.objects.create(nombre="Otra", alias="otra-exp")
+        ajeno = User.objects.create_user(
+            email="aj@t.com", password="x", nombre="Aj", apellido="Eno",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        ajeno.organizacion = otra
+        ajeno.save()
+        self.client.force_login(ajeno)
+        resp = self.client.get(
+            reverse("torneos:exportar_inscriptos", kwargs={"pk": self.torneo.pk}))
+        self.assertNotEqual(resp.status_code, 200)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CircuitoAdminTests(TestCase):
+    """CRUD de circuitos: el motor ya existia, faltaba la pantalla."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        from torneos.models import Circuito
+        self.division = Division.objects.create(nombre="Segunda", orden=2)
+        self.org = Organizacion.objects.create(nombre="OrgCirc", alias="orgcirc")
+        self.otra = Organizacion.objects.create(nombre="OtraCirc", alias="otracirc")
+        self.org_user = User.objects.create_user(
+            email="ci@t.com", password="x", nombre="C", apellido="I",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.org_user.organizacion = self.org
+        self.org_user.save()
+        self.circuito_ajeno = Circuito.objects.create(
+            nombre="Circuito Ajeno", organizacion=self.otra)
+
+    def test_crear_circuito(self):
+        from torneos.models import Circuito
+        self.client.force_login(self.org_user)
+        resp = self.client.post(reverse("torneos:circuito_crear"), {
+            "nombre": "Circuito Verano",
+            "descripcion": "Liga de verano",
+            "activo": "on",
+            "cupos_ascenso": 2,
+            "cupos_descenso": 2,
+        })
+        self.assertIn(resp.status_code, (301, 302))
+        creado = Circuito.objects.get(nombre="Circuito Verano")
+        self.assertEqual(creado.organizacion, self.org, "No quedo atado a su organizacion")
+
+    def test_lista_solo_muestra_los_propios(self):
+        from torneos.models import Circuito
+        Circuito.objects.create(nombre="Mio", organizacion=self.org)
+        self.client.force_login(self.org_user)
+        resp = self.client.get(reverse("torneos:circuito_admin_list"))
+        self.assertEqual(resp.status_code, 200)
+        nombres = [c.nombre for c in resp.context["circuitos"]]
+        self.assertIn("Mio", nombres)
+        self.assertNotIn("Circuito Ajeno", nombres)
+
+    def test_no_puede_editar_circuito_ajeno(self):
+        self.client.force_login(self.org_user)
+        resp = self.client.get(
+            reverse("torneos:circuito_editar", kwargs={"pk": self.circuito_ajeno.pk}))
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_solo_ofrece_sus_torneos(self):
+        """El selector de torneos no debe listar los de otro club."""
+        mio = Torneo.objects.create(
+            nombre="Mi torneo", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8)
+        ajeno = Torneo.objects.create(
+            nombre="Torneo ajeno", division=self.division, organizacion=self.otra,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8)
+        from torneos.forms import CircuitoForm
+        form = CircuitoForm(actor=self.org_user)
+        qs = form.fields["torneos"].queryset
+        self.assertIn(mio, qs)
+        self.assertNotIn(ajeno, qs)
