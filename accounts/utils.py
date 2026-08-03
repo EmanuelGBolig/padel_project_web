@@ -614,8 +614,13 @@ def send_email_async(subject, html_template, context, recipient_list, from_email
             print(f"!!! [Async Mail] Error: {e}")
             import traceback
             traceback.print_exc()
+        finally:
+            # Django abre una conexión por thread: sin cerrarla queda colgada
+            # y se agota el pool de Postgres.
+            from django.db import connection
+            connection.close()
 
-    email_thread = threading.Thread(target=_send)
+    email_thread = threading.Thread(target=_send, daemon=True)
     email_thread.start()
 
 def actualizar_rankings_en_bd(division):

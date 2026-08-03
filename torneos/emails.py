@@ -6,6 +6,27 @@ from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
 
+def _en_thread(fn):
+    """Corre `fn` en un thread y SIEMPRE cierra su conexión a la base.
+
+    Django abre una conexión por thread; sin este cierre cada envío en segundo
+    plano deja una conexión colgada y se agota el pool de Postgres.
+    """
+    import threading
+
+    from django.db import connection as _conn
+
+    def _wrapper():
+        try:
+            fn()
+        except Exception:
+            logger.exception("[emails] Fallo en el envío en segundo plano")
+        finally:
+            _conn.close()
+
+    threading.Thread(target=_wrapper, daemon=True).start()
+
+
 
 def jugadores_elegibles_para_torneo(torneo):
     """Jugadores 'compatibles' con un torneo, para notificarlos (email + push).
@@ -133,8 +154,7 @@ def notificar_nuevo_torneo(torneo):
 
         logger.info(f"[emails] Torneo '{torneo.nombre}': {enviados}/{total_elegibles} emails enviados en segundo plano.")
 
-    import threading
-    threading.Thread(target=enviar_emails_en_segundo_plano).start()
+    _en_thread(enviar_emails_en_segundo_plano)
 
     logger.info(f"[emails] Torneo '{torneo.nombre}': enviando {total_elegibles} emails en segundo plano.")
     return 0, total_elegibles
@@ -215,5 +235,4 @@ def notificar_nueva_inscripcion(inscripcion):
         except Exception as e:
             logger.error(f"[emails] Error enviando inscripción a organizadores: {e}")
             
-    import threading
-    threading.Thread(target=enviar).start()
+    _en_thread(enviar)

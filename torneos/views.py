@@ -232,7 +232,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         grupos = (
             torneo.grupos.all()
             .prefetch_related(
-                'tabla__equipo', 'partidos_grupo__equipo1', 'partidos_grupo__equipo2'
+                'tabla__equipo', 'partidos_grupo__equipo1', 'partidos_grupo__equipo2',
+                # El template usa partido.ganador para saber si la zona terminó y para
+                # marcar al ganador en negrita: sin esto era 1 query por partido.
+                'partidos_grupo__ganador',
             )
             .order_by('nombre')
         )
@@ -1427,16 +1430,23 @@ class AdminTorneoListView(AdminRequiredMixin, ListView):
     model = Torneo
     template_name = 'torneos/admin_torneo_list.html'
     context_object_name = 'torneos'
-    
+    paginate_by = 20
+
     def get_queryset(self):
         user = self.request.user
+        # select_related: el listado muestra división y organización de cada torneo.
+        base = (
+            Torneo.objects
+            .select_related('organizacion', 'division')
+            .order_by('-fecha_inicio')
+        )
         if user.is_staff:
-            return Torneo.objects.all().order_by('-fecha_inicio')
+            return base
         elif user.tipo_usuario == 'ORGANIZER':
             if not user.organizacion:
-                return Torneo.objects.none().order_by('-fecha_inicio')
-            return Torneo.objects.filter(organizacion=user.organizacion).order_by('-fecha_inicio')
-        return Torneo.objects.none().order_by('-fecha_inicio')
+                return base.none()
+            return base.filter(organizacion=user.organizacion)
+        return base.none()
 
 
 def _org_data_para_alta(user):

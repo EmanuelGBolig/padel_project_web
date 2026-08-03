@@ -175,6 +175,15 @@ class Torneo(models.Model):
         Equipo, through='Inscripcion', related_name='torneos_participados'
     )
 
+    class Meta:
+        indexes = [
+            # Home y listados públicos: filtran por estado y ordenan por fecha.
+            models.Index(fields=['estado', 'fecha_inicio'], name='torneo_estado_fecha_idx'),
+            # Listado por ciudad (SEO) y panel del organizador.
+            models.Index(fields=['ciudad'], name='torneo_ciudad_idx'),
+            models.Index(fields=['organizacion', 'estado'], name='torneo_org_estado_idx'),
+        ]
+
     def __str__(self):
         division_nombre = self.division.nombre if self.division else "Libre/General"
         return f"{self.nombre} ({division_nombre})"
@@ -346,6 +355,13 @@ class PartidoGrupo(models.Model):
     e1_games_ganados = models.PositiveSmallIntegerField(default=0)
     e2_games_ganados = models.PositiveSmallIntegerField(default=0)
 
+    class Meta:
+        indexes = [
+            # El signal de tabla de posiciones filtra por (grupo, ganador) en cada
+            # resultado cargado.
+            models.Index(fields=['grupo', 'ganador'], name='pgrupo_grupo_ganador_idx'),
+        ]
+
     def __str__(self):
         return f"{self.grupo}: {self.equipo1} vs {self.equipo2}"
 
@@ -415,20 +431,31 @@ class Partido(models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.__original_ganador = self.ganador
+        # Guardamos el ID, no el objeto: acceder a `self.ganador` acá dispara una
+        # query por CADA Partido instanciado (el bracket entero, en cada listado).
+        self.__original_ganador_id = self.ganador_id
 
     @property
     def nombre_ronda(self):
-        """Devuelve el nombre legible de la ronda"""
+        """Nombre legible de la ronda ('Cuartos de Final', 'Semifinal'…).
+
+        El total de rondas se cachea en la instancia del torneo: leer esta
+        property dentro de un loop (programación, perfiles) hacía un aggregate
+        por partido. Como todos los partidos de un mismo torneo comparten el
+        objeto `torneo` cuando se usa select_related, el cálculo queda en 1.
+        """
         from django.db.models import Max
-        # Intentar obtener el max_ronda del torneo
-        # Nota: Esto hace una query extra por cada partido si no se optimiza,
-        # pero es necesario para la visualización correcta en formularios individuales.
-        max_ronda = self.torneo.partidos.aggregate(Max('ronda'))['ronda__max']
-        
+
+        torneo = self.torneo
+        max_ronda = getattr(torneo, '_max_ronda_cache', None)
+        if max_ronda is None:
+            max_ronda = torneo.partidos.aggregate(Max('ronda'))['ronda__max']
+            torneo._max_ronda_cache = max_ronda
+
         if not max_ronda:
             return f"Ronda {self.ronda}"
-            
+
+
         diff = max_ronda - self.ronda
         
         if diff == 0:
@@ -474,7 +501,7 @@ class Partido(models.Model):
                      pass
 
         # 2. Avance en el bracket (Solo si cambió el ganador)
-        if self.ganador != self.__original_ganador and self.ganador is not None:
+        if self.ganador_id != self.__original_ganador_id and self.ganador_id is not None:
 
             if self.siguiente_partido:  # Avanza
                 siguiente = self.siguiente_partido
@@ -485,7 +512,7 @@ class Partido(models.Model):
                 siguiente.save()
 
         super().save(*args, **kwargs)
-        self.__original_ganador = self.ganador
+        self.__original_ganador_id = self.ganador_id
 
     @property
     def etiqueta_resolucion(self):
@@ -503,6 +530,11 @@ class Partido(models.Model):
 
     class Meta:
         ordering = ['ronda', 'orden_partido']
+        indexes = [
+            # El cuadro se lee siempre completo y ordenado por (ronda, orden).
+            models.Index(fields=['torneo', 'ronda', 'orden_partido'],
+                         name='partido_torneo_ronda_idx'),
+        ]
 
 
 class Circuito(models.Model):

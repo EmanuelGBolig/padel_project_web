@@ -189,6 +189,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         import re
         return re.sub(r'\D', '', self.numero_telefono or '')
 
+    class Meta:
+        indexes = [
+            # Rankings y listados de jugadores filtran por división + tipo, y las
+            # herramientas de organizador por dummy/organización.
+            models.Index(fields=['tipo_usuario', 'is_dummy'], name='user_tipo_dummy_idx'),
+            models.Index(fields=['division', 'tipo_usuario'], name='user_division_tipo_idx'),
+            models.Index(fields=['organizacion'], name='user_organizacion_idx'),
+        ]
+
     def save(self, *args, **kwargs):
         # Simplemente guardar - Cloudinary se encarga de la optimización
         super().save(*args, **kwargs)

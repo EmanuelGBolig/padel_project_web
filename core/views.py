@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import render
 from torneos.models import Torneo
 
@@ -7,14 +8,17 @@ def home(request):
     Vista principal (Home). Muestra los torneos abiertos y en juego.
     """
     # CORRECCIÓN: Usamos las constantes del modelo (AB, EJ) en lugar de strings crudos
-    torneos_abiertos = Torneo.objects.filter(estado=Torneo.Estado.ABIERTO).order_by(
-        'fecha_inicio'
+    # Cada tarjeta del home usa organizacion.logo, division.nombre y el conteo de
+    # inscriptos: sin select_related/annotate eran 4 queries extra POR torneo.
+    base = (
+        Torneo.objects
+        .select_related('organizacion', 'division')
+        .annotate(n_inscriptos=Count('inscripciones'))
+        .order_by('fecha_inicio')
     )
+    torneos_abiertos = base.filter(estado=Torneo.Estado.ABIERTO)
+    torneos_en_juego = base.filter(estado=Torneo.Estado.EN_JUEGO)
 
-    torneos_en_juego = Torneo.objects.filter(estado=Torneo.Estado.EN_JUEGO).order_by(
-        'fecha_inicio'
-    )
-    
     # Importar Organizacion
     from accounts.models import Organizacion
     organizadores = Organizacion.objects.all()

@@ -63,14 +63,21 @@ def send_push_to_users(users, *, title, body, url='/', tag=None):
     payload_json = json.dumps({'title': title, 'body': body, 'url': url, 'tag': tag})
 
     def _worker():
-        vencidas = []
-        for sub in subs:
-            if _enviar_a_suscripcion(sub, payload_json):
-                vencidas.append(sub.pk)
-        if vencidas:
-            PushSubscription.objects.filter(pk__in=vencidas).delete()
-            logger.info(f"[push] {len(vencidas)} suscripciones vencidas eliminadas.")
-        logger.info(f"[push] '{title}' enviada a {len(subs) - len(vencidas)} dispositivos.")
+        # Django abre una conexión por thread: hay que cerrarla o queda colgada.
+        from django.db import connection
+        try:
+            vencidas = []
+            for sub in subs:
+                if _enviar_a_suscripcion(sub, payload_json):
+                    vencidas.append(sub.pk)
+            if vencidas:
+                PushSubscription.objects.filter(pk__in=vencidas).delete()
+                logger.info(f"[push] {len(vencidas)} suscripciones vencidas eliminadas.")
+            logger.info(f"[push] '{title}' enviada a {len(subs) - len(vencidas)} dispositivos.")
+        except Exception:
+            logger.exception("[push] Fallo enviando notificaciones")
+        finally:
+            connection.close()
 
     threading.Thread(target=_worker, daemon=True).start()
 

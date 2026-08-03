@@ -1419,3 +1419,103 @@ class AislamientoOrganizacionTests(TestCase):
         resp = self.client.get(
             reverse("torneos:replace_partido_teams", kwargs={"pk": self.partido_b.pk}))
         self.assertEqual(resp.status_code, 200)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class RendimientoTablaPosicionesTests(TestCase):
+    """El signal que recalcula la tabla de zona corre en CADA resultado cargado.
+
+    Antes lanzaba 2 queries por equipo del grupo; ahora es un numero fijo.
+    Este test lo fija para que no vuelva a degradarse.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Octava", orden=8)
+        self.org = Organizacion.objects.create(nombre="OrgPerf", alias="orgperf")
+        self.torneo = Torneo.objects.create(
+            nombre="Perf", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.EN_JUEGO)
+        self.grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        self.equipos = []
+        for i in range(4):
+            j1 = User.objects.create_user(email=f"p{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"p{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+            EquipoGrupo.objects.create(grupo=self.grupo, equipo=eq)
+            self.equipos.append(eq)
+
+    def test_la_tabla_se_calcula_bien(self):
+        """Correccion antes que velocidad: los numeros tienen que dar."""
+        p = PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.equipos[0], equipo2=self.equipos[1])
+        p.e1_sets_ganados = 2
+        p.e2_sets_ganados = 0
+        p.e1_games_ganados = 12
+        p.e2_games_ganados = 6
+        p.ganador = self.equipos[0]
+        p.save()
+
+        ganador = EquipoGrupo.objects.get(grupo=self.grupo, equipo=self.equipos[0])
+        perdedor = EquipoGrupo.objects.get(grupo=self.grupo, equipo=self.equipos[1])
+        sin_jugar = EquipoGrupo.objects.get(grupo=self.grupo, equipo=self.equipos[2])
+
+        self.assertEqual(ganador.partidos_jugados, 1)
+        self.assertEqual(ganador.partidos_ganados, 1)
+        self.assertEqual(ganador.partidos_perdidos, 0)
+        self.assertEqual(ganador.sets_a_favor, 2)
+        self.assertEqual(ganador.sets_en_contra, 0)
+        self.assertEqual(ganador.diferencia_sets, 2)
+        self.assertEqual(ganador.diferencia_games, 6)
+
+        self.assertEqual(perdedor.partidos_ganados, 0)
+        self.assertEqual(perdedor.partidos_perdidos, 1)
+        self.assertEqual(perdedor.diferencia_sets, -2)
+        self.assertEqual(perdedor.diferencia_games, -6)
+
+        # El que no jugo queda en cero, no con basura.
+        self.assertEqual(sin_jugar.partidos_jugados, 0)
+        self.assertEqual(sin_jugar.diferencia_sets, 0)
+
+    def _queries_del_recalculo(self, grupo, partido):
+        """Cuenta las queries del recalculo de la tabla de `grupo`."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        from torneos.signals import actualizar_tabla_de_posiciones
+
+        with CaptureQueriesContext(connection) as ctx:
+            actualizar_tabla_de_posiciones(PartidoGrupo, partido)
+        return len(ctx.captured_queries)
+
+    def test_el_recalculo_son_3_queries(self):
+        """Filas de la tabla + partidos jugados + bulk_update. Nada por equipo."""
+        p = PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.equipos[0], equipo2=self.equipos[1])
+        # Sin ganador no se dispara la invalidacion de cache, asi que medimos
+        # unicamente el recalculo.
+        self.assertEqual(self._queries_del_recalculo(self.grupo, p), 3)
+
+    def test_no_crece_con_la_cantidad_de_equipos(self):
+        """Una zona de 8 tiene que costar lo mismo que una de 4."""
+        p4 = PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.equipos[0], equipo2=self.equipos[1])
+        queries_zona_de_4 = self._queries_del_recalculo(self.grupo, p4)
+
+        grupo8 = Grupo.objects.create(torneo=self.torneo, nombre="Zona B")
+        equipos8 = []
+        for i in range(8):
+            j1 = User.objects.create_user(email=f"q{i}a@t.com", password="x", nombre=f"C{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"q{i}b@t.com", password="x", nombre=f"D{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            EquipoGrupo.objects.create(grupo=grupo8, equipo=eq)
+            equipos8.append(eq)
+        p8 = PartidoGrupo.objects.create(
+            grupo=grupo8, equipo1=equipos8[0], equipo2=equipos8[1])
+        queries_zona_de_8 = self._queries_del_recalculo(grupo8, p8)
+
+        self.assertEqual(
+            queries_zona_de_4, queries_zona_de_8,
+            "El recalculo escala con la cantidad de equipos: volvio el N+1")

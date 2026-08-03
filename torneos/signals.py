@@ -1,20 +1,42 @@
+import logging
+import threading
+
+from django.core.cache import cache
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.db.models import Q
-from django.core.cache import cache
+
+from accounts.utils import actualizar_rankings_en_bd
+
 from .models import PartidoGrupo, EquipoGrupo, Partido
 
+logger = logging.getLogger(__name__)
 
-import threading
-from accounts.utils import actualizar_rankings_en_bd
+def _recalcular_rankings(division):
+    """Worker del thread: recalcula y SIEMPRE cierra la conexión a la base.
+
+    Sin el finally, cada thread deja abierta su propia conexión a Postgres
+    (Django abre una por thread) y se agotan las conexiones del plan.
+    """
+    from django.db import connection
+    try:
+        actualizar_rankings_en_bd(division)
+    except Exception:
+        logger.exception("Fallo al actualizar rankings de la división %s", division)
+    finally:
+        connection.close()
+
 
 def invalidar_cache_division(division):
     """Borra el caché de rankings cuando cambia algo en una división y regenera la BD."""
     if division:
-        cache.delete(f'rankings_jugadores_div_{division.id}')
-        
+        # get_division_rankings cachea por división Y género (sufijo _gen_XXX).
+        # Borrar sólo `rankings_jugadores_div_<id>` no invalidaba nada: los
+        # rankings quedaban servidos del caché hasta que vencía el TTL.
+        for genero_key in ('ALL', 'MASCULINO', 'FEMENINO'):
+            cache.delete(f'rankings_jugadores_div_{division.id}_gen_{genero_key}')
+
         # Corremos la actualización de BD asíncrona para no trabar el thread de Django Guardar
-        threading.Thread(target=actualizar_rankings_en_bd, args=(division,)).start()
+        threading.Thread(target=_recalcular_rankings, args=(division,), daemon=True).start()
 def invalidar_cache_jugadores_equipo(equipo):
     """Borra el caché de stats de los jugadores de un equipo."""
     if equipo:
@@ -24,58 +46,77 @@ def invalidar_cache_jugadores_equipo(equipo):
             cache.delete(f'player_stats_{equipo.jugador2_id}')
 
 
+CAMPOS_TABLA = [
+    'partidos_jugados', 'partidos_ganados', 'partidos_perdidos',
+    'sets_a_favor', 'sets_en_contra', 'games_a_favor', 'games_en_contra',
+    'diferencia_sets', 'diferencia_games',
+]
+
+
 @receiver(post_save, sender=PartidoGrupo)
 def actualizar_tabla_de_posiciones(sender, instance, **kwargs):
     """
     Recalcula las estadísticas de un grupo CADA VEZ que un partido se guarda.
     También invalida el caché de rankings si hay ganador asignado.
+
+    Se resuelve con 3 queries fijas (filas de la tabla + partidos jugados +
+    bulk_update). La versión anterior lanzaba 2 queries POR EQUIPO del grupo,
+    justo en la acción que el organizador más repite.
     """
-    grupo = instance.grupo
+    grupo_id = instance.grupo_id
 
-    # Recalculamos para todos los equipos de este grupo
-    for equipo_grupo in EquipoGrupo.objects.filter(grupo=grupo):
-        equipo = equipo_grupo.equipo
+    filas = list(EquipoGrupo.objects.filter(grupo_id=grupo_id))
+    if not filas:
+        return
 
-        # Obtenemos todos los partidos JUGADOS y FINALIZADOS de este equipo en este grupo
-        partidos_jugados = PartidoGrupo.objects.filter(
-            grupo=grupo, ganador__isnull=False
-        ).filter(Q(equipo1=equipo) | Q(equipo2=equipo))
+    # Acumulador por equipo, en memoria.
+    acc = {
+        f.equipo_id: dict(
+            partidos_jugados=0, partidos_ganados=0, partidos_perdidos=0,
+            sets_a_favor=0, sets_en_contra=0, games_a_favor=0, games_en_contra=0,
+        )
+        for f in filas
+    }
 
-        # Reseteamos todo a 0
-        equipo_grupo.partidos_jugados = partidos_jugados.count()
-        equipo_grupo.partidos_ganados = 0
-        equipo_grupo.partidos_perdidos = 0
-        equipo_grupo.sets_a_favor = 0
-        equipo_grupo.sets_en_contra = 0
-        equipo_grupo.games_a_favor = 0
-        equipo_grupo.games_en_contra = 0
+    partidos = PartidoGrupo.objects.filter(
+        grupo_id=grupo_id, ganador__isnull=False
+    ).values(
+        'equipo1_id', 'equipo2_id', 'ganador_id',
+        'e1_sets_ganados', 'e2_sets_ganados',
+        'e1_games_ganados', 'e2_games_ganados',
+    )
 
-        # Sumamos las estadísticas de cada partido
-        for partido in partidos_jugados:
-            if partido.ganador == equipo:
-                equipo_grupo.partidos_ganados += 1
+    for p in partidos:
+        for equipo_id, es_e1 in ((p['equipo1_id'], True), (p['equipo2_id'], False)):
+            datos = acc.get(equipo_id)
+            if datos is None:
+                continue  # equipo que ya no está en la tabla del grupo
+            datos['partidos_jugados'] += 1
+            if p['ganador_id'] == equipo_id:
+                datos['partidos_ganados'] += 1
             else:
-                equipo_grupo.partidos_perdidos += 1
+                datos['partidos_perdidos'] += 1
+            if es_e1:
+                datos['sets_a_favor'] += p['e1_sets_ganados']
+                datos['sets_en_contra'] += p['e2_sets_ganados']
+                datos['games_a_favor'] += p['e1_games_ganados']
+                datos['games_en_contra'] += p['e2_games_ganados']
+            else:
+                datos['sets_a_favor'] += p['e2_sets_ganados']
+                datos['sets_en_contra'] += p['e1_sets_ganados']
+                datos['games_a_favor'] += p['e2_games_ganados']
+                datos['games_en_contra'] += p['e1_games_ganados']
 
-            # Sumar sets y games
-            if partido.equipo1 == equipo:
-                equipo_grupo.sets_a_favor += partido.e1_sets_ganados
-                equipo_grupo.sets_en_contra += partido.e2_sets_ganados
-                equipo_grupo.games_a_favor += partido.e1_games_ganados
-                equipo_grupo.games_en_contra += partido.e2_games_ganados
-            else:  # (equipo es equipo2)
-                equipo_grupo.sets_a_favor += partido.e2_sets_ganados
-                equipo_grupo.sets_en_contra += partido.e1_sets_ganados
-                equipo_grupo.games_a_favor += partido.e2_games_ganados
-                equipo_grupo.games_en_contra += partido.e1_games_ganados
+    for fila in filas:
+        datos = acc[fila.equipo_id]
+        for campo, valor in datos.items():
+            setattr(fila, campo, valor)
+        fila.diferencia_sets = datos['sets_a_favor'] - datos['sets_en_contra']
+        fila.diferencia_games = datos['games_a_favor'] - datos['games_en_contra']
 
-        # Calcular diferencias
-        equipo_grupo.diferencia_sets = equipo_grupo.sets_a_favor - equipo_grupo.sets_en_contra
-        equipo_grupo.diferencia_games = equipo_grupo.games_a_favor - equipo_grupo.games_en_contra
+    EquipoGrupo.objects.bulk_update(filas, CAMPOS_TABLA)
 
-        # Guardamos la tabla de posiciones actualizada
-        equipo_grupo.save()
-
+    grupo = instance.grupo
     # Invalidar caché de rankings si hay ganador
     if instance.ganador:
         division = grupo.torneo.division if grupo and grupo.torneo else None
