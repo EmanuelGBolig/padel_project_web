@@ -297,14 +297,31 @@ class CargarResultadoGrupoForm(forms.ModelForm):
         self.fields['lado_ganador'].widget.attrs['class'] = estilo_select
         self.fields['lado_abandona'].widget.attrs['class'] = estilo_select
 
-        # Estilo DaisyUI + Dark Mode Ready para los inputs de sets
-        estilo_input = 'input input-bordered input-sm w-full text-center font-extrabold text-lg p-0 h-10 bg-base-100 text-base-content focus:border-primary'
+        # Estilo DaisyUI + Dark Mode Ready para los inputs de sets.
+        # h-14: objetivo táctil cómodo para cargar resultados con una mano al borde
+        # de la cancha (antes h-10 = 40px, por debajo del mínimo recomendado).
+        estilo_input = 'input input-bordered w-full text-center font-extrabold text-lg p-0 h-14 bg-base-100 text-base-content focus:border-primary'
+        nombre_e1 = self._nombre_equipo(getattr(self.instance, 'equipo1', None), 'Pareja 1')
+        nombre_e2 = self._nombre_equipo(getattr(self.instance, 'equipo2', None), 'Pareja 2')
         for field_name in ['e1_set1', 'e2_set1', 'e1_set2', 'e2_set2', 'e1_set3', 'e2_set3']:
             field = self.fields[field_name]
             field.label = ""
-            field.widget.attrs.update(
-                {'class': estilo_input, 'placeholder': '-', 'min': '0', 'max': '7', 'type': 'number'}
-            )
+            nro_set = field_name[-1]
+            equipo = nombre_e1 if field_name.startswith('e1_') else nombre_e2
+            field.widget.attrs.update({
+                'class': estilo_input,
+                'placeholder': '-',
+                'min': '0',
+                'max': '7',
+                'type': 'number',
+                # Sin esto un lector de pantalla anuncia seis campos idénticos.
+                'aria-label': f'Games de {equipo} en el set {nro_set}',
+                'inputmode': 'numeric',
+            })
+
+    @staticmethod
+    def _nombre_equipo(equipo, fallback):
+        return getattr(equipo, 'nombre', None) or fallback
 
     def _lado_a_equipo(self, lado):
         return self.instance.equipo1 if lado == '1' else self.instance.equipo2
@@ -440,15 +457,24 @@ class PartidoResultadoForm(forms.ModelForm):
         self.fields['lado_ganador'].widget.attrs['class'] = estilo_select
         self.fields['lado_abandona'].widget.attrs['class'] = estilo_select
 
-        estilo_input = 'input input-bordered input-secondary input-sm w-full text-center font-extrabold text-lg p-0 h-10 bg-base-100 text-base-content focus:border-secondary'
+        estilo_input = 'input input-bordered input-secondary w-full text-center font-extrabold text-lg p-0 h-14 bg-base-100 text-base-content focus:border-secondary'
 
+        nombre_local = str(self.instance.equipo1) if self.instance.equipo1_id else "Pareja 1"
+        nombre_visita = str(self.instance.equipo2) if self.instance.equipo2_id else "Pareja 2"
         for field_name in ['set1_local', 'set1_visitante', 'set2_local',
                            'set2_visitante', 'set3_local', 'set3_visitante']:
             field = self.fields[field_name]
             field.label = ""
-            field.widget.attrs.update(
-                {'class': estilo_input, 'placeholder': '-', 'type': 'number'}
-            )
+            nro_set = field_name[3]
+            equipo = nombre_local if field_name.endswith('_local') else nombre_visita
+            field.widget.attrs.update({
+                'class': estilo_input,
+                'placeholder': '-',
+                'type': 'number',
+                'min': '0',
+                'aria-label': f'Games de {equipo} en el set {nro_set}',
+                'inputmode': 'numeric',
+            })
 
     def clean(self):
         cleaned_data = super().clean()

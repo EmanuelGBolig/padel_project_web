@@ -19,7 +19,7 @@
     {{ torneo.nombre }} - TodoPadel
 {% endblock title %}
 {% block meta_description %}
-    Detalles del torneo {{ torneo.nombre }} en TodoPadel. Categoría {{ torneo.division }}, fecha de inicio {{ torneo.fecha_inicio|date:"d F Y" }}. Inscríbete y sigue los resultados.
+    Detalles del torneo {{ torneo.nombre }} en TodoPadel. Categoría {{ torneo.division }}, fecha de inicio {{ torneo.fecha_inicio|date:"d F Y" }}. Inscribite y sigue los resultados.
 {% endblock meta_description %}
 {% block meta_keywords %}
     {{ torneo.nombre }}, torneo padel, {{ torneo.division }}, padel, {{ torneo.ubicacion }}
@@ -655,6 +655,22 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                     </svg>
                 </summary>
+                {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
+
+                <!-- Selector de ronda: SOLO mobile. En una pantalla de 360px el cuadro
+                     horizontal muestra una columna y no hay señal de que haya más. -->
+                <div class="md:hidden px-2 pb-1">
+                    <div id="bracket-round-chips" class="flex gap-2 overflow-x-auto pb-2" style="-webkit-overflow-scrolling: touch;">
+                        {% for ronda in rondas_list %}
+                            <button type="button"
+                                    class="bracket-chip btn btn-xs rounded-full shrink-0 {% if forloop.last %}btn-primary{% else %}btn-ghost bg-base-200{% endif %}"
+                                    data-ronda="{{ forloop.counter0 }}">
+                                {% nombre_ronda_dinamico ronda.grouper total_rondas %}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
                 <!-- Bracket content: plain div, NO collapse-content class (it sets overflow:hidden) -->
                 <div class="px-2 md:px-4 pb-4 md:pb-8 pt-2"
                      style="overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch;">
@@ -667,10 +683,10 @@
                                     min-width: 100%;
                                     min-height: 100%">
                         </svg>
-                        <div class="flex gap-12 min-w-max px-4 pr-32 relative z-10">
-                            {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
+                        <div class="flex gap-12 min-w-max px-4 pr-32 relative z-10" id="bracket-rounds">
                             {% for ronda in rondas_list %}
-                                <div class="flex flex-col min-w-[260px] max-w-[260px] gap-6 {% if forloop.last %}last-round{% endif %}">
+                                <div class="bracket-round flex flex-col min-w-[260px] max-w-[260px] gap-6 {% if forloop.last %}last-round{% endif %}"
+                                     data-ronda="{{ forloop.counter0 }}">
                                     <!-- NOMBRE DE LA RONDA -->
                                     <div class="text-center font-bold uppercase tracking-widest text-xs opacity-50 text-base-content mb-4">
                                         {% nombre_ronda_dinamico ronda.grouper total_rondas %}
@@ -691,7 +707,49 @@
                             {% endfor %}
                         </div>
                     </div>
+                    <style>
+                        /* En mobile mostramos UNA ronda a ancho completo. En >=md el
+                           cuadro horizontal queda exactamente como estaba. */
+                        @media (max-width: 767px) {
+                            #bracket-rounds { gap: 0 !important; padding-right: 1rem !important; min-width: 100% !important; }
+                            .bracket-round { display: none !important; }
+                            .bracket-round.is-active {
+                                display: flex !important;
+                                min-width: 100% !important;
+                                max-width: 100% !important;
+                            }
+                            /* Las líneas del cuadro no significan nada con una sola columna. */
+                            #bracket-lines-svg { display: none; }
+                        }
+                    </style>
                     <script>
+                        // --- Selector de ronda (mobile) ---
+                        (function () {
+                            var chips = document.querySelectorAll('.bracket-chip');
+                            var rondas = document.querySelectorAll('.bracket-round');
+                            if (!chips.length || !rondas.length) return;
+
+                            function mostrar(idx) {
+                                rondas.forEach(function (r) {
+                                    r.classList.toggle('is-active', r.dataset.ronda === String(idx));
+                                });
+                                chips.forEach(function (c) {
+                                    var activo = c.dataset.ronda === String(idx);
+                                    c.classList.toggle('btn-primary', activo);
+                                    c.classList.toggle('btn-ghost', !activo);
+                                    c.classList.toggle('bg-base-200', !activo);
+                                });
+                            }
+
+                            chips.forEach(function (c) {
+                                c.addEventListener('click', function () { mostrar(c.dataset.ronda); });
+                            });
+
+                            // Arranca en la ronda más avanzada (la final), que es lo que
+                            // la gente quiere ver primero.
+                            mostrar(rondas.length - 1);
+                        })();
+
                         function drawBracketLines() {
                             const svg = document.getElementById('bracket-lines-svg');
                             const container = document.getElementById('bracket-container');

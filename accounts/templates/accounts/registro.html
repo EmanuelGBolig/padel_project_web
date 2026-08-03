@@ -25,28 +25,31 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5 md:gap-y-2">
                         {% for field in form %}
                             <div class="form-control w-full">
-                                <label class="label py-0 md:py-1">
+                                {# for= : sin esto, tocar la etiqueta no enfoca el campo y un
+                                   lector de pantalla no la asocia al input. #}
+                                <label class="label py-0 md:py-1" for="{{ field.id_for_label }}">
                                     <span class="label-text text-base-content font-medium text-sm md:text-base">{{ field.label }}</span>
                                 </label>
                                 {% if field.errors %}
                                     {{ field }}
-                                    {% for error in field.errors %}<span class="text-error text-[10px] mt-0.5 leading-none">{{ error }}</span>{% endfor %}
+                                    {% for error in field.errors %}
+                                        <span class="text-error text-xs mt-1 leading-snug" role="alert">⚠ {{ error }}</span>
+                                    {% endfor %}
                                 {% else %}
                                     {{ field }}
                                 {% endif %}
                                 {% if field.help_text %}
-                                    <label class="label py-0 mt-0.5">
-                                        <span class="label-text-alt text-base-content/60 text-[10px]">{{ field.help_text }}</span>
-                                    </label>
+                                    <span class="label-text-alt text-base-content/60 text-xs mt-1">{{ field.help_text }}</span>
                                 {% endif %}
                             </div>
                         {% endfor %}
                     </div>
                     <div class="form-control mt-4 md:mt-8">
-                        <button class="btn btn-primary btn-sm md:btn-md w-full">Registrarse</button>
+                        {# El CTA principal no puede ser el elemento más chico de la página. #}
+                        <button class="btn btn-primary btn-md md:btn-lg w-full">Crear mi cuenta</button>
                         <div class="text-center mt-3 md:mt-4">
                             <a href="{% url 'accounts:login' %}"
-                               class="link link-hover text-xs md:text-sm opacity-70">¿Ya tienes cuenta? Ingresa aquí</a>
+                               class="link link-hover text-sm opacity-70">¿Ya tenés cuenta? Ingresá acá</a>
                         </div>
                     </div>
                 </form>

@@ -491,7 +491,7 @@
                 <div class="space-y-2" id="groupsContainer">
                     {% for grupo in grupos %}
                         <div class="collapse collapse-arrow bg-base-100 border border-base-300 group-item shadow-sm">
-                            <input type="checkbox" class="group-checkbox" />
+                            <input type="checkbox" class="group-checkbox" data-panel-id="grupo-{{ grupo.pk }}" />
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-14 sm:pr-12">
                                 <span class="group-name">{{ grupo.nombre }}</span>
                                 <div class="flex items-center gap-2">
@@ -704,7 +704,7 @@
                     {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
                     {% for ronda in rondas_list %}
                         <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item shadow-sm">
-                            <input type="checkbox" class="round-checkbox" />
+                            <input type="checkbox" class="round-checkbox" data-panel-id="ronda-{{ ronda.grouper }}" />
                             <div class="collapse-title text-xl font-medium flex justify-between items-center pr-14 sm:pr-12">
                                 <span class="round-name flex items-center gap-2">{% nombre_ronda_dinamico ronda.grouper total_rondas %}</span>
                                 <span class="text-sm font-normal opacity-70 hidden sm:inline">Ver Partidos</span>
@@ -935,5 +935,61 @@
             dropdownParent: $('body')
         });
     });
+</script>
+
+{# --- Preservar el contexto entre recargas ---
+   Guardar un resultado recarga la página. Sin esto, las zonas se colapsaban y el
+   scroll volvía arriba: el organizador, que carga decenas de resultados seguidos
+   al borde de la cancha, perdía el lugar en cada uno. #}
+<script>
+(function () {
+    var CLAVE = 'gestion-torneo-{{ torneo.pk }}';
+
+    function guardar() {
+        try {
+            var abiertos = [];
+            document.querySelectorAll('[data-panel-id]').forEach(function (cb) {
+                if (cb.checked) abiertos.push(cb.dataset.panelId);
+            });
+            sessionStorage.setItem(CLAVE, JSON.stringify({
+                abiertos: abiertos,
+                scroll: window.scrollY || 0,
+                ts: Date.now()
+            }));
+        } catch (e) { /* sessionStorage lleno o bloqueado: no es crítico */ }
+    }
+
+    function restaurar() {
+        try {
+            var crudo = sessionStorage.getItem(CLAVE);
+            if (!crudo) return;
+            var estado = JSON.parse(crudo);
+            // Sólo restauramos si es reciente: si el organizador vuelve al rato,
+            // que arranque limpio.
+            if (!estado.ts || Date.now() - estado.ts > 30 * 60 * 1000) return;
+
+            (estado.abiertos || []).forEach(function (id) {
+                var cb = document.querySelector('[data-panel-id="' + id + '"]');
+                if (cb) cb.checked = true;
+            });
+            if (estado.scroll) {
+                window.scrollTo({ top: estado.scroll, behavior: 'instant' });
+            }
+        } catch (e) { /* estado corrupto: ignorar */ }
+    }
+
+    // Guardamos antes de cualquier recarga o navegación.
+    window.addEventListener('beforeunload', guardar);
+    document.body.addEventListener('htmx:beforeRequest', guardar);
+    document.querySelectorAll('[data-panel-id]').forEach(function (cb) {
+        cb.addEventListener('change', guardar);
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restaurar);
+    } else {
+        restaurar();
+    }
+})();
 </script>
 {% endblock extra_js %}

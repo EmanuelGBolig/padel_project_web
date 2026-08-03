@@ -680,12 +680,20 @@
                     <main class="flex-grow p-4 md:p-8 space-y-8 content-fade-in min-w-0">
                         <!-- min-w-0 prevents flex overflow -->
                         {% if messages %}
-                            <div style="position: fixed; top: 4.5rem; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 28rem; z-index: 90; display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
+                            {# La clase .toast es la que buscan el auto-cierre y el loader.
+                               Sin ella los avisos quedaban fijos tapando el contenido. #}
+                            <div class="toast"
+                                 style="position: fixed; top: 4.5rem; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 28rem; z-index: 90; display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
                                 {% for message in messages %}
                                     <div role="alert"
                                          class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg border-none text-white animate-in slide-in-from-top-2 fade-in duration-300"
-                                         style="width: 100%; box-sizing: border-box; flex-wrap: wrap;">
-                                        <span style="font-size: 0.875rem; font-weight: 500; word-break: break-word; overflow-wrap: break-word; width: 100%; min-width: 0;">{{ message }}</span>
+                                         style="width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center;">
+                                        <span style="font-size: 0.875rem; font-weight: 500; word-break: break-word; overflow-wrap: break-word; flex: 1; min-width: 0;">{{ message }}</span>
+                                        <button type="button"
+                                                onclick="this.closest('.alert').remove()"
+                                                aria-label="Cerrar aviso"
+                                                class="btn btn-ghost btn-sm btn-circle text-white shrink-0"
+                                                style="min-height: 2.5rem; height: 2.5rem; width: 2.5rem;">✕</button>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -1225,19 +1233,17 @@
             });
         });
 
-        // Auto-dismiss alerts after 5 seconds
+        // Auto-cierre de los avisos. Los errores duran más porque suelen traer
+        // instrucciones que hay que llegar a leer.
         document.addEventListener('DOMContentLoaded', () => {
-            const alerts = document.querySelectorAll('.toast .alert');
-            alerts.forEach(alert => {
-                // Add fade-out animation after 5 seconds
+            document.querySelectorAll('.toast .alert').forEach(alert => {
+                const esError = alert.classList.contains('alert-error')
+                             || alert.classList.contains('alert-warning');
                 setTimeout(() => {
                     alert.style.transition = 'opacity 0.5s ease-out';
                     alert.style.opacity = '0';
-                    // Remove from DOM after animation completes
-                    setTimeout(() => {
-                        alert.remove();
-                    }, 500);
-                }, 3000);
+                    setTimeout(() => alert.remove(), 500);
+                }, esError ? 10000 : 5000);
             });
         });
         </script>
@@ -1273,18 +1279,14 @@
         </script>
         <!-- Loader Logic -->
         <script>
+        // El loader se saca apenas el DOM está listo. Antes esperaba 800 ms fijos,
+        // que era retardo puro agregado a CADA navegación.
         document.addEventListener("DOMContentLoaded", function () {
-            // Si hay alertas/mensajes, ocultamos el loader inmediatamente
-            const hasAlerts = document.querySelector('.toast .alert');
-            const loaderDelay = hasAlerts ? 0 : 800;
-
-            setTimeout(function() {
-                const loader = document.getElementById('global-loader');
-                if (loader) {
-                    loader.classList.add('opacity-0', 'pointer-events-none');
-                    setTimeout(() => loader.remove(), 500);
-                }
-            }, loaderDelay);
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => loader.remove(), 300);
+            }
         });
         </script>
         <!-- PWA: registrar service worker + capturar el prompt de instalación -->

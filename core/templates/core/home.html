@@ -4,7 +4,7 @@
     Inicio | TodoPadel
 {% endblock title %}
 {% block meta_description %}
-    Únete a TodoPadel, la plataforma líder para gestionar torneos de pádel amateur y profesional. Inscríbete en torneos abiertos, sigue partidos en vivo y consulta rankings actualizados.
+    Sumate a TodoPadel, la plataforma líder para gestionar torneos de pádel amateur y profesional. Inscribite en torneos abiertos, sigue partidos en vivo y consulta rankings actualizados.
 {% endblock meta_description %}
 {% block extra_head %}
 {% endblock extra_head %}
@@ -96,8 +96,10 @@
                         <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.partidos_jugados }}</div><div class="text-xs opacity-70">Partidos</div></div>
                     </div>
                 </div>
-                <!-- Derecha: card "en vivo" / teaser -->
-                <div class="hidden md:block">
+                <!-- Derecha: card "en vivo" / teaser.
+                     Antes era hidden md:block, así que en celular —la mayoría del
+                     tráfico— el torneo en vivo directamente no se veía. -->
+                <div class="mt-6 md:mt-0">
                     {% if torneos_en_juego or torneos_abiertos %}
                         <div class="hero-carousel relative h-60" data-interval="4500">
                             {% if torneos_en_juego %}
@@ -167,7 +169,7 @@
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-base-content">Organizadores Destacados</h2>
-                        <p class="text-sm text-base-content/80">Conoce a los organizadores y sus torneos</p>
+                        <p class="text-sm text-base-content/80">Conocé a los organizadores y sus torneos</p>
                     </div>
                 </div>
                 <!-- Carousel Container -->
@@ -251,7 +253,7 @@
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-base-content">Inscripciones Abiertas</h2>
-                        <p class="text-sm text-base-content/80">Únete a los próximos torneos disponibles</p>
+                        <p class="text-sm text-base-content/80">Sumate a los próximos torneos disponibles</p>
                     </div>
                 </div>
                 <!-- Carousel Container -->
@@ -473,7 +475,7 @@
         <!-- Estado Vacío -->
         {% if not torneos_abiertos and not torneos_en_juego %}
             <div class="bg-base-100 rounded-3xl border border-base-300 shadow-sm py-8">
-                {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay torneos activos o en inscripción en este momento. ¡Vuelve pronto para el próximo saque!" action_url="/torneos/finalizados/" action_text="Ver historial de torneos" %}
+                {% include "partials/empty_state.html" with title="¡Vaya! La cancha está vacía" message="No hay torneos activos o en inscripción en este momento. ¡Volvé pronto para el próximo saque!" action_url="/torneos/finalizados/" action_text="Ver historial de torneos" %}
             </div>
         {% endif %}
         <!-- Prueba social: contadores + testimonios (TP-04) -->
