@@ -2174,3 +2174,69 @@ class PlacasNuevasTests(TestCase):
         datos = datos_placa_jugador(self.j1)
         for logro in datos["logros"]:
             self.assertTrue(logro["unlocked"], f"Logro bloqueado en la placa: {logro}")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class EmbudoInscripcionTests(TestCase):
+    """El comando que mide donde se cae la gente antes de inscribirse."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgEmb", alias="orgemb")
+        self.torneo = Torneo.objects.create(
+            nombre="Embudo", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=5),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO)
+
+    def _jugador(self, i, telefono=""):
+        u = User.objects.create_user(
+            email=f"emb{i}@t.com", password="x", nombre=f"J{i}", apellido="X",
+            division=self.division)
+        if telefono:
+            u.numero_telefono = telefono
+            u.save()
+        return u
+
+    def _salida(self):
+        from io import StringIO
+        from django.core.management import call_command
+        out = StringIO()
+        call_command("embudo_inscripcion", stdout=out)
+        return out.getvalue()
+
+    def test_cuenta_los_tres_escalones(self):
+        # 6 jugadores: 4 arman pareja, y solo 2 de esos se inscriben
+        js = [self._jugador(i) for i in range(6)]
+        eq1 = Equipo.objects.create(jugador1=js[0], jugador2=js[1], division=self.division)
+        Equipo.objects.create(jugador1=js[2], jugador2=js[3], division=self.division)
+        Inscripcion.objects.create(torneo=self.torneo, equipo=eq1)
+
+        salida = self._salida()
+        self.assertIn("Crearon cuenta", salida)
+        # 6 con cuenta, 4 con pareja, 2 inscriptos
+        self.assertRegex(salida, r"Crearon cuenta\s+6")
+        self.assertRegex(salida, r"Formaron pareja\s+4")
+        self.assertRegex(salida, r"Se inscribieron a un torneo\s+2")
+
+    def test_no_cuenta_a_los_dummy(self):
+        real = self._jugador(0)
+        dummy = User.objects.create_user(
+            email="dum@x.local", password="x", nombre="D", apellido="X",
+            division=self.division)
+        dummy.is_dummy = True
+        dummy.save()
+        salida = self._salida()
+        self.assertRegex(salida, r"Crearon cuenta\s+1")
+
+    def test_reporta_cuantos_tienen_telefono(self):
+        """Si el % es alto, el flujo de invitar por WhatsApp es viable."""
+        self._jugador(0, telefono="+5492235551111")
+        self._jugador(1)
+        salida = self._salida()
+        self.assertIn("jugadores con teléfono cargado: 1 de 2", salida)
+
+    def test_sin_jugadores_no_rompe(self):
+        salida = self._salida()
+        self.assertIn("No hay jugadores para medir", salida)
