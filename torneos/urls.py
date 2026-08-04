@@ -74,6 +74,12 @@ urlpatterns = [
         views.ExportarInscriptosView.as_view(),
         name='exportar_inscriptos',
     ),
+    path('admin/<int:pk>/cobros/', views.CobrosTorneoView.as_view(), name='cobros'),
+    path(
+        'inscripcion/<int:pk>/comprobante/',
+        views.SubirComprobanteView.as_view(),
+        name='subir_comprobante',
+    ),
     path(
         'admin/<int:pk>/gestionar/',
         views.AdminTorneoManageView.as_view(),

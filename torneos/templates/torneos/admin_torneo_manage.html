@@ -180,6 +180,13 @@
                         </svg>
                         Parejas Inscritas ({{ inscripciones.count }})
                     </h2>
+                    {% if inscripciones and torneo.precio_inscripcion %}
+                        <a href="{% url 'torneos:cobros' torneo.pk %}"
+                           class="btn btn-sm btn-outline btn-success gap-2"
+                           title="Ver quién pagó y quién no">
+                            💰 Cobros
+                        </a>
+                    {% endif %}
                     {% if inscripciones %}
                         <a href="{% url 'torneos:exportar_inscriptos' torneo.pk %}"
                            class="btn btn-sm btn-outline gap-2"

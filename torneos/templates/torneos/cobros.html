@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block head_title %}Cobros · {{ torneo.nombre }} · {% endblock head_title %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-1">
+        <div>
+            <h1 class="text-2xl font-bold">💰 Cobros</h1>
+            <p class="text-sm text-base-content/60">{{ torneo.nombre }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'torneos:exportar_inscriptos' torneo.pk %}" class="btn btn-sm btn-outline">Exportar CSV</a>
+            <a href="{% url 'torneos:admin_manage' torneo.pk %}" class="btn btn-sm btn-ghost">Volver a gestión</a>
+        </div>
+    </div>
+
+    {% if not torneo.precio_inscripcion %}
+        <div class="alert alert-warning mt-4">
+            <span>
+                Este torneo no tiene precio cargado, así que no se puede calcular cuánto falta.
+                Ponelo en <a href="{% url 'torneos:admin_editar' torneo.pk %}" class="link">editar torneo</a>.
+            </span>
+        </div>
+    {% endif %}
+
+    <!-- Resumen -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 my-5">
+        <div class="card bg-base-100 border border-base-200 rounded-2xl">
+            <div class="card-body p-4">
+                <div class="text-2xl font-extrabold">${{ resumen.recaudado|floatformat:0 }}</div>
+                <div class="text-xs text-base-content/60">Recaudado</div>
+                {% if resumen.esperado %}
+                    <progress class="progress progress-success h-2 mt-1" value="{{ resumen.pct }}" max="100"></progress>
+                    <div class="text-xs text-base-content/50">de ${{ resumen.esperado|floatformat:0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card bg-base-100 border border-base-200 rounded-2xl">
+            <div class="card-body p-4">
+                <div class="text-2xl font-extrabold text-warning">{{ resumen.pendientes }}</div>
+                <div class="text-xs text-base-content/60">Sin pagar</div>
+            </div>
+        </div>
+        <div class="card bg-base-100 border border-base-200 rounded-2xl">
+            <div class="card-body p-4">
+                <div class="text-2xl font-extrabold text-info">{{ resumen.senados }}</div>
+                <div class="text-xs text-base-content/60">Señados</div>
+            </div>
+        </div>
+        <div class="card bg-base-100 border border-base-200 rounded-2xl">
+            <div class="card-body p-4">
+                <div class="text-2xl font-extrabold text-success">{{ resumen.pagados }}</div>
+                <div class="text-xs text-base-content/60">Pagados</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listado -->
+    <div class="space-y-2">
+        {% for i in inscripciones %}
+            {% with badge=i.badge_pago %}
+                <div class="card bg-base-100 border border-base-200 rounded-2xl">
+                    <div class="card-body p-4">
+                        <div class="flex items-start justify-between gap-3 flex-wrap">
+                            <div class="min-w-0">
+                                <div class="font-bold flex items-center gap-2 flex-wrap">
+                                    {{ i.equipo.nombre }}
+                                    <span class="badge badge-sm {{ badge.1 }}">{{ badge.0 }}</span>
+                                    {% if i.comprobante %}
+                                        <a href="{{ i.comprobante.url }}" target="_blank" rel="noopener"
+                                           class="badge badge-sm badge-outline gap-1">📎 Comprobante</a>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-base-content/60">
+                                    {% if i.monto_pagado %}Pagó ${{ i.monto_pagado|floatformat:0 }} · {% endif %}
+                                    {% if i.fecha_pago %}{{ i.fecha_pago|date:"d/m/Y" }} · {% endif %}
+                                    Inscripta {{ i.fecha_inscripcion|date:"d/m/Y" }}
+                                    {% if i.nota_pago %}<br>{{ i.nota_pago }}{% endif %}
+                                </div>
+                            </div>
+
+                            {% if not i.pago_al_dia %}
+                                {% for jugador in i.equipo.jugadores_con_telefono %}
+                                    <a href="https://wa.me/{{ jugador.telefono_numero }}?text={{ mensaje_recordatorio }}"
+                                       target="_blank" rel="noopener"
+                                       class="btn btn-xs btn-ghost text-success shrink-0"
+                                       title="Recordarle a {{ jugador.full_name }}">💬 Recordar</a>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <form method="post" class="flex flex-wrap items-end gap-2 mt-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="inscripcion_id" value="{{ i.pk }}">
+                            <div class="form-control">
+                                <label class="label py-0.5" for="estado-{{ i.pk }}">
+                                    <span class="label-text text-xs opacity-60">Estado</span>
+                                </label>
+                                <select name="estado_pago" id="estado-{{ i.pk }}"
+                                        class="select select-bordered select-sm bg-base-100">
+                                    {% for valor, etiqueta in estados %}
+                                        <option value="{{ valor }}" {% if i.estado_pago == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0.5" for="monto-{{ i.pk }}">
+                                    <span class="label-text text-xs opacity-60">Monto</span>
+                                </label>
+                                <input type="number" name="monto" id="monto-{{ i.pk }}" min="0"
+                                       value="{{ i.monto_pagado|default_if_none:'' }}"
+                                       placeholder="{{ torneo.precio_inscripcion|default_if_none:'' }}"
+                                       class="input input-bordered input-sm w-28 bg-base-100">
+                            </div>
+                            <div class="form-control flex-1 min-w-[10rem]">
+                                <label class="label py-0.5" for="nota-{{ i.pk }}">
+                                    <span class="label-text text-xs opacity-60">Nota</span>
+                                </label>
+                                <input type="text" name="nota_pago" id="nota-{{ i.pk }}" maxlength="200"
+                                       value="{{ i.nota_pago }}"
+                                       class="input input-bordered input-sm w-full bg-base-100">
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+                        </form>
+                    </div>
+                </div>
+            {% endwith %}
+        {% empty %}
+            <div class="text-center py-14 text-base-content/60 border-2 border-dashed border-base-300 rounded-2xl">
+                <p>Todavía no hay inscriptos.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock content %}

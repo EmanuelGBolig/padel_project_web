@@ -68,6 +68,40 @@
                 <div class="mt-4 text-sm opacity-80 whitespace-pre-line border-l-2 border-base-300 pl-3">{{ torneo.instrucciones_pago }}</div>
             {% endif %}
 
+            {% if mi_inscripcion %}
+                {% with badge=mi_inscripcion.badge_pago %}
+                    <div class="divider my-2"></div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm opacity-70">Tu pago:</span>
+                        <span class="badge {{ badge.1 }}">{{ badge.0 }}</span>
+                        {% if mi_inscripcion.comprobante %}
+                            <span class="text-xs opacity-60">📎 comprobante enviado</span>
+                        {% endif %}
+                    </div>
+
+                    {% if not mi_inscripcion.pago_al_dia %}
+                        {% comment %} Subir el comprobante desde acá evita depender de WhatsApp. {% endcomment %}
+                        <form method="post"
+                              action="{% url 'torneos:subir_comprobante' mi_inscripcion.pk %}"
+                              enctype="multipart/form-data"
+                              class="flex flex-wrap items-end gap-2 mt-3">
+                            {% csrf_token %}
+                            <div class="form-control flex-1 min-w-[12rem]">
+                                <label class="label py-0.5" for="comprobante">
+                                    <span class="label-text text-xs opacity-70">
+                                        {% if mi_inscripcion.comprobante %}Reemplazar comprobante{% else %}Subir comprobante{% endif %}
+                                    </span>
+                                </label>
+                                <input type="file" name="comprobante" id="comprobante"
+                                       accept="image/*"
+                                       class="file-input file-input-bordered file-input-sm w-full bg-base-100" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary">Enviar</button>
+                        </form>
+                    {% endif %}
+                {% endwith %}
+            {% endif %}
+
             <p class="text-xs opacity-50 mt-3">
                 La inscripción queda confirmada una vez que el organizador recibe el comprobante.
             </p>

@@ -28,7 +28,7 @@ from django.db import transaction
 
 from .models import (
     Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo, Circuito,
-    Americano, JugadorAmericano, RondaAmericano, PartidoAmericano,
+    Americano, JugadorAmericano, RondaAmericano, PartidoAmericano, EstadoPago,
 )
 from .forms import (
     TorneoAdminForm,
@@ -2061,6 +2061,15 @@ class TorneoDetailView(DetailView):
         context['mensaje_comprobante'] = quote(
             f"Hola! Te mando el comprobante de la inscripción al torneo {torneo.nombre}."
         )
+        # Inscripción del usuario en ESTE torneo, para mostrarle su estado de pago
+        # y dejarlo subir el comprobante.
+        context['mi_inscripcion'] = None
+        if self.request.user.is_authenticated:
+            equipo_usuario = getattr(self.request.user, 'equipo', None)
+            if equipo_usuario:
+                context['mi_inscripcion'] = Inscripcion.objects.filter(
+                    torneo=torneo, equipo=equipo_usuario
+                ).first()
         # Placa de campeones para el botón "Descargar placa" (None si no aplica).
         from .social import placa_campeones_url
         context['placa_url'] = placa_campeones_url(torneo)
@@ -2726,6 +2735,72 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
     def get_success_url(self):
         grupo = self.get_grupo()
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
+
+
+class CobrosTorneoView(AdminRequiredMixin, OrgScopedQuerysetMixin, DetailView):
+    """Panel de cobros: quién pagó, quién no, y cuánto falta."""
+    model = Torneo
+    org_lookup = 'organizacion'
+    template_name = 'torneos/cobros.html'
+    context_object_name = 'torneo'
+
+    def get_context_data(self, **kwargs):
+        from .services.pagos import inscripciones_con_pago, resumen_de_cobros
+
+        ctx = super().get_context_data(**kwargs)
+        ctx['resumen'] = resumen_de_cobros(self.object)
+        ctx['inscripciones'] = inscripciones_con_pago(self.object)
+        ctx['estados'] = EstadoPago.choices
+        ctx['mensaje_recordatorio'] = quote(
+            f"Hola! Te recuerdo que queda pendiente el pago de la inscripción "
+            f"al torneo {self.object.nombre}."
+        )
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        """Actualiza el estado de pago de una inscripción."""
+        from .services.pagos import marcar_pago
+
+        torneo = self.get_object()
+        inscripcion = get_object_or_404(
+            Inscripcion, pk=request.POST.get('inscripcion_id'), torneo=torneo
+        )
+        monto_crudo = (request.POST.get('monto') or '').strip()
+        try:
+            marcar_pago(
+                inscripcion,
+                request.POST.get('estado_pago'),
+                monto=int(monto_crudo) if monto_crudo.isdigit() else None,
+                nota=request.POST.get('nota_pago'),
+            )
+            messages.success(request, f"Pago de {inscripcion.equipo.nombre} actualizado.")
+        except ValueError:
+            messages.error(request, "Estado de pago inválido.")
+        return redirect('torneos:cobros', pk=torneo.pk)
+
+
+class SubirComprobanteView(LoginRequiredMixin, View):
+    """El jugador sube el comprobante de su propia inscripción."""
+
+    def post(self, request, pk, *args, **kwargs):
+        inscripcion = get_object_or_404(Inscripcion, pk=pk)
+
+        equipo = getattr(request.user, 'equipo', None)
+        if not equipo or inscripcion.equipo_id != equipo.pk:
+            raise PermissionDenied("Esa inscripción no es tuya.")
+
+        archivo = request.FILES.get('comprobante')
+        if not archivo:
+            messages.error(request, "No adjuntaste ningún archivo.")
+            return redirect('torneos:detail', pk=inscripcion.torneo_id)
+
+        inscripcion.comprobante = archivo
+        inscripcion.save(update_fields=['comprobante'])
+        messages.success(
+            request,
+            "¡Listo! Le llegó el comprobante al organizador. Te va a confirmar el lugar."
+        )
+        return redirect('torneos:detail', pk=inscripcion.torneo_id)
 
 
 class ExportarInscriptosView(AdminRequiredMixin, View):

@@ -1856,3 +1856,226 @@ class OrganizadorEditaDatosDePagoTests(TestCase):
             self.assertIn(
                 f'name="{campo}"', html,
                 f"El campo {campo} no se puede editar desde la web")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CobrosTests(TestCase):
+    """Panel de cobros y carga de comprobante."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        from torneos.models import EstadoPago
+        self.EstadoPago = EstadoPago
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.org = Organizacion.objects.create(
+            nombre="Club Cobro", alias="club-cobro", alias_cobro="mi.alias")
+        self.organizador = User.objects.create_user(
+            email="oc2@t.com", password="x", nombre="Or", apellido="Co",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.organizador.organizacion = self.org
+        self.organizador.save()
+        self.torneo = Torneo.objects.create(
+            nombre="Con Precio", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=5),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO,
+            precio_inscripcion=80000, senia=40000)
+
+        self.inscripciones = []
+        for i in range(3):
+            j1 = User.objects.create_user(email=f"co{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"co{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+            self.inscripciones.append(
+                Inscripcion.objects.create(torneo=self.torneo, equipo=eq))
+        self.jugador = self.inscripciones[0].equipo.jugador1
+
+    def test_por_defecto_todo_pendiente(self):
+        for i in self.inscripciones:
+            self.assertEqual(i.estado_pago, self.EstadoPago.PENDIENTE)
+            self.assertFalse(i.pago_al_dia)
+
+    def test_el_organizador_marca_un_pago(self):
+        self.client.force_login(self.organizador)
+        resp = self.client.post(
+            reverse("torneos:cobros", kwargs={"pk": self.torneo.pk}), {
+                "inscripcion_id": self.inscripciones[0].pk,
+                "estado_pago": self.EstadoPago.PAGADO,
+                "monto": "80000",
+                "nota_pago": "transferencia ok",
+            })
+        self.assertIn(resp.status_code, (301, 302))
+        i = self.inscripciones[0]
+        i.refresh_from_db()
+        self.assertEqual(i.estado_pago, self.EstadoPago.PAGADO)
+        self.assertEqual(i.monto_pagado, 80000)
+        self.assertIsNotNone(i.fecha_pago, "No se sello la fecha de pago")
+        self.assertTrue(i.pago_al_dia)
+
+    def test_volver_a_pendiente_limpia_la_fecha(self):
+        from torneos.services.pagos import marcar_pago
+        i = self.inscripciones[0]
+        marcar_pago(i, self.EstadoPago.PAGADO, monto=80000)
+        self.assertIsNotNone(i.fecha_pago)
+        marcar_pago(i, self.EstadoPago.PENDIENTE)
+        self.assertIsNone(i.fecha_pago)
+
+    def test_el_resumen_suma_bien(self):
+        from torneos.services.pagos import marcar_pago, resumen_de_cobros
+        marcar_pago(self.inscripciones[0], self.EstadoPago.PAGADO, monto=80000)
+        marcar_pago(self.inscripciones[1], self.EstadoPago.SENADO, monto=40000)
+        r = resumen_de_cobros(self.torneo)
+        self.assertEqual(r["total"], 3)
+        self.assertEqual(r["pagados"], 1)
+        self.assertEqual(r["senados"], 1)
+        self.assertEqual(r["pendientes"], 1)
+        self.assertEqual(r["recaudado"], 120000)
+        self.assertEqual(r["esperado"], 240000)   # 3 x 80.000
+        self.assertEqual(r["falta"], 120000)
+
+    def test_los_exentos_no_se_esperan_cobrar(self):
+        from torneos.services.pagos import marcar_pago, resumen_de_cobros
+        marcar_pago(self.inscripciones[0], self.EstadoPago.EXENTO)
+        r = resumen_de_cobros(self.torneo)
+        self.assertEqual(r["esperado"], 160000, "El exento no deberia sumar al esperado")
+
+    def test_estado_invalido_no_rompe(self):
+        self.client.force_login(self.organizador)
+        resp = self.client.post(
+            reverse("torneos:cobros", kwargs={"pk": self.torneo.pk}), {
+                "inscripcion_id": self.inscripciones[0].pk,
+                "estado_pago": "ZZ",
+            })
+        self.assertIn(resp.status_code, (301, 302))
+        self.inscripciones[0].refresh_from_db()
+        self.assertEqual(self.inscripciones[0].estado_pago, self.EstadoPago.PENDIENTE)
+
+    def test_cobros_aislado_por_organizacion(self):
+        from accounts.models import Organizacion
+        otra = Organizacion.objects.create(nombre="Otro Club", alias="otro-club")
+        ajeno = User.objects.create_user(
+            email="aje@t.com", password="x", nombre="Aj", apellido="En",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        ajeno.organizacion = otra
+        ajeno.save()
+        self.client.force_login(ajeno)
+        resp = self.client.get(reverse("torneos:cobros", kwargs={"pk": self.torneo.pk}))
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_no_se_puede_subir_comprobante_ajeno(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        otro_jugador = self.inscripciones[1].equipo.jugador1
+        self.client.force_login(otro_jugador)
+        archivo = SimpleUploadedFile("c.jpg", b"falso", content_type="image/jpeg")
+        resp = self.client.post(
+            reverse("torneos:subir_comprobante", kwargs={"pk": self.inscripciones[0].pk}),
+            {"comprobante": archivo})
+        self.assertIn(resp.status_code, (403, 404))
+        self.inscripciones[0].refresh_from_db()
+        self.assertFalse(bool(self.inscripciones[0].comprobante))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class RecordatoriosTests(TestCase):
+    """Recordatorios de partido: primera notificacion disparada por tiempo."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgRec", alias="orgrec")
+        self.torneo = Torneo.objects.create(
+            nombre="Con Horarios", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.EN_JUEGO)
+        self.equipos = []
+        for i in range(2):
+            j1 = User.objects.create_user(email=f"re{i}a@t.com", password="x", nombre=f"A{i}", apellido="X", division=self.division)
+            j2 = User.objects.create_user(email=f"re{i}b@t.com", password="x", nombre=f"B{i}", apellido="Y", division=self.division)
+            self.equipos.append(Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division))
+
+    def _partido(self, horas_desde_ahora):
+        return Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.equipos[0], equipo2=self.equipos[1],
+            fecha_hora=timezone.now() + timedelta(hours=horas_desde_ahora))
+
+    def test_detecta_la_ventana_de_24h(self):
+        from torneos.services.recordatorios import partidos_a_recordar
+        self._partido(24)
+        pendientes = partidos_a_recordar()
+        self.assertEqual(len(pendientes), 1)
+        self.assertEqual(pendientes[0][1], "24h")
+
+    def test_detecta_la_ventana_de_2h(self):
+        from torneos.services.recordatorios import partidos_a_recordar
+        self._partido(2)
+        pendientes = partidos_a_recordar()
+        self.assertEqual(len(pendientes), 1)
+        self.assertEqual(pendientes[0][1], "2h")
+
+    def test_un_partido_lejano_no_dispara_nada(self):
+        from torneos.services.recordatorios import partidos_a_recordar
+        self._partido(72)
+        self.assertEqual(partidos_a_recordar(), [])
+
+    def test_no_recuerda_partidos_ya_jugados(self):
+        from torneos.services.recordatorios import partidos_a_recordar
+        p = self._partido(2)
+        p.ganador = self.equipos[0]
+        p.save()
+        self.assertEqual(partidos_a_recordar(), [])
+
+    def test_no_recuerda_partidos_sin_horario(self):
+        from torneos.services.recordatorios import partidos_a_recordar
+        Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=2,
+            equipo1=self.equipos[0], equipo2=self.equipos[1])
+        self.assertEqual(partidos_a_recordar(), [])
+
+    def test_es_idempotente(self):
+        """Correr el cron dos veces no debe notificar dos veces: es LO importante."""
+        from torneos.services.recordatorios import enviar_recordatorios
+        p = self._partido(2)
+
+        partidos, jugadores = enviar_recordatorios()
+        self.assertEqual(partidos, 1)
+        self.assertEqual(jugadores, 4)
+
+        p.refresh_from_db()
+        self.assertIn("2h", p.recordatorios_enviados)
+
+        # Segunda corrida: nada
+        partidos2, jugadores2 = enviar_recordatorios()
+        self.assertEqual(partidos2, 0, "Se volvio a notificar el mismo partido")
+
+    def test_las_dos_ventanas_se_mandan_por_separado(self):
+        """Recordado a 24h, tiene que volver a recordarse a 2h."""
+        from torneos.services.recordatorios import enviar_recordatorios, partidos_a_recordar
+        p = self._partido(24)
+        enviar_recordatorios()
+        p.refresh_from_db()
+        self.assertEqual(p.recordatorios_enviados, ["24h"])
+
+        # Ahora simulamos que falta poco: movemos el partido, no el reloj
+        p.fecha_hora = timezone.now() + timedelta(hours=2)
+        p.save()
+        pendientes = partidos_a_recordar()
+        self.assertEqual(len(pendientes), 1)
+        self.assertEqual(pendientes[0][1], "2h")
+
+    def test_dry_run_no_marca_nada(self):
+        from torneos.services.recordatorios import enviar_recordatorios
+        p = self._partido(2)
+        enviar_recordatorios(dry_run=True)
+        p.refresh_from_db()
+        self.assertEqual(p.recordatorios_enviados, [])
+
+    def test_tambien_recuerda_partidos_de_zona(self):
+        from torneos.services.recordatorios import partidos_a_recordar
+        grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=self.equipos[0], equipo2=self.equipos[1],
+            fecha_hora=timezone.now() + timedelta(hours=2))
+        pendientes = partidos_a_recordar()
+        self.assertEqual(len(pendientes), 1)

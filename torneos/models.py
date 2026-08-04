@@ -231,6 +231,18 @@ class Torneo(models.Model):
         return max(0, self.cupos_totales - self.inscripciones.count())
 
 
+class EstadoPago(models.TextChoices):
+    """Estado del pago de una inscripción.
+
+    El circuito real es por transferencia + comprobante por WhatsApp, así que
+    esto es un registro administrativo: lo confirma el organizador a mano.
+    """
+    PENDIENTE = 'PE', 'Pendiente'
+    SENADO = 'SE', 'Señado'
+    PAGADO = 'PA', 'Pagado'
+    EXENTO = 'EX', 'Exento'
+
+
 class Inscripcion(models.Model):
     equipo = models.ForeignKey(
         Equipo, on_delete=models.CASCADE, related_name='inscripciones'
@@ -240,11 +252,49 @@ class Inscripcion(models.Model):
     )
     fecha_inscripcion = models.DateTimeField(auto_now_add=True)
 
+    # --- Pago ---
+    estado_pago = models.CharField(
+        max_length=2, choices=EstadoPago.choices, default=EstadoPago.PENDIENTE,
+        verbose_name="Estado del pago",
+    )
+    monto_pagado = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Cuánto pagó realmente la pareja, en pesos.",
+    )
+    comprobante = models.ImageField(
+        upload_to='comprobantes/', null=True, blank=True,
+        validators=[validar_imagen],
+        verbose_name="Comprobante de transferencia",
+    )
+    fecha_pago = models.DateTimeField(null=True, blank=True)
+    nota_pago = models.CharField(
+        max_length=200, blank=True,
+        help_text="Uso interno del organizador. Ej: 'pagó solo Juan'.",
+    )
+
+    @property
+    def pago_al_dia(self):
+        return self.estado_pago in (EstadoPago.PAGADO, EstadoPago.EXENTO)
+
+    @property
+    def badge_pago(self):
+        """(texto, clase DaisyUI) para pintar el estado en las tablas."""
+        return {
+            EstadoPago.PENDIENTE: ("Pendiente", "badge-warning"),
+            EstadoPago.SENADO: ("Señado", "badge-info"),
+            EstadoPago.PAGADO: ("Pagado", "badge-success"),
+            EstadoPago.EXENTO: ("Exento", "badge-ghost"),
+        }.get(self.estado_pago, ("—", "badge-ghost"))
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['equipo', 'torneo'], name='inscripcion_unica'
             )
+        ]
+        indexes = [
+            # El panel del organizador filtra por torneo + estado de pago.
+            models.Index(fields=['torneo', 'estado_pago'], name='insc_torneo_pago_idx'),
         ]
 
     def __str__(self):
@@ -332,6 +382,10 @@ class PartidoGrupo(models.Model):
 
     # Fecha y Hora del Partido
     fecha_hora = models.DateTimeField(null=True, blank=True)
+    # Recordatorios ya enviados para este partido, ej. ['24h', '2h'].
+    # Lo usa el comando enviar_recordatorios para ser idempotente: el cron puede
+    # correr las veces que quiera sin spamear a los jugadores.
+    recordatorios_enviados = models.JSONField(default=list, blank=True)
 
     ganador = models.ForeignKey(
         Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name="partidos_grupo_ganados"
@@ -432,6 +486,10 @@ class Partido(models.Model):
 
     # Fecha y Hora del Partido
     fecha_hora = models.DateTimeField(null=True, blank=True)
+    # Recordatorios ya enviados para este partido, ej. ['24h', '2h'].
+    # Lo usa el comando enviar_recordatorios para ser idempotente: el cron puede
+    # correr las veces que quiera sin spamear a los jugadores.
+    recordatorios_enviados = models.JSONField(default=list, blank=True)
 
     # NUEVOS CAMPOS: Para guardar el detalle de sets en el bracket
     sets_local = models.JSONField(default=list, blank=True)
