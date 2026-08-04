@@ -1,5 +1,19 @@
 # Backlog de mejoras — TodoPadel
 
+> **Estado (2026-08-03): implementado casi todo.** Ver el historial de git —
+> commits `de19196`, `916763f`, `6c941a7`, `e38d17f`, `5b6ab1f`.
+>
+> **Lo que queda pendiente y por qué:**
+>
+> | Ítem | Por qué sigue abierto |
+> |---|---|
+> | S1 — contraseña del superusuario | El usuario pidió **no tocar ninguna contraseña**. Se sacó el script de los deploys y se quitó el valor por defecto, pero la cuenta quedó como estaba. |
+> | S2 — backups en el historial de git | Sacados del índice y agregados a `.gitignore`, pero **siguen en el historial**. Reescribirlo (`git filter-repo`) es destructivo y requiere el OK del usuario. |
+> | P5 — bundle de DaisyUI desde CDN | Requiere reconfigurar el build de Tailwind y volver a verificar todos los estilos. Alto riesgo visual, conviene hacerlo aislado. |
+> | U1 — carga de resultados sin recargar | Se atacó la pérdida de contexto (se preservan zonas abiertas y scroll). El swap parcial por HTMX del panel entero quedó pendiente por riesgo. |
+> | F4–F8 — placas, recordatorios, cobros… | Features nuevas de mayor tamaño, no correcciones. |
+> | Deuda 1 — partir `torneos/views.py` | Refactor grande; conviene hacerlo solo, con la suite verde como red. |
+
 Generado a partir de la auditoría completa del código del 2026-08-03.
 Cada ítem tiene **impacto** (para el usuario o el negocio) y **esfuerzo** estimado.
 

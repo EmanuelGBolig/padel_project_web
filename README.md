@@ -28,7 +28,7 @@ posterior a cuentas reales.
 
 ## Stack
 
-- **Backend:** Django 5.2.8 · Python 3.11
+- **Backend:** Django 5.2.16 · Python 3.11
 - **Base de datos:** PostgreSQL en producción, SQLite en local (se elige solo según `DATABASE_URL`)
 - **Frontend:** Tailwind CSS vía `django-tailwind` + **DaisyUI 4.7.2** (tema `corporate` sobrescrito en oscuro)
 - **Estáticos:** WhiteNoise con manifest + compresión · **Media:** Cloudinary en prod, filesystem en local
@@ -73,7 +73,7 @@ python manage.py create_test_tournament
 python manage.py test
 ```
 
-124 tests, tarda unos **7 minutos**. Para iterar rápido, correr solo la app o la clase que tocaste:
+141 tests, tarda unos **8 minutos**. Para iterar rápido, correr solo la app o la clase que tocaste:
 
 ```bash
 python manage.py test torneos.tests.CrucesManualesTests

@@ -9,9 +9,9 @@
 | **Proyecto** | TodoPadel — gestión de torneos de pádel |
 | **Producción** | https://todopadel.club (Render) |
 | **Repositorio** | `EmanuelGBolig/padel_project_web`, rama de trabajo `main` |
-| **Stack** | Django 5.2.8 · Python 3.11 · PostgreSQL (prod) / SQLite (local) · Tailwind + DaisyUI 4.7.2 · WhiteNoise · Cloudinary |
+| **Stack** | Django 5.2.16 · Python 3.11 · PostgreSQL (prod) / SQLite (local) · Tailwind + DaisyUI 4.7.2 · WhiteNoise · Cloudinary |
 | **Apps** | `core`, `accounts`, `equipos`, `torneos` (+ `theme` para Tailwind) |
-| **Tests** | 124 tests (`python manage.py test`, ~7 min) |
+| **Tests** | 141 tests (`python manage.py test`, ~8 min) |
 | **Última auditoría completa** | 2026-08-03 |
 
 ## Cómo leer este documento
@@ -36,6 +36,28 @@ resultado cargado dispara un signal que **recalcula la tabla de posiciones compl
 salen de las **llaves oficiales FAP** (`torneos/formats.py`, 6 a 48 parejas) o de un
 `FormatoPersonalizado` que el organizador se guarda. Al ganarse la final, `Partido.save()` cierra el
 torneo y marca al campeón.
+
+---
+
+> **Nota de mantenimiento (2026-08-03).** Se aplicó una tanda de mejoras que toca varias
+> secciones de este documento. Los cambios estructurales:
+>
+> - **Seguridad**: nuevo `OrgScopedQuerysetMixin` (`torneos/views.py`) que acota por
+>   organización las vistas de mutación; se eliminó el endpoint `crear-torneo-prueba`;
+>   `validar_imagen` (`core/validators.py`) aplicado a los 6 `ImageField`.
+> - **Rendimiento**: el signal `actualizar_tabla_de_posiciones` pasó de 2 queries por
+>   equipo a 3 fijas (agregación + `bulk_update`); se agregaron 8 índices de base;
+>   `Partido.__init__` guarda `ganador_id` en vez del objeto.
+> - **Deploy**: `build.sh` ya no corre `create_initial_superuser.py` ni
+>   `reparar_rankings` (este último borraba Equipos en cada deploy).
+> - **Features nuevas**: `ExportarInscriptosView` (CSV), validación real de cupos y
+>   CRUD de circuitos (`circuito_admin_list`, `circuito_crear`, `circuito_editar`,
+>   `circuito_eliminar`).
+> - **Dependencias**: `requirements.txt` reescrito en UTF-8, 22 paquetes, sin CVEs.
+> - **Bugs corregidos**: `AdminEquipoListView` (NameError en cada request) y `Http404`
+>   sin importar en `torneos/views.py`.
+>
+> El detalle de cada cambio está en `MEJORAS.md` y en el historial de git.
 
 ---
 
