@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block head_title %}Embudo de inscripción · {% endblock head_title %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6">
+
+    <h1 class="text-2xl font-bold">📉 Embudo de inscripción</h1>
+    <p class="text-sm text-base-content/60 mb-4">
+        Dónde se cae la gente en el camino a anotarse a un torneo. Solo lectura.
+    </p>
+
+    <div class="flex gap-2 mb-6 flex-wrap">
+        <a href="?" class="btn btn-xs {% if not dias %}btn-primary{% else %}btn-ghost bg-base-200{% endif %}">Desde siempre</a>
+        <a href="?dias=90" class="btn btn-xs {% if dias == 90 %}btn-primary{% else %}btn-ghost bg-base-200{% endif %}">Últimos 90 días</a>
+        <a href="?dias=30" class="btn btn-xs {% if dias == 30 %}btn-primary{% else %}btn-ghost bg-base-200{% endif %}">Últimos 30 días</a>
+    </div>
+
+    {% if not e.total %}
+        <div class="alert">No hay jugadores para medir en este período.</div>
+    {% else %}
+        <!-- Los 3 escalones -->
+        <div class="space-y-3">
+            <div class="card bg-base-100 border border-base-200 rounded-2xl">
+                <div class="card-body p-4">
+                    <div class="flex items-baseline justify-between gap-2">
+                        <span class="font-medium">1 · Crearon cuenta</span>
+                        <span class="text-2xl font-extrabold">{{ e.total }}</span>
+                    </div>
+                    <progress class="progress progress-primary h-2" value="100" max="100"></progress>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-200 rounded-2xl">
+                <div class="card-body p-4">
+                    <div class="flex items-baseline justify-between gap-2">
+                        <span class="font-medium">2 · Formaron pareja</span>
+                        <span class="text-2xl font-extrabold">{{ e.con_pareja }}
+                            <span class="text-sm font-medium opacity-50">{{ e.pct_pareja }}%</span></span>
+                    </div>
+                    <progress class="progress progress-primary h-2" value="{{ e.pct_pareja }}" max="100"></progress>
+                    <div class="text-sm text-warning">↓ se caen {{ e.caen_en_pareja }} acá</div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-200 rounded-2xl">
+                <div class="card-body p-4">
+                    <div class="flex items-baseline justify-between gap-2">
+                        <span class="font-medium">3 · Se inscribieron a un torneo</span>
+                        <span class="text-2xl font-extrabold">{{ e.con_inscripcion }}
+                            <span class="text-sm font-medium opacity-50">{{ e.pct_inscripcion }}%</span></span>
+                    </div>
+                    <progress class="progress progress-success h-2" value="{{ e.pct_inscripcion }}" max="100"></progress>
+                    <div class="text-sm text-warning">↓ se caen {{ e.caen_en_inscripcion }} más</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lo que decide qué construir -->
+        <div class="grid md:grid-cols-2 gap-3 mt-6">
+            <div class="card bg-base-100 border border-base-200 rounded-2xl">
+                <div class="card-body p-4">
+                    <h2 class="font-bold">Invitaciones de pareja</h2>
+                    {% if e.total_invitaciones %}
+                        <table class="table table-xs">
+                            {% for estado, n in e.invitaciones %}
+                                <tr><td>{{ estado }}</td><td class="text-right font-bold">{{ n }}</td></tr>
+                            {% endfor %}
+                        </table>
+                        {% if e.invitaciones_pendientes %}
+                            <div class="alert alert-warning text-sm mt-2">
+                                <span>
+                                    <b>{{ e.invitaciones_pendientes }}</b> quedaron colgadas esperando
+                                    que el otro acepte. Si este número es alto, el cuello es la
+                                    <b>espera</b>, no la búsqueda.
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-sm opacity-60">Ninguna todavía.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-200 rounded-2xl">
+                <div class="card-body p-4">
+                    <h2 class="font-bold">¿Sirve invitar por WhatsApp?</h2>
+                    <div class="text-3xl font-extrabold">{{ e.pct_telefono }}%</div>
+                    <p class="text-sm opacity-70">
+                        {{ e.con_telefono }} de {{ e.total }} jugadores tienen teléfono cargado.
+                    </p>
+                    <p class="text-xs opacity-60 mt-1">
+                        Si es alto, se puede invitar al compañero por WhatsApp sin que tenga cuenta.
+                        Si es bajo, primero hay que pedir el teléfono en el registro.
+                    </p>
+                    <div class="divider my-1"></div>
+                    <div class="text-sm">
+                        <b>{{ e.equipos_sin_torneo }}</b> de {{ e.total_equipos }} parejas
+                        nunca se inscribieron a nada.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert mt-6 text-sm">
+            <span>
+                <b>Cómo leerlo:</b> si se cae mucha gente en el paso 2, el problema es
+                <i>armar la pareja</i> → conviene dejar que uno solo inscriba a los dos.
+                Si el paso 2 va bien pero hay muchas invitaciones colgadas, el problema es
+                <i>la espera</i> → conviene el link por WhatsApp.
+            </span>
+        </div>
+    {% endif %}
+</div>
+{% endblock content %}

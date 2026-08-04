@@ -60,6 +60,8 @@ urlpatterns = [
     path('admin/crear/', views.AdminTorneoCreateView.as_view(), name='admin_crear'),
     # Dashboard del organizador
     path('admin/dashboard/', views.OrganizadorDashboardView.as_view(), name='dashboard'),
+    # Embudo de inscripción (solo lectura; alternativa al shell de Render)
+    path('admin/embudo/', views.EmbudoInscripcionView.as_view(), name='embudo'),
     # Formatos personalizados (creador de torneos)
     path('admin/formatos/', views.FormatoPersonalizadoListView.as_view(), name='formatos_list'),
     path('admin/formatos/nuevo/', views.FormatoPersonalizadoCreateView.as_view(), name='formato_crear'),

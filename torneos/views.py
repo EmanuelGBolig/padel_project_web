@@ -2737,6 +2737,26 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
 
 
+class EmbudoInscripcionView(AdminRequiredMixin, TemplateView):
+    """Embudo de inscripción, para quien no tiene shell en Render.
+
+    Sólo lectura. Métrica de plataforma, no de una organización.
+    """
+    template_name = 'torneos/embudo.html'
+
+    def get_context_data(self, **kwargs):
+        from .services.embudo import calcular_embudo
+
+        ctx = super().get_context_data(**kwargs)
+        try:
+            dias = int(self.request.GET.get('dias') or 0)
+        except (TypeError, ValueError):
+            dias = 0
+        ctx['e'] = calcular_embudo(max(0, dias))
+        ctx['dias'] = dias
+        return ctx
+
+
 class PlacaJugadorView(TemplateView):
     """Placa 9:16 con la ficha del jugador (pública, para compartir)."""
     template_name = 'torneos/placa.html'

@@ -2235,8 +2235,64 @@ class EmbudoInscripcionTests(TestCase):
         self._jugador(0, telefono="+5492235551111")
         self._jugador(1)
         salida = self._salida()
-        self.assertIn("jugadores con teléfono cargado: 1 de 2", salida)
+        self.assertIn("jugadores con teléfono: 1 de 2", salida)
 
     def test_sin_jugadores_no_rompe(self):
         salida = self._salida()
         self.assertIn("No hay jugadores para medir", salida)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class EmbudoWebTests(TestCase):
+    """El embudo tiene que verse desde la web: no hay shell en Render."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Primera", orden=1)
+        self.admin = User.objects.create_user(
+            email="adm@emb.com", password="x", nombre="Ad", apellido="Min",
+            genero="OTRO", tipo_usuario="ADMIN")
+        self.jugador = User.objects.create_user(
+            email="jug@emb.com", password="x", nombre="Ju", apellido="Ga",
+            division=self.division)
+
+    def test_la_pagina_carga_para_admin(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("torneos:embudo"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Crearon cuenta", resp.content.decode())
+
+    def test_un_jugador_no_entra(self):
+        self.client.force_login(self.jugador)
+        resp = self.client.get(reverse("torneos:embudo"))
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_anonimo_no_entra(self):
+        resp = self.client.get(reverse("torneos:embudo"))
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_el_filtro_de_dias_no_rompe_con_basura(self):
+        self.client.force_login(self.admin)
+        for valor in ("abc", "-5", "999999"):
+            resp = self.client.get(reverse("torneos:embudo"), {"dias": valor})
+            self.assertEqual(resp.status_code, 200, f"rompio con dias={valor}")
+
+    def test_los_numeros_coinciden_con_el_comando(self):
+        """La web y el comando tienen que dar lo mismo: comparten el service."""
+        from io import StringIO
+        from django.core.management import call_command
+        from torneos.services.embudo import calcular_embudo
+
+        eq = Equipo.objects.create(
+            jugador1=self.jugador,
+            jugador2=User.objects.create_user(
+                email="j2@emb.com", password="x", nombre="Se", apellido="Gu",
+                division=self.division),
+            division=self.division)
+
+        datos = calcular_embudo()
+        out = StringIO()
+        call_command("embudo_inscripcion", stdout=out)
+        salida = out.getvalue()
+
+        self.assertIn(str(datos["total"]), salida)
+        self.assertEqual(datos["con_pareja"], 2)
