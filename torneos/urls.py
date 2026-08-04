@@ -21,6 +21,13 @@ urlpatterns = [
     # Placas para redes (9:16)
     path('placa/', views.PlacaView.as_view(), name='placa_app'),
     path('<int:pk>/placa/', views.PlacaView.as_view(), name='placa'),
+    # Placas nuevas: ficha del jugador y resultado de un partido.
+    path('placa/jugador/<int:pk>/', views.PlacaJugadorView.as_view(), name='placa_jugador'),
+    path(
+        'placa/partido/<str:tipo>/<int:pk>/',
+        views.PlacaResultadoView.as_view(),
+        name='placa_resultado',
+    ),
     # Circuitos (TP-12)
     path('circuitos/', views.CircuitoListView.as_view(), name='circuito_list'),
     path('circuito/<int:pk>/', views.CircuitoDetailView.as_view(), name='circuito_detail'),

@@ -16,7 +16,7 @@ from django.utils.text import slugify
 from urllib.parse import quote
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.db.models import Q, F
 from random import shuffle
@@ -2735,6 +2735,53 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
     def get_success_url(self):
         grupo = self.get_grupo()
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
+
+
+class PlacaJugadorView(TemplateView):
+    """Placa 9:16 con la ficha del jugador (pública, para compartir)."""
+    template_name = 'torneos/placa.html'
+
+    def get_context_data(self, **kwargs):
+        from django.contrib.auth import get_user_model
+
+        from .services.placas import datos_placa_jugador
+
+        ctx = super().get_context_data(**kwargs)
+        User = get_user_model()
+        jugador = get_object_or_404(
+            User.objects.select_related('division'),
+            pk=self.kwargs['pk'], is_dummy=False,
+        )
+        ctx['tipo'] = 'jugador'
+        ctx['placa'] = datos_placa_jugador(jugador)
+        ctx['jugador'] = jugador
+        ctx['share_url'] = self.request.build_absolute_uri(
+            reverse('accounts:detalle', kwargs={'pk': jugador.pk})
+        )
+        return ctx
+
+
+class PlacaResultadoView(TemplateView):
+    """Placa 9:16 con el resultado de un partido."""
+    template_name = 'torneos/placa.html'
+
+    def get_context_data(self, **kwargs):
+        from .services.placas import datos_placa_resultado
+
+        ctx = super().get_context_data(**kwargs)
+        tipo_partido = self.kwargs.get('tipo', 'llave')
+        modelo = PartidoGrupo if tipo_partido == 'zona' else Partido
+        partido = get_object_or_404(
+            modelo.objects.select_related('equipo1', 'equipo2', 'ganador'),
+            pk=self.kwargs['pk'],
+        )
+        torneo = getattr(partido, 'torneo', None) or partido.grupo.torneo
+
+        ctx['tipo'] = 'resultado'
+        ctx['placa'] = datos_placa_resultado(partido)
+        ctx['torneo'] = torneo
+        ctx['share_url'] = self.request.build_absolute_uri(torneo.get_absolute_url())
+        return ctx
 
 
 class CobrosTorneoView(AdminRequiredMixin, OrgScopedQuerysetMixin, DetailView):

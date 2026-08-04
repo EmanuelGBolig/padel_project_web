@@ -40,3 +40,13 @@
         <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded shadow-sm whitespace-nowrap">{{ partido.resultado }}</span>
     </div>
 {% endif %}
+{% comment %}
+    Placa del resultado: convierte cada partido jugado en un posteo. Solo aparece
+    si ya hay ganador; en un partido sin jugar no hay nada que compartir.
+{% endcomment %}
+{% if partido.ganador %}
+    <a href="{% url 'torneos:placa_resultado' 'llave' partido.pk %}"
+       class="absolute -bottom-2 right-1 text-[10px] opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity"
+       title="Placa de este resultado para redes"
+       onclick="event.stopPropagation()">🖼️</a>
+{% endif %}

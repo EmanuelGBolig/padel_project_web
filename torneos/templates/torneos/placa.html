@@ -178,6 +178,88 @@
         <div class="qr" id="qr" data-url="{{ share_url }}"></div>
       </div>
 
+    {% elif tipo == 'jugador' %}
+      <div class="brand-top"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></div>
+      <div class="grow" style="text-align:center;align-items:center">
+        <div class="champ-photo" style="justify-content:center">
+          <div class="av" style="width:130px;height:130px;font-size:2.6rem">{{ placa.iniciales }}</div>
+        </div>
+        <div class="names" style="margin-top:.6rem">{{ placa.nombre }}</div>
+        <div class="chips" style="justify-content:center">
+          <span class="chip">{{ placa.division }}</span>
+          {% if placa.posicion_ranking %}<span class="chip">#{{ placa.posicion_ranking }} del ranking</span>{% endif %}
+          {% if placa.ciudad %}<span class="chip">{{ placa.ciudad }}</span>{% endif %}
+        </div>
+
+        {% comment %} Los numeros grandes son lo que hace que la ficha se comparta. {% endcomment %}
+        <div class="vs" style="margin-top:1rem">
+          <div class="team">
+            <span class="nm">Partidos ganados</span>
+            <span class="sc"><span>{{ placa.victorias }}</span></span>
+          </div>
+          <div class="team">
+            <span class="nm">Efectividad</span>
+            <span class="sc"><span>{{ placa.win_rate }}%</span></span>
+          </div>
+          {% if placa.racha_maxima %}
+            <div class="team">
+              <span class="nm">Mejor racha</span>
+              <span class="sc"><span>{{ placa.racha_maxima }}</span></span>
+            </div>
+          {% endif %}
+          {% if placa.torneos_ganados %}
+            <div class="team">
+              <span class="nm">Títulos</span>
+              <span class="sc"><span>{{ placa.torneos_ganados }}</span></span>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if placa.logros %}
+          <div class="chips" style="justify-content:center;margin-top:.8rem">
+            {% for l in placa.logros %}
+              <span class="chip">{{ l.emoji }} {{ l.titulo }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      <div class="foot">
+        <div class="cta">Mi ficha en<br><b>{{ placa.url_label }}</b><small>{{ placa.partidos_jugados }} partidos jugados</small></div>
+        <div class="qr" id="qr" data-url="{{ share_url }}"></div>
+      </div>
+
+    {% elif tipo == 'resultado' %}
+      <div class="org" style="justify-content:space-between;width:100%">
+        <span style="display:flex;align-items:center;gap:.55rem"><span class="logo">{{ placa.org_iniciales }}</span> {{ placa.org_nombre }}</span>
+        <span class="brandbar"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></span>
+      </div>
+      <div class="grow">
+        <span class="badge">{% if placa.jugado %}Resultado{% else %}Próximo partido{% endif %}</span>
+        <div class="title" style="font-size:1.6rem">{{ placa.contexto }}</div>
+        <div class="title-underline"></div>
+        <div class="chips">
+          <span class="chip">{{ placa.torneo }}</span>
+          <span class="chip">{{ placa.division }}</span>
+        </div>
+        <div class="vs">
+          <div class="team">
+            <span class="nm">{% if placa.e1_gano %}🏆 {% endif %}{{ placa.e1 }}</span>
+          </div>
+          <div class="team">
+            <span class="nm">{% if placa.e2_gano %}🏆 {% endif %}{{ placa.e2 }}</span>
+          </div>
+        </div>
+        {% if placa.resultado %}
+          <div class="score" style="text-align:center;margin-top:.6rem">{{ placa.resultado }}</div>
+        {% elif placa.fecha %}
+          <div class="info"><div class="r"><span class="i">🕑</span> {{ placa.fecha|date:"l j \d\e F · H:i" }} hs</div></div>
+        {% endif %}
+      </div>
+      <div class="foot">
+        <div class="cta">Mirá el cuadro en<br><b>{{ placa.url_label }}</b><small>{{ placa.torneo }}</small></div>
+        <div class="qr" id="qr" data-url="{{ share_url }}"></div>
+      </div>
+
     {% else %}{# app / genérica #}
       <div class="brand-top"><img class="logo-img" src="{% static 'img/logo.png' %}" alt="TodoPadel"> Todo<span style="color:var(--green-2)">Padel</span></div>
       <div class="grow">

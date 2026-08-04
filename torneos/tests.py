@@ -2079,3 +2079,98 @@ class RecordatoriosTests(TestCase):
             fecha_hora=timezone.now() + timedelta(hours=2))
         pendientes = partidos_a_recordar()
         self.assertEqual(len(pendientes), 1)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PlacasNuevasTests(TestCase):
+    """Placas de jugador y de resultado, sobre el pipeline 9:16 ya existente."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Cuarta", orden=4)
+        self.org = Organizacion.objects.create(nombre="Club Placa", alias="club-placa")
+        self.j1 = User.objects.create_user(
+            email="pl1@t.com", password="x", nombre="Lionel", apellido="Perez",
+            division=self.division, genero="MASCULINO")
+        self.j2 = User.objects.create_user(
+            email="pl2@t.com", password="x", nombre="Diego", apellido="Gomez",
+            division=self.division, genero="MASCULINO")
+        self.j3 = User.objects.create_user(
+            email="pl3@t.com", password="x", nombre="Juan", apellido="Lopez",
+            division=self.division, genero="MASCULINO")
+        self.j4 = User.objects.create_user(
+            email="pl4@t.com", password="x", nombre="Pedro", apellido="Diaz",
+            division=self.division, genero="MASCULINO")
+        self.eq1 = Equipo.objects.create(jugador1=self.j1, jugador2=self.j2, division=self.division)
+        self.eq2 = Equipo.objects.create(jugador1=self.j3, jugador2=self.j4, division=self.division)
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo Placa", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.EN_JUEGO)
+        self.partido = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.eq1, equipo2=self.eq2)
+
+    def test_placa_de_jugador_renderiza(self):
+        resp = self.client.get(
+            reverse("torneos:placa_jugador", kwargs={"pk": self.j1.pk}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("Lionel Perez", html)
+        self.assertIn("Cuarta", html)
+
+    def test_la_placa_de_jugador_es_publica(self):
+        """Se comparte, asi que no puede pedir login."""
+        resp = self.client.get(
+            reverse("torneos:placa_jugador", kwargs={"pk": self.j1.pk}))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_no_hay_placa_de_un_dummy(self):
+        dummy = User.objects.create_user(
+            email="dummy@x.local", password="x", nombre="Dum", apellido="My",
+            division=self.division)
+        dummy.is_dummy = True
+        dummy.save()
+        resp = self.client.get(
+            reverse("torneos:placa_jugador", kwargs={"pk": dummy.pk}))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_placa_de_resultado_muestra_el_ganador(self):
+        self.partido.ganador = self.eq1
+        self.partido.e1_sets_ganados = 2
+        self.partido.resultado = "6-4 6-3"   # en Partido es un campo, no property
+        self.partido.save()
+
+        resp = self.client.get(reverse(
+            "torneos:placa_resultado", kwargs={"tipo": "llave", "pk": self.partido.pk}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("6-4 6-3", html)
+        self.assertIn(self.eq1.nombre, html)
+        self.assertIn(self.eq2.nombre, html)
+
+    def test_placa_de_resultado_de_zona(self):
+        grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        pg = PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=self.eq1, equipo2=self.eq2,
+            ganador=self.eq1, e1_set1=6, e2_set1=2, e1_set2=6, e2_set2=2)
+        resp = self.client.get(reverse(
+            "torneos:placa_resultado", kwargs={"tipo": "zona", "pk": pg.pk}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Zona A", resp.content.decode())
+
+    def test_los_datos_del_jugador_salen_de_las_stats_reales(self):
+        from torneos.services.placas import datos_placa_jugador
+        datos = datos_placa_jugador(self.j1)
+        for clave in ("nombre", "division", "win_rate", "victorias", "partidos_jugados"):
+            self.assertIn(clave, datos)
+        self.assertEqual(datos["nombre"], "Lionel Perez")
+        self.assertEqual(datos["iniciales"], "LP")
+
+    def test_solo_muestra_logros_conseguidos(self):
+        """Una placa con casilleros vacios no se comparte."""
+        from torneos.services.placas import datos_placa_jugador
+        datos = datos_placa_jugador(self.j1)
+        for logro in datos["logros"]:
+            self.assertTrue(logro["unlocked"], f"Logro bloqueado en la placa: {logro}")

@@ -66,8 +66,12 @@
                             {% if perfil_usuario.ciudad %}📍 {{ perfil_usuario.ciudad }}{% endif %}
                         </p>
                     {% endif %}
-                    <div class="mt-3">
+                    <div class="mt-3 flex flex-wrap gap-2 justify-center">
                         {% include "partials/_share_button.html" with share_url=share_url share_title=perfil_usuario.full_name share_text="Mirá el perfil de "|add:perfil_usuario.full_name|add:" en TodoPadel" %}
+                        <a href="{% url 'torneos:placa_jugador' perfil_usuario.pk %}"
+                           class="btn btn-sm btn-outline btn-primary gap-2">
+                            🖼️ Placa para redes
+                        </a>
                     </div>
                     <!-- Email oculto por privacidad o mostrarlo si se desea -->
                     <!-- <p class="text-base-content/70 mt-2">{{ perfil_usuario.email }}</p> -->
