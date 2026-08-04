@@ -313,10 +313,18 @@
                                         <a href="{% url 'torneos:inscribirse' torneo.pk %}"
                                            class="btn btn-success text-white btn-wide shadow-lg">Inscribirse Ahora</a>
                                     {% else %}
-                                        <button onclick="create_team_modal.showModal()"
-                                                class="btn btn-success text-white btn-wide shadow-lg">
-                                            Inscribirse Ahora
-                                        </button>
+                                        {% comment %}
+                                            Antes acá se abría un modal que mandaba a armar la pareja
+                                            primero, invitar, y esperar que el otro aceptara. Ahora se
+                                            anota con su compañero en un solo paso.
+                                        {% endcomment %}
+                                        <a href="{% url 'torneos:inscribirse_con_companero' torneo.pk %}"
+                                           class="btn btn-success text-white btn-wide shadow-lg">
+                                            Anotarme con mi pareja
+                                        </a>
+                                        <p class="text-xs opacity-60 mt-2">
+                                            No hace falta que tu compañero/a tenga cuenta.
+                                        </p>
                                     {% endif %}
                                 {% else %}
                                     <button onclick="login_required_modal.showModal()"

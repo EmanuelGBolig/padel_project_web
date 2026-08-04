@@ -2296,3 +2296,163 @@ class EmbudoWebTests(TestCase):
 
         self.assertIn(str(datos["total"]), salida)
         self.assertEqual(datos["con_pareja"], 2)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class InscripcionDirectaTests(TestCase):
+    """Anotarse armando la pareja en el mismo paso, sin esperar que el otro acepte."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgDir", alias="orgdir")
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo Directo", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=7),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=3),
+            cupos_totales=8, estado=Torneo.Estado.ABIERTO)
+        self.yo = User.objects.create_user(
+            email="yo@dir.com", password="x", nombre="Yo", apellido="Mismo",
+            division=self.division, genero="MASCULINO")
+        self.otro = User.objects.create_user(
+            email="otro@dir.com", password="x", nombre="Otro", apellido="Jugador",
+            division=self.division, genero="MASCULINO")
+
+    def _url(self):
+        return reverse("torneos:inscribirse_con_companero",
+                       kwargs={"torneo_pk": self.torneo.pk})
+
+    def test_se_anota_con_alguien_que_ya_tiene_cuenta(self):
+        self.client.force_login(self.yo)
+        resp = self.client.post(self._url(), {
+            "modo": "existente", "companero": self.otro.pk})
+        self.assertIn(resp.status_code, (301, 302))
+
+        self.assertEqual(Inscripcion.objects.filter(torneo=self.torneo).count(), 1,
+                         "No quedo inscripta la pareja")
+        equipo = Equipo.objects.filter(esta_activo=True).first()
+        self.assertIsNotNone(equipo)
+        self.assertIn(self.yo.pk, (equipo.jugador1_id, equipo.jugador2_id))
+        self.assertIn(self.otro.pk, (equipo.jugador1_id, equipo.jugador2_id))
+
+    def test_no_espera_que_el_otro_acepte(self):
+        """El punto de todo el cambio: la inscripcion existe YA."""
+        from equipos.models import Invitation
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": self.otro.pk})
+
+        inv = Invitation.objects.filter(inviter=self.yo, invited=self.otro).first()
+        self.assertIsNotNone(inv, "Deberia avisarle al companero")
+        self.assertEqual(inv.status, Invitation.Status.PENDING)
+        self.assertTrue(Inscripcion.objects.filter(torneo=self.torneo).exists())
+
+    def test_se_anota_con_alguien_sin_cuenta(self):
+        self.client.force_login(self.yo)
+        resp = self.client.post(self._url(), {
+            "modo": "nuevo", "nombre": "Carlos", "apellido": "Nuevo",
+            "telefono": "+54 9 223 555-7788"})
+        self.assertIn(resp.status_code, (301, 302))
+
+        creado = User.objects.filter(nombre="Carlos", apellido="Nuevo").first()
+        self.assertIsNotNone(creado, "No se creo el companero")
+        self.assertTrue(creado.is_dummy)
+        self.assertFalse(creado.is_active, "No deberia poder loguear todavia")
+        self.assertTrue(Inscripcion.objects.filter(torneo=self.torneo).exists())
+
+    def test_no_duplica_a_alguien_que_ya_esta_por_telefono(self):
+        """Si el telefono ya existe, se usa esa cuenta en vez de crear otra."""
+        self.otro.numero_telefono = "+5492235557788"
+        self.otro.save()
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {
+            "modo": "nuevo", "nombre": "Otro", "apellido": "Jugador",
+            "telefono": "223 555-7788"})
+
+        self.assertEqual(
+            User.objects.filter(apellido="Jugador").count(), 1,
+            "Se duplico un jugador que ya estaba en la app")
+        equipo = Equipo.objects.filter(esta_activo=True).first()
+        self.assertIn(self.otro.pk, (equipo.jugador1_id, equipo.jugador2_id))
+
+    def test_no_se_anota_con_si_mismo(self):
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": self.yo.pk})
+        self.assertFalse(Inscripcion.objects.filter(torneo=self.torneo).exists())
+
+    def test_respeta_los_cupos(self):
+        self.torneo.cupos_totales = 1
+        self.torneo.save()
+        j1 = User.objects.create_user(email="c1@d.com", password="x", nombre="C", apellido="Uno", division=self.division)
+        j2 = User.objects.create_user(email="c2@d.com", password="x", nombre="C", apellido="Dos", division=self.division)
+        eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+        Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": self.otro.pk})
+        self.assertEqual(Inscripcion.objects.filter(torneo=self.torneo).count(), 1,
+                         "Entro una inscripcion por encima del cupo")
+
+    def test_no_deja_basura_si_falla(self):
+        """Si la inscripcion falla, no queda el jugador recien creado colgado."""
+        self.torneo.estado = Torneo.Estado.EN_JUEGO
+        self.torneo.save()
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {
+            "modo": "nuevo", "nombre": "Fantasma", "apellido": "Colgado",
+            "telefono": "+5492235550000"})
+        self.assertFalse(
+            User.objects.filter(nombre="Fantasma").exists(),
+            "Quedo un usuario huerfano de un intento fallido")
+
+    def test_no_se_anota_si_ya_tiene_pareja(self):
+        Equipo.objects.create(jugador1=self.yo, jugador2=self.otro, division=self.division)
+        tercero = User.objects.create_user(
+            email="ter@d.com", password="x", nombre="Ter", apellido="Cero", division=self.division)
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": tercero.pk})
+        self.assertFalse(Inscripcion.objects.filter(torneo=self.torneo).exists())
+
+    def test_el_companero_puede_salirse(self):
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": self.otro.pk})
+        equipo = Equipo.objects.filter(esta_activo=True).first()
+
+        self.client.force_login(self.otro)
+        resp = self.client.post(
+            reverse("torneos:salir_de_la_pareja", kwargs={"pk": equipo.pk}))
+        self.assertIn(resp.status_code, (301, 302))
+
+        equipo.refresh_from_db()
+        self.assertFalse(equipo.esta_activo)
+        self.assertFalse(
+            Inscripcion.objects.filter(torneo=self.torneo).exists(),
+            "Se deshizo la pareja pero quedo la inscripcion")
+
+    def test_un_tercero_no_puede_deshacer_una_pareja_ajena(self):
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": self.otro.pk})
+        equipo = Equipo.objects.filter(esta_activo=True).first()
+
+        ajeno = User.objects.create_user(
+            email="aj@d.com", password="x", nombre="Aj", apellido="Eno", division=self.division)
+        self.client.force_login(ajeno)
+        resp = self.client.post(
+            reverse("torneos:salir_de_la_pareja", kwargs={"pk": equipo.pk}))
+        self.assertIn(resp.status_code, (403, 404))
+        equipo.refresh_from_db()
+        self.assertTrue(equipo.esta_activo)
+
+    def test_no_se_puede_salir_con_el_torneo_ya_empezado(self):
+        self.client.force_login(self.yo)
+        self.client.post(self._url(), {"modo": "existente", "companero": self.otro.pk})
+        equipo = Equipo.objects.filter(esta_activo=True).first()
+
+        self.torneo.estado = Torneo.Estado.EN_JUEGO
+        self.torneo.save()
+
+        self.client.force_login(self.otro)
+        self.client.post(reverse("torneos:salir_de_la_pareja", kwargs={"pk": equipo.pk}))
+        equipo.refresh_from_db()
+        self.assertTrue(
+            equipo.esta_activo,
+            "Se deshizo una pareja de un torneo que ya arranco")

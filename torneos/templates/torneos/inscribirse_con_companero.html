@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block head_title %}Anotarse · {{ torneo.nombre }} · {% endblock head_title %}
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-8">
+    <div class="card bg-base-100 shadow-xl border border-base-200 rounded-3xl">
+        <div class="card-body">
+
+            <h1 class="text-2xl font-bold">Anotate en {{ torneo.nombre }}</h1>
+            <p class="text-sm text-base-content/60 mb-1">
+                {{ torneo.division.nombre|default:"Libre" }} · {{ torneo.get_categoria_display }}
+                · arranca el {{ torneo.fecha_inicio|date:"d/m/Y" }}
+            </p>
+            <p class="text-sm text-base-content/70 mb-4">
+                Decinos con quién jugás y quedan anotados los dos.
+                <b>No hace falta que tu compañero/a haga nada.</b>
+            </p>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-error text-sm" role="alert">
+                        {% for e in form.non_field_errors %}<span>{{ e }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+
+                {% comment %}
+                    Los dos caminos como pestañas: elegir a alguien de la app, o
+                    cargarlo a mano si todavía no tiene cuenta.
+                {% endcomment %}
+                <div class="tabs tabs-boxed bg-base-200/60 p-1" role="tablist">
+                    <button type="button" role="tab" id="tab-existente"
+                            class="tab tab-active flex-1">Ya está en TodoPadel</button>
+                    <button type="button" role="tab" id="tab-nuevo"
+                            class="tab flex-1">Todavía no tiene cuenta</button>
+                </div>
+
+                <div class="hidden">{{ form.modo }}</div>
+
+                <div id="panel-existente">
+                    <div class="form-control w-full">
+                        <label class="label py-1" for="{{ form.companero.id_for_label }}">
+                            <span class="label-text font-medium">{{ form.companero.label }}</span>
+                        </label>
+                        {{ form.companero }}
+                        {% for e in form.companero.errors %}
+                            <span class="text-error text-xs mt-1">{{ e }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div id="panel-nuevo" class="hidden space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="form-control">
+                            <label class="label py-1" for="{{ form.nombre.id_for_label }}">
+                                <span class="label-text font-medium">{{ form.nombre.label }}</span>
+                            </label>
+                            {{ form.nombre }}
+                        </div>
+                        <div class="form-control">
+                            <label class="label py-1" for="{{ form.apellido.id_for_label }}">
+                                <span class="label-text font-medium">{{ form.apellido.label }}</span>
+                            </label>
+                            {{ form.apellido }}
+                        </div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-1" for="{{ form.telefono.id_for_label }}">
+                            <span class="label-text font-medium">{{ form.telefono.label }}</span>
+                        </label>
+                        {{ form.telefono }}
+                        <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.telefono.help_text }}</span>
+                    </div>
+                </div>
+
+                <div class="text-xs opacity-60 border-l-2 border-base-300 pl-3">
+                    Tu compañero/a va a poder confirmar o rechazar. Si rechaza, se
+                    deshace la pareja y la inscripción.
+                </div>
+
+                <div class="flex gap-2 justify-end pt-1">
+                    <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary btn-lg">Anotarnos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var campoModo = document.querySelector('[name="modo"]');
+    var tabExistente = document.getElementById('tab-existente');
+    var tabNuevo = document.getElementById('tab-nuevo');
+    var panelExistente = document.getElementById('panel-existente');
+    var panelNuevo = document.getElementById('panel-nuevo');
+    if (!campoModo || !tabExistente) return;
+
+    // `modo` es un RadioSelect: buscamos el input correcto por valor.
+    function setModo(valor) {
+        document.querySelectorAll('[name="modo"]').forEach(function (r) {
+            r.checked = (r.value === valor);
+        });
+    }
+
+    function mostrar(cual) {
+        var esNuevo = cual === 'nuevo';
+        panelExistente.classList.toggle('hidden', esNuevo);
+        panelNuevo.classList.toggle('hidden', !esNuevo);
+        tabExistente.classList.toggle('tab-active', !esNuevo);
+        tabNuevo.classList.toggle('tab-active', esNuevo);
+        setModo(esNuevo ? 'nuevo' : 'existente');
+    }
+
+    tabExistente.addEventListener('click', function () { mostrar('existente'); });
+    tabNuevo.addEventListener('click', function () { mostrar('nuevo'); });
+
+    // Si el form volvió con error en modo "nuevo", abrir esa pestaña.
+    var actual = document.querySelector('[name="modo"]:checked');
+    mostrar(actual && actual.value === 'nuevo' ? 'nuevo' : 'existente');
+})();
+</script>
+{% endblock content %}

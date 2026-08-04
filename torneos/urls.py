@@ -50,6 +50,17 @@ urlpatterns = [
         views.InscripcionCreateView.as_view(),
         name='inscribirse',
     ),
+    # Anotarse armando la pareja en el mismo paso (sin esperar que el otro acepte)
+    path(
+        '<int:torneo_pk>/anotarme-con-pareja/',
+        views.InscribirseConCompaneroView.as_view(),
+        name='inscribirse_con_companero',
+    ),
+    path(
+        'pareja/<int:pk>/salir/',
+        views.SalirDeLaParejaView.as_view(),
+        name='salir_de_la_pareja',
+    ),
     path(
         '<int:torneo_pk>/cancelar-inscripcion/',
         views.InscripcionDeleteView.as_view(),

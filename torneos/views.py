@@ -46,6 +46,7 @@ from .forms import (
     JugadorAmericanoForm,
     FormatoPersonalizadoForm,
     CircuitoForm,
+    InscripcionConCompaneroForm,
 )
 from .formats import get_format, calcular_estructura_grupos, describir_estructura
 from .emails import notificar_nuevo_torneo
@@ -2735,6 +2736,126 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
     def get_success_url(self):
         grupo = self.get_grupo()
         return reverse_lazy('torneos:admin_manage', kwargs={'pk': grupo.torneo.pk})
+
+
+class InscribirseConCompaneroView(PlayerRequiredMixin, FormView):
+    """Anotarse a un torneo armando la pareja en el mismo paso.
+
+    Antes había que invitar al compañero y esperar que aceptara ANTES de poder
+    inscribirse. Ahora la pareja y la inscripción quedan hechas de una, y el
+    compañero recibe un aviso que puede rechazar.
+    """
+    template_name = 'torneos/inscribirse_con_companero.html'
+    form_class = InscripcionConCompaneroForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.torneo = get_object_or_404(Torneo, pk=self.kwargs['torneo_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['usuario'] = self.request.user
+        kwargs['torneo'] = self.torneo
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['torneo'] = self.torneo
+        return ctx
+
+    def form_valid(self, form):
+        from .services.inscripcion_directa import (
+            InscripcionError, buscar_por_telefono, crear_companero_sin_cuenta,
+            inscribir_con_companero,
+        )
+
+        datos = form.cleaned_data
+        usuario = self.request.user
+        creado_ahora = False
+
+        if datos['modo'] == form.MODO_EXISTENTE:
+            companero = datos['companero']
+        else:
+            # Si el teléfono ya está en la app, usamos esa cuenta en vez de
+            # duplicar a la persona.
+            companero = buscar_por_telefono(datos['telefono'])
+            if companero is None:
+                companero = crear_companero_sin_cuenta(
+                    nombre=datos['nombre'],
+                    apellido=datos['apellido'],
+                    telefono=datos['telefono'],
+                    division=usuario.division,
+                )
+                creado_ahora = True
+
+        try:
+            equipo, _inscripcion, _inv = inscribir_con_companero(
+                usuario, self.torneo, companero
+            )
+        except InscripcionError as e:
+            form.add_error(None, str(e))
+            if creado_ahora:
+                companero.delete()   # no dejamos basura si falló
+            return self.form_invalid(form)
+
+        # Avisar al compañero
+        if not companero.is_dummy:
+            try:
+                from accounts.push import send_push_to_users
+                send_push_to_users(
+                    [companero],
+                    title="Te anotaron a un torneo 🎾",
+                    body=f"{usuario.full_name} te anotó en {self.torneo.nombre}.",
+                    url=f"/torneos/{self.torneo.pk}/",
+                    tag=f"inscripcion-{self.torneo.pk}",
+                )
+            except Exception:
+                pass
+
+        messages.success(
+            self.request,
+            f"¡Listo! Quedaron anotados como «{equipo.nombre}» en {self.torneo.nombre}."
+        )
+        self.equipo = equipo
+        self.companero = companero
+        return redirect(
+            f"{reverse('torneos:detail', kwargs={'pk': self.torneo.pk})}"
+            f"?avisar={companero.pk}"
+        )
+
+
+class SalirDeLaParejaView(LoginRequiredMixin, View):
+    """El compañero deshace una pareja en la que lo anotaron sin avisarle.
+
+    Es la contracara de InscribirseConCompaneroView: si el otro puede anotarte
+    sin pedirte permiso, tenés que poder salirte en un click.
+    """
+
+    def post(self, request, pk, *args, **kwargs):
+        from .services.inscripcion_directa import deshacer
+
+        equipo = get_object_or_404(Equipo, pk=pk, esta_activo=True)
+        if request.user.pk not in (equipo.jugador1_id, equipo.jugador2_id):
+            raise PermissionDenied("Esa pareja no es tuya.")
+
+        # No dejamos deshacer si el torneo ya arrancó: habría que rehacer zonas.
+        en_juego = Inscripcion.objects.filter(
+            equipo=equipo
+        ).exclude(torneo__estado=Torneo.Estado.ABIERTO).exists()
+        if en_juego:
+            messages.error(
+                request,
+                "El torneo ya arrancó. Hablá con el organizador para que los saque."
+            )
+            return redirect('accounts:perfil')
+
+        nombre = equipo.nombre
+        deshacer(equipo)
+        messages.success(
+            request,
+            f"Saliste de «{nombre}». Se cancelaron sus inscripciones a torneos abiertos."
+        )
+        return redirect('accounts:perfil')
 
 
 class EmbudoInscripcionView(AdminRequiredMixin, TemplateView):

@@ -1,4 +1,6 @@
 from django import forms
+from dal import autocomplete
+from accounts.models import CustomUser
 from .models import (
     Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo,
     Americano, JugadorAmericano, ResolucionPartido, FormatoPersonalizado,
@@ -951,3 +953,91 @@ class CircuitoForm(forms.ModelForm):
                 self.fields['torneos'].queryset = Torneo.objects.none()
         else:
             self.fields['torneos'].queryset = Torneo.objects.all().order_by('-fecha_inicio')
+
+
+class InscripcionConCompaneroForm(forms.Form):
+    """Anotarse a un torneo armando la pareja en el mismo paso.
+
+    Dos caminos: elegir a alguien que ya está en la app, o cargar nombre y
+    teléfono de alguien que todavía no.
+    """
+    MODO_EXISTENTE = 'existente'
+    MODO_NUEVO = 'nuevo'
+
+    modo = forms.ChoiceField(
+        choices=[(MODO_EXISTENTE, 'Ya está en TodoPadel'),
+                 (MODO_NUEVO, 'Todavía no tiene cuenta')],
+        initial=MODO_EXISTENTE,
+        widget=forms.RadioSelect,
+    )
+
+    companero = forms.ModelChoiceField(
+        queryset=CustomUser.objects.none(),
+        required=False,
+        label="Tu compañero/a",
+        widget=autocomplete.ModelSelect2(
+            url='equipos:jugador_autocomplete',
+            attrs={'data-placeholder': 'Escribí el nombre o apellido…',
+                   'class': 'w-full', 'style': 'width: 100%;'},
+        ),
+    )
+
+    nombre = forms.CharField(
+        max_length=150, required=False, label="Nombre",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full bg-base-100',
+            'placeholder': 'Juan'}),
+    )
+    apellido = forms.CharField(
+        max_length=150, required=False, label="Apellido",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full bg-base-100',
+            'placeholder': 'Pérez'}),
+    )
+    telefono = forms.CharField(
+        max_length=20, required=False, label="WhatsApp",
+        help_text="Le mandamos el link para que confirme y arme su perfil.",
+        widget=forms.TextInput(attrs={
+            'class': 'input input-bordered w-full bg-base-100',
+            'placeholder': '+54 9 223 555-1234', 'inputmode': 'tel'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.usuario = kwargs.pop('usuario', None)
+        self.torneo = kwargs.pop('torneo', None)
+        super().__init__(*args, **kwargs)
+        # Jugadores reales, sin contarme a mí.
+        qs = CustomUser.objects.filter(tipo_usuario='PLAYER', is_dummy=False)
+        if self.usuario:
+            qs = qs.exclude(pk=self.usuario.pk)
+        self.fields['companero'].queryset = qs
+
+    def clean(self):
+        cleaned = super().clean()
+        modo = cleaned.get('modo')
+
+        if modo == self.MODO_EXISTENTE:
+            if not cleaned.get('companero'):
+                raise forms.ValidationError("Elegí con quién vas a jugar.")
+            return cleaned
+
+        # Modo "todavía no tiene cuenta"
+        nombre = (cleaned.get('nombre') or '').strip()
+        apellido = (cleaned.get('apellido') or '').strip()
+        telefono = (cleaned.get('telefono') or '').strip()
+
+        if not nombre or not apellido:
+            raise forms.ValidationError("Necesitamos el nombre y el apellido de tu compañero/a.")
+        if not telefono:
+            raise forms.ValidationError(
+                "Necesitamos su WhatsApp para avisarle que lo anotaste."
+            )
+
+        solo_digitos = ''.join(c for c in telefono if c.isdigit())
+        if len(solo_digitos) < 8:
+            raise forms.ValidationError("Ese teléfono no parece válido.")
+
+        cleaned['nombre'] = nombre
+        cleaned['apellido'] = apellido
+        cleaned['telefono'] = telefono
+        return cleaned
