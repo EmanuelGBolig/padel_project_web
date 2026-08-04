@@ -390,11 +390,12 @@ class AdminEquipoListView(AdminRequiredMixin, ListView):
             'jugador1', 'jugador2', 'division'
         )
 
-        # Filtro por división
+        # Filtro por división. `division_id` nunca se definía: la vista tiraba
+        # NameError (500) en cada visita. El template manda el parámetro `division`.
+        queryset = queryset.filter(esta_activo=True)
+        division_id = self.request.GET.get('division')
         if division_id:
-            queryset = queryset.filter(division_id=division_id, esta_activo=True)
-        else:
-            queryset = queryset.filter(esta_activo=True)
+            queryset = queryset.filter(division_id=division_id)
 
         # Búsqueda por nombre de equipo
         search_query = self.request.GET.get('search')

@@ -47,3 +47,37 @@ class MatchmakingTests(TestCase):
         )
         resp = self.client.get(reverse("equipos:buscar_companero"))
         self.assertIn("Ana Gómez", resp.content.decode())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AdminEquipoListTests(TestCase):
+    """La vista de admin de equipos tiraba NameError (500) en cada visita:
+    filtraba por una variable `division_id` que nunca se definia."""
+
+    def setUp(self):
+        from .models import Equipo
+        self.division = Division.objects.create(nombre="Cuarta", orden=4)
+        self.otra_division = Division.objects.create(nombre="Quinta", orden=5)
+        self.admin = User.objects.create_user(
+            email="adm@eq.com", password="x", nombre="Ad", apellido="Min",
+            genero="OTRO", tipo_usuario="ADMIN")
+        j1 = User.objects.create_user(email="e1@t.com", password="x", nombre="J", apellido="Uno", division=self.division)
+        j2 = User.objects.create_user(email="e2@t.com", password="x", nombre="J", apellido="Dos", division=self.division)
+        self.equipo = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def test_la_lista_carga(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("equipos:admin_list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(self.equipo, list(resp.context["equipos"]))
+
+    def test_filtro_por_division(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get(
+            reverse("equipos:admin_list"), {"division": self.division.pk})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(self.equipo, list(resp.context["equipos"]))
+
+        resp = self.client.get(
+            reverse("equipos:admin_list"), {"division": self.otra_division.pk})
+        self.assertNotIn(self.equipo, list(resp.context["equipos"]))

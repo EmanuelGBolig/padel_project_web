@@ -23,7 +23,7 @@ from random import shuffle
 from collections import defaultdict
 import math
 from itertools import combinations
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.db import transaction
 
 from .models import (
