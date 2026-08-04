@@ -71,3 +71,37 @@ class PWAInstalarTests(_TC):
         self.assertIn('Android', html)
         self.assertIn('iPhone', html)
         self.assertIn('Agregar a inicio', html)
+
+
+class ComentariosDeTemplateTests(TestCase):
+    """Los comentarios {# ... #} de Django son de UNA sola linea.
+
+    Si se escriben en varias, Django NO los interpreta como comentario y los
+    renderiza como texto visible al usuario. Paso en produccion: la pagina de
+    registro mostraba el comentario arriba de cada campo.
+    """
+
+    def test_no_hay_comentarios_multilinea(self):
+        import glob
+        import os
+        import re
+
+        raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        problemas = []
+        for ruta in glob.glob(os.path.join(raiz, '**', '*.html'), recursive=True):
+            if 'node_modules' in ruta or 'staticfiles' in ruta:
+                continue
+            try:
+                contenido = open(ruta, encoding='utf-8').read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            for m in re.finditer(r'\{#(.*?)#\}', contenido, flags=re.S):
+                if '\n' in m.group(1):
+                    linea = contenido[:m.start()].count('\n') + 1
+                    rel = os.path.relpath(ruta, raiz)
+                    problemas.append(f"{rel}:{linea}")
+
+        self.assertEqual(
+            problemas, [],
+            "Comentarios {# #} en varias lineas: Django los renderiza como texto "
+            "visible. Usa {% comment %}...{% endcomment %}. En: " + ", ".join(problemas))

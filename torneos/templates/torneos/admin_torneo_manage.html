@@ -273,8 +273,8 @@
                                         <td>{{ inscripcion.equipo.get_categoria_display }}</td>
                                         <td class="text-sm opacity-70">{{ inscripcion.fecha_inscripcion|date:"d/m/Y H:i" }}</td>
                                         <td class="text-center">
-                                            {# Contacto directo: avisar un cambio de horario no deberia
-                                               obligar a buscar el telefono en otro lado. #}
+                                            {% comment %} Contacto directo: avisar un cambio de horario no deberia
+                                               obligar a buscar el telefono en otro lado. {% endcomment %}
                                             {% for jugador in inscripcion.equipo.jugadores_con_telefono %}
                                                 <a href="https://wa.me/{{ jugador.telefono_numero }}?text={{ mensaje_whatsapp }}"
                                                    target="_blank"
@@ -962,10 +962,10 @@
     });
 </script>
 
-{# --- Preservar el contexto entre recargas ---
+{% comment %} --- Preservar el contexto entre recargas ---
    Guardar un resultado recarga la página. Sin esto, las zonas se colapsaban y el
    scroll volvía arriba: el organizador, que carga decenas de resultados seguidos
-   al borde de la cancha, perdía el lugar en cada uno. #}
+   al borde de la cancha, perdía el lugar en cada uno. {% endcomment %}
 <script>
 (function () {
     var CLAVE = 'gestion-torneo-{{ torneo.pk }}';

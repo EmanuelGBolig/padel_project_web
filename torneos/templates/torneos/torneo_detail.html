@@ -58,44 +58,19 @@
 {% block og_description %}{{ torneo.get_categoria_display }} · {{ torneo.division.nombre|default:"Libre" }} · inicia {{ torneo.fecha_inicio|date:"d/m/Y" }}. Seguí los resultados e inscribite en TodoPadel.{% endblock og_description %}
 {% block twitter_description %}{{ torneo.get_categoria_display }} · {{ torneo.division.nombre|default:"Libre" }} · inicia {{ torneo.fecha_inicio|date:"d/m/Y" }}.{% endblock twitter_description %}
 {% block header_actions %}
+    {% comment %} Una sola accion primaria segun quien mira y en que estado esta el torneo.
+       Antes eran hasta 7 botones del mismo peso visual, que en mobile hacian
+       wrap en 3-4 filas y empujaban el contenido fuera de la pantalla. {% endcomment %}
     {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' and torneo.organizacion and user.organizacion == torneo.organizacion %}
         <a href="{% url 'torneos:admin_manage' torneo.pk %}"
-           class="btn btn-sm btn-outline btn-accent gap-2 shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="h-4 w-4"
-                 fill="none"
-                 viewBox="0 0 24 24"
-                 stroke="currentColor">
+           class="btn btn-sm btn-accent gap-2 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
             Cargar Resultados
         </a>
-        <a href="{% url 'torneos:admin_editar' torneo.pk %}"
-           class="btn btn-sm btn-outline btn-primary gap-2 shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 class="h-4 w-4"
-                 fill="none"
-                 viewBox="0 0 24 24"
-                 stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Editar Torneo
-        </a>
-    {% endif %}
-    <a href="{% url 'torneos:programacion' torneo.pk %}"
-       class="btn btn-sm btn-outline gap-2 shadow-sm border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             class="h-4 w-4"
-             fill="none"
-             viewBox="0 0 24 24"
-             stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        Ver Programación
-    </a>
-    {% if torneo.estado == 'EJ' %}
-        <a href="{% url 'torneos:vivo' torneo.pk %}"
-           class="btn btn-sm btn-error gap-2 shadow-sm">
+    {% elif torneo.estado == 'EJ' %}
+        <a href="{% url 'torneos:vivo' torneo.pk %}" class="btn btn-sm btn-error gap-2 shadow-sm">
             <span class="relative flex h-2.5 w-2.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-base-100 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-base-100"></span>
@@ -103,24 +78,38 @@
             Ver en vivo
         </a>
     {% endif %}
-    {% if torneo.organizacion.whatsapp %}
-        <a href="https://wa.me/{{ torneo.organizacion.whatsapp_numero }}?text={{ "Hola! Quería consultar por el torneo "|add:torneo.nombre|urlencode }}"
-           target="_blank" rel="noopener"
-           class="btn btn-sm btn-success gap-2 shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.52 14.97c-.25.7-1.47 1.34-2.02 1.39-.52.05-1.18.22-3.86-.81-3.24-1.28-5.32-4.58-5.48-4.79-.16-.21-1.31-1.74-1.31-3.32s.83-2.36 1.12-2.68c.29-.32.64-.4.85-.4l.61.01c.2.01.46-.07.72.55.25.61.86 2.11.94 2.26.08.16.13.34.02.55-.11.21-.16.34-.32.53-.16.18-.34.41-.48.55-.16.16-.33.34-.14.66.19.32.84 1.39 1.8 2.25 1.24 1.1 2.28 1.45 2.6 1.61.32.16.51.13.7-.08.19-.21.81-.94 1.02-1.27.21-.32.43-.27.72-.16.29.11 1.86.88 2.18 1.04.32.16.53.24.61.37.08.14.08.78-.17 1.48z" />
+
+    {# Secundarias: en un menu, para que no compitan con la accion principal. #}
+    <div class="dropdown dropdown-end">
+        <button type="button" tabindex="0" class="btn btn-sm btn-ghost gap-1" aria-label="Mas acciones">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75h.007v.008H12V6.75zm0 5.25h.007v.008H12V12zm0 5.25h.007v.008H12v-.008z" />
             </svg>
-            Consultá por WhatsApp
-        </a>
-    {% endif %}
+            <span class="hidden sm:inline">Más</span>
+        </button>
+        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-2xl z-50 w-60 p-2 shadow-xl border border-base-300">
+            {% if torneo.estado == 'EJ' and user.is_staff or torneo.estado == 'EJ' and user.tipo_usuario == 'ORGANIZER' %}
+                <li>
+                    <a href="{% url 'torneos:vivo' torneo.pk %}">
+                        <span class="live-dot"></span> Ver en vivo
+                    </a>
+                </li>
+            {% endif %}
+            {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' and torneo.organizacion and user.organizacion == torneo.organizacion %}
+                <li><a href="{% url 'torneos:admin_editar' torneo.pk %}">⚙️ Editar torneo</a></li>
+            {% endif %}
+            <li><a href="{% url 'torneos:programacion' torneo.pk %}">🗓️ Ver programación</a></li>
+            <li><a href="{% url 'torneos:placa' torneo.pk %}">🖼️ Placa para redes</a></li>
+            {% if torneo.organizacion.whatsapp %}
+                <li>
+                    <a href="https://wa.me/{{ torneo.organizacion.whatsapp_numero }}?text={{ "Hola! Quería consultar por el torneo "|add:torneo.nombre|urlencode }}"
+                       target="_blank" rel="noopener">💬 Consultá por WhatsApp</a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+
     {% include "partials/_share_button.html" with share_url=share_url share_title=torneo.nombre share_text="Mirá el torneo "|add:torneo.nombre|add:" en TodoPadel" %}
-    <a href="{% url 'torneos:placa' torneo.pk %}"
-       class="btn btn-sm btn-outline btn-primary gap-2 shadow-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18 14.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v8.25z" />
-        </svg>
-        Placa para redes
-    </a>
 {% endblock header_actions %}
 {% block content %}
     <div class="space-y-12">

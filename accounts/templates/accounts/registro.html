@@ -25,8 +25,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5 md:gap-y-2">
                         {% for field in form %}
                             <div class="form-control w-full">
-                                {# for= : sin esto, tocar la etiqueta no enfoca el campo y un
-                                   lector de pantalla no la asocia al input. #}
+                                {% comment %} for= : sin esto, tocar la etiqueta no enfoca el campo y un
+                                   lector de pantalla no la asocia al input. {% endcomment %}
                                 <label class="label py-0 md:py-1" for="{{ field.id_for_label }}">
                                     <span class="label-text text-base-content font-medium text-sm md:text-base">{{ field.label }}</span>
                                 </label>
