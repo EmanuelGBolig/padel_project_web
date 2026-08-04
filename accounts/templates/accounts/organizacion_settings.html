@@ -93,6 +93,50 @@
                                 <span class="label-text-alt opacity-70">Formato internacional, ej: +54 9 11 2345-6789. Habilita el botón "Consultá por WhatsApp" en tus torneos.</span>
                             </label>
                         </div>
+
+                        {% comment %}
+                            Datos de cobro: se cargan una vez acá y valen para TODOS los
+                            torneos de la organización. Los importes se ponen en cada torneo.
+                        {% endcomment %}
+                        <div class="divider text-sm opacity-60">Cobro de inscripciones</div>
+                        <p class="text-xs opacity-60 -mt-2 mb-2">
+                            Si cargás estos datos, cada torneo con precio va a mostrar
+                            automáticamente cómo pagar y a dónde mandar el comprobante.
+                        </p>
+
+                        <div class="form-control w-full">
+                            <label class="label" for="{{ form.alias_cobro.id_for_label }}">
+                                <span class="label-text font-medium">{{ form.alias_cobro.label }}</span>
+                            </label>
+                            {{ form.alias_cobro }}
+                            {% if form.alias_cobro.errors %}<span class="text-error text-xs">{{ form.alias_cobro.errors.0 }}</span>{% endif %}
+                            <label class="label">
+                                <span class="label-text-alt opacity-70">{{ form.alias_cobro.help_text }}</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label" for="{{ form.titular_cobro.id_for_label }}">
+                                <span class="label-text font-medium">{{ form.titular_cobro.label }}</span>
+                            </label>
+                            {{ form.titular_cobro }}
+                            {% if form.titular_cobro.errors %}<span class="text-error text-xs">{{ form.titular_cobro.errors.0 }}</span>{% endif %}
+                            <label class="label">
+                                <span class="label-text-alt opacity-70">{{ form.titular_cobro.help_text }}</span>
+                            </label>
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label" for="{{ form.whatsapps_comprobante.id_for_label }}">
+                                <span class="label-text font-medium">{{ form.whatsapps_comprobante.label }}</span>
+                            </label>
+                            {{ form.whatsapps_comprobante }}
+                            {% if form.whatsapps_comprobante.errors %}<span class="text-error text-xs">{{ form.whatsapps_comprobante.errors.0 }}</span>{% endif %}
+                            <label class="label">
+                                <span class="label-text-alt opacity-70">{{ form.whatsapps_comprobante.help_text }}</span>
+                            </label>
+                        </div>
+
                         <!-- Ubicación -->
                         <div class="form-control w-full">
                             <label class="label">

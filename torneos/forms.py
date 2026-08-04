@@ -145,6 +145,9 @@ class TorneoAdminForm(forms.ModelForm):
             'sede_nombre',
             'sede_direccion',
             'premio',
+            'precio_inscripcion',
+            'senia',
+            'instrucciones_pago',
             'reglamento',
             'foto_campeones',
         ]

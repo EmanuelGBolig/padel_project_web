@@ -271,20 +271,43 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
 
         equipos_inscriptos = context['inscripciones'].values_list('equipo_id', flat=True)
         
-        equipos_query = Equipo.objects.filter(es_dummy=False).exclude(
+        equipos_query = Equipo.objects.filter(
+            es_dummy=False, esta_activo=True
+        ).exclude(
             id__in=equipos_inscriptos
         ).select_related('jugador1__division', 'jugador2__division')
-        
+
         # Filtramos qué equipos pueden anotarse a este torneo usando las reglas centralizadas
         valid_team_ids = []
+        rechazados = []
         for eq in equipos_query:
             if es_division_permitida(eq, torneo):
                 valid_team_ids.append(eq.pk)
-                
-        # Limitamos la consulta a los válidos devueltos, paginando a <= 200 opciones en el dropdown
+            else:
+                rechazados.append(eq)
+
+        # order_by explícito: sin él el corte de 200 era arbitrario y una pareja
+        # recién creada podía no aparecer nunca en el desplegable.
         context['equipos_para_inscribir'] = Equipo.objects.filter(
             id__in=valid_team_ids
-        ).select_related('jugador1', 'jugador2')[:200]
+        ).select_related('jugador1', 'jugador2').order_by('nombre')[:200]
+
+        # Las parejas que la regla de división deja afuera se listan aparte con el
+        # motivo. Antes desaparecían del desplegable sin explicación y el
+        # organizador no entendía por qué "no figura la pareja que acabo de crear".
+        def _motivo(eq):
+            d1 = eq.jugador1.division if eq.jugador1 else None
+            d2 = eq.jugador2.division if eq.jugador2 else None
+            if d1 and d2 and d1 == d2:
+                return f"pareja de {d1.nombre}: sólo puede jugar {d1.nombre} ±1 división"
+            if d1 and d2:
+                return f"pareja mixta {d1.nombre}/{d2.nombre}: sólo entre esas divisiones"
+            return "le falta cargar la división a alguno de los jugadores"
+
+        context['equipos_fuera_de_division'] = [
+            {'equipo': eq, 'motivo': _motivo(eq)} for eq in rechazados[:15]
+        ]
+        context['equipos_fuera_de_division_total'] = len(rechazados)
 
         context['todos_grupos_cargados'] = (
             partidos_grupo_total > 0
@@ -2034,6 +2057,10 @@ class TorneoDetailView(DetailView):
 
         # --- Compartir (TP-01) ---
         context['share_url'] = self.request.build_absolute_uri()
+        # Mensaje precargado del botón de WhatsApp para mandar el comprobante.
+        context['mensaje_comprobante'] = quote(
+            f"Hola! Te mando el comprobante de la inscripción al torneo {torneo.nombre}."
+        )
         # Placa de campeones para el botón "Descargar placa" (None si no aplica).
         from .social import placa_campeones_url
         context['placa_url'] = placa_campeones_url(torneo)

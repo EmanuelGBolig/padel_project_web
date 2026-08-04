@@ -72,6 +72,22 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return redirect(reverse_lazy('core:home'))
 
 
+class GestorRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """ADMIN u ORGANIZER.
+
+    El organizador arma las parejas de sus torneos, así que necesita el listado
+    para encontrarlas y corregirlas. Antes sólo entraba el ADMIN y quedaba sin
+    forma de resolver una pareja mal cargada.
+    """
+
+    def test_func(self):
+        return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso denegado: solo administradores u organizadores.")
+        return redirect(reverse_lazy('core:home'))
+
+
 # --- Vistas de Autocompletado (NUEVAS) ---
 
 
@@ -379,7 +395,7 @@ class EquipoDeleteView(PlayerOwnsTeamMixin, DeleteView):
 # --- Vistas de Admin ---
 
 
-class AdminEquipoListView(AdminRequiredMixin, ListView):
+class AdminEquipoListView(GestorRequiredMixin, ListView):
     model = Equipo
     template_name = 'equipos/admin_equipo_list.html'
     context_object_name = 'equipos'
@@ -410,6 +426,42 @@ class AdminEquipoListView(AdminRequiredMixin, ListView):
         context['current_division'] = self.request.GET.get('division')
         context['search_query'] = self.request.GET.get('search', '')
         return context
+
+
+class DisolverEquipoView(GestorRequiredMixin, View):
+    """Disuelve una pareja (esta_activo=False) para poder rearmarla.
+
+    No la borra: los resultados de torneos jugados la referencian y borrarla
+    dejaría huecos en el historial. Al quedar inactiva, la UniqueConstraint
+    'unique_active_team' libera a esos dos jugadores para formar pareja de nuevo,
+    que es lo que el organizador necesita cuando cargó mal una pareja.
+    """
+
+    def post(self, request, pk, *args, **kwargs):
+        equipo = get_object_or_404(Equipo, pk=pk, esta_activo=True)
+
+        from torneos.models import Inscripcion
+        torneos_activos = Inscripcion.objects.filter(
+            equipo=equipo,
+        ).exclude(torneo__estado='FN').select_related('torneo')
+
+        if torneos_activos.exists():
+            nombres = ", ".join(i.torneo.nombre for i in torneos_activos[:3])
+            messages.error(
+                request,
+                f"No se puede disolver «{equipo.nombre}»: está inscripta en {nombres}. "
+                "Sacala primero del torneo desde el panel de gestión."
+            )
+            return redirect('equipos:admin_list')
+
+        equipo.esta_activo = False
+        equipo.save(update_fields=['esta_activo'])
+        messages.success(
+            request,
+            f"Pareja «{equipo.nombre}» disuelta. Esos jugadores ya pueden formar "
+            "una pareja nueva."
+        )
+        return redirect('equipos:admin_list')
 
 
 # --- Vista de Rankings ---
@@ -471,9 +523,34 @@ class OrganizadorEquipoCreateView(LoginRequiredMixin, UserPassesTestMixin, Creat
         return context
 
     def form_valid(self, form):
-        # Crear la pareja directamente sin usar invitación
+        # Crear la pareja directamente sin usar invitación.
+        from django.db import IntegrityError
+
         equipo = form.save(commit=False)
-        equipo.save()
+        try:
+            equipo.save()
+        except IntegrityError:
+            # UniqueConstraint 'unique_active_team': esos dos jugadores ya forman
+            # una pareja ACTIVA. Antes esto reventaba en un 500 y el organizador
+            # no entendía por qué.
+            existente = Equipo.objects.filter(
+                jugador1__in=[form.cleaned_data.get('jugador1'), form.cleaned_data.get('jugador2')],
+                jugador2__in=[form.cleaned_data.get('jugador1'), form.cleaned_data.get('jugador2')],
+                esta_activo=True,
+            ).first()
+            if existente:
+                messages.warning(
+                    self.request,
+                    f"Esa pareja ya existe: «{existente.nombre}». No hace falta volver "
+                    "a crearla — buscala en el listado de parejas."
+                )
+            else:
+                messages.error(
+                    self.request,
+                    "No se pudo crear la pareja: esos jugadores ya forman una pareja activa."
+                )
+            return redirect('equipos:admin_list')
+
         messages.success(self.request, f"¡Pareja '{equipo.nombre}' creada con éxito!")
         return redirect(self.get_success_url())
 

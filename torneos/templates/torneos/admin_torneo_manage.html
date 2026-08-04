@@ -244,6 +244,40 @@
                         </div>
                     </form>
                 </div>
+
+                {% if equipos_fuera_de_division %}
+                    {% comment %}
+                        Antes estas parejas simplemente no aparecían en el desplegable y el
+                        organizador no tenía forma de saber por qué "no figura la pareja que
+                        acabo de crear".
+                    {% endcomment %}
+                    <details class="collapse collapse-arrow bg-warning/10 border border-warning/30 rounded-2xl mb-4">
+                        <summary class="collapse-title text-sm font-medium">
+                            ⚠️ {{ equipos_fuera_de_division_total }} pareja{{ equipos_fuera_de_division_total|pluralize }}
+                            no puede{{ equipos_fuera_de_division_total|pluralize:"n" }} jugar este torneo por división
+                        </summary>
+                        <div class="collapse-content text-sm">
+                            <p class="opacity-70 mb-2">
+                                Este torneo es de <b>{{ torneo.division.nombre|default:"categoría libre" }}</b>.
+                                Si alguna tiene la división mal cargada, corregila en el perfil del jugador.
+                            </p>
+                            <ul class="space-y-1">
+                                {% for item in equipos_fuera_de_division %}
+                                    <li class="flex flex-wrap gap-x-2">
+                                        <span class="font-medium">{{ item.equipo.nombre }}</span>
+                                        <span class="opacity-60">— {{ item.motivo }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            {% if equipos_fuera_de_division_total > 15 %}
+                                <p class="opacity-50 text-xs mt-2">…y {{ equipos_fuera_de_division_total|add:"-15" }} más.</p>
+                            {% endif %}
+                            <a href="{% url 'equipos:admin_list' %}" class="btn btn-xs btn-ghost mt-3">
+                                Ver todas las parejas →
+                            </a>
+                        </div>
+                    </details>
+                {% endif %}
                 {% if inscripciones %}
                     <div class="overflow-x-auto">
                         <table class="table table-zebra w-full">

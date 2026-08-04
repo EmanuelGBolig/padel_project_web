@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import Division
 from .models import BusquedaCompanero
@@ -81,3 +84,78 @@ class AdminEquipoListTests(TestCase):
         resp = self.client.get(
             reverse("equipos:admin_list"), {"division": self.otra_division.pk})
         self.assertNotIn(self.equipo, list(resp.context["equipos"]))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class GestionParejasOrganizadorTests(TestCase):
+    """Bug reportado por un organizador: crea una pareja, no figura en el torneo,
+    y al recrearla recibe un 500."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        from .models import Equipo
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgPar", alias="orgpar")
+        self.organizador = User.objects.create_user(
+            email="org@par.com", password="x", nombre="Or", apellido="Ga",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.organizador.organizacion = self.org
+        self.organizador.save()
+        self.j1 = User.objects.create_user(email="pa@t.com", password="x", nombre="Pa", apellido="Uno", division=self.division)
+        self.j2 = User.objects.create_user(email="pb@t.com", password="x", nombre="Pb", apellido="Dos", division=self.division)
+        self.equipo = Equipo.objects.create(jugador1=self.j1, jugador2=self.j2, division=self.division)
+
+    def test_organizador_entra_al_listado_de_parejas(self):
+        """Antes el listado era ADMIN-only y el organizador quedaba sin salida."""
+        self.client.force_login(self.organizador)
+        resp = self.client.get(reverse("equipos:admin_list"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_crear_pareja_duplicada_no_tira_500(self):
+        """La UniqueConstraint reventaba en IntegrityError sin manejar (500)."""
+        self.client.force_login(self.organizador)
+        resp = self.client.post(reverse("equipos:crear_pareja"), {
+            "jugador1": self.j1.pk,
+            "jugador2": self.j2.pk,
+            "division": self.division.pk,
+            "categoria": "M",
+        })
+        self.assertEqual(resp.status_code, 200, "Deberia re-renderizar el form con el error")
+        self.assertContains(resp, "ya forman la pareja")
+
+    def test_el_form_explica_el_duplicado(self):
+        from .forms import PairCreationForm
+        form = PairCreationForm(data={
+            "jugador1": self.j1.pk, "jugador2": self.j2.pk,
+            "division": self.division.pk, "categoria": "M"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("ya forman la pareja", str(form.errors))
+
+    def test_disolver_libera_a_los_jugadores(self):
+        from .models import Equipo
+        self.client.force_login(self.organizador)
+        resp = self.client.post(
+            reverse("equipos:disolver_equipo", kwargs={"pk": self.equipo.pk}))
+        self.assertIn(resp.status_code, (301, 302))
+        self.equipo.refresh_from_db()
+        self.assertFalse(self.equipo.esta_activo)
+        # Y ahora si se puede rearmar la pareja
+        nuevo = Equipo.objects.create(
+            jugador1=self.j1, jugador2=self.j2, division=self.division)
+        self.assertTrue(nuevo.esta_activo)
+
+    def test_no_disuelve_si_esta_en_un_torneo_activo(self):
+        from torneos.models import Torneo, Inscripcion
+        torneo = Torneo.objects.create(
+            nombre="En curso", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.EN_JUEGO)
+        Inscripcion.objects.create(torneo=torneo, equipo=self.equipo)
+
+        self.client.force_login(self.organizador)
+        self.client.post(reverse("equipos:disolver_equipo", kwargs={"pk": self.equipo.pk}))
+        self.equipo.refresh_from_db()
+        self.assertTrue(
+            self.equipo.esta_activo,
+            "Se disolvio una pareja que esta jugando un torneo")

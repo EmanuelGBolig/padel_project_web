@@ -37,9 +37,17 @@ module.exports = {
   },
   plugins: [require('daisyui')],
   daisyui: {
-    // Solo los dos temas que usa la app. base.html sobrescribe las variables de
-    // "corporate" con tripletes oklch (ver ARQUITECTURA.md).
-    themes: ['corporate', 'business'],
+    // 'corporate' y 'business' son los que la app setea vía data-theme.
+    //
+    // 'dark' va incluido a propósito: el bundle del CDN traía un bloque
+    //   @media (prefers-color-scheme: dark) { :root { ...tema dark... } }
+    // que, al tener la misma especificidad que [data-theme=business] y venir
+    // después en el archivo, GANABA. O sea: todo usuario con el sistema en
+    // oscuro venía viendo el tema 'dark' (gris azulado), no 'business'
+    // (negro neutro), aunque el HTML dijera business.
+    // Compilando sólo corporate+business ese override desaparecía y la app se
+    // veía más oscura y fría de golpe. Lo dejamos igual que antes.
+    themes: ['corporate', 'business', 'dark'],
     logs: false,
   },
 }

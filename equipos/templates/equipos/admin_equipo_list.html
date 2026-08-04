@@ -34,6 +34,7 @@
                         <th>Jugador 1</th>
                         <th>Jugador 2</th>
                         <th>División</th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,9 +44,22 @@
                         <td>{{ equipo.jugador1.full_name }}</td>
                         <td>{{ equipo.jugador2.full_name }}</td>
                         <td><div class="badge badge-secondary text-white">{{ equipo.division.nombre }}</div></td>
+                        <td class="text-center">
+                            {# Disolver deja a los dos jugadores libres para rearmar la pareja. #}
+                            <form method="post"
+                                  action="{% url 'equipos:disolver_equipo' equipo.pk %}"
+                                  class="inline"
+                                  onsubmit="return confirm('¿Disolver la pareja {{ equipo.nombre|escapejs }}?\n\nNo se borra el historial: los jugadores quedan libres para formar una pareja nueva.')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-xs btn-ghost text-warning"
+                                        title="Disolver esta pareja">
+                                    Disolver
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4" class="text-center py-4">No hay parejas registrados.</td></tr>
+                    <tr><td colspan="5" class="text-center py-4">No hay parejas registradas.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

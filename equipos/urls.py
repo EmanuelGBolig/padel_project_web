@@ -21,6 +21,7 @@ urlpatterns = [
     # Rankings
     # Vistas de Admin
     path('admin/listado/', views.AdminEquipoListView.as_view(), name='admin_list'),
+    path('admin/<int:pk>/disolver/', views.DisolverEquipoView.as_view(), name='disolver_equipo'),
     
     # Invitaciones
     path('invitacion/<int:pk>/aceptar/', views.AceptarInvitacionView.as_view(), name='aceptar_invitacion'),

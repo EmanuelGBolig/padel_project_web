@@ -145,6 +145,27 @@ class Torneo(models.Model):
         upload_to='torneos/portadas/', null=True, blank=True, validators=[validar_imagen],
         help_text="Imagen de portada del torneo (banner)."
     )
+    # --- Cobro de la inscripción (los datos bancarios están en Organizacion) ---
+    precio_inscripcion = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Precio de la inscripción (por pareja)",
+        help_text="En pesos, sin centavos. Dejalo vacío si el torneo es gratis o cobrás aparte.",
+    )
+    senia = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Seña para reservar el lugar",
+        help_text="Opcional. Ej: la mitad de la inscripción.",
+    )
+    instrucciones_pago = models.TextField(
+        blank=True,
+        verbose_name="Aclaraciones sobre el pago",
+        help_text="Opcional: fecha límite, formas de pago, lo que quieras aclarar.",
+    )
+
+    @property
+    def requiere_pago(self):
+        return bool(self.precio_inscripcion)
+
     ciudad = models.CharField(max_length=100, blank=True, help_text="Ciudad/localidad de la sede.")
     sede_nombre = models.CharField(max_length=150, blank=True, help_text="Nombre del club o sede.")
     sede_direccion = models.CharField(max_length=255, blank=True)

@@ -136,9 +136,24 @@ class PairCreationForm(forms.ModelForm):
         if jugador1 and jugador2:
             if jugador1 == jugador2:
                 raise forms.ValidationError("El jugador 1 y el jugador 2 no pueden ser el mismo.")
-                
-            # Validar que al menos uno de los dos pertenezca a la división elegida
-            # o dar una advertencia, pero por ahora lo dejamos estricto o flexible según prefiera
+
+            # La UniqueConstraint 'unique_active_team' impide dos parejas ACTIVAS con
+            # los mismos jugadores. Sin este chequeo el error saltaba recién en el
+            # save() como IntegrityError, o sea un 500 en la cara del organizador.
+            existente = Equipo.objects.filter(
+                jugador1__in=[jugador1, jugador2],
+                jugador2__in=[jugador1, jugador2],
+                esta_activo=True,
+            )
+            if self.instance and self.instance.pk:
+                existente = existente.exclude(pk=self.instance.pk)
+            existente = existente.first()
+            if existente:
+                raise forms.ValidationError(
+                    f"{jugador1.full_name} y {jugador2.full_name} ya forman la pareja "
+                    f"«{existente.nombre}». Si querés rearmarla, disolvé primero la "
+                    "existente desde el listado de parejas."
+                )
 
         return cleaned_data
 

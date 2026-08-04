@@ -1731,3 +1731,128 @@ class FiltrosTorneosTests(TestCase):
         resp = self.client.get(reverse("torneos:en_juego_list"), {"ciudad": "Rosario"})
         self.assertEqual(
             [t.nombre for t in resp.context["torneos_en_juego"]], ["Abierto Rosario"])
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class DatosDePagoTests(TestCase):
+    """Datos para pagar la inscripcion (pedido de un organizador real)."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Tercera", orden=3)
+        self.org = Organizacion.objects.create(
+            nombre="Club Pago", alias="club-pago",
+            alias_cobro="Buccellalean05",
+            titular_cobro="Leandro Buccella",
+            whatsapps_comprobante="+54 9 223 593-7115, +54 9 223 633-7881")
+        self.torneo = Torneo.objects.create(
+            nombre="Torneo Pago", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=5),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO,
+            precio_inscripcion=80000, senia=40000)
+
+    def test_la_ficha_muestra_los_datos_de_pago(self):
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("Buccellalean05", html)
+        self.assertIn("Leandro Buccella", html)
+        self.assertIn("80000", html.replace(".", "").replace(",", ""))
+        self.assertIn("40000", html.replace(".", "").replace(",", ""))
+
+    def test_los_whatsapp_quedan_como_link_wa_me(self):
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        html = resp.content.decode()
+        # Solo digitos, sin espacios ni guiones
+        self.assertIn("wa.me/5492235937115", html)
+        self.assertIn("wa.me/5492236337881", html)
+
+    def test_parseo_de_varios_whatsapp(self):
+        lista = self.org.whatsapps_comprobante_lista
+        self.assertEqual(len(lista), 2)
+        self.assertEqual(lista[0][1], "5492235937115")
+        self.assertEqual(lista[1][1], "5492236337881")
+
+    def test_sin_precio_no_se_muestra_el_bloque(self):
+        """Un torneo gratis no debe mostrar un panel de pago vacio."""
+        self.torneo.precio_inscripcion = None
+        self.torneo.save()
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertNotIn("Cómo pagar la inscripción", resp.content.decode())
+
+    def test_sin_alias_no_se_muestra_el_bloque(self):
+        """Si el organizador no cargo el alias, el panel no sirve de nada."""
+        self.org.alias_cobro = ""
+        self.org.save()
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertNotIn("Cómo pagar la inscripción", resp.content.decode())
+
+    def test_la_senia_es_opcional(self):
+        self.torneo.senia = None
+        self.torneo.save()
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        html = resp.content.decode()
+        self.assertIn("Cómo pagar la inscripción", html)
+        self.assertNotIn("para reservar el lugar", html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class OrganizadorEditaDatosDePagoTests(TestCase):
+    """El organizador tiene que poder cambiar precios y datos de cobro SOLO,
+    sin depender de nadie. Los templates renderizan campo por campo, asi que un
+    campo nuevo en el form no aparece si no se agrega al HTML: esto lo verifica.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Cuarta", orden=4)
+        self.org = Organizacion.objects.create(nombre="Club Edita", alias="club-edita")
+        self.organizador = User.objects.create_user(
+            email="oe@t.com", password="x", nombre="Or", apellido="Ed",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.organizador.organizacion = self.org
+        self.organizador.save()
+        self.torneo = Torneo.objects.create(
+            nombre="Editable", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=5),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO)
+
+    def test_los_datos_de_cobro_aparecen_en_ajustes(self):
+        self.client.force_login(self.organizador)
+        resp = self.client.get(reverse("accounts:organizacion_settings"))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        for campo in ("alias_cobro", "titular_cobro", "whatsapps_comprobante"):
+            self.assertIn(
+                f'name="{campo}"', html,
+                f"El campo {campo} no se puede editar desde la web")
+
+    def test_el_organizador_guarda_sus_datos_de_cobro(self):
+        self.client.force_login(self.organizador)
+        resp = self.client.post(reverse("accounts:organizacion_settings"), {
+            "nombre": self.org.nombre,
+            "alias": self.org.alias,
+            "descripcion": "",
+            "whatsapp": "",
+            "direccion": "",
+            "alias_cobro": "miclub.padel",
+            "titular_cobro": "Juan Perez",
+            "whatsapps_comprobante": "+54 9 223 111-2222",
+        })
+        self.assertIn(resp.status_code, (200, 301, 302))
+        self.org.refresh_from_db()
+        self.assertEqual(self.org.alias_cobro, "miclub.padel")
+        self.assertEqual(self.org.titular_cobro, "Juan Perez")
+
+    def test_los_precios_aparecen_en_el_form_del_torneo(self):
+        self.client.force_login(self.organizador)
+        resp = self.client.get(
+            reverse("torneos:admin_editar", kwargs={"pk": self.torneo.pk}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        for campo in ("precio_inscripcion", "senia", "instrucciones_pago"):
+            self.assertIn(
+                f'name="{campo}"', html,
+                f"El campo {campo} no se puede editar desde la web")

@@ -252,6 +252,41 @@ class Organizacion(models.Model):
         help_text="WhatsApp de contacto en formato internacional (ej: +54911...). Habilita el botón de contacto.",
     )
 
+    # --- Cobro de inscripciones ---
+    # Los datos bancarios son de la organización, no de cada torneo: se cargan una
+    # vez y valen para todos. Los importes sí van por torneo.
+    alias_cobro = models.CharField(
+        max_length=100, blank=True,
+        verbose_name="Alias o CBU para transferencias",
+        help_text="Ej: miclub.padel. Se muestra a los jugadores al inscribirse.",
+    )
+    titular_cobro = models.CharField(
+        max_length=150, blank=True,
+        verbose_name="Titular de la cuenta",
+        help_text="Nombre que figura en la cuenta, para que el jugador verifique antes de transferir.",
+    )
+    whatsapps_comprobante = models.CharField(
+        max_length=200, blank=True,
+        verbose_name="WhatsApp(s) para enviar el comprobante",
+        help_text="Uno o varios separados por coma. Ej: +5492235937115, +5492236337881",
+    )
+
+    @property
+    def whatsapps_comprobante_lista(self):
+        """Los números de comprobante como lista de (visible, solo_digitos)."""
+        import re
+        salida = []
+        for crudo in (self.whatsapps_comprobante or '').split(','):
+            crudo = crudo.strip()
+            if not crudo:
+                continue
+            salida.append((crudo, re.sub(r'\D', '', crudo)))
+        return salida
+
+    @property
+    def tiene_datos_de_cobro(self):
+        return bool(self.alias_cobro)
+
     class Meta:
         verbose_name = "Organización"
         verbose_name_plural = "Organizaciones"

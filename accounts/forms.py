@@ -284,7 +284,8 @@ class OrganizacionForm(forms.ModelForm):
 
     class Meta:
         model = Organizacion
-        fields = ('nombre', 'alias', 'descripcion', 'whatsapp', 'direccion', 'latitud', 'longitud', 'logo', 'receptor_notificaciones')
+        fields = ('nombre', 'alias', 'descripcion', 'whatsapp', 'direccion', 'latitud', 'longitud', 'logo',
+                  'alias_cobro', 'titular_cobro', 'whatsapps_comprobante', 'receptor_notificaciones')
         widgets = {
             'logo': forms.FileInput(),
         }

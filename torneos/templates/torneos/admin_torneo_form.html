@@ -134,6 +134,44 @@
                             <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.reglamento.label }}</span></label>
                             {{ form.reglamento }}
                         </div>
+
+                        {% comment %}
+                            Importes de la inscripción. El alias y los WhatsApp para el
+                            comprobante se cargan una sola vez en Ajustes de Organización.
+                        {% endcomment %}
+                        <div class="md:col-span-2">
+                            <div class="divider text-sm opacity-60">Inscripción paga (opcional)</div>
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1" for="{{ form.precio_inscripcion.id_for_label }}">
+                                <span class="label-text font-medium text-sm">{{ form.precio_inscripcion.label }}</span>
+                            </label>
+                            {{ form.precio_inscripcion }}
+                            <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.precio_inscripcion.help_text }}</span>
+                            {% if form.precio_inscripcion.errors %}<span class="text-error text-xs mt-1">{{ form.precio_inscripcion.errors.0 }}</span>{% endif %}
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label py-1" for="{{ form.senia.id_for_label }}">
+                                <span class="label-text font-medium text-sm">{{ form.senia.label }}</span>
+                            </label>
+                            {{ form.senia }}
+                            <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.senia.help_text }}</span>
+                            {% if form.senia.errors %}<span class="text-error text-xs mt-1">{{ form.senia.errors.0 }}</span>{% endif %}
+                        </div>
+                        <div class="form-control w-full md:col-span-2">
+                            <label class="label py-1" for="{{ form.instrucciones_pago.id_for_label }}">
+                                <span class="label-text font-medium text-sm">{{ form.instrucciones_pago.label }}</span>
+                            </label>
+                            {{ form.instrucciones_pago }}
+                            <span class="label-text-alt opacity-60 text-xs mt-1">
+                                {{ form.instrucciones_pago.help_text }}
+                                {% if not user.organizacion.tiene_datos_de_cobro %}
+                                    <br><b class="text-warning">Ojo:</b> para que se muestre el bloque de pago,
+                                    cargá también el alias en
+                                    <a href="{% url 'accounts:organizacion_settings' %}" class="link">Ajustes de Organización</a>.
+                                {% endif %}
+                            </span>
+                        </div>
                     </div>
                 </section>
 
