@@ -1,0 +1,60 @@
+{# Filtros de torneos por ciudad, división y categoría.
+   Antes el listado era plano: un jugador de 5ta en Rosario scrolleaba todo el país. #}
+<form method="get"
+      id="filtros-torneos"
+      class="flex flex-wrap items-end gap-2 mb-6 p-3 bg-base-200/40 rounded-2xl border border-base-300/50">
+
+    <div class="form-control flex-1 min-w-[9rem]">
+        <label class="label py-0.5" for="f-ciudad">
+            <span class="label-text text-xs font-medium opacity-70">Ciudad</span>
+        </label>
+        <select name="ciudad" id="f-ciudad" class="select select-bordered select-sm bg-base-100">
+            <option value="">Todas</option>
+            {% for c in ciudades %}
+                <option value="{{ c }}" {% if filtro_ciudad == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-control flex-1 min-w-[9rem]">
+        <label class="label py-0.5" for="f-division">
+            <span class="label-text text-xs font-medium opacity-70">División</span>
+        </label>
+        <select name="division" id="f-division" class="select select-bordered select-sm bg-base-100">
+            <option value="">Todas</option>
+            {% for d in divisiones %}
+                <option value="{{ d.pk }}" {% if filtro_division == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-control flex-1 min-w-[9rem]">
+        <label class="label py-0.5" for="f-categoria">
+            <span class="label-text text-xs font-medium opacity-70">Categoría</span>
+        </label>
+        <select name="categoria" id="f-categoria" class="select select-bordered select-sm bg-base-100">
+            <option value="">Todas</option>
+            {% for valor, etiqueta in categorias %}
+                <option value="{{ valor }}" {% if filtro_categoria == valor %}selected{% endif %}>{{ etiqueta }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        {% if hay_filtros %}
+            <a href="{{ request.path }}" class="btn btn-ghost btn-sm">Limpiar</a>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+    // Aplicar al cambiar, sin tener que apretar "Filtrar".
+    (function () {
+        var form = document.getElementById('filtros-torneos');
+        if (!form) return;
+        form.querySelectorAll('select').forEach(function (s) {
+            s.addEventListener('change', function () { form.submit(); });
+        });
+    })();
+</script>

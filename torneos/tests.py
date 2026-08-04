@@ -1655,3 +1655,79 @@ class CircuitoAdminTests(TestCase):
         qs = form.fields["torneos"].queryset
         self.assertIn(mio, qs)
         self.assertNotIn(ajeno, qs)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class FiltrosTorneosTests(TestCase):
+    """Filtros por ciudad, division y categoria en los listados publicos."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.d5 = Division.objects.create(nombre="Quinta", orden=5)
+        self.d6 = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgF", alias="orgf")
+
+        def crear(nombre, division, ciudad, categoria):
+            return Torneo.objects.create(
+                nombre=nombre, division=division, organizacion=self.org,
+                ciudad=ciudad, categoria=categoria,
+                fecha_inicio=timezone.now().date() + timedelta(days=3),
+                fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+                cupos_totales=16, estado=Torneo.Estado.ABIERTO)
+
+        self.rosario = crear("Abierto Rosario", self.d5, "Rosario", "M")
+        self.mardel = crear("Abierto Mar del Plata", self.d6, "Mar del Plata", "F")
+
+    def _nombres(self, resp):
+        return [t.nombre for t in resp.context["torneos_abiertos"]]
+
+    def test_sin_filtros_trae_todo(self):
+        resp = self.client.get(reverse("torneos:abierto_list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertCountEqual(
+            self._nombres(resp), ["Abierto Rosario", "Abierto Mar del Plata"])
+
+    def test_filtro_por_ciudad(self):
+        resp = self.client.get(reverse("torneos:abierto_list"), {"ciudad": "Rosario"})
+        self.assertEqual(self._nombres(resp), ["Abierto Rosario"])
+
+    def test_filtro_por_division(self):
+        resp = self.client.get(
+            reverse("torneos:abierto_list"), {"division": self.d6.pk})
+        self.assertEqual(self._nombres(resp), ["Abierto Mar del Plata"])
+
+    def test_filtro_por_categoria(self):
+        resp = self.client.get(reverse("torneos:abierto_list"), {"categoria": "F"})
+        self.assertEqual(self._nombres(resp), ["Abierto Mar del Plata"])
+
+    def test_filtros_combinados_sin_resultados(self):
+        resp = self.client.get(reverse("torneos:abierto_list"),
+                               {"ciudad": "Rosario", "categoria": "F"})
+        self.assertEqual(self._nombres(resp), [])
+        self.assertTrue(resp.context["hay_filtros"])
+
+    def test_valores_basura_no_rompen(self):
+        """Un parametro invalido no debe reventar la pagina."""
+        for params in ({"division": "abc"}, {"categoria": "ZZZ"}, {"ciudad": "'; DROP TABLE"}):
+            resp = self.client.get(reverse("torneos:abierto_list"), params)
+            self.assertEqual(resp.status_code, 200, f"rompio con {params}")
+
+    def test_las_opciones_de_ciudad_salen_de_los_torneos(self):
+        resp = self.client.get(reverse("torneos:abierto_list"))
+        self.assertCountEqual(resp.context["ciudades"], ["Rosario", "Mar del Plata"])
+
+    def test_la_paginacion_conserva_los_filtros(self):
+        from django.template import Context, Template
+        from django.test import RequestFactory
+        req = RequestFactory().get("/torneos/abiertos/", {"ciudad": "Rosario", "page": "1"})
+        t = Template("{% load torneo_extras %}{% query_con page=2 %}")
+        salida = t.render(Context({"request": req}))
+        self.assertIn("ciudad=Rosario", salida)
+        self.assertIn("page=2", salida)
+
+    def test_en_juego_tambien_filtra(self):
+        self.rosario.estado = Torneo.Estado.EN_JUEGO
+        self.rosario.save()
+        resp = self.client.get(reverse("torneos:en_juego_list"), {"ciudad": "Rosario"})
+        self.assertEqual(
+            [t.nombre for t in resp.context["torneos_en_juego"]], ["Abierto Rosario"])

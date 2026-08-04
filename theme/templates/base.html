@@ -60,16 +60,14 @@
         <script src="https://unpkg.com/htmx.org@1.9.10"
                 xintegrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
                 crossorigin="anonymous"></script>
-        <!-- 2. DAISY UI CSS (Componentes) -->
-        <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css"
-              rel="stylesheet"
-              type="text/css" />
         <!-- Google Fonts: Inter -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
               rel="stylesheet">
-        <!-- 3. TAILWIND CSS (compilado v3, reemplaza cdn.tailwindcss.com) -->
+        {# Tailwind + DaisyUI, ambos compilados en el build (ver theme/static_src/).
+           DaisyUI venía de jsDelivr como `full.min.css`: los 30+ temas para usar dos,
+           y un origen externo más en el camino crítico. #}
         <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
         <!-- Detección de tema (oscuro/claro) -->
         <script>

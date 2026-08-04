@@ -2175,6 +2175,46 @@ class CircuitoDetailView(DetailView):
         return context
 
 
+class FiltroTorneosMixin:
+    """Filtros por ciudad, división y categoría para los listados de torneos.
+
+    Sin esto la lista es plana: un jugador de 5ta en Rosario tenía que
+    scrollear los torneos de todo el país, de todas las divisiones.
+    """
+
+    def aplicar_filtros(self, qs):
+        get = self.request.GET
+        self.filtro_ciudad = (get.get('ciudad') or '').strip()
+        self.filtro_division = (get.get('division') or '').strip()
+        self.filtro_categoria = (get.get('categoria') or '').strip()
+
+        if self.filtro_ciudad:
+            qs = qs.filter(ciudad__iexact=self.filtro_ciudad)
+        if self.filtro_division.isdigit():
+            qs = qs.filter(division_id=int(self.filtro_division))
+        if self.filtro_categoria in dict(Torneo.Categoria.choices):
+            qs = qs.filter(categoria=self.filtro_categoria)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        from accounts.models import Division
+
+        ctx = super().get_context_data(**kwargs)
+        base = self.model.objects.filter(estado=self.estado_listado)
+        ctx['ciudades'] = sorted(
+            c for c in base.values_list('ciudad', flat=True).distinct() if c
+        )
+        ctx['divisiones'] = Division.objects.all()
+        ctx['categorias'] = Torneo.Categoria.choices
+        ctx['filtro_ciudad'] = getattr(self, 'filtro_ciudad', '')
+        ctx['filtro_division'] = getattr(self, 'filtro_division', '')
+        ctx['filtro_categoria'] = getattr(self, 'filtro_categoria', '')
+        ctx['hay_filtros'] = any([
+            ctx['filtro_ciudad'], ctx['filtro_division'], ctx['filtro_categoria'],
+        ])
+        return ctx
+
+
 class TorneoFinalizadoListView(ListView):
     model = Torneo
     template_name = 'torneos/torneo_finalizado_list.html'
@@ -2216,36 +2256,41 @@ class TorneoFinalizadoListView(ListView):
         return context
 
 
-class TorneoEnJuegoListView(ListView):
+class TorneoEnJuegoListView(FiltroTorneosMixin, ListView):
     model = Torneo
     template_name = 'torneos/torneo_en_juego_list.html'
     context_object_name = 'torneos_en_juego'
+    estado_listado = Torneo.Estado.EN_JUEGO
     queryset = Torneo.objects.filter(estado=Torneo.Estado.EN_JUEGO) \
-        .select_related('division') \
+        .select_related('division', 'organizacion') \
         .order_by('-fecha_inicio')
     paginate_by = 10
 
+    def get_queryset(self):
+        return self.aplicar_filtros(super().get_queryset())
 
-class TorneoAbiertoListView(ListView):
+
+class TorneoAbiertoListView(FiltroTorneosMixin, ListView):
     model = Torneo
     template_name = 'torneos/torneo_abierto_list.html'
     context_object_name = 'torneos_abiertos'
+    estado_listado = Torneo.Estado.ABIERTO
     queryset = Torneo.objects.filter(estado=Torneo.Estado.ABIERTO) \
-        .select_related('division') \
+        .select_related('division', 'organizacion') \
         .order_by('fecha_inicio')
     paginate_by = 10
 
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        
+
         if user.is_authenticated and hasattr(user, 'equipo') and user.equipo:
             # Excluir torneos donde ya está inscrito el equipo del usuario
             # Usamos values_list para ser más eficientes
             mis_inscripciones_ids = Inscripcion.objects.filter(equipo=user.equipo).values_list('torneo_id', flat=True)
             qs = qs.exclude(id__in=mis_inscripciones_ids)
-            
-        return qs
+
+        return self.aplicar_filtros(qs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

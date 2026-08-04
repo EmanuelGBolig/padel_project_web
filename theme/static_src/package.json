@@ -8,5 +8,8 @@
   "license": "MIT",
   "devDependencies": {
     "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "daisyui": "^4.7.2"
   }
 }

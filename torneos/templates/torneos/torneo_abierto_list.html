@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load torneo_extras %}
 {% block title %}
     Inscripciones Abiertas
 {% endblock title %}
@@ -80,6 +81,8 @@
                 <div class="divider text-base-content/30 my-8">Inscripciones Disponibles</div>
             </div>
         {% endif %}
+        {% include "torneos/partials/_filtros_torneos.html" %}
+
         <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 gap-4">
             {% for torneo in torneos_abiertos %}
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-base-300 dark:border-base-content/5 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow bg-base-100">
@@ -121,7 +124,10 @@
                 </div>
             {% empty %}
                 <div class="col-span-full">
-                    {% if mis_torneos %}
+                    {% if hay_filtros %}
+                        {# Distinguir "no hay torneos" de "tus filtros no matchean". #}
+                        {% include "partials/empty_state.html" with title="Ningún torneo coincide" message="Probá quitando algún filtro: puede haber torneos en otra ciudad o categoría." action_url=request.path action_text="Limpiar filtros" %}
+                    {% elif mis_torneos %}
                         {% url 'torneos:finalizado_list' as finalizado_url %}
                         {% include "partials/empty_state.html" with title="No hay otros torneos" message="Ya estás inscrito en todos los torneos disponibles o no hay nuevas convocatorias abiertas." action_url=finalizado_url action_text="Ver todos los torneos" %}
                     {% else %}
@@ -134,14 +140,14 @@
         {% if is_paginated %}
             <div class="join mt-6 flex justify-center">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}"
+                    <a href="?{% query_con page=page_obj.previous_page_number %}"
                        class="join-item btn">«</a>
                 {% else %}
                     <button class="join-item btn btn-disabled">«</button>
                 {% endif %}
                 <button class="join-item btn">Página {{ page_obj.number }}</button>
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="join-item btn">»</a>
+                    <a href="?{% query_con page=page_obj.next_page_number %}" class="join-item btn">»</a>
                 {% else %}
                     <button class="join-item btn btn-disabled">»</button>
                 {% endif %}

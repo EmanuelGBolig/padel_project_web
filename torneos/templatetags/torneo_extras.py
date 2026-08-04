@@ -1,4 +1,5 @@
 from django import template
+from django.http import QueryDict
 from torneos.models import EquipoGrupo
 
 register = template.Library()
@@ -165,3 +166,23 @@ class SetVarNode(template.Node):
         
         context[self.var_name] = val
         return ""
+
+
+@register.simple_tag(takes_context=True)
+def query_con(context, **kwargs):
+    """Devuelve la query string actual con los parámetros de `kwargs` cambiados.
+
+    Sirve para que la paginación no pierda los filtros:
+        <a href="?{% query_con page=page_obj.next_page_number %}">
+
+    Un `?page=2` pelado descartaba ciudad/división/categoría y devolvía al
+    usuario a la lista completa.
+    """
+    request = context.get('request')
+    params = request.GET.copy() if request else QueryDict(mutable=True)
+    for clave, valor in kwargs.items():
+        if valor in (None, ''):
+            params.pop(clave, None)
+        else:
+            params[clave] = valor
+    return params.urlencode()
