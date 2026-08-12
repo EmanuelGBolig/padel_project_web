@@ -12,6 +12,7 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
+from django.template.loader import render_to_string
 from django.utils.text import slugify
 from urllib.parse import quote
 from django.views.decorators.http import require_POST
@@ -1304,7 +1305,7 @@ class TorneoReplaceTeamView(AdminRequiredMixin, FormView):
                 
             messages.success(self.request, f"Se reemplazó a {equipo_viejo.nombre} por {nuevo_equipo.nombre}.")
             if self.request.headers.get('HX-Request'):
-                return HttpResponse('<script>window.location.reload();</script>')
+                return _htmx_refrescar()
             return redirect('torneos:admin_manage', pk=torneo.pk)
             
         except Exception as e:
@@ -1352,6 +1353,62 @@ def _push_programado(partido, torneo):
         pass
 
 
+def _htmx_refrescar():
+    """Pide a htmx que recargue la página, vía su header nativo.
+
+    Antes se devolvía `<script>window.location.reload()</script>` para que htmx lo
+    inyectara en el modal y el navegador lo ejecutara. Eso depende de que el script
+    se re-cree al hacer el swap; si falla, el modal queda abierto con contenido viejo
+    y la pantalla parece colgada. `HX-Refresh` lo maneja htmx directamente, sin
+    ejecutar nada ni tocar el DOM del modal.
+    """
+    resp = HttpResponse(status=204)
+    resp['HX-Refresh'] = 'true'
+    return resp
+
+
+def refrescar_zona(request, grupo):
+    """Devuelve SOLO el panel de esa zona, ya actualizado.
+
+    Antes cada resultado guardado respondía `<script>window.location.reload()</script>`,
+    o sea recargar los 311 KB de la pantalla de gestión (24 partidos, select2, htmx y
+    el SVG del cuadro). En un celular al borde de la cancha son varios segundos de
+    pantalla muerta por resultado, y el organizador carga decenas seguidos: se sentía
+    como que la app se colgaba y había que refrescar a mano.
+
+    Ahora se cambia sólo esa zona (unos pocos KB) con los headers de htmx:
+      HX-Retarget/HX-Reswap  -> en vez de escribir dentro del modal, reemplaza el panel
+      HX-Trigger             -> avisa al front para que cierre el modal y muestre el aviso
+    """
+    import json
+
+    grupo = (
+        Grupo.objects
+        .filter(pk=grupo.pk)
+        .prefetch_related(
+            'tabla__equipo__jugador1', 'tabla__equipo__jugador2',
+            'partidos_grupo__equipo1__jugador1', 'partidos_grupo__equipo1__jugador2',
+            'partidos_grupo__equipo2__jugador1', 'partidos_grupo__equipo2__jugador2',
+            'partidos_grupo__ganador',
+        )
+        .select_related('torneo')
+        .first()
+    )
+
+    html = render_to_string(
+        'torneos/partials/_grupo_panel.html',
+        {'grupo': grupo, 'torneo': grupo.torneo, 'request': request},
+        request=request,
+    )
+    resp = HttpResponse(html)
+    resp['HX-Retarget'] = f'#grupo-panel-{grupo.pk}'
+    resp['HX-Reswap'] = 'outerHTML'
+    resp['HX-Trigger'] = json.dumps({
+        'zonaActualizada': {'grupo': grupo.pk, 'nombre': grupo.nombre},
+    })
+    return resp
+
+
 class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
     model = PartidoGrupo
     form_class = CargarResultadoGrupoForm
@@ -1373,7 +1430,7 @@ class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_resultado(self.object, self.object.grupo.torneo)
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return refrescar_zona(self.request, self.object.grupo)
         return response
 
 
@@ -1399,7 +1456,7 @@ class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_resultado(self.object, self.object.torneo)
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return _htmx_refrescar()
         return response
 
 
@@ -1425,7 +1482,7 @@ class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_programado(self.object, self.object.grupo.torneo)
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return _htmx_refrescar()
         return response
 
 
@@ -1450,7 +1507,7 @@ class SchedulePartidoView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_programado(self.object, self.object.torneo)
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return _htmx_refrescar()
         return response
 
 
@@ -2577,7 +2634,7 @@ class ReplacePartidoTeamsView(AdminRequiredMixin, OrgScopedQuerysetMixin, Update
     def form_valid(self, form):
         response = super().form_valid(form)
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return _htmx_refrescar()
         return response
 
 
@@ -2614,7 +2671,7 @@ class ReplacePartidoGrupoTeamsView(AdminRequiredMixin, OrgScopedQuerysetMixin, U
             self._handle_team_change(grupo, old_equipo2, new_equipo2)
 
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return _htmx_refrescar()
         return response
 
     def _handle_team_change(self, current_group, old_team, new_team):
@@ -2729,7 +2786,7 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
             matches_destino.filter(equipo2=equipo_destino).update(equipo2=equipo_origen)
 
         if self.request.headers.get('HX-Request'):
-            return HttpResponse('<script>window.location.reload();</script>')
+            return _htmx_refrescar()
         
         return super().form_valid(form)
 
