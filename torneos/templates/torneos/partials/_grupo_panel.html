@@ -100,17 +100,24 @@
     <!-- Closing collapse-title -->
     <div class="collapse-content">
         <!-- Configuración de Grupo (Fecha Default) -->
-        <div class="flex justify-between items-center bg-base-200/50 p-3 rounded-lg mb-4 mt-2">
+        {% comment %}
+            En mobile el título y el campo de fecha no entran en una sola fila: el
+            label tiene whitespace-nowrap y el input de fecha ocupa ~130px, así que
+            se montaban uno sobre otro. Se apilan hasta sm y recién ahí van en línea.
+        {% endcomment %}
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-base-200/50 p-3 rounded-lg mb-4 mt-2">
             <span class="text-xs font-bold uppercase opacity-50 tracking-wider">Configuración del Grupo</span>
-            <form method="post" class="flex items-center gap-2">
+            <form method="post" class="flex items-center gap-2 min-w-0">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="set_grupo_date">
                 <input type="hidden" name="grupo_id" value="{{ grupo.pk }}">
-                <label class="label-text text-xs whitespace-nowrap">Fecha Estándar:</label>
+                <label class="label-text text-xs whitespace-nowrap shrink-0"
+                       for="fecha-grupo-{{ grupo.pk }}">Fecha estándar</label>
                 <input type="date"
+                       id="fecha-grupo-{{ grupo.pk }}"
                        name="fecha_inicio_default"
                        value="{{ grupo.fecha_inicio_default|date:'Y-m-d'|default:'' }}"
-                       class="input input-xs input-bordered w-auto"
+                       class="input input-xs input-bordered min-w-0 flex-1 sm:flex-none sm:w-auto"
                        onchange="this.form.submit()">
             </form>
         </div>
@@ -181,6 +188,8 @@
                             {% endif %}
                         </button>
                         <button class="btn btn-sm btn-ghost text-info"
+                                aria-label="Programar dia y hora del partido"
+                                title="Programar dia y hora"
                                 hx-get="{% url 'torneos:schedule_partido_grupo' partido.pk %}"
                                 hx-target="#schedule_modal_content"
                                 onclick="schedule_modal.showModal()">

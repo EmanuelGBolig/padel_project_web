@@ -151,7 +151,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                         </svg>
                     </div>
-                    <button class="absolute right-0 top-0 rounded-l-none btn btn-ghost btn-square"
+                    <button type="button"
+                            class="absolute right-0 top-0 rounded-l-none btn btn-ghost btn-square"
+                            aria-label="Limpiar la búsqueda"
+                            title="Limpiar búsqueda"
                             onclick="document.getElementById('adminSearchInput').value = ''; document.getElementById('adminSearchInput').dispatchEvent(new Event('input'));">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              fill="none"
@@ -524,7 +527,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-bold text-base-content">Fase de Zonas</h2>
+                    <h2 class="text-2xl font-bold text-base-content">Zonas</h2>
                 </div>
 
                 <!-- Agregar una zona nueva con parejas (torneo ya iniciado) -->
@@ -626,6 +629,8 @@
                                                     <p class="text-sm opacity-50 italic mr-2">Esperando rivales...</p>
                                                 {% endif %}
                                                 <button class="btn btn-sm btn-ghost text-info"
+                                                        aria-label="Programar dia y hora del partido"
+                                                        title="Programar dia y hora"
                                                         hx-get="{% url 'torneos:schedule_partido' partido.pk %}"
                                                         hx-target="#schedule_modal_content"
                                                         onclick="schedule_modal.showModal()">

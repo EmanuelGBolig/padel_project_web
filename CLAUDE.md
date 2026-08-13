@@ -61,6 +61,32 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 
 ## Trampas conocidas (leer antes de perder una hora)
 
+### Layout mobile: las reglas están en el CSS, no en los templates
+La app se usa casi toda desde el celular. Las convenciones de botones, íconos y
+paneles viven **una sola vez** en `theme/static_src/src/styles.css` (ver la sección
+"Convenciones de UI en mobile" de `ARQUITECTURA.md`). Antes de agregar clases
+sueltas a un template, fijate si la regla global ya lo cubre.
+
+Tres errores que ya cometimos:
+- Grilla con `md:grid-cols-2` **sin** `grid-cols-1`: en mobile no tiene columnas
+  declaradas, se dimensiona al contenido y desborda la pantalla.
+- `w-full` dentro de una fila flex: es el 100% del contenedor y, con algo al lado,
+  se pasa. Va `flex-1 min-w-0`.
+- Un `.collapse` de DaisyUI es un grid cuya columna se estira al contenido: hay
+  que fijarla en `minmax(0, 1fr)` o corta lo que tenga a la derecha.
+
+Después de tocar layout, verificá con:
+```bash
+python verificar_mobile.py
+python auditoria_ui.py
+```
+
+### Los comentarios `{# #}` de Django son de UNA línea
+Escritos en varias, Django **no los interpreta** y los manda al HTML como texto
+visible. Ya pasó en producción. Para varias líneas: `{% comment %}…{% endcomment %}`.
+El test `core.tests.ComentariosDeTemplateTests` recorre los templates y falla si
+vuelve a aparecer.
+
 ### CSS: DaisyUI usa **oklch**, no hsl
 Las variables de tema son tripletes sin función envolvente (`--p: 72% 0.16 163`). Siempre:
 ```css
@@ -74,7 +100,7 @@ Copiar snippets de DaisyUI 3 de internet **rompe los colores en silencio**.
 Sin `python manage.py createcachetable` varias vistas fallan. Va en el setup y en `build.sh`.
 
 ### La suite de tests tarda ~7 minutos
-124 tests. Mientras iterás, corré solo la clase que tocaste
+213 tests. Mientras iterás, corré solo la clase que tocaste
 (`python manage.py test torneos.tests.NombreDeLaClase`) y dejá la suite completa para antes de mergear.
 
 ### `requirements.txt` está en UTF-16 LE con BOM

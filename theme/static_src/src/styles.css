@@ -1,3 +1,158 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   Botones de acción en mobile
+   --------------------------------------------------------------------------
+   Toda la app arma sus barras de acciones igual: un contenedor flex con dos o
+   más .btn adentro. En una pantalla de 375px eso hace escalera — cada botón con
+   el ancho de su texto, uno por renglón y desalineados entre sí.
+
+   En vez de tocar los ~68 lugares uno por uno (y que cada uno quede distinto),
+   se define acá una sola vez: en mobile los botones de una barra se apilan a
+   ancho completo; desde sm vuelven a ser inline como siempre.
+
+   Se excluyen a propósito:
+     .join            grupos de botones pegados (paginación) — ya son un control
+     .btn-circle
+     .btn-square      botones de solo ícono: estirarlos los rompe
+     .btn-xs          acciones chiquitas dentro de filas de tabla
+     .dropdown-content menús: sus items ya son full width
+   ========================================================================== */
+@media (max-width: 639px) {
+    .flex:not(.join):not(.dropdown-content):has(> .btn + .btn) {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .flex:not(.join):not(.dropdown-content):has(> .btn + .btn)
+        > .btn:not(.btn-circle):not(.btn-square):not(.btn-xs) {
+        width: 100%;
+        /* Sin esto, un botón con poco texto queda más bajo que uno con ícono. */
+        min-height: 2.75rem;
+        height: auto;
+    }
+
+    /* Un ancla usada como botón dentro de la misma barra sigue la misma regla. */
+    .flex:not(.join):not(.dropdown-content):has(> .btn + .btn) > a.btn {
+        justify-content: center;
+    }
+}
+
+/* ==========================================================================
+   Cabecera de los paneles plegables (zonas, rondas)
+   --------------------------------------------------------------------------
+   En un panel de 309px la cabecera medía 399px y, como el .collapse tiene
+   overflow:hidden, el último botón de la derecha quedaba cortado por la mitad.
+
+   La causa no era la cabecera sino la grilla: DaisyUI arma el .collapse con
+   `display:grid` y la columna quedaba dimensionada al contenido
+   (grid-template-columns: 399px), o sea más ancha que el propio panel. Por eso
+   un `max-width:100%` en la cabecera no servía: el 100% eran esos 399px.
+
+   Fijando la columna en minmax(0, 1fr) la grilla no puede pasarse del panel y
+   sus hijos sí pueden encogerse.
+   ========================================================================== */
+.collapse {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.collapse > .collapse-title {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.collapse-title .group-name,
+.collapse-title > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Las acciones nunca se comprimen ni se parten. */
+.collapse-title > .flex:last-child {
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   .barra-acciones — la fila de acciones de la cabecera de cada página
+   --------------------------------------------------------------------------
+   Sus hijos son de tres tipos distintos: un <a class="btn">, un <div class=
+   "dropdown"> con el menú "Más", y un <form> con el botón de compartir. La regla
+   genérica de más arriba sólo alcanza a los .btn que son hijos DIRECTOS, así que
+   el dropdown quedaba suelto: el "⋮" aparecía chiquito y desalineado entre dos
+   botones a ancho completo.
+
+   Acá se tratan los tres por igual.
+   ========================================================================== */
+@media (max-width: 767px) {
+    .barra-acciones {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .barra-acciones > *,
+    .barra-acciones > .dropdown > .btn,
+    .barra-acciones > form > .btn {
+        width: 100%;
+    }
+
+    .barra-acciones .btn {
+        min-height: 2.75rem;
+        height: auto;
+        justify-content: center;
+    }
+
+    /* El menú se ancla al borde del botón, que ahora ocupa todo el ancho. */
+    .barra-acciones > .dropdown > .dropdown-content {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   Área táctil mínima en celular
+   --------------------------------------------------------------------------
+   `btn-sm` mide 32px de alto, que es cómodo con mouse pero chico para el dedo.
+   La guía de accesibilidad pide 44px; 40px es el punto donde deja de fallarse
+   el toque sin que la pantalla se llene de botones enormes.
+
+   Importa acá más que en otras apps: el organizador carga resultados parado al
+   borde de la cancha, apurado y muchas veces con una mano.
+
+   Quedan afuera los que viven dentro de tablas y filas densas (btn-xs), donde
+   agrandarlos rompería la grilla.
+   ========================================================================== */
+@media (max-width: 767px) {
+    .btn-sm:not(.btn-circle):not(.btn-square) {
+        min-height: 2.5rem;
+        height: auto;
+    }
+
+    .btn-sm.btn-circle,
+    .btn-sm.btn-square {
+        min-height: 2.25rem;
+        min-width: 2.25rem;
+    }
+}
+
+/* ==========================================================================
+   Íconos
+   --------------------------------------------------------------------------
+   Un <svg> dentro de un contenedor flex es un ítem flex y, por defecto, puede
+   encogerse. Cuando el texto de al lado es largo (un nombre de torneo, una zona)
+   el ícono se aplasta y queda deformado — no achicado en proporción, sino
+   angosto y estirado.
+
+   170 de los 200 SVG de la app no declaraban `shrink-0`. En vez de agregárselo a
+   mano a cada uno, se define acá: los íconos mantienen su tamaño y lo que se
+   recorta es el texto.
+
+   Se excluyen los que SÍ tienen que adaptarse al contenedor: la ilustración de
+   los estados vacíos y la capa que dibuja las líneas del cuadro de la llave.
+   ========================================================================== */
+svg:not(.w-full):not(.h-full):not(.absolute) {
+    flex-shrink: 0;
+}

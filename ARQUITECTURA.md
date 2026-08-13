@@ -11,8 +11,8 @@
 | **Repositorio** | `EmanuelGBolig/padel_project_web`, rama de trabajo `main` |
 | **Stack** | Django 5.2.16 · Python 3.11 · PostgreSQL (prod) / SQLite (local) · Tailwind + DaisyUI 4.7.2 · WhiteNoise · Cloudinary |
 | **Apps** | `core`, `accounts`, `equipos`, `torneos` (+ `theme` para Tailwind) |
-| **Tests** | 141 tests (`python manage.py test`, ~8 min) |
-| **Última auditoría completa** | 2026-08-03 |
+| **Tests** | 213 tests (`python manage.py test`, ~10 min) |
+| **Última auditoría completa** | 2026-08-04 |
 
 ## Cómo leer este documento
 
@@ -2059,6 +2059,37 @@ Notas de packaging: `equipos/management/` y `equipos/management/commands/` **no 
 
 > Auditoría sobre el código real del repo. Todas las rutas son relativas a la raíz del proyecto.
 
+### 0. Convenciones de UI en mobile (leer antes de tocar layout)
+
+La app se usa **mayormente desde el celular**, y el organizador la usa parado al
+borde de la cancha. Las reglas viven en `theme/static_src/src/styles.css`, no
+repartidas por los templates: son ~68 barras de botones y 200 SVG, y mantenerlas
+a mano quedaba inconsistente.
+
+| Regla | Qué hace | Por qué |
+|---|---|---|
+| `.flex:has(> .btn + .btn)` | Hasta 639px apila los botones a ancho completo | Con anchos distintos hacían escalera |
+| `.barra-acciones` | Lo mismo para la cabecera, incluyendo dropdowns y forms | El "⋮" quedaba suelto entre botones anchos |
+| `.collapse { grid-template-columns: minmax(0,1fr) }` | Impide que el panel se estire al contenido | La columna medía 399px dentro de un panel de 309 y cortaba el último botón |
+| `svg:not(.w-full):not(.h-full):not(.absolute)` | `flex-shrink: 0` | 170 de 200 íconos se aplastaban al lado de textos largos |
+| `.btn-sm` con `min-height: 2.5rem` en mobile | Área táctil de 40px | 32px es chico para el dedo |
+
+**Trampas que ya nos mordieron:**
+
+- Una grilla con `md:grid-cols-2` **sin** `grid-cols-1` no tiene columnas
+  declaradas en mobile: se dimensiona al contenido y desborda. Poné siempre la
+  clase base.
+- `w-full` dentro de una fila flex es el 100% del contenedor: sumado a lo que
+  tenga al lado, se pasa. Usá `flex-1 min-w-0`.
+- Un `<label>` con `whitespace-nowrap` al lado de un input fuerza el ancho.
+
+**Cómo verificar** (necesita el server en el puerto 8010):
+
+```bash
+python verificar_mobile.py    # desbordes y alineación en 15 pantallas a 375px
+python auditoria_ui.py        # targets táctiles, labels, alt, consistencia
+```
+
 ### 1. Stack de estilos
 
 #### 1.1 Cadena de compilación
@@ -3098,7 +3129,7 @@ Sólo Tailwind es local. Desde CDN externo se cargan (`theme/templates/base.html
 | Base de datos | SQLite en memoria/temporal, creada y destruida por corrida |
 | Framework | `django.test.TestCase` puro — sin pytest, sin factories, sin coverage |
 
-Medido con `python manage.py test` sobre el repo: `Ran 124 tests in 430.276s / OK`.
+Medido con `python manage.py test` sobre el repo: `Ran 213 tests in 607.566s / OK`.
 
 #### 5.2 Mapa de tests
 
@@ -3157,7 +3188,7 @@ Medido con `python manage.py test` sobre el repo: `Ran 124 tests in 430.276s / O
 #### 5.3 Cómo se corren
 
 ```bash
-python manage.py test                      # todo (124 tests, ~7 min)
+python manage.py test                      # todo (213 tests, ~10 min)
 python manage.py test torneos              # una app
 python manage.py test torneos.tests.WalkoverAbandonoTests
 python manage.py test torneos.tests.WalkoverAbandonoTests.test_grupo_walkover_convencion_tabla
@@ -3267,7 +3298,7 @@ python manage.py showmigrations
 python manage.py shell
 
 # --- Tests ---
-python manage.py test                      # 124 tests, ~7 min
+python manage.py test                      # 213 tests, ~10 min
 python manage.py test accounts             # una app
 python manage.py test torneos.tests.AmericanoTests
 

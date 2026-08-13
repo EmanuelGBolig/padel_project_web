@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         <!-- Próximos torneos -->
         <div>
@@ -74,8 +74,14 @@
                                         {{ t.get_estado_display }}
                                     </span>
                                 </div>
+                                {% comment %}
+                                    flex-1 min-w-0, no w-full: `w-full` es el 100% del
+                                    contenedor y, sumado al texto de al lado en la misma
+                                    fila, hacía que la tarjeta se pasara ~55px del ancho
+                                    de la pantalla en mobile.
+                                {% endcomment %}
                                 <div class="flex items-center gap-2 mt-2">
-                                    <progress class="progress progress-primary w-full h-2" value="{{ t.ocupacion }}" max="100"></progress>
+                                    <progress class="progress progress-primary flex-1 min-w-0 h-2" value="{{ t.ocupacion }}" max="100"></progress>
                                     <span class="text-xs text-base-content/60 shrink-0">{{ t.insc }}/{{ t.cupos_totales }}</span>
                                 </div>
                             </div>
