@@ -29,6 +29,16 @@ def main():
 
         def foto(nombre, desc):
             pag.wait_for_timeout(900)
+            # En una captura de pagina completa, los elementos pegados (header,
+            # barra inferior) se dibujan en la posicion del scroll y aparecen
+            # repetidos en el medio. Los volvemos estaticos solo para la foto.
+            pag.add_style_tag(content="""
+                header, nav, .navbar, .btm-nav,
+                [class*="sticky"], [class*="fixed"] {
+                    position: static !important;
+                }
+            """)
+            pag.wait_for_timeout(300)
             ruta = os.path.join(SALIDA, nombre)
             pag.screenshot(path=ruta, full_page=True)
             kb = os.path.getsize(ruta) // 1024
