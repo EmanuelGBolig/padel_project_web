@@ -94,6 +94,23 @@ visible. Ya pasó en producción. Para varias líneas: `{% comment %}…{% endco
 El test `core.tests.ComentariosDeTemplateTests` recorre los templates y falla si
 vuelve a aparecer.
 
+### Al imprimir: `flex` miente, y el modo oscuro pinta el papel de negro
+Dos cosas que ya rompieron la planilla de horarios en producción:
+
+- Una fila `flex` con un hijo `w-full shrink-0` reclama el 100% del ancho y tiene
+  prohibido achicarse: se come la fila y **aplasta a 0px** a los hermanos. En
+  pantalla no se notaba porque las clases `md:` lo tapaban; en el PDF salía media
+  planilla, con una columna recortada a dos letras. Para datos tabulares usá
+  `<table>`: el navegador reparte el ancho y nunca deja una columna en cero.
+- Si el usuario tiene el celular en modo oscuro, DaisyUI deja
+  `color-scheme: dark` y Chrome pinta **el margen de la hoja** de negro. En todo
+  `@media print` va `html { color-scheme: light !important; }`.
+
+Para verificar una vista imprimible, generá el PDF de verdad y miralo:
+```bash
+python scripts/probar_planilla.py <id_torneo>
+```
+
 ### CSS: DaisyUI usa **oklch**, no hsl
 Las variables de tema son tripletes sin función envolvente (`--p: 72% 0.16 163`). Siempre:
 ```css

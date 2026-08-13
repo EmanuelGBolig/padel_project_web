@@ -876,7 +876,7 @@ Se consume desde `PreviewEstructuraView` (`views.py:1592-1612`) por `GET /torneo
 | `TorneoPorCiudadView` (`views.py:1984`) | `ciudad` | `/torneos/ciudad/<ciudad>/` | `ListView`, público | SEO local (TP-14): `ciudad__iexact` |
 | `MisTorneosView` (`views.py:2575`) | `mis_torneos` | `/torneos/mis-torneos/` | `TemplateView` + `PlayerRequiredMixin` | Agrupa las inscripciones del usuario en abiertos/en juego/finalizados |
 | `TorneoDetailView` (`views.py:1832`) | `detail` | `/torneos/<pk>/` | `DetailView`, público | Ficha completa: zonas + tablas, cuadro, `puede_inscribirse`, "Mis partidos" (pendientes/jugados), `share_url` y `placa_url` |
-| `TorneoProgramacionView` (`views.py:2610`) | `programacion` | `/torneos/<pk>/programacion/` | `DetailView`, público | Fixture unificado (zonas + bracket) partido en `partidos_con_fecha` (ordenados cronológicamente) y `partidos_sin_fecha`. El template trae **botón «Descargar PDF»** (`window.print()`) y hoja `@media print` propia: fondo blanco, una fila por partido y `break-inside: avoid`. |
+| `TorneoProgramacionView` (`views.py:2610`) | `programacion` | `/torneos/<pk>/programacion/` | `DetailView`, público | Fixture unificado (zonas + bracket) partido en `partidos_con_fecha` (ordenados cronológicamente) y `partidos_sin_fecha`. El template lo renderiza como **tabla** (hora · zona/fase · pareja · pareja) agrupada por día, con **botón «Descargar PDF»** (`window.print()`) y hoja `@media print` propia. |
 | `TorneoVivoView` (`views.py:2004`) | `vivo` | `/torneos/<pk>/vivo/` | `DetailView`, público | Scoreboard para TV con auto-refresh (TP-13) |
 | `PlacaView` (`views.py:1435`) | `placa` / `placa_app` | `/torneos/<pk>/placa/`, `/torneos/placa/` | `TemplateView`, **público, sin login** | Placa 9:16 para redes. `?tipo=anuncio|campeones|vivo|app`; si no se pasa, se deduce del estado (`AB→anuncio`, `EJ→vivo`, `FN→campeones`). `_featured_match` elige el partido destacado |
 | `CircuitoListView` (`views.py:2030`) | `circuito_list` | `/torneos/circuitos/` | `ListView`, público | Circuitos con `activo=True` |
@@ -2783,7 +2783,7 @@ Dos convenciones conviven:
 - **Carrusel vertical del hero** (`home.html:39-64` + `:527-543`): rota cards con `@keyframes hero-ball-bounce` (squash & stretch tipo pelota), intervalo por `data-interval` (4500 ms), con `prefers-reduced-motion` respetado.
 - **Buscador en cliente** (`admin_torneo_manage.html:850-918`): filtra zonas, rondas y partidos por `.filter-text` y auto-expande los `<details>`/checkboxes que contienen coincidencias.
 - **`print:hidden`**: navbar, footer, banners de incentivo/instalar/registro y la barra de «Volver + acciones». Los avisos (`.toast`) llevan `display:flex` **inline**, que le gana a la clase por especificidad, así que se ocultan desde el `@media print` global de `styles.css` con `!important`. Además hay una plantilla dedicada de impresión sin Tailwind (`accounts/templates/accounts/print/organizacion_programacion.html`).
-- **Tema scoped**: `torneo_programacion.html:7` fuerza `data-theme="business"` en un `<div>` para look oscuro sobre fondo negro sin importar el tema global.
+- **Programación**: `torneo_programacion.html` ya **no** usa `data-theme="business"` scoped; hereda el tema de la app y define su propio `@media print`.
 
 ---
 
@@ -2872,7 +2872,7 @@ Dos convenciones conviven:
 |---|---|
 | `torneo_detail.html` | Página estrella del torneo: hero, inscripción/cancelación con modales, "Mis Partidos", zonas, y el bracket con líneas SVG (818 líneas). |
 | `torneo_vivo.html` | Vista "en vivo" para pantallas/TV: zonas y llave en formato compacto, auto-refresh cada 20 s. |
-| `torneo_programacion.html` | Programación del torneo agrupada por fecha/hora, con `data-theme="business"` scoped. Botón «Descargar PDF» + `@media print` propio (fondo blanco, A4, sin cortar partidos entre hojas). |
+| `torneo_programacion.html` | Planilla de horarios como tabla agrupada por día. Botón «Descargar PDF» (`window.print()`) + `@media print` propio (A4, negro sobre blanco, `thead` repetido por hoja, `break-inside: avoid` por fila). |
 | `accounts/notificaciones.html` | Panel de la campanita: historial de avisos; cada ítem linkea a `notificacion_abrir`, que lo marca leído y redirige a su destino. |
 | `equipos/partials/_invitacion_recibida.html` | Cajita de una invitación de pareja: nombre arriba, Aceptar/Rechazar en dos columnas iguales, ambos con `hx-post`. |
 | `equipos/partials/_invitacion_resuelta.html` | Lo que reemplaza a la cajita después de aceptar/rechazar, sin recargar la página. |

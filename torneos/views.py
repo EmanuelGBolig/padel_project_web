@@ -3348,9 +3348,10 @@ class TorneoProgramacionView(DetailView):
         for pb in partidos_bracket:
             # Solo mostrar partidos que ya tienen al menos los placeholders o equipos definidos
             if pb.equipo1 or pb.equipo2 or pb.placeholder_e1 or pb.placeholder_e2:
-                # Determinar nombre fase
-                nombre_fase = pb.nombre_ronda.upper()
-                
+                # Sin .upper(): en la planilla impresa la columna es angosta y
+                # "OCTAVOS DE FINAL · PARTIDO 49" se partía en tres renglones.
+                nombre_fase = pb.nombre_ronda
+
                 partidos_list.append({
                     'tipo': 'bracket',
                     'fecha_hora': pb.fecha_hora,
@@ -3359,7 +3360,7 @@ class TorneoProgramacionView(DetailView):
                     'placeholder_e1': pb.placeholder_e1,
                     'placeholder_e2': pb.placeholder_e2,
                     'fase': nombre_fase,
-                    'descripcion_partido': f"Partido {pb.orden_partido}",
+                    'descripcion_partido': f"#{pb.orden_partido}",
                     'obj': pb
                 })
 

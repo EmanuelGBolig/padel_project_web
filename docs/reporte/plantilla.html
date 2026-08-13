@@ -1,0 +1,689 @@
+<title>TodoPadel — Qué se mejoró</title>
+
+<style>
+  /* ---------------------------------------------------------------
+     Paleta tomada de la cancha: el verde profundo del piso de noche,
+     la línea blanca, el verde de la marca y el amarillo de la pelota
+     (que se usa SOLO para señalar cómo era antes).
+     --------------------------------------------------------------- */
+  :root {
+    --cancha:  #f7f7f4;   /* fondo */
+    --piso:    #ffffff;   /* superficies */
+    --linea:   #d8dcd7;   /* bordes */
+    --tinta:   #0d1f1a;   /* texto principal */
+    --polvo:   #5d6d66;   /* texto secundario, neutro con sesgo verde */
+    --red:     #00996a;   /* acento: el verde de la app */
+    --red-sua: #e6f5ee;   /* acento suave */
+    --pelota:  #8a7b00;   /* el "antes" */
+    --pelota-sua: #f7f3d9;
+    --sombra:  0 1px 2px rgba(13,31,26,.05), 0 8px 24px rgba(13,31,26,.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --cancha:  #0a1613;
+      --piso:    #11211c;
+      --linea:   #22352e;
+      --tinta:   #eaf1ed;
+      --polvo:   #90a49b;
+      --red:     #22c98d;
+      --red-sua: #102c22;
+      --pelota:  #cddd5e;
+      --pelota-sua: #2a2a10;
+      --sombra:  0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --cancha:#0a1613; --piso:#11211c; --linea:#22352e; --tinta:#eaf1ed;
+    --polvo:#90a49b; --red:#22c98d; --red-sua:#102c22;
+    --pelota:#cddd5e; --pelota-sua:#2a2a10;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"] {
+    --cancha:#f7f7f4; --piso:#ffffff; --linea:#d8dcd7; --tinta:#0d1f1a;
+    --polvo:#5d6d66; --red:#00996a; --red-sua:#e6f5ee;
+    --pelota:#8a7b00; --pelota-sua:#f7f3d9;
+    --sombra:0 1px 2px rgba(13,31,26,.05), 0 8px 24px rgba(13,31,26,.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--cancha);
+    color: var(--tinta);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .envoltorio { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* --- Portada ------------------------------------------------- */
+  .portada {
+    padding: 88px 0 56px;
+    border-bottom: 1px solid var(--linea);
+  }
+  .marca {
+    font-size: 12px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--red); margin: 0 0 20px;
+  }
+  h1 {
+    font-size: clamp(38px, 7vw, 68px);
+    line-height: 1.02;
+    letter-spacing: -.035em;
+    font-weight: 800;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  .bajada {
+    font-size: clamp(17px, 2.2vw, 21px);
+    color: var(--polvo);
+    max-width: 58ch;
+    margin: 0;
+  }
+  .fecha {
+    margin-top: 32px; font-size: 13px; color: var(--polvo);
+    letter-spacing: .04em;
+  }
+
+  /* --- Tablero de números -------------------------------------- */
+  .tablero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1px;
+    background: var(--linea);
+    border: 1px solid var(--linea);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 48px 0 0;
+  }
+  .dato { background: var(--piso); padding: 26px 22px; }
+  .dato b {
+    display: block;
+    font-size: 40px; font-weight: 800; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+    color: var(--red);
+  }
+  .dato span {
+    display: block; margin-top: 10px;
+    font-size: 13.5px; color: var(--polvo); line-height: 1.45;
+  }
+
+  /* --- Secciones ----------------------------------------------- */
+  section { padding: 72px 0 0; }
+  .etiqueta {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--polvo);
+    margin: 0 0 12px;
+  }
+  h2 {
+    font-size: clamp(26px, 3.6vw, 36px);
+    line-height: 1.15; letter-spacing: -.025em; font-weight: 750;
+    margin: 0 0 16px; text-wrap: balance; max-width: 22ch;
+  }
+  p { margin: 0 0 16px; max-width: 62ch; }
+  .apagado { color: var(--polvo); }
+
+  .par {
+    display: grid; grid-template-columns: 1fr; gap: 36px;
+    align-items: start; margin-top: 28px;
+  }
+  @media (min-width: 860px) {
+    .par { grid-template-columns: 1.05fr .95fr; gap: 56px; }
+    .par.invertido > .texto { order: 2; }
+  }
+
+  /* Dos capturas en la misma fila. Se usa cuando las dos imágenes son la
+     misma pantalla en dos momentos (vacía / completa): puestas al lado se
+     leen de una, y de paso el informe deja de ser una tira infinita. */
+  .duo {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 18px; margin-top: 24px; align-items: start;
+  }
+  @media (min-width: 620px) { .duo { gap: 32px; } }
+  .duo .celular { max-width: 100%; border-width: 6px; border-radius: 22px; }
+  @media (min-width: 620px) { .duo .celular { border-width: 8px; border-radius: 28px; } }
+  .duo figcaption { font-size: 12.5px; }
+
+  /* antes / ahora */
+  .cambio {
+    display: grid; gap: 12px; margin: 22px 0 0;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 560px) { .cambio { grid-template-columns: 1fr 1fr; } }
+  .caja {
+    border: 1px solid var(--linea); border-radius: 12px;
+    padding: 16px 18px; background: var(--piso);
+  }
+  .caja h3 {
+    margin: 0 0 8px; font-size: 11.5px; letter-spacing: .14em;
+    text-transform: uppercase; font-weight: 700;
+  }
+  .caja.antes  h3 { color: var(--pelota); }
+  .caja.antes { background: var(--pelota-sua); border-color: transparent; }
+  .caja.ahora  h3 { color: var(--red); }
+  .caja.ahora { background: var(--red-sua); border-color: transparent; }
+  .caja p { margin: 0; font-size: 15.5px; line-height: 1.55; }
+
+  /* --- Capturas ------------------------------------------------ */
+  .celular {
+    width: 100%; max-width: 400px; margin: 0 auto;
+    border: 8px solid var(--tinta); border-radius: 30px;
+    overflow: hidden; box-shadow: var(--sombra); display: block;
+    background: var(--tinta);
+  }
+  .celular img { display: block; width: 100%; }
+  .ancha {
+    width: 100%; border: 1px solid var(--linea); border-radius: 12px;
+    overflow: hidden; box-shadow: var(--sombra); background: var(--piso);
+  }
+  .ancha img { display: block; width: 100%; }
+  /* El popup recortado: no es una pantalla entera, así que no lleva marco de
+     celular. Va con el mismo redondeo que tiene la ventana en la app. */
+  .ventana {
+    width: 100%; border-radius: 22px; overflow: hidden;
+    box-shadow: var(--sombra); background: var(--tinta);
+    border: 1px solid var(--linea);
+  }
+  .ventana img { display: block; width: 100%; }
+
+  /* La hoja del PDF: se muestra como papel, con su sombra, sin marco de app. */
+  .hoja {
+    width: 100%; border: 1px solid var(--linea); border-radius: 4px;
+    overflow: hidden; box-shadow: var(--sombra); background: #fff;
+  }
+  .hoja img { display: block; width: 100%; }
+  figure { margin: 0; }
+  figcaption {
+    margin-top: 12px; font-size: 13px; color: var(--polvo); text-align: center;
+  }
+
+  /* --- Lista de mejoras ---------------------------------------- */
+  .lista { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 1px;
+           background: var(--linea); border: 1px solid var(--linea); border-radius: 12px; overflow: hidden; }
+  .lista li { background: var(--piso); padding: 16px 20px; display: flex; gap: 14px; align-items: baseline; }
+  .lista li b { color: var(--tinta); font-weight: 650; }
+  .lista li span { color: var(--polvo); font-size: 15.5px; }
+  .marca-ok { color: var(--red); font-weight: 800; flex: none; }
+
+  /* --- Tabla --------------------------------------------------- */
+  .tabla-caja { overflow-x: auto; margin-top: 22px; border: 1px solid var(--linea); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 460px; background: var(--piso); }
+  th, td { padding: 13px 18px; text-align: left; font-size: 15px; border-bottom: 1px solid var(--linea); }
+  th { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--polvo); font-weight: 700; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td:first-child { color: var(--polvo); }
+  td:last-child { font-weight: 600; }
+
+  /* Pasos numerados: acá el orden SÍ es información — es una secuencia real. */
+  .paso-n {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--red); color: var(--piso);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums;
+  }
+
+  .paso {
+    display: grid; grid-template-columns: 1fr; gap: 28px;
+    margin-top: 56px; align-items: start;
+    padding-top: 40px; border-top: 1px solid var(--linea);
+  }
+  .paso:first-of-type { border-top: 0; padding-top: 0; }
+  @media (min-width: 900px) {
+    .paso { grid-template-columns: 1fr 400px; gap: 56px; }
+    /* La captura acompaña el scroll del texto: el proceso se lee entero. */
+    .paso-img { position: sticky; top: 32px; }
+  }
+  /* Variante para los pasos que muestran dos capturas: el texto pasa a ocupar
+     todo el ancho y las dos fotos van debajo, una al lado de la otra. */
+  .paso.doble { grid-template-columns: 1fr; }
+  .paso-txt { position: relative; padding-left: 54px; }
+  .paso-txt .paso-n { position: absolute; left: 0; top: 2px; }
+  .paso h3 { margin: 0 0 12px; font-size: 23px; font-weight: 750; letter-spacing: -.018em; }
+  .paso-img .celular { max-width: 400px; border-width: 10px; border-radius: 34px; }
+  .paso-img figcaption { margin-top: 14px; }
+  .paso.doble .duo { margin-left: 54px; }
+  @media (max-width: 560px) { .paso.doble .duo { margin-left: 0; } }
+
+  .cierre {
+    margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--linea);
+    font-size: 14px; color: var(--polvo);
+  }
+  .cierre strong { color: var(--tinta); }
+</style>
+
+<div class="envoltorio">
+
+  <header class="portada">
+    <p class="marca">TodoPadel · Informe de mejoras</p>
+    <h1>Lo que cambió en la app</h1>
+    <p class="bajada">
+      Anotarse pasó a ser cuestión de dos pantallas, los horarios ya se pueden
+      imprimir, las notificaciones dejaron de perderse y toda la app se revisó
+      para usarla desde el celular.
+    </p>
+    <p class="fecha">Agosto 2026</p>
+
+    <div class="tablero">
+      <div class="dato">
+        <b>2</b>
+        <span>pantallas para anotarse, sin crear cuenta</span>
+      </div>
+      <div class="dato">
+        <b>×2</b>
+        <span>partidos por hoja en la planilla impresa</span>
+      </div>
+      <div class="dato">
+        <b>94%</b>
+        <span>menos datos al guardar cada resultado</span>
+      </div>
+      <div class="dato">
+        <b>15/15</b>
+        <span>pantallas revisadas en celular, sin errores</span>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <p class="etiqueta">Paso a paso</p>
+    <h2>Cómo se anota y paga un jugador</h2>
+    <p>
+      Alguien que nunca usó la app y llega por un flyer o por el link que le pasan
+      por WhatsApp. Estas son <b>las pantallas reales</b>, en el orden en que las
+      ve. No necesita tener cuenta: se la creamos al anotarse.
+    </p>
+
+    <div class="paso">
+      <div class="paso-txt">
+        <span class="paso-n">1</span>
+        <h3>Abre el torneo y ve el botón enseguida</h3>
+        <p class="apagado">
+          El botón <b>«Anotarme al torneo»</b> ahora está arriba de todo, apenas
+          debajo del nombre y el precio. Antes había que scrollear para
+          encontrarlo, y la foto del torneo lo empujaba fuera de la pantalla.
+        </p>
+        <p class="apagado">
+          Debajo aclara que <b>no hace falta tener cuenta</b>, y al lado está el
+          acceso para quien ya la tiene.
+        </p>
+        <div class="cambio">
+          <div class="caja antes">
+            <h3>Antes</h3>
+            <p>El botón aparecía recién después de dos pantallas de scroll.</p>
+          </div>
+          <div class="caja ahora">
+            <h3>Ahora</h3>
+            <p>Se ve sin mover el dedo, ni bien entra al torneo.</p>
+          </div>
+        </div>
+      </div>
+      <figure class="paso-img">
+        <div class="celular"><img src="{{img:f1-ficha-torneo}}" alt="La ficha del torneo, con el botón de anotarse arriba" /></div>
+        <figcaption>La ficha del torneo, tal como la ve alguien sin cuenta</figcaption>
+      </figure>
+    </div>
+
+    <div class="paso doble">
+      <div class="paso-txt">
+        <span class="paso-n">2</span>
+        <h3>Primero, sus datos</h3>
+        <p class="apagado">
+          Se abre una ventana con <b>cuatro campos</b>: nombre, apellido, mail y
+          WhatsApp. Nada más. Arriba ve el indicador de avance —«Paso 1 de 2»— así
+          que sabe cuánto falta.
+        </p>
+        <p class="apagado">
+          Cuando termina toca <b>«Cargar mi compañero/a»</b>. Si dejó algo mal, se
+          lo dice ahí mismo en vez de hacerlo llenar todo y avisarle al final.
+        </p>
+      </div>
+      <div class="duo">
+        <figure>
+          <div class="ventana"><img src="{{img:f2-paso1-vacio}}" alt="Paso 1 del formulario, vacío" /></div>
+          <figcaption>Paso 1, vacío</figcaption>
+        </figure>
+        <figure>
+          <div class="ventana"><img src="{{img:f2b-paso1-lleno}}" alt="Paso 1 del formulario, completo" /></div>
+          <figcaption>Paso 1, completo</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="paso doble">
+      <div class="paso-txt">
+        <span class="paso-n">3</span>
+        <h3>Después, los del compañero</h3>
+        <p class="apagado">
+          La misma ventana cambia al segundo paso. Marca si su compañero/a
+          <b>ya usa TodoPadel</b> o todavía no, carga sus datos y elige la
+          división. El mail del compañero es opcional: si no lo sabe, lo deja
+          vacío y la cuenta se crea cuando lo pase.
+        </p>
+        <p class="apagado">
+          Termina con <b>«Finalizar y pagar»</b>. Puede volver al paso anterior
+          sin perder lo cargado.
+        </p>
+        <div class="cambio">
+          <div class="caja antes">
+            <h3>Antes</h3>
+            <p>Una sola columna de ocho campos seguidos: scroll y scroll sin ver dónde terminaba.</p>
+          </div>
+          <div class="caja ahora">
+            <h3>Ahora</h3>
+            <p>Dos pasos cortos, uno visible por vez, con el avance a la vista.</p>
+          </div>
+        </div>
+      </div>
+      <div class="duo">
+        <figure>
+          <div class="ventana"><img src="{{img:f3-paso2-vacio}}" alt="Paso 2 del formulario, los datos del compañero" /></div>
+          <figcaption>Paso 2, el compañero</figcaption>
+        </figure>
+        <figure>
+          <div class="ventana"><img src="{{img:f3b-paso2-lleno}}" alt="Paso 2 del formulario, completo" /></div>
+          <figcaption>Paso 2, completo</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-txt">
+        <span class="paso-n">4</span>
+        <h3>Queda anotado y le avisa a su compañero</h3>
+        <p class="apagado">
+          La inscripción <b>ya está hecha</b>. En la misma pantalla aparece el
+          mensaje de WhatsApp ya escrito, con los datos para que el compañero
+          entre a su cuenta nueva: toca el botón verde y se manda.
+        </p>
+        <p class="apagado">
+          Más abajo ve <b>sus propios datos</b> de acceso. Se muestran una sola
+          vez, por seguridad.
+        </p>
+        <p class="apagado">
+          Si esa persona <b>ya está en la base</b> —incluso si la había cargado el
+          organizador a mano en un torneo anterior— se reusa esa cuenta con todo
+          su historial. No se crea una repetida.
+        </p>
+      </div>
+      <figure class="paso-img">
+        <div class="celular"><img src="{{img:f4-confirmacion}}" alt="Anotados, con el WhatsApp listo para enviar" /></div>
+        <figcaption>Anotados, con el WhatsApp listo para enviar</figcaption>
+      </figure>
+    </div>
+
+    <div class="paso">
+      <div class="paso-txt">
+        <span class="paso-n">5</span>
+        <h3>Paga y manda el comprobante</h3>
+        <p class="apagado">
+          Ve la seña y el total, el <b>alias con un botón para copiarlo</b> y el
+          titular de la cuenta para verificar antes de transferir.
+        </p>
+        <p class="apagado">
+          Manda el comprobante por WhatsApp de un toque, o lo sube desde la app.
+          El organizador lo marca como pagado desde su panel y ahí queda
+          confirmada.
+        </p>
+      </div>
+      <figure class="paso-img">
+        <div class="celular"><img src="{{img:f5-como-pagar}}" alt="Los datos para pagar y mandar el comprobante" /></div>
+        <figcaption>Los datos para pagar y mandar el comprobante</figcaption>
+      </figure>
+    </div>
+
+    <p class="apagado" style="margin-top:36px">
+      La cuenta que se crea trae una contraseña automática y la app le pide
+      cambiarla apenas entra: la que se dictó por WhatsApp no queda vigente.
+    </p>
+  </section>
+
+  <section>
+    <p class="etiqueta">Día del torneo</p>
+    <h2>La planilla de horarios, lista para imprimir</h2>
+    <p>
+      Los horarios ahora tienen un botón <b>«Descargar PDF»</b> y salen como una
+      planilla de una sola hoja, en blanco y negro, para pegar en el club.
+    </p>
+    <p class="apagado">
+      La versión anterior era ilegible: cada partido ocupaba una tarjeta gigante
+      y —lo peor— <b>la pareja de la derecha se cortaba y no se veía</b>, así que
+      no se entendía quién jugaba contra quién. Ahora es una tabla: hora, zona y
+      las dos parejas, una al lado de la otra.
+    </p>
+    <div class="cambio">
+      <div class="caja antes">
+        <h3>Antes</h3>
+        <p>4 hojas, tarjetas enormes y media planilla recortada.</p>
+      </div>
+      <div class="caja ahora">
+        <h3>Ahora</h3>
+        <p>El doble de partidos por hoja, con las dos parejas completas.</p>
+      </div>
+    </div>
+    <div class="duo" style="grid-template-columns: 1fr">
+      <figure>
+        <div class="hoja"><img src="{{img:h2-programacion-pdf}}" alt="La planilla de horarios como sale impresa en PDF" /></div>
+        <figcaption>La hoja del PDF, tal como sale de la impresora</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">Avisos</p>
+    <h2>Las notificaciones dejaron de perderse</h2>
+    <div class="par">
+      <div class="texto">
+        <p>
+          Antes, si el celular estaba en silencio o el jugador descartaba el
+          globito, <b>el aviso se perdía para siempre</b>: no había ningún lado
+          donde ir a buscarlo.
+        </p>
+        <p class="apagado">
+          Ahora hay una <b>campanita en la barra de arriba</b> con el número de
+          avisos sin leer. Al tocarla se abre la lista completa —zonas armadas,
+          partido en dos horas, pago confirmado, resultado cargado— y cada aviso
+          lleva directo a la pantalla que corresponde.
+        </p>
+        <ul class="lista">
+          <li><span class="marca-ok">·</span><span>Se guardan <b>todos</b> los avisos, aunque el push no llegue.</span></li>
+          <li><span class="marca-ok">·</span><span>Los sin leer quedan marcados con un punto verde.</span></li>
+          <li><span class="marca-ok">·</span><span>Botón para <b>marcar todas como leídas</b> de una.</span></li>
+        </ul>
+      </div>
+      <figure>
+        <div class="celular"><img src="{{img:n1-notificaciones}}" alt="El panel de notificaciones con la lista de avisos" /></div>
+        <figcaption>El panel de notificaciones</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">El día del torneo</p>
+    <h2>Cargar resultados dejó de trabarse</h2>
+    <div class="par invertido">
+      <div class="texto">
+        <p>
+          Al guardar un resultado desde el celular, la pantalla quedaba como
+          colgada y había que refrescar para cargar el siguiente. En un torneo se
+          cargan decenas seguidos, así que era una pérdida de tiempo constante al
+          borde de la cancha.
+        </p>
+        <p class="apagado">
+          Cada resultado obligaba a recargar la página completa —unos 300 KB con
+          los 24 partidos, las tablas y el cuadro—. En un celular eso son varios
+          segundos de pantalla muerta, y si tocabas el botón siguiente mientras
+          tanto, no pasaba nada.
+        </p>
+        <div class="cambio">
+          <div class="caja antes">
+            <h3>Antes</h3>
+            <p>Recarga completa: 300 KB por cada resultado.</p>
+          </div>
+          <div class="caja ahora">
+            <h3>Ahora</h3>
+            <p>Se actualiza sólo esa zona: 13 KB, sin recargar.</p>
+          </div>
+        </div>
+      </div>
+      <figure>
+        <div class="celular"><img src="{{img:04-gestion-mobile}}" alt="Pantalla de gestión del torneo en un celular" /></div>
+        <figcaption>Gestión del torneo, en el celular</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">Parejas</p>
+    <h2>Aceptar una invitación ya no recarga la página</h2>
+    <div class="par">
+      <div class="texto">
+        <p>
+          Las cajas de invitación de pareja tenían dos problemas juntos: el botón
+          <b>«Rechazar» se salía de la pantalla</b> en celulares angostos, y
+          tocar cualquiera de las dos opciones recargaba toda la página.
+        </p>
+        <p class="apagado">
+          Ahora los dos botones van debajo del nombre, en dos columnas iguales
+          del mismo ancho, y la respuesta cambia sólo esa cajita: el resto de la
+          pantalla queda quieto.
+        </p>
+      </div>
+      <figure>
+        <div class="ancha"><img src="{{img:i1-invitacion}}" alt="Caja de invitación de pareja con los botones aceptar y rechazar" /></div>
+        <figcaption>La caja de invitación, con los botones parejos</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">Cobros</p>
+    <h2>El jugador ya sabe cómo pagar</h2>
+    <div class="par invertido">
+      <div class="texto">
+        <p>
+          Ahora el torneo puede tener precio, y en la ficha aparece todo lo que el
+          jugador necesita para pagar y confirmar su lugar.
+        </p>
+        <ul class="lista">
+          <li><span class="marca-ok">·</span><span><b>Los importes</b>: la seña y la inscripción completa.</span></li>
+          <li><span class="marca-ok">·</span><span><b>El alias</b>, con un botón para copiarlo, y el titular de la cuenta para verificar antes de transferir.</span></li>
+          <li><span class="marca-ok">·</span><span><b>WhatsApp</b> con el mensaje ya escrito para mandar el comprobante.</span></li>
+          <li><span class="marca-ok">·</span><span>Puede <b>subir el comprobante</b> desde la app.</span></li>
+        </ul>
+        <p class="apagado" style="margin-top:16px">
+          Los datos bancarios se cargan una sola vez y valen para todos los
+          torneos. El organizador tiene un panel con lo recaudado, quién pagó,
+          quién señó y quién debe, con un botón para recordarle a los que faltan.
+        </p>
+      </div>
+      <figure>
+        <div class="celular"><img src="{{img:11-ficha-pago}}" alt="Ficha de un torneo con los datos de pago" /></div>
+        <figcaption>Ficha del torneo</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">Fase final</p>
+    <h2>Volvió el cuadro de la llave</h2>
+    <div class="par">
+      <div class="texto">
+        <p>
+          La llave se había convertido en pestañas separadas (Cuartos, Semis,
+          Final) y la gente no entendía hacia qué lado del cuadro avanzaba cada
+          pareja.
+        </p>
+        <p class="apagado">
+          Volvió el cuadro de siempre, con las ramas que conectan cada cruce. Se
+          desplaza de lado para verlo entero.
+        </p>
+      </div>
+      <figure>
+        <div class="ancha"><img src="{{img:08-llave-desktop}}" alt="Cuadro de la fase final con las ramas que conectan los cruces" /></div>
+        <figcaption>El cuadro completo, con sus ramas</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">Celular</p>
+    <h2>Toda la app revisada pantalla por pantalla</h2>
+    <p>
+      Se revisaron las 15 pantallas principales al tamaño real de un celular,
+      midiendo cada botón y cada bloque.
+    </p>
+    <div class="tabla-caja">
+      <table>
+        <thead>
+          <tr><th>Antes</th><th>Ahora</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Botones de distinto ancho, en escalera</td><td>Todos del mismo tamaño</td></tr>
+          <tr><td>Botones cortados en el borde de la pantalla</td><td>Ninguno se corta</td></tr>
+          <tr><td>Íconos aplastados junto a textos largos</td><td>Mantienen su forma</td></tr>
+          <tr><td>Texto encimado en la configuración de zonas</td><td>Cada cosa en su renglón</td></tr>
+          <tr><td>El menú «⋮» casi invisible</td><td>Botón «Más opciones», con borde y texto</td></tr>
+          <tr><td>140 botones chicos para el dedo</td><td>78 agrandados al mínimo recomendado</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="duo">
+      <figure>
+        <div class="celular"><img src="{{img:01-home-mobile}}" alt="Pantalla de inicio en un celular" /></div>
+        <figcaption>Inicio</figcaption>
+      </figure>
+      <figure>
+        <div class="celular"><img src="{{img:h1-programacion}}" alt="La planilla de horarios en un celular" /></div>
+        <figcaption>Horarios en el celular</figcaption>
+      </figure>
+    </div>
+    <div class="duo">
+      <figure>
+        <div class="celular"><img src="{{img:02-torneos-filtros}}" alt="Listado de torneos con los filtros arriba" /></div>
+        <figcaption>Filtros por ciudad, división y categoría</figcaption>
+      </figure>
+      <figure>
+        <div class="celular"><img src="{{img:05-dashboard}}" alt="Panel del organizador en un celular" /></div>
+        <figcaption>Panel del organizador</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="etiqueta">Parejas</p>
+    <h2>Tres problemas que eran uno solo</h2>
+    <p>
+      Un organizador reportó que no podía cargar una pareja. Al investigarlo,
+      resultaron ser tres cosas encadenadas:
+    </p>
+    <ul class="lista">
+      <li><span class="marca-ok">1</span><span><b>«La creé y no figura.»</b> Las parejas que no encajan por división desaparecían sin explicación. Ahora se listan aparte, con el motivo escrito.</span></li>
+      <li><span class="marca-ok">2</span><span><b>«La creo de nuevo y me da error.»</b> Salía una pantalla de error. Ahora avisa cuál es la pareja que ya existe.</span></li>
+      <li><span class="marca-ok">3</span><span><b>«Quiero borrarla y no puedo.»</b> El listado era sólo para administradores. Ahora los organizadores entran y pueden disolver una pareja mal cargada, sin perder el historial.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="etiqueta">Además</p>
+    <h2>Otras mejoras</h2>
+    <ul class="lista">
+      <li><span class="marca-ok">·</span><span><b>Recordatorios automáticos</b> a los jugadores 24 h y 2 h antes de cada partido.</span></li>
+      <li><span class="marca-ok">·</span><span><b>Placas para redes</b>: además de la del torneo, ahora hay de jugador y de resultado.</span></li>
+      <li><span class="marca-ok">·</span><span><b>Llaves oficiales</b> de la Federación Argentina de Pádel, de 6 a 48 parejas.</span></li>
+      <li><span class="marca-ok">·</span><span><b>El ícono de la app</b> dejó de tener el borde blanco en la pantalla de inicio del celular.</span></li>
+      <li><span class="marca-ok">·</span><span><b>Seguridad</b>: se corrigió que un organizador pudiera editar torneos de otro club, y se reforzó la protección de las cuentas.</span></li>
+    </ul>
+  </section>
+
+  <p class="cierre">
+    <strong>Cómo se verificó.</strong> Cada cambio corre contra la batería de
+    pruebas automáticas del proyecto. Las 15 pantallas principales se midieron al
+    tamaño real de un celular. La planilla en PDF se generó y se revisó hoja por
+    hoja. Los arreglos de seguridad tienen pruebas que fallan si el problema
+    vuelve a aparecer.
+  </p>
+
+</div>

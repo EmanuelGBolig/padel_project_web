@@ -4,27 +4,29 @@
     Programación - {{ torneo.nombre }}
 {% endblock head_title %}
 {% comment %}
-    Planilla de horarios del torneo. Se usa de dos formas:
+    Planilla de horarios. Es sobre todo un documento para imprimir y pegar en el
+    club, así que está armada como una tabla y no como tarjetas.
 
-    1. En pantalla, para que el jugador vea cuándo juega.
-    2. Impresa / guardada como PDF, que es lo que el organizador pega en el club.
+    Por qué tabla: la versión anterior era una fila flex por partido
+    (pareja | VS | pareja). El bloque del "VS" llevaba `w-full` y `shrink-0`, o
+    sea que reclamaba el 100% del ancho y encima tenía prohibido achicarse: se
+    comía la fila entera y aplastaba la columna de la derecha hasta 0px. En el
+    PDF salía media planilla —sólo una pareja por partido, y la otra recortada a
+    dos letras—. Una tabla no tiene ese problema: el navegador reparte el ancho
+    entre las columnas y nunca deja una en cero.
 
-    Por eso todo el estilo de impresión vive acá abajo en un `@media print`: la
-    versión de pantalla es oscura y con degradés, y en papel eso sale gris y gasta
-    tinta. Al imprimir se pasa a fondo blanco, texto negro y los partidos no se
-    cortan a la mitad entre página y página.
+    Además ocupaba 4 hojas para 30 partidos. Así entra en una.
 
-    El botón "Descargar PDF" es `window.print()`: en el diálogo de impresión, tanto
-    Chrome de escritorio como Safari/Chrome de celular ofrecen "Guardar como PDF".
-    Se resuelve del lado del navegador y no hace falta ninguna librería en el server.
+    El botón "Descargar PDF" es `window.print()`: tanto Chrome de escritorio como
+    Safari/Chrome de celular ofrecen "Guardar como PDF" en el diálogo. No hace
+    falta ninguna librería en el servidor.
 {% endcomment %}
 {% block content %}
-    <div class="container mx-auto px-4 py-8 max-w-4xl" id="planilla">
+    <div class="mx-auto max-w-4xl px-4 py-6" id="planilla">
+
         {% comment %} Barra de acciones: no va al papel. {% endcomment %}
-        <div class="barra-acciones flex items-center gap-2 mb-4 print:hidden">
-            <button type="button"
-                    onclick="window.print()"
-                    class="btn btn-primary gap-2">
+        <div class="barra-acciones flex items-center gap-2 mb-6 print:hidden">
+            <button type="button" onclick="window.print()" class="btn btn-primary gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5"
                      fill="none"
@@ -38,229 +40,203 @@
             <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-ghost">Volver al torneo</a>
         </div>
 
-        <div class="planilla-hoja bg-black rounded-3xl p-6 md:p-10 shadow-lg"
-             data-theme="business">
-            <!-- HEADER -->
-            <div class="mb-10">
-                <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN</h1>
-                <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ torneo.nombre }}</h2>
-                {% comment %} Sólo en papel: sin esto la hoja impresa no dice de qué torneo es. {% endcomment %}
-                <p class="hidden print:block planilla-subtitulo">
-                    {{ torneo.division.nombre|default:"Libre" }} · {{ torneo.get_categoria_display }}
-                    · desde el {{ torneo.fecha_inicio|date:"d/m/Y" }}
-                    {% if torneo.organizacion %}· {{ torneo.organizacion.nombre }}{% endif %}
-                </p>
-            </div>
-            <!-- FECHAS (LISTA AGRUPADA) -->
-            <div class="space-y-12 pb-4">
-                {% regroup partidos_con_fecha by fecha_hora|date:"Y-m-d H:i" as partidos_por_hora %}
-                {% for agrupacion in partidos_por_hora %}
-                    <div class="space-y-4 planilla-bloque">
-                        <!-- SEPARADOR DE FECHA/HORA -->
-                        <div class="flex items-center justify-center relative my-6">
-                            <!-- Línea horizontal de fondo verde muy sutil -->
-                            <div class="absolute inset-x-0 h-px bg-emerald-500/20"></div>
-                            <!-- Badge central -->
-                            <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
-                                <div class="bg-emerald-500 text-base-100 px-4 py-1.5 flex items-center justify-center leading-none">
-                                    {{ agrupacion.grouper|slice:"11:16" }} <!-- Extraer solo hora Ej: 09:00 -->
-                                </div>
-                                <div class="bg-white text-base-100 px-5 py-1.5 flex items-center justify-center leading-none">
-                                    {{ agrupacion.list.0.fecha_hora|date:"d/m/Y" }}
-                                </div>
-                            </div>
-                        </div>
-                        <!-- PARTIDOS DE ESA HORA -->
-                        <div class="grid gap-4">
-                            {% for partido in agrupacion.list %}
-                                <div class="planilla-partido bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30">
-                                    <!-- Equipo 1 -->
-                                    <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
-                                        {% if partido.equipo1 %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                {{ partido.equipo1.jugador1.full_name|default:"-" }}
-                                            </p>
-                                            <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                {{ partido.equipo1.jugador2.full_name|default:"-" }}
-                                            </p>
-                                        {% else %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">
-                                                {{ partido.placeholder_e1|default:"Por definir" }}
-                                            </p>
-                                            <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">-</p>
-                                        {% endif %}
-                                    </div>
-                                    <!-- VS Centro -->
-                                    <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
-                                        <span class="text-xs tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1">{{ torneo.division.nombre|default:"Libre" }} {{ partido.obj.get_categoria_display|default:torneo.get_categoria_display }}</span>
-                                        <div class="text-3xl font-black text-white px-2 tracking-widest drop-shadow-md">VS</div>
-                                        <span class="text-[0.65rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase">{{ partido.fase }}{% if partido.descripcion_partido %} - {{ partido.descripcion_partido }}{% endif %}</span>
-                                    </div>
-                                    <!-- Equipo 2 -->
-                                    <div class="flex-1 text-center md:text-right w-full space-y-1.5">
-                                        {% if partido.equipo2 %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                {{ partido.equipo2.jugador1.full_name|default:"-" }}
-                                            </p>
-                                            <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                {{ partido.equipo2.jugador2.full_name|default:"-" }}
-                                            </p>
-                                        {% else %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">
-                                                {{ partido.placeholder_e2|default:"Por definir" }}
-                                            </p>
-                                            <p class="text-[1.1rem] md:text-lg text-base-content/50 font-medium italic select-none">-</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="text-center py-10 opacity-70">
-                        <p>Aún no hay partidos con fecha y hora programada.</p>
-                    </div>
-                {% endfor %}
-                <!-- PARTIDOS POR DEFINIR (SIN FECHA) -->
-                {% if partidos_sin_fecha %}
-                    <div class="space-y-4 pt-10 planilla-bloque">
-                        <!-- SEPARADOR POR DEFINIR -->
-                        <div class="flex items-center justify-center relative my-6">
-                            <!-- Línea horizontal de fondo naranja muy sutil -->
-                            <div class="absolute inset-x-0 h-px bg-warning/20"></div>
-                            <!-- Badge central -->
-                            <div class="relative z-10 flex text-sm font-bold shadow-lg overflow-hidden rounded-full">
-                                <div class="bg-warning text-warning-content px-6 py-1.5 flex items-center justify-center leading-none uppercase tracking-wider">
-                                    Por definir
-                                </div>
-                            </div>
-                        </div>
-                        <!-- PARTIDOS SIN ESTABLECER HORA -->
-                        <div class="grid gap-4 opacity-80">
-                            {% for partido in partidos_sin_fecha %}
-                                <div class="planilla-partido bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30">
-                                    <!-- Equipo 1 -->
-                                    <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
-                                        {% if partido.equipo1 %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                {{ partido.equipo1.jugador1.full_name|default:"-" }}
-                                            </p>
-                                            <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                {{ partido.equipo1.jugador2.full_name|default:"-" }}
-                                            </p>
-                                        {% else %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content/40 font-medium italic select-none">
-                                                {{ partido.placeholder_e1|default:"Por definir" }}
-                                            </p>
-                                        {% endif %}
-                                    </div>
-                                    <!-- VS Centro -->
-                                    <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
-                                        <span class="text-xs tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1">{{ torneo.division.nombre|default:"Libre" }} {{ partido.obj.get_categoria_display|default:torneo.get_categoria_display }}</span>
-                                        <div class="text-3xl font-black text-white/50 px-2 tracking-widest">VS</div>
-                                        <span class="text-[0.65rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase">{{ partido.fase }}{% if partido.descripcion_partido %} - {{ partido.descripcion_partido }}{% endif %}</span>
-                                    </div>
-                                    <!-- Equipo 2 -->
-                                    <div class="flex-1 text-center md:text-right w-full space-y-1.5">
-                                        {% if partido.equipo2 %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content font-medium opacity-80 truncate">
-                                                {{ partido.equipo2.jugador1.full_name|default:"-" }}
-                                            </p>
-                                            <p class="text-[1.1rem] md:text-lg text-white font-bold truncate">
-                                                {{ partido.equipo2.jugador2.full_name|default:"-" }}
-                                            </p>
-                                        {% else %}
-                                            <p class="text-[1.1rem] md:text-lg text-base-content/40 font-medium italic select-none">
-                                                {{ partido.placeholder_e2|default:"Por definir" }}
-                                            </p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-            <p class="hidden print:block planilla-pie">
-                todopadel.club · generado el {% now "d/m/Y H:i" %}
+        <!-- ENCABEZADO -->
+        <header class="planilla-cabecera">
+            <h1>Programación</h1>
+            <h2>{{ torneo.nombre }}</h2>
+            <p class="planilla-sub">
+                {{ torneo.division.nombre|default:"Libre" }} · {{ torneo.get_categoria_display }}
+                {% if torneo.organizacion %} · {{ torneo.organizacion.nombre }}{% endif %}
             </p>
-        </div>
+        </header>
+
+        {% regroup partidos_con_fecha by fecha_hora|date:"Y-m-d" as partidos_por_dia %}
+        {% for dia in partidos_por_dia %}
+            <section class="planilla-dia">
+                <h3>{{ dia.list.0.fecha_hora|date:"l j \d\e F"|capfirst }}</h3>
+                <table class="planilla-tabla">
+                    <thead>
+                        <tr>
+                            <th class="col-hora">Hora</th>
+                            <th class="col-fase">Zona / Fase</th>
+                            <th>Pareja</th>
+                            <th>Pareja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for partido in dia.list %}
+                            <tr>
+                                <td class="col-hora">{{ partido.fecha_hora|date:"H:i" }}</td>
+                                <td class="col-fase">{{ partido.fase }}{% if partido.descripcion_partido %} · {{ partido.descripcion_partido }}{% endif %}</td>
+                                <td>
+                                    {% if partido.equipo1 %}
+                                        {{ partido.equipo1.jugador1.full_name|default:"—" }}<br />
+                                        {{ partido.equipo1.jugador2.full_name|default:"—" }}
+                                    {% else %}
+                                        <span class="pendiente">{{ partido.placeholder_e1|default:"Por definir" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if partido.equipo2 %}
+                                        {{ partido.equipo2.jugador1.full_name|default:"—" }}<br />
+                                        {{ partido.equipo2.jugador2.full_name|default:"—" }}
+                                    {% else %}
+                                        <span class="pendiente">{{ partido.placeholder_e2|default:"Por definir" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        {% empty %}
+            <p class="planilla-vacio">Todavía no hay partidos con día y hora asignados.</p>
+        {% endfor %}
+
+        {% if partidos_sin_fecha %}
+            <section class="planilla-dia">
+                <h3>Sin horario asignado</h3>
+                <table class="planilla-tabla">
+                    <thead>
+                        <tr>
+                            <th class="col-fase" colspan="2">Instancia</th>
+                            <th>Pareja</th>
+                            <th>Pareja</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for partido in partidos_sin_fecha %}
+                            <tr>
+                                <td class="col-fase" colspan="2">{{ partido.fase }}{% if partido.descripcion_partido %} · {{ partido.descripcion_partido }}{% endif %}</td>
+                                <td>
+                                    {% if partido.equipo1 %}
+                                        {{ partido.equipo1.jugador1.full_name|default:"—" }}<br />
+                                        {{ partido.equipo1.jugador2.full_name|default:"—" }}
+                                    {% else %}
+                                        <span class="pendiente">{{ partido.placeholder_e1|default:"Por definir" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if partido.equipo2 %}
+                                        {{ partido.equipo2.jugador1.full_name|default:"—" }}<br />
+                                        {{ partido.equipo2.jugador2.full_name|default:"—" }}
+                                    {% else %}
+                                        <span class="pendiente">{{ partido.placeholder_e2|default:"Por definir" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        {% endif %}
+
+        <p class="planilla-pie">todopadel.club · {% now "d/m/Y H:i" %}</p>
     </div>
 
     <style>
+    /* --- Pantalla ---------------------------------------------------------
+       Se ve igual que en papel a propósito: es la misma planilla, y así el
+       organizador sabe qué va a salir antes de imprimir. */
+    #planilla { color: inherit; }
+    .planilla-cabecera { margin-bottom: 28px; }
+    .planilla-cabecera h1 {
+        font-size: 15px; font-weight: 700; letter-spacing: .18em;
+        text-transform: uppercase; opacity: .55; margin: 0 0 6px;
+    }
+    .planilla-cabecera h2 {
+        font-size: 30px; font-weight: 800; letter-spacing: -.02em;
+        line-height: 1.1; margin: 0;
+    }
+    .planilla-sub { font-size: 15px; opacity: .6; margin: 8px 0 0; }
+
+    .planilla-dia { margin-bottom: 34px; }
+    .planilla-dia h3 {
+        font-size: 18px; font-weight: 700; margin: 0 0 10px;
+        padding-bottom: 6px; border-bottom: 2px solid currentColor;
+    }
+
+    .planilla-tabla { width: 100%; border-collapse: collapse; }
+    .planilla-tabla th {
+        text-align: left; font-size: 12px; font-weight: 700;
+        letter-spacing: .1em; text-transform: uppercase; opacity: .5;
+        padding: 6px 10px 6px 0; border-bottom: 1px solid currentColor;
+    }
+    .planilla-tabla td {
+        padding: 9px 10px 9px 0; font-size: 16px; line-height: 1.35;
+        border-bottom: 1px solid; border-color: color-mix(in oklab, currentColor 18%, transparent);
+        vertical-align: top;
+    }
+    .planilla-tabla .col-hora {
+        width: 4.5em; font-variant-numeric: tabular-nums; font-weight: 700;
+        white-space: nowrap;
+    }
+    .planilla-tabla .col-fase { width: 11.5em; font-size: 14px; opacity: .7; }
+    .planilla-tabla .pendiente { opacity: .45; font-style: italic; }
+    .planilla-vacio { opacity: .6; padding: 32px 0; }
+    .planilla-pie { font-size: 13px; opacity: .45; margin-top: 28px; }
+
+    /* En celular las cuatro columnas entran justas: se achica todo un punto y
+       se angostan hora y fase, que son las que menos texto tienen. Sigue siendo
+       una tabla —partirla en tarjetas haría perder la lectura por horario, que
+       es justo para lo que se mira desde el celular. */
+    @media (max-width: 639px) {
+        .planilla-tabla td { font-size: 14px; padding-right: 6px; }
+        .planilla-tabla th { font-size: 10px; padding-right: 6px; letter-spacing: .06em; }
+        .planilla-tabla .col-hora { width: 3.4em; }
+        .planilla-tabla .col-fase { width: 5.2em; font-size: 12px; }
+        .planilla-cabecera h2 { font-size: 24px; }
+    }
+
+    /* --- Papel ------------------------------------------------------------ */
     @media print {
-        /* A4 con margen chico: entran más partidos por hoja sin quedar apretado. */
-        @page { size: A4; margin: 12mm; }
-
-        /* La hoja va blanca. El tema oscuro en papel sale gris parejo y se come
-           un cartucho por planilla. */
-        html, body { background: #fff !important; }
+        @page { size: A4; margin: 14mm; }
+        /* `color-scheme: light` es imprescindible, no es cosmético: si el celular
+           está en modo oscuro, DaisyUI deja `color-scheme: dark` y Chrome pinta
+           de negro el lienzo de la hoja —o sea los 14mm de margen— y la planilla
+           sale con un marco negro alrededor. Con esto el papel es papel. */
+        html { color-scheme: light !important; }
+        html, body { background: #fff !important; color: #000 !important; }
         #planilla { max-width: none !important; padding: 0 !important; }
-        .planilla-hoja {
-            background: #fff !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-        }
-        .planilla-hoja h1 { color: #000 !important; font-size: 20pt !important; }
-        .planilla-hoja h2 { color: #333 !important; font-size: 12pt !important; }
-        .planilla-hoja .mb-10 { margin-bottom: 6mm !important; }
-        .planilla-subtitulo { color: #444; font-size: 9pt; margin-top: 2mm; }
 
-        /* Separador de horario: se imprime como una banda negra sólida, que es lo
-           que se busca de un vistazo cuando la planilla está pegada en la pared. */
-        .planilla-bloque .bg-emerald-500 {
-            background: #000 !important;
-            color: #fff !important;
-            font-size: 11pt !important;
-        }
-        .planilla-bloque .bg-white {
-            background: #fff !important;
+        /* Negro sobre blanco y nada más: sin fondos, sin sombras, sin colores.
+           La planilla se imprime en la impresora del club, muchas veces láser
+           en blanco y negro y con poco tóner. */
+        #planilla, #planilla * {
             color: #000 !important;
-            border: 1px solid #000;
-            font-size: 11pt !important;
-        }
-        .planilla-bloque .bg-warning {
-            background: #000 !important;
-            color: #fff !important;
-        }
-        .planilla-bloque .absolute { display: none !important; }
-        .planilla-bloque .shadow-lg { box-shadow: none !important; }
-        .planilla-bloque .my-6 { margin: 4mm 0 !important; }
-        .planilla-bloque .space-y-12 > * + * { margin-top: 6mm !important; }
-
-        /* Cada partido, una fila. Nunca partido a la mitad entre dos hojas. */
-        .planilla-partido {
-            background: #fff !important;
-            border: 1px solid #999 !important;
-            border-radius: 4px !important;
+            background: transparent !important;
             box-shadow: none !important;
-            padding: 2.5mm 3mm !important;
-            flex-direction: row !important;
-            break-inside: avoid;
-            page-break-inside: avoid;
         }
-        .planilla-partido p {
-            color: #000 !important;
-            opacity: 1 !important;
-            font-size: 10pt !important;
-            line-height: 1.25 !important;
-        }
-        .planilla-partido .text-3xl { font-size: 11pt !important; color: #000 !important; }
-        .planilla-partido span { color: #444 !important; }
-        .planilla-partido > div { margin-bottom: 0 !important; }
-        .planilla-partido .px-6 { padding: 0 4mm !important; }
-        .planilla-partido .flex-1 { text-align: left !important; }
-        .planilla-partido .flex-1:last-child { text-align: right !important; }
-        .grid.gap-4 { gap: 2mm !important; }
-        .opacity-80 { opacity: 1 !important; }
 
-        .planilla-pie {
-            margin-top: 6mm;
-            font-size: 8pt;
-            color: #777;
-            text-align: right;
+        .planilla-cabecera { margin-bottom: 8mm; }
+        .planilla-cabecera h1 { font-size: 10pt; }
+        .planilla-cabecera h2 { font-size: 18pt; }
+        .planilla-sub { font-size: 9.5pt; }
+
+        /* Un día no se corta a la mitad si entra entero en la hoja siguiente. */
+        .planilla-dia { margin-bottom: 7mm; break-inside: auto; }
+        .planilla-dia h3 {
+            font-size: 12pt; border-bottom: 1.5pt solid #000;
+            break-after: avoid; page-break-after: avoid;
         }
+
+        .planilla-tabla { font-size: 11pt; }
+        /* El encabezado de la tabla se repite en cada hoja: si la planilla pasa
+           de página, arriba sigue diciendo qué es cada columna. */
+        .planilla-tabla thead { display: table-header-group; }
+        .planilla-tabla tr { break-inside: avoid; page-break-inside: avoid; }
+        .planilla-tabla th {
+            font-size: 8.5pt; border-bottom: 1pt solid #000; opacity: 1;
+            padding: 1.5mm 2mm 1.5mm 0;
+        }
+        .planilla-tabla td {
+            font-size: 11pt; padding: 2mm 2mm 2mm 0;
+            border-bottom: .4pt solid #999 !important;
+        }
+        .planilla-tabla .col-fase { font-size: 9.5pt; opacity: 1; }
+        .planilla-tabla .pendiente { opacity: 1; }
+
+        .planilla-pie { font-size: 8pt; margin-top: 6mm; opacity: 1; }
     }
     </style>
 {% endblock content %}
