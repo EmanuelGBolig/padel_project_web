@@ -30,6 +30,10 @@ urlpatterns = [
     path('usuarios/merge/', views.MergeUserView.as_view(), name='merge_usuarios'),
     path('usuarios/duplicados/', views.PosiblesDuplicadosView.as_view(), name='duplicados'),
     path('push/subscribe/', views.PushSubscribeView.as_view(), name='push_subscribe'),
+    # Panel de notificaciones (la campanita del navbar)
+    path('notificaciones/', views.NotificacionListView.as_view(), name='notificaciones'),
+    path('notificaciones/<int:pk>/abrir/', views.NotificacionAbrirView.as_view(), name='notificacion_abrir'),
+    path('notificaciones/leer-todas/', views.NotificacionLeerTodasView.as_view(), name='notificaciones_leer_todas'),
     path('organizador/crear-jugador-dummy/', views.DummyUserCreateView.as_view(), name='crear_dummy_user'),
     
     # Rutas de recuperación de contraseña (Django Auth)

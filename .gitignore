@@ -58,3 +58,6 @@ simple_check.txt
 test_output.txt
 verify_output.txt
 divisions_debug.txt
+
+# Capturas temporales de verificacion (Playwright)
+scratch_*

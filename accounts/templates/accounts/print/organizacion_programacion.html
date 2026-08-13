@@ -159,7 +159,7 @@
                                     <td>
                                         <b>{{ partido.torneo_nombre }}</b>
                                         <span class="meta-info">{{ partido.division_nombre }} {{ partido.categoria_display }}</span>
-                                        <span class="meta-info">{{ partido.fase }} ({{ partido.descripcion_partido }})</span>
+                                        <span class="meta-info">{{ partido.fase }}{% if partido.descripcion_partido %} ({{ partido.descripcion_partido }}){% endif %}</span>
                                     </td>
                                     <td>
                                         {% if partido.equipo1 %}
@@ -207,7 +207,7 @@
                                 <td>
                                     <b>{{ partido.torneo_nombre }}</b>
                                     <span class="meta-info">{{ partido.division_nombre }} {{ partido.categoria_display }}</span>
-                                    <span class="meta-info">{{ partido.fase }} ({{ partido.descripcion_partido }})</span>
+                                    <span class="meta-info">{{ partido.fase }}{% if partido.descripcion_partido %} ({{ partido.descripcion_partido }}){% endif %}</span>
                                 </td>
                                 <td>
                                     {% if partido.equipo1 %}

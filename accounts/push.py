@@ -44,18 +44,56 @@ def _enviar_a_suscripcion(sub, payload_json):
         return False
 
 
-def send_push_to_users(users, *, title, body, url='/', tag=None):
+def guardar_en_panel(user_ids, *, title, body, url='/'):
+    """Deja la notificación guardada para la campanita del navbar.
+
+    Va aparte del envío push a propósito: el push puede no llegar nunca (celular
+    en silencio, permiso no otorgado, VAPID sin configurar) y aun así el usuario
+    tiene que poder entrar y ver qué pasó.
+    """
+    from .models import Notificacion
+
+    if not user_ids:
+        return
+    Notificacion.objects.bulk_create([
+        Notificacion(usuario_id=uid, titulo=title[:120], cuerpo=body or '', url=url or '/')
+        for uid in user_ids
+    ])
+    _invalidar_contador(user_ids)
+
+
+def _invalidar_contador(user_ids):
+    """El navbar cachea el contador 60s: al crear o leer una, hay que tirarlo."""
+    from django.core.cache import cache
+
+    cache.delete_many([f'notifications_count_{uid}' for uid in user_ids])
+
+
+def send_push_to_users(users, *, title, body, url='/', tag=None, guardar=True):
     """Envía una notificación a todos los dispositivos de `users` (en un hilo).
 
     `users` puede ser un queryset, lista de usuarios o de IDs.
-    No bloquea el request; si VAPID no está configurado, no hace nada.
-    """
-    if not push_activo():
-        return
+    No bloquea el request.
 
+    Además la **guarda** en el panel de notificaciones (salvo `guardar=False`).
+    Eso se hace antes de mirar si el push está activo, justamente para que el
+    historial exista incluso cuando VAPID no está configurado.
+    """
     from .models import PushSubscription
 
     user_ids = [getattr(u, 'id', u) for u in users]
+
+    if guardar:
+        try:
+            guardar_en_panel(user_ids, title=title, body=body, url=url)
+        except Exception:
+            # Un aviso no se puede llevar puesta la acción que lo disparó
+            # (aceptar una invitación, cargar un resultado…).
+            logger.exception("[push] No se pudo guardar la notificación en el panel")
+
+    if not push_activo():
+        return
+
     subs = list(PushSubscription.objects.filter(user_id__in=user_ids))
     if not subs:
         return

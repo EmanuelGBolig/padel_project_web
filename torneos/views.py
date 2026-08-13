@@ -2970,6 +2970,12 @@ class InscribirseSinCuentaView(FormView):
         self.torneo = get_object_or_404(Torneo, pk=self.kwargs['torneo_pk'])
         return super().dispatch(request, *args, **kwargs)
 
+    def get_template_names(self):
+        """Dentro del popup se devuelve sólo el formulario, sin el resto de la página."""
+        if self.request.headers.get('HX-Request'):
+            return ['torneos/partials/_form_sin_cuenta.html']
+        return [self.template_name]
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['torneo'] = self.torneo
@@ -3333,7 +3339,9 @@ class TorneoProgramacionView(DetailView):
                 'equipo1': pg.equipo1,
                 'equipo2': pg.equipo2,
                 'fase': pg.grupo.nombre,
-                'descripcion_partido': f"Partido de Grupo", # Se podría agregar orden si existiera
+                # El nombre de la zona ("Zona A") ya dice que es de grupos: repetir
+                # "Partido de Grupo" al lado sólo gastaba renglón en la planilla impresa.
+                'descripcion_partido': '',
                 'obj': pg
             })
 

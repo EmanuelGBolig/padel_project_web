@@ -352,6 +352,54 @@ class PushSubscription(models.Model):
         return f"Push de {self.user} ({self.endpoint[:40]}…)"
 
 
+class Notificacion(models.Model):
+    """Una notificación guardada, para el panel de la campanita.
+
+    Hasta ahora todo aviso era Web Push y nada más: si el celular estaba en
+    silencio, si el usuario descartaba el globito o si nunca dio permiso de
+    notificaciones, el aviso se perdía y no había dónde ir a buscarlo. Acá queda
+    guardado y el usuario lo puede abrir cuando quiera.
+
+    Se crea sola: `accounts.push.send_push_to_users` graba una por destinatario
+    antes de intentar el envío, así que **todo aviso de la app cae en el panel**
+    aunque las claves VAPID no estén configuradas o el push falle.
+    """
+    usuario = models.ForeignKey(
+        'accounts.CustomUser', on_delete=models.CASCADE, related_name='notificaciones'
+    )
+    titulo = models.CharField(max_length=120)
+    cuerpo = models.TextField(blank=True)
+    # A dónde lleva al tocarla. Siempre una ruta interna (arranca con "/").
+    url = models.CharField(max_length=300, default='/')
+    leida = models.BooleanField(default=False)
+    creada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creada']
+        indexes = [
+            # El contador del navbar filtra siempre por estos dos campos.
+            models.Index(fields=['usuario', 'leida'], name='notif_usuario_leida_idx'),
+        ]
+        verbose_name = "Notificación"
+        verbose_name_plural = "Notificaciones"
+
+    def __str__(self):
+        return f"{self.titulo} → {self.usuario}"
+
+    @property
+    def destino_seguro(self):
+        """La URL a la que redirigir, validada.
+
+        Las notificaciones las arma el código de la app, no el usuario, pero el
+        redirect igual se limita a rutas internas: si mañana algún dato de un
+        formulario termina acá, no queremos un open redirect.
+        """
+        destino = (self.url or '/').strip()
+        if not destino.startswith('/') or destino.startswith('//'):
+            return '/'
+        return destino
+
+
 class MergeAuditLog(models.Model):
     """Registro de fusiones de cuentas (TP-21 seguridad). Quién fusionó qué y cuándo."""
     actor = models.ForeignKey(

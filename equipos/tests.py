@@ -159,3 +159,65 @@ class GestionParejasOrganizadorTests(TestCase):
         self.assertTrue(
             self.equipo.esta_activo,
             "Se disolvio una pareja que esta jugando un torneo")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class InvitacionSinRecargarTests(TestCase):
+    """Aceptar o rechazar cambia una cajita, no puede recargar el perfil entero."""
+
+    def setUp(self):
+        from .models import Invitation
+
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.a = User.objects.create_user(
+            email="a@t.com", password="x", nombre="Ana", apellido="A",
+            genero="F", division=self.division)
+        self.b = User.objects.create_user(
+            email="b@t.com", password="x", nombre="Beto", apellido="B",
+            genero="M", division=self.division)
+        self.inv = Invitation.objects.create(inviter=self.a, invited=self.b)
+
+    def test_aceptar_con_htmx_devuelve_fragmento(self):
+        from .models import Invitation
+
+        self.client.force_login(self.b)
+        r = self.client.post(
+            reverse("equipos:aceptar_invitacion", kwargs={"pk": self.inv.pk}),
+            HTTP_HX_REQUEST="true")
+
+        self.assertEqual(r.status_code, 200, "Con htmx no debe redirigir")
+        html = r.content.decode()
+        self.assertIn("Ya tenés equipo", html)
+        # Fragmento, no página entera: no puede venir el <html> del base.
+        self.assertNotIn("<!DOCTYPE", html.upper())
+        self.inv.refresh_from_db()
+        self.assertEqual(self.inv.status, Invitation.Status.ACCEPTED)
+
+    def test_rechazar_con_htmx_devuelve_fragmento(self):
+        from .models import Invitation
+
+        self.client.force_login(self.b)
+        r = self.client.post(
+            reverse("equipos:rechazar_invitacion", kwargs={"pk": self.inv.pk}),
+            HTTP_HX_REQUEST="true")
+
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("rechazada", r.content.decode())
+        self.inv.refresh_from_db()
+        self.assertEqual(self.inv.status, Invitation.Status.REJECTED)
+
+    def test_sin_htmx_sigue_redirigiendo(self):
+        # Si el navegador no ejecuta JS, el submit normal tiene que seguir andando.
+        self.client.force_login(self.b)
+        r = self.client.post(
+            reverse("equipos:rechazar_invitacion", kwargs={"pk": self.inv.pk}))
+        self.assertEqual(r.status_code, 302)
+
+    def test_los_dos_botones_ocupan_lo_mismo(self):
+        # El "Rechazar" se salía de la caja en mobile porque los botones estaban
+        # en un flex al lado del nombre. Ahora van en dos columnas iguales.
+        self.client.force_login(self.b)
+        html = self.client.get(reverse("accounts:perfil")).content.decode()
+        self.assertIn('grid grid-cols-2 gap-2', html)
+        self.assertIn('btn btn-sm btn-success w-full', html)
+        self.assertIn('btn btn-sm btn-error btn-outline w-full', html)

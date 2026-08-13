@@ -501,35 +501,57 @@ class OrganizacionProgramacionView(DetailView):
         organizacion = self.object
 
         from torneos.models import Torneo, PartidoGrupo, Partido
-        from django.db.models import Min
+        from django.db.models import Min, Q
+        from django.db.models.functions import TruncDate
 
         # 1. Obtener torneos base (que tengan fecha de inicio)
         torneos_base = organizacion.torneos.exclude(fecha_inicio__isnull=True).order_by('-fecha_inicio')
-        
-        # 2. Obtener fechas únicas disponibles (agrupadas por día)
-        # Convertimos las fechas a un formato de lista para el dropdown
-        fechas_unicas = torneos_base.values_list('fecha_inicio', flat=True).distinct().order_by('-fecha_inicio')
-        
+
+        # 2. Días en los que realmente se juega.
+        #
+        #    Antes esta lista salía de `fecha_inicio` de cada torneo. Con torneos
+        #    de un día solo funcionaba de casualidad; con uno de sábado y domingo,
+        #    el domingo NO aparecía en el selector (no es fecha de inicio de nada)
+        #    y al elegir el sábado salían impresos los partidos de los dos días
+        #    mezclados. Ahora las fechas salen de los partidos, que es lo que el
+        #    organizador está buscando cuando abre esta pantalla.
+        dias_partidos = set()
+        for qs, campo in (
+            (PartidoGrupo.objects.filter(grupo__torneo__in=torneos_base), 'fecha_hora'),
+            (Partido.objects.filter(torneo__in=torneos_base), 'fecha_hora'),
+        ):
+            dias_partidos.update(
+                qs.exclude(**{f'{campo}__isnull': True})
+                  .annotate(dia=TruncDate(campo))
+                  .values_list('dia', flat=True)
+                  .distinct()
+            )
+        # Si todavía no se programó ningún partido, al menos ofrecer los inicios
+        # de torneo para que el selector no aparezca vacío.
+        if not dias_partidos:
+            dias_partidos = set(torneos_base.values_list('fecha_inicio', flat=True))
+        fechas_unicas = sorted((d for d in dias_partidos if d), reverse=True)
+
         # 3. Determinar qué fecha estamos viendo
         fecha_seleccionada_str = self.request.GET.get('fecha')
         fecha_seleccionada = None
-        
+
         if fecha_seleccionada_str:
             import datetime
             try:
                 fecha_seleccionada = datetime.datetime.strptime(fecha_seleccionada_str, "%Y-%m-%d").date()
             except ValueError:
                 pass
-                
+
         # Si no hay fecha en GET o es inválida, intentar mostrar:
         # A) La fecha de los torneos activos actualmente
         # B) Si no hay activos, la fecha más reciente (el último finde que hubo torneos)
         if not fecha_seleccionada:
             activos = torneos_base.filter(estado__in=[Torneo.Estado.ABIERTO, Torneo.Estado.EN_JUEGO]).first()
-            if activos:
+            if activos and activos.fecha_inicio in dias_partidos:
                 fecha_seleccionada = activos.fecha_inicio
-            elif fechas_unicas.exists():
-                fecha_seleccionada = fechas_unicas.first()
+            elif fechas_unicas:
+                fecha_seleccionada = fechas_unicas[0]
 
         context['fechas_disponibles'] = fechas_unicas
         context['fecha_seleccionada'] = fecha_seleccionada
@@ -540,15 +562,15 @@ class OrganizacionProgramacionView(DetailView):
             context['partidos_sin_fecha'] = []
             return context
 
-        # 4. Filtrar torneos que coincidan EXACTAMENTE con esa fecha de inicio
-        # Esto asume que todos los torneos del finde arrancan el mismo día. 
-        # (Si pueden variar 1 o 2 días, la lógica sería un "rango").
+        # 4. Los partidos del día elegido, filtrados por la fecha DEL PARTIDO.
+        #    Los "sin fecha" siguen saliendo de los torneos que arrancan ese día,
+        #    porque no tienen fecha propia con la cual ubicarlos.
         torneos_bloque = torneos_base.filter(fecha_inicio=fecha_seleccionada)
         context['torneos_bloque'] = torneos_bloque
 
-        # 5. Obtener los partidos SOLO de esos torneos
         partidos_grupo = PartidoGrupo.objects.filter(
-            grupo__torneo__in=torneos_bloque
+            Q(grupo__torneo__in=torneos_base, fecha_hora__date=fecha_seleccionada)
+            | Q(grupo__torneo__in=torneos_bloque, fecha_hora__isnull=True)
         ).select_related(
             'equipo1__jugador1', 'equipo1__jugador2',
             'equipo2__jugador1', 'equipo2__jugador2',
@@ -556,7 +578,8 @@ class OrganizacionProgramacionView(DetailView):
         )
 
         partidos_bracket = Partido.objects.filter(
-            torneo__in=torneos_bloque
+            Q(torneo__in=torneos_base, fecha_hora__date=fecha_seleccionada)
+            | Q(torneo__in=torneos_bloque, fecha_hora__isnull=True)
         ).select_related(
             'equipo1__jugador1', 'equipo1__jugador2',
             'equipo2__jugador1', 'equipo2__jugador2',
@@ -573,7 +596,9 @@ class OrganizacionProgramacionView(DetailView):
                 'equipo1': pg.equipo1,
                 'equipo2': pg.equipo2,
                 'fase': pg.grupo.nombre,
-                'descripcion_partido': "Partido de Grupo",
+                # El nombre de la zona ya dice que es fase de grupos; repetirlo
+                # al lado ("Zona A (Partido de Grupo)") sólo confundía en la planilla.
+                'descripcion_partido': '',
                 'torneo_nombre': pg.grupo.torneo.nombre,
                 'torneo_pk': pg.grupo.torneo.pk,
                 'division_nombre': pg.grupo.torneo.division.nombre if pg.grupo.torneo.division else "Libre",
@@ -914,3 +939,58 @@ class CambiarPasswordObligatorioView(LoginRequiredMixin, FormView):
         update_session_auth_hash(self.request, usuario)
         messages.success(self.request, "¡Listo! Ya podés usar tu cuenta.")
         return super().form_valid(form)
+
+
+# --- Panel de notificaciones -------------------------------------------------
+#
+# Las notificaciones se guardan solas: `accounts.push.send_push_to_users` crea una
+# `Notificacion` por destinatario antes de intentar el envío Web Push. Estas vistas
+# son sólo la parte que mira el usuario.
+
+from django.shortcuts import get_object_or_404  # noqa: E402
+from django.views import View  # noqa: E402
+
+
+class NotificacionListView(LoginRequiredMixin, ListView):
+    """Historial de avisos del usuario. Cada uno linkea a donde pasó la cosa."""
+    template_name = 'accounts/notificaciones.html'
+    context_object_name = 'notificaciones'
+    paginate_by = 30
+
+    def get_queryset(self):
+        from .models import Notificacion
+        return Notificacion.objects.filter(usuario=self.request.user)
+
+
+class NotificacionAbrirView(LoginRequiredMixin, View):
+    """Marca la notificación como leída y manda a su destino.
+
+    Es un GET porque se llega tocando el ítem de la lista. No cambia nada del
+    dominio: sólo el flag de leída del propio usuario.
+    """
+
+    def get(self, request, pk):
+        from .models import Notificacion
+        from .push import _invalidar_contador
+
+        notif = get_object_or_404(Notificacion, pk=pk, usuario=request.user)
+        if not notif.leida:
+            notif.leida = True
+            notif.save(update_fields=['leida'])
+            _invalidar_contador([request.user.id])
+        return redirect(notif.destino_seguro)
+
+
+class NotificacionLeerTodasView(LoginRequiredMixin, View):
+    def post(self, request):
+        from .models import Notificacion
+        from .push import _invalidar_contador
+
+        Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
+        _invalidar_contador([request.user.id])
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            resp = HttpResponse(status=204)
+            resp['HX-Refresh'] = 'true'
+            return resp
+        return redirect('accounts:notificaciones')

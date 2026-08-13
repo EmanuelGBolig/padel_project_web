@@ -16,7 +16,7 @@ la llave de la fase final siguiendo los **cuadros oficiales de la Federación Ar
 | Se inscribe a torneos de su división | Arma las zonas automáticamente al iniciar el torneo |
 | Sigue los resultados y la llave en vivo | Carga resultados set por set (con W.O. y abandono) |
 | Ve su historial, estadísticas y ranking | Genera la fase eliminatoria con la llave oficial FAP |
-| Recibe notificaciones push de nuevos torneos | Programa horarios y canchas de cada partido |
+| Recibe notificaciones push y las revisa después en el panel de la campanita | Programa horarios y descarga la planilla en PDF para imprimir |
 | Comparte placas de resultados para redes | Diseña formatos propios y define los cruces a mano |
 | Instala la app en el celular (PWA) | Ve métricas en el panel del organizador |
 

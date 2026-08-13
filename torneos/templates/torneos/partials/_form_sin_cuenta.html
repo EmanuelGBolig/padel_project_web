@@ -1,0 +1,216 @@
+{% comment %}
+    Formulario de inscripción sin cuenta, en DOS pasos.
+
+    Antes era una sola columna larguísima: ocho campos seguidos que en un celular
+    obligan a scrollear todo el tiempo y no dejan ver dónde termina. Ahora se
+    parte en "tus datos" y "los de tu compañero/a", con un solo grupo visible por
+    vez. Es el mismo <form> y el mismo POST: los pasos son visuales, así que si
+    el navegador no ejecuta el JS se ve todo junto y funciona igual.
+
+    Sirve tanto suelto (la página) como dentro del popup del torneo.
+{% endcomment %}
+<div class="p-5 md:p-6">
+
+    <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+            <h2 class="text-xl font-bold leading-tight">Anotate en {{ torneo.nombre }}</h2>
+            <p class="text-xs text-base-content/60 mt-0.5">
+                {{ torneo.division.nombre|default:"Libre" }} · {{ torneo.get_categoria_display }}
+                · {{ torneo.fecha_inicio|date:"d/m/Y" }}
+            </p>
+        </div>
+        <form method="dialog" class="shrink-0">
+            <button class="btn btn-sm btn-circle btn-ghost" aria-label="Cerrar">✕</button>
+        </form>
+    </div>
+
+    {% if torneo.requiere_pago %}
+        <div class="mt-3 flex flex-wrap gap-2 text-sm">
+            {% if torneo.senia %}
+                <span class="badge badge-lg badge-ghost">Seña ${{ torneo.senia|floatformat:0 }}</span>
+            {% endif %}
+            <span class="badge badge-lg badge-primary">Inscripción ${{ torneo.precio_inscripcion|floatformat:0 }}</span>
+        </div>
+    {% endif %}
+
+    {# Indicador de avance: dos pasos, uno visible por vez. #}
+    <div class="flex items-center gap-2 mt-4 mb-1" id="alta-progreso">
+        <span class="paso-punto activo" data-punto="1"></span>
+        <span class="paso-punto" data-punto="2"></span>
+        <span class="text-xs opacity-60 ml-1" id="alta-progreso-txt">Paso 1 de 2 · Tus datos</span>
+    </div>
+
+    <form method="post"
+          action="{% url 'torneos:inscribirse_sin_cuenta' torneo.pk %}"
+          id="alta-form"
+          class="space-y-4 mt-3">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-error text-sm" role="alert">
+                {% for e in form.non_field_errors %}<span>{{ e }}</span>{% endfor %}
+            </div>
+        {% endif %}
+
+        {# ---------------- PASO 1 ---------------- #}
+        <div class="alta-paso" data-paso="1">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-control">
+                    <label class="label py-1" for="{{ form.nombre.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.nombre.label }}</span>
+                    </label>
+                    {{ form.nombre }}
+                    {% for e in form.nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                </div>
+                <div class="form-control">
+                    <label class="label py-1" for="{{ form.apellido.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.apellido.label }}</span>
+                    </label>
+                    {{ form.apellido }}
+                    {% for e in form.apellido.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                </div>
+            </div>
+
+            <div class="form-control mt-3">
+                <label class="label py-1" for="{{ form.email.id_for_label }}">
+                    <span class="label-text font-medium">{{ form.email.label }}</span>
+                </label>
+                {{ form.email }}
+                <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.email.help_text }}</span>
+                {% for e in form.email.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+            </div>
+
+            <div class="form-control mt-3">
+                <label class="label py-1" for="{{ form.telefono.id_for_label }}">
+                    <span class="label-text font-medium">{{ form.telefono.label }}</span>
+                </label>
+                {{ form.telefono }}
+                {% for e in form.telefono.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+            </div>
+
+            <button type="button" id="alta-siguiente"
+                    class="btn btn-primary btn-lg w-full mt-5">
+                Cargar mi compañero/a →
+            </button>
+        </div>
+
+        {# ---------------- PASO 2 ---------------- #}
+        <div class="alta-paso hidden" data-paso="2">
+            <div class="form-control mb-3">
+                <span class="label-text font-medium mb-2 block">{{ form.companero_tiene_cuenta.label }}</span>
+                <div class="flex flex-col gap-1">
+                    {% for opcion in form.companero_tiene_cuenta %}
+                        <label class="label cursor-pointer justify-start gap-3 py-1">
+                            {{ opcion.tag }}
+                            <span class="label-text">{{ opcion.choice_label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-control">
+                    <label class="label py-1" for="{{ form.companero_nombre.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.companero_nombre.label }}</span>
+                    </label>
+                    {{ form.companero_nombre }}
+                    {% for e in form.companero_nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                </div>
+                <div class="form-control">
+                    <label class="label py-1" for="{{ form.companero_apellido.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.companero_apellido.label }}</span>
+                    </label>
+                    {{ form.companero_apellido }}
+                    {% for e in form.companero_apellido.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                </div>
+            </div>
+
+            <div class="form-control mt-3">
+                <label class="label py-1" for="{{ form.companero_telefono.id_for_label }}">
+                    <span class="label-text font-medium">{{ form.companero_telefono.label }}</span>
+                </label>
+                {{ form.companero_telefono }}
+                <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_telefono.help_text }}</span>
+                {% for e in form.companero_telefono.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+            </div>
+
+            <div class="form-control mt-3">
+                <label class="label py-1" for="{{ form.companero_email.id_for_label }}">
+                    <span class="label-text font-medium">{{ form.companero_email.label }}</span>
+                </label>
+                {{ form.companero_email }}
+                <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_email.help_text }}</span>
+                {% for e in form.companero_email.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+            </div>
+
+            <div class="form-control mt-3">
+                <label class="label py-1" for="{{ form.division.id_for_label }}">
+                    <span class="label-text font-medium">{{ form.division.label }}</span>
+                </label>
+                {{ form.division }}
+            </div>
+
+            <div class="flex flex-col gap-2 mt-5">
+                <button type="submit" class="btn btn-success btn-lg text-white">
+                    {% if torneo.requiere_pago %}Finalizar y pagar{% else %}Finalizar inscripción{% endif %}
+                </button>
+                <button type="button" id="alta-volver" class="btn btn-ghost btn-sm">
+                    ← Volver a mis datos
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <p class="text-xs opacity-50 mt-4">
+        Si tu compañero/a ya está en TodoPadel (o el organizador ya lo cargó), usamos
+        su cuenta de siempre con todo su historial. No creamos una repetida.
+    </p>
+</div>
+
+<style>
+    .paso-punto {
+        width: 26px; height: 4px; border-radius: 999px;
+        background: oklch(var(--bc) / .18); transition: background .2s;
+    }
+    .paso-punto.activo { background: oklch(var(--p)); }
+</style>
+
+<script>
+(function () {
+    var form = document.getElementById('alta-form');
+    if (!form || form.dataset.listo) return;
+    form.dataset.listo = '1';
+
+    var pasos = form.querySelectorAll('.alta-paso');
+    var puntos = document.querySelectorAll('#alta-progreso .paso-punto');
+    var txt = document.getElementById('alta-progreso-txt');
+    var ROTULOS = {1: 'Paso 1 de 2 · Tus datos', 2: 'Paso 2 de 2 · Tu compañero/a'};
+
+    function mostrar(n) {
+        pasos.forEach(function (p) {
+            p.classList.toggle('hidden', p.dataset.paso !== String(n));
+        });
+        puntos.forEach(function (p) {
+            p.classList.toggle('activo', Number(p.dataset.punto) <= n);
+        });
+        if (txt) txt.textContent = ROTULOS[n];
+        var caja = form.closest('.modal-box') || window;
+        if (caja.scrollTo) caja.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    document.getElementById('alta-siguiente').addEventListener('click', function () {
+        // Validamos el paso 1 antes de avanzar: si el navegador ya sabe que un
+        // campo está mal, mejor decirlo acá que después de cargar todo.
+        var faltan = [...form.querySelectorAll('.alta-paso[data-paso="1"] input')]
+            .filter(function (i) { return !i.checkValidity(); });
+        if (faltan.length) { faltan[0].reportValidity(); return; }
+        mostrar(2);
+    });
+
+    document.getElementById('alta-volver').addEventListener('click', function () { mostrar(1); });
+
+    // Si el servidor devolvió errores del compañero, abrimos directo el paso 2.
+    var hayErrorEn2 = form.querySelector('.alta-paso[data-paso="2"] .text-error');
+    mostrar(hayErrorEn2 ? 2 : 1);
+})();
+</script>

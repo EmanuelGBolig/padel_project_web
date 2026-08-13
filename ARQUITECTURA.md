@@ -107,6 +107,7 @@ erDiagram
     CustomUser ||--o| Organizacion : "receptor_notificaciones"
 
     CustomUser ||--o{ PushSubscription : "push_subscriptions CASCADE"
+    CustomUser ||--o{ Notificacion : "notificaciones CASCADE"
     CustomUser ||--o{ MergeAuditLog : "actor/target SET_NULL"
     CustomUser ||--o| CustomUser : "merged_into SET_NULL"
     CustomUser ||--o{ Equipo : "jugador1/jugador2 CASCADE"
@@ -260,6 +261,24 @@ Suscripción Web Push por dispositivo. Un usuario puede tener varias; el docstri
 | `created_at` | `DateTimeField` | `auto_now_add=True` |
 
 - **Meta**: `verbose_name="Suscripción push"` / plural.
+
+#### `Notificacion` — `accounts/models.py`
+
+Aviso guardado para el panel de la campanita. Se crea sola desde
+`accounts.push.send_push_to_users`, así que **todo aviso de la app cae acá** aunque el push
+nunca llegue. Ver el detalle de flujo en «Subsistema de cuentas §8.1».
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `usuario` | FK → `CustomUser` | `CASCADE`, `related_name='notificaciones'` |
+| `titulo` | `CharField(120)` | |
+| `cuerpo` | `TextField` | `blank` |
+| `url` | `CharField(300)` | default `/`; a dónde lleva al tocarla |
+| `leida` | `BooleanField` | `default=False` |
+| `creada` | `DateTimeField` | `auto_now_add=True` |
+
+- **Meta**: `ordering=['-creada']`, índice `notif_usuario_leida_idx` sobre `(usuario, leida)`.
+- **Propiedad** `destino_seguro`: la `url` sólo si es una ruta interna (`/…`, y no `//…`); si no, `/`.
 
 #### `MergeAuditLog` — `accounts/models.py:298` (TP-21)
 
@@ -857,7 +876,7 @@ Se consume desde `PreviewEstructuraView` (`views.py:1592-1612`) por `GET /torneo
 | `TorneoPorCiudadView` (`views.py:1984`) | `ciudad` | `/torneos/ciudad/<ciudad>/` | `ListView`, público | SEO local (TP-14): `ciudad__iexact` |
 | `MisTorneosView` (`views.py:2575`) | `mis_torneos` | `/torneos/mis-torneos/` | `TemplateView` + `PlayerRequiredMixin` | Agrupa las inscripciones del usuario en abiertos/en juego/finalizados |
 | `TorneoDetailView` (`views.py:1832`) | `detail` | `/torneos/<pk>/` | `DetailView`, público | Ficha completa: zonas + tablas, cuadro, `puede_inscribirse`, "Mis partidos" (pendientes/jugados), `share_url` y `placa_url` |
-| `TorneoProgramacionView` (`views.py:2610`) | `programacion` | `/torneos/<pk>/programacion/` | `DetailView`, público | Fixture unificado (zonas + bracket) partido en `partidos_con_fecha` (ordenados cronológicamente) y `partidos_sin_fecha` |
+| `TorneoProgramacionView` (`views.py:2610`) | `programacion` | `/torneos/<pk>/programacion/` | `DetailView`, público | Fixture unificado (zonas + bracket) partido en `partidos_con_fecha` (ordenados cronológicamente) y `partidos_sin_fecha`. El template trae **botón «Descargar PDF»** (`window.print()`) y hoja `@media print` propia: fondo blanco, una fila por partido y `break-inside: avoid`. |
 | `TorneoVivoView` (`views.py:2004`) | `vivo` | `/torneos/<pk>/vivo/` | `DetailView`, público | Scoreboard para TV con auto-refresh (TP-13) |
 | `PlacaView` (`views.py:1435`) | `placa` / `placa_app` | `/torneos/<pk>/placa/`, `/torneos/placa/` | `TemplateView`, **público, sin login** | Placa 9:16 para redes. `?tipo=anuncio|campeones|vivo|app`; si no se pasa, se deduce del estado (`AB→anuncio`, `EJ→vivo`, `FN→campeones`). `_featured_match` elige el partido destacado |
 | `CircuitoListView` (`views.py:2030`) | `circuito_list` | `/torneos/circuitos/` | `ListView`, público | Circuitos con `activo=True` |
@@ -1272,6 +1291,13 @@ cerrar el modal y mostrar el aviso.
 | Reemplazar parejas de un partido | Sólo esa zona / la llave |
 | Reemplazar pareja en todo el torneo | **Recarga**: cambia zonas y llave a la vez |
 | Intercambiar parejas entre zonas | **Recarga**: toca dos zonas, no una |
+| Aceptar / rechazar invitación de pareja | Sólo esa cajita (`equipos/partials/_invitacion_resuelta.html`) |
+
+Las invitaciones de pareja siguen el mismo criterio: los dos botones llevan
+`hx-post` + `hx-swap="outerHTML"` sobre `#invitacion-<pk>`, y las vistas
+`AceptarInvitacionView` / `RechazarInvitacionView` devuelven el parcial cuando
+llega `HX-Request` (helper `_respuesta_invitacion`, `equipos/views.py`). Sin htmx
+el `<form>` hace el POST de siempre y la vista redirige como antes.
 
 Los parciales son `torneos/templates/torneos/partials/_grupo_panel.html` y
 `_bracket.html`. La llave se refresca entera y no una tarjeta suelta porque al
@@ -1288,7 +1314,7 @@ App transversal del proyecto. Define el modelo de usuario (`AUTH_USER_MODEL = 'a
 
 ```
 accounts/
-├── models.py          (323)  CustomUser, Division, Organizacion, Sponsor, PushSubscription, MergeAuditLog
+├── models.py          (368)  CustomUser, Division, Organizacion, Sponsor, PushSubscription, Notificacion, MergeAuditLog
 ├── views.py           (869)  login/registro/perfil/rankings/organización/merge/push
 ├── forms.py           (383)  registro, perfil, login, dummy, merge, organización, sponsor
 ├── utils.py           (851)  rankings, stats, logros, completitud, dedupe, merge, mails
@@ -1331,6 +1357,7 @@ Propiedades: `full_name` (línea 179-181), `telefono_numero` (solo dígitos, par
 | `Organizacion` | `models.py:213-252` | `nombre`/`alias` únicos, `descripcion`, `ciudad`, `direccion`, `latitud`/`longitud`, `logo`, `receptor_notificaciones` (FK limitada a `tipo_usuario='ORGANIZER'`), `whatsapp` con `RegexValidator(r'^\+?\d{8,15}$')`. Propiedad `whatsapp_numero` → solo dígitos. |
 | `Sponsor` | `models.py:255-272` | FK a `Organizacion` (**nullable**), `nombre`, `imagen`, `link`, `orden`; `Meta.ordering = ['orden']`. |
 | `PushSubscription` | `models.py:275-295` | FK user (`related_name='push_subscriptions'`), `endpoint` **unique**, `p256dh`, `auth`, `user_agent`, `created_at`. Varias por usuario (celu + compu). |
+| `Notificacion` | `models.py` | FK `usuario` (`related_name='notificaciones'`), `titulo`, `cuerpo`, `url`, `leida`, `creada`. Índice en `(usuario, leida)`. Es el historial de la campanita. |
 | `MergeAuditLog` | `models.py:298-323` | Auditoría de fusiones (TP-21): `actor`, `actor_email`, `source_id/email/nombre`, `source_was_dummy`, `target`, `target_email/nombre`, `created_at`. Ordenado `-created_at`. |
 
 ---
@@ -1535,7 +1562,7 @@ Rutas explícitas con las vistas nativas de Django para fijar el namespace (`acc
 |---|---|---|
 | `OrganizacionListView` | `/accounts/organizadores/` | listado público ordenado por nombre (`views.py:451-455`) |
 | `OrganizacionDetailView` | `/accounts/organizador/<pk>/` | micrositio público: sponsors ordenados, torneos activos (`AB`,`EJ`), historial (`FN`, primeros 5 + flag `has_more_historial`), miembros `tipo_usuario='ORGANIZER'` y jugadores dummy (`views.py:458-490`) |
-| `OrganizacionProgramacionView` | `/accounts/organizador/<pk>/programacion/` | grilla de partidos de todos los torneos de la org que comparten `fecha_inicio`; selector `?fecha=YYYY-MM-DD`, fallback a torneos activos y luego a la fecha más reciente; mezcla `PartidoGrupo` + `Partido` en dicts normalizados y separa `partidos_con_fecha` (ordenados por hora) de `partidos_sin_fecha` (`views.py:493-611`) |
+| `OrganizacionProgramacionView` | `/accounts/organizador/<pk>/programacion/` | grilla de partidos de la org **por día jugado**. El selector `?fecha=YYYY-MM-DD` se arma con `TruncDate` sobre las fechas de los partidos, no con `fecha_inicio` de los torneos: un torneo de sábado y domingo antes tenía una sola entrada (el sábado) y al elegirla imprimía los dos días juntos. Los partidos **sin** hora siguen colgando del torneo que arranca ese día, porque no tienen fecha propia. Mezcla `PartidoGrupo` + `Partido` en dicts normalizados y separa `partidos_con_fecha` de `partidos_sin_fecha`. Regresión cubierta por `accounts.tests.ProgramacionOrganizacionFechasTests`. |
 | `OrganizacionProgramacionPrintView` | `…/programacion/imprimir/` | misma lógica, template B/N minimalista `accounts/print/organizacion_programacion.html` (`views.py:613-619`) |
 | `OrganizacionSettingsView` | `/accounts/organizacion/ajustes/` | edita **la organización del usuario logueado** (`get_object` → `user.organizacion`, Http404 si no tiene). `OrganizacionForm` filtra `receptor_notificaciones` a los `ORGANIZER` de esa misma org (`forms.py:290-295`) |
 | `OrganizacionSponsorsView` | `/accounts/organizacion/sponsors/` | CreateView que asigna `form.instance.organizacion = user.organizacion` y lista los existentes (`views.py:643-665`) |
@@ -1584,7 +1611,9 @@ Muestra **una división por vez**. División: `?division=<id>`, si no la del usu
 3. `PushSubscribeView` (`views.py:760-796`, solo POST): parsea JSON (400 si es inválido), exige `endpoint` y `keys.p256dh`/`keys.auth`, y hace `update_or_create` por endpoint guardando user + `HTTP_USER_AGENT[:255]`. Re-suscribir el mismo endpoint no duplica (test `accounts/tests.py:493-506`).
 4. El service worker (`theme/templates/pwa/sw.js`, servido en `/sw.js` para scope `/`) escucha `push` (título/body/icon/badge/tag, `data.url`) y `notificationclick` (enfoca una ventana existente que matchee la URL o abre una nueva).
 
-**Envío** — `send_push_to_users(users, *, title, body, url='/', tag=None)` (`push.py:47-75`): acepta queryset/lista de usuarios o IDs, arma el payload JSON y despacha en un `threading.Thread(daemon=True)` para no bloquear el request; `ttl=86400`; las suscripciones que devuelven **404/410 se borran** (`_enviar_a_suscripcion`, líneas 20-44, test `accounts/tests.py:528-541`). Helpers: `send_push_to_user` y `jugadores_de_equipos(*equipos)` (excluye dummies).
+**Envío** — `send_push_to_users(users, *, title, body, url='/', tag=None, guardar=True)`: acepta queryset/lista de usuarios o IDs, **guarda una `Notificacion` por destinatario** (ver §8.1) y después despacha el push en un `threading.Thread(daemon=True)` para no bloquear el request; `ttl=86400`; las suscripciones que devuelven **404/410 se borran** (`_enviar_a_suscripcion`, test `accounts/tests.py:528-541`). Helpers: `send_push_to_user`, `guardar_en_panel(user_ids, …)`, `_invalidar_contador(user_ids)` y `jugadores_de_equipos(*equipos)` (excluye dummies).
+
+> El guardado va **antes** del `if not push_activo(): return`, a propósito: hoy VAPID no está configurado en producción, así que sin eso el panel quedaría siempre vacío. Va envuelto en `try/except` porque un aviso no puede llevarse puesta la operación que lo disparó.
 
 **Disparadores existentes:**
 
@@ -1599,6 +1628,48 @@ Muestra **una división por vez**. División: `?division=<id>`, si no la del usu
 | Torneo finalizado (campeones) | 🏆 ¡Felicitaciones, campeones! | `torneos/models.py:461-472` |
 
 Todos van envueltos en `try/except` para que un fallo de push nunca rompa la operación de negocio.
+
+#### 8.1 Panel de notificaciones (la campanita)
+
+**El problema que resuelve.** Hasta acá todo aviso era Web Push y nada más. Si el celular estaba en
+silencio, si el usuario descartaba el globito, o si nunca dio permiso (o si VAPID no está
+configurado, que es el caso hoy), el aviso **se perdía y no había ningún lado donde ir a buscarlo**.
+
+**Modelo `Notificacion`** (`accounts/models.py`):
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `usuario` | FK → `CustomUser` | `related_name='notificaciones'` |
+| `titulo` | `CharField(120)` | Se trunca a 120 al guardar |
+| `cuerpo` | `TextField(blank=True)` | |
+| `url` | `CharField(300)`, default `/` | A dónde lleva al tocarla |
+| `leida` | `BooleanField(False)` | |
+| `creada` | `DateTimeField(auto_now_add)` | `ordering = ['-creada']` |
+
+Índice `notif_usuario_leida_idx` sobre `(usuario, leida)`: es exactamente el filtro del contador del
+navbar, que corre en **cada request** de usuario logueado.
+
+Propiedad `destino_seguro`: devuelve `url` sólo si empieza con `/` y no con `//`; si no, `/`. Las
+notificaciones las arma el código de la app, pero el redirect se limita a rutas internas para no
+dejar un open redirect a mano (test `accounts.tests.PanelNotificacionesTests`).
+
+**Vistas** (`accounts/views.py`, URLs en `accounts/urls.py`):
+
+| Vista | URL | Qué hace |
+|---|---|---|
+| `NotificacionListView` | `accounts:notificaciones` | Lista paginada de a 30, `template accounts/notificaciones.html` |
+| `NotificacionAbrirView` | `accounts:notificacion_abrir` | GET: marca leída (sólo las propias, si no 404) y redirige a `destino_seguro` |
+| `NotificacionLeerTodasView` | `accounts:notificaciones_leer_todas` | POST: `update(leida=True)` masivo |
+
+**Contador del navbar.** `padel_project/context_processors.py::notifications` agrega
+`notificaciones_sin_leer` al contexto global. Va dentro del bloque **cacheado 60 s** en
+`notifications_count_<user_id>`, así que al crear o marcar leída una notificación hay que invalidar
+esa clave — de eso se ocupa `accounts.push._invalidar_contador`.
+
+**UI.** Campanita en `base.html` (navbar-end, antes del avatar) con `indicator-item badge badge-error`
+mostrando el número; entrada "Notificaciones" en el dropdown del avatar; y el service worker
+(`sw.js`) ya abría la `data.url` de la notificación push al tocarla, así que las dos vías llevan al
+mismo lugar.
 
 ---
 
@@ -2350,7 +2421,7 @@ Drawer DaisyUI (`base.html:673-1150`), `lg:drawer-open`, con menú en `base.html
 | (público) | Todos | Inicio, En Juego, Inscripciones, Buscar (`2xl:hidden`) | 851-902 |
 | **Tu Gestión** | Autenticados | (título de sección) | 904 |
 | ↳ | `tipo_usuario == 'PLAYER'` o `'ADMIN'` | Mi Pareja, Buscar compañero, Mis Torneos | 905-945 |
-| ↳ **Mi Organización** (`<details>`) | `tipo_usuario == 'ORGANIZER'` **y** `user.organizacion` | Ajustes, Sponsors, Programación Global, Perfil Público | 946-981 |
+| ↳ **Mi Organización** (`<details>`) | `tipo_usuario == 'ORGANIZER'` **y** `user.organizacion` | Ajustes, Sponsors, Horarios · PDF, Perfil Público | 946-981 |
 | ↳ | Autenticados | Mi Perfil; toggle "Modo Oscuro" (`sm:hidden`) | 982-1012 |
 | ↳ **Administración** (`<details>`) | `ADMIN` o `ORGANIZER` | Parejas (**solo `user.is_staff`**), Listar Torneos, Crear Torneo, Crear Jugador, Crear Pareja | 1013-1053 |
 | **Competición** | Todos | Organizadores, Historial, Rankings (`<details>`), Circuitos, Americanos | 1055-1120 |
@@ -2711,7 +2782,7 @@ Dos convenciones conviven:
 - **Carruseles infinitos** (`core/home.html:545-707`): clonado triple de items (`clonesCount = items.length < 3 ? 0 : 3`), salto de scroll en los bordes, dots generados dinámicamente y flechas ocultas si el contenido entra en desktop.
 - **Carrusel vertical del hero** (`home.html:39-64` + `:527-543`): rota cards con `@keyframes hero-ball-bounce` (squash & stretch tipo pelota), intervalo por `data-interval` (4500 ms), con `prefers-reduced-motion` respetado.
 - **Buscador en cliente** (`admin_torneo_manage.html:850-918`): filtra zonas, rondas y partidos por `.filter-text` y auto-expande los `<details>`/checkboxes que contienen coincidencias.
-- **`print:hidden`**: navbar (`base.html:525`) y footer (`base.html:1152`); además hay una plantilla dedicada de impresión sin Tailwind (`accounts/templates/accounts/print/organizacion_programacion.html`).
+- **`print:hidden`**: navbar, footer, banners de incentivo/instalar/registro y la barra de «Volver + acciones». Los avisos (`.toast`) llevan `display:flex` **inline**, que le gana a la clase por especificidad, así que se ocultan desde el `@media print` global de `styles.css` con `!important`. Además hay una plantilla dedicada de impresión sin Tailwind (`accounts/templates/accounts/print/organizacion_programacion.html`).
 - **Tema scoped**: `torneo_programacion.html:7` fuerza `data-theme="business"` en un `<div>` para look oscuro sobre fondo negro sin importar el tema global.
 
 ---
@@ -2801,7 +2872,10 @@ Dos convenciones conviven:
 |---|---|
 | `torneo_detail.html` | Página estrella del torneo: hero, inscripción/cancelación con modales, "Mis Partidos", zonas, y el bracket con líneas SVG (818 líneas). |
 | `torneo_vivo.html` | Vista "en vivo" para pantallas/TV: zonas y llave en formato compacto, auto-refresh cada 20 s. |
-| `torneo_programacion.html` | Programación del torneo agrupada por fecha/hora, con `data-theme="business"` scoped. |
+| `torneo_programacion.html` | Programación del torneo agrupada por fecha/hora, con `data-theme="business"` scoped. Botón «Descargar PDF» + `@media print` propio (fondo blanco, A4, sin cortar partidos entre hojas). |
+| `accounts/notificaciones.html` | Panel de la campanita: historial de avisos; cada ítem linkea a `notificacion_abrir`, que lo marca leído y redirige a su destino. |
+| `equipos/partials/_invitacion_recibida.html` | Cajita de una invitación de pareja: nombre arriba, Aceptar/Rechazar en dos columnas iguales, ambos con `hx-post`. |
+| `equipos/partials/_invitacion_resuelta.html` | Lo que reemplaza a la cajita después de aceptar/rechazar, sin recargar la página. |
 | `torneo_abierto_list.html` | Listado de torneos con inscripción abierta. |
 | `torneo_en_juego_list.html` | Listado de torneos en juego. |
 | `torneo_finalizado_list.html` | Historial de torneos finalizados. |

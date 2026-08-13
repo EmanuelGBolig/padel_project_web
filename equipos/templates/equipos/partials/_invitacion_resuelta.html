@@ -1,0 +1,17 @@
+{% comment %}
+    Lo que reemplaza a la cajita de la invitación después de aceptar o rechazar,
+    sin recargar la página. `estado` es "aceptada" o "rechazada".
+{% endcomment %}
+<div class="p-3 rounded-xl border {% if estado == 'aceptada' %}bg-success/10 border-success/30{% else %}bg-base-200/50 border-base-300{% endif %}">
+    {% if estado == 'aceptada' %}
+        <p class="font-bold text-success">¡Listo! Ya tenés equipo</p>
+        <p class="text-sm opacity-80 mt-0.5 break-words">
+            {{ equipo.nombre }} — con {{ inv.inviter.full_name }}.
+        </p>
+        <a href="{% url 'equipos:mi_equipo' %}" class="btn btn-sm btn-success w-full mt-3">Ver mi equipo</a>
+    {% else %}
+        <p class="font-medium opacity-70">
+            Invitación de {{ inv.inviter.full_name }} rechazada.
+        </p>
+    {% endif %}
+</div>

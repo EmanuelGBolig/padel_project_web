@@ -3,19 +3,59 @@
 {% block head_title %}
     Programación - {{ torneo.nombre }}
 {% endblock head_title %}
+{% comment %}
+    Planilla de horarios del torneo. Se usa de dos formas:
+
+    1. En pantalla, para que el jugador vea cuándo juega.
+    2. Impresa / guardada como PDF, que es lo que el organizador pega en el club.
+
+    Por eso todo el estilo de impresión vive acá abajo en un `@media print`: la
+    versión de pantalla es oscura y con degradés, y en papel eso sale gris y gasta
+    tinta. Al imprimir se pasa a fondo blanco, texto negro y los partidos no se
+    cortan a la mitad entre página y página.
+
+    El botón "Descargar PDF" es `window.print()`: en el diálogo de impresión, tanto
+    Chrome de escritorio como Safari/Chrome de celular ofrecen "Guardar como PDF".
+    Se resuelve del lado del navegador y no hace falta ninguna librería en el server.
+{% endcomment %}
 {% block content %}
-    <div class="container mx-auto px-4 py-8 max-w-4xl" data-theme="business">
-        <div class="bg-black rounded-3xl p-6 md:p-10 shadow-lg">
+    <div class="container mx-auto px-4 py-8 max-w-4xl" id="planilla">
+        {% comment %} Barra de acciones: no va al papel. {% endcomment %}
+        <div class="barra-acciones flex items-center gap-2 mb-4 print:hidden">
+            <button type="button"
+                    onclick="window.print()"
+                    class="btn btn-primary gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke-width="1.8"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                </svg>
+                Descargar PDF
+            </button>
+            <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-ghost">Volver al torneo</a>
+        </div>
+
+        <div class="planilla-hoja bg-black rounded-3xl p-6 md:p-10 shadow-lg"
+             data-theme="business">
             <!-- HEADER -->
             <div class="mb-10">
                 <h1 class="text-3xl font-black text-white tracking-wider uppercase mb-1 drop-shadow-md">PROGRAMACIÓN</h1>
                 <h2 class="text-xl font-bold text-base-content/60 uppercase tracking-widest">{{ torneo.nombre }}</h2>
+                {% comment %} Sólo en papel: sin esto la hoja impresa no dice de qué torneo es. {% endcomment %}
+                <p class="hidden print:block planilla-subtitulo">
+                    {{ torneo.division.nombre|default:"Libre" }} · {{ torneo.get_categoria_display }}
+                    · desde el {{ torneo.fecha_inicio|date:"d/m/Y" }}
+                    {% if torneo.organizacion %}· {{ torneo.organizacion.nombre }}{% endif %}
+                </p>
             </div>
             <!-- FECHAS (LISTA AGRUPADA) -->
             <div class="space-y-12 pb-4">
                 {% regroup partidos_con_fecha by fecha_hora|date:"Y-m-d H:i" as partidos_por_hora %}
                 {% for agrupacion in partidos_por_hora %}
-                    <div class="space-y-4">
+                    <div class="space-y-4 planilla-bloque">
                         <!-- SEPARADOR DE FECHA/HORA -->
                         <div class="flex items-center justify-center relative my-6">
                             <!-- Línea horizontal de fondo verde muy sutil -->
@@ -33,7 +73,7 @@
                         <!-- PARTIDOS DE ESA HORA -->
                         <div class="grid gap-4">
                             {% for partido in agrupacion.list %}
-                                <div class="bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30">
+                                <div class="planilla-partido bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30">
                                     <!-- Equipo 1 -->
                                     <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
                                         {% if partido.equipo1 %}
@@ -54,7 +94,7 @@
                                     <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
                                         <span class="text-xs tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1">{{ torneo.division.nombre|default:"Libre" }} {{ partido.obj.get_categoria_display|default:torneo.get_categoria_display }}</span>
                                         <div class="text-3xl font-black text-white px-2 tracking-widest drop-shadow-md">VS</div>
-                                        <span class="text-[0.65rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase">{{ partido.fase }} - {{ partido.descripcion_partido }}</span>
+                                        <span class="text-[0.65rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase">{{ partido.fase }}{% if partido.descripcion_partido %} - {{ partido.descripcion_partido }}{% endif %}</span>
                                     </div>
                                     <!-- Equipo 2 -->
                                     <div class="flex-1 text-center md:text-right w-full space-y-1.5">
@@ -83,7 +123,7 @@
                 {% endfor %}
                 <!-- PARTIDOS POR DEFINIR (SIN FECHA) -->
                 {% if partidos_sin_fecha %}
-                    <div class="space-y-4 pt-10">
+                    <div class="space-y-4 pt-10 planilla-bloque">
                         <!-- SEPARADOR POR DEFINIR -->
                         <div class="flex items-center justify-center relative my-6">
                             <!-- Línea horizontal de fondo naranja muy sutil -->
@@ -98,7 +138,7 @@
                         <!-- PARTIDOS SIN ESTABLECER HORA -->
                         <div class="grid gap-4 opacity-80">
                             {% for partido in partidos_sin_fecha %}
-                                <div class="bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30">
+                                <div class="planilla-partido bg-[#15191e] border border-base-content/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between shadow-sm transition-all hover:bg-[#1a1f26] hover:border-emerald-500/30">
                                     <!-- Equipo 1 -->
                                     <div class="flex-1 text-center md:text-left w-full space-y-1.5 mb-4 md:mb-0">
                                         {% if partido.equipo1 %}
@@ -118,7 +158,7 @@
                                     <div class="flex flex-col items-center justify-center shrink-0 px-6 w-full md:w-auto mb-4 md:mb-0">
                                         <span class="text-xs tracking-[0.2em] text-base-content/50 font-semibold uppercase mb-1">{{ torneo.division.nombre|default:"Libre" }} {{ partido.obj.get_categoria_display|default:torneo.get_categoria_display }}</span>
                                         <div class="text-3xl font-black text-white/50 px-2 tracking-widest">VS</div>
-                                        <span class="text-[0.65rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase">{{ partido.fase }} - {{ partido.descripcion_partido }}</span>
+                                        <span class="text-[0.65rem] tracking-wider text-base-content/50 font-medium mt-1 uppercase">{{ partido.fase }}{% if partido.descripcion_partido %} - {{ partido.descripcion_partido }}{% endif %}</span>
                                     </div>
                                     <!-- Equipo 2 -->
                                     <div class="flex-1 text-center md:text-right w-full space-y-1.5">
@@ -141,6 +181,86 @@
                     </div>
                 {% endif %}
             </div>
+            <p class="hidden print:block planilla-pie">
+                todopadel.club · generado el {% now "d/m/Y H:i" %}
+            </p>
         </div>
     </div>
+
+    <style>
+    @media print {
+        /* A4 con margen chico: entran más partidos por hoja sin quedar apretado. */
+        @page { size: A4; margin: 12mm; }
+
+        /* La hoja va blanca. El tema oscuro en papel sale gris parejo y se come
+           un cartucho por planilla. */
+        html, body { background: #fff !important; }
+        #planilla { max-width: none !important; padding: 0 !important; }
+        .planilla-hoja {
+            background: #fff !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        .planilla-hoja h1 { color: #000 !important; font-size: 20pt !important; }
+        .planilla-hoja h2 { color: #333 !important; font-size: 12pt !important; }
+        .planilla-hoja .mb-10 { margin-bottom: 6mm !important; }
+        .planilla-subtitulo { color: #444; font-size: 9pt; margin-top: 2mm; }
+
+        /* Separador de horario: se imprime como una banda negra sólida, que es lo
+           que se busca de un vistazo cuando la planilla está pegada en la pared. */
+        .planilla-bloque .bg-emerald-500 {
+            background: #000 !important;
+            color: #fff !important;
+            font-size: 11pt !important;
+        }
+        .planilla-bloque .bg-white {
+            background: #fff !important;
+            color: #000 !important;
+            border: 1px solid #000;
+            font-size: 11pt !important;
+        }
+        .planilla-bloque .bg-warning {
+            background: #000 !important;
+            color: #fff !important;
+        }
+        .planilla-bloque .absolute { display: none !important; }
+        .planilla-bloque .shadow-lg { box-shadow: none !important; }
+        .planilla-bloque .my-6 { margin: 4mm 0 !important; }
+        .planilla-bloque .space-y-12 > * + * { margin-top: 6mm !important; }
+
+        /* Cada partido, una fila. Nunca partido a la mitad entre dos hojas. */
+        .planilla-partido {
+            background: #fff !important;
+            border: 1px solid #999 !important;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+            padding: 2.5mm 3mm !important;
+            flex-direction: row !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .planilla-partido p {
+            color: #000 !important;
+            opacity: 1 !important;
+            font-size: 10pt !important;
+            line-height: 1.25 !important;
+        }
+        .planilla-partido .text-3xl { font-size: 11pt !important; color: #000 !important; }
+        .planilla-partido span { color: #444 !important; }
+        .planilla-partido > div { margin-bottom: 0 !important; }
+        .planilla-partido .px-6 { padding: 0 4mm !important; }
+        .planilla-partido .flex-1 { text-align: left !important; }
+        .planilla-partido .flex-1:last-child { text-align: right !important; }
+        .grid.gap-4 { gap: 2mm !important; }
+        .opacity-80 { opacity: 1 !important; }
+
+        .planilla-pie {
+            margin-top: 6mm;
+            font-size: 8pt;
+            color: #777;
+            text-align: right;
+        }
+    }
+    </style>
 {% endblock content %}

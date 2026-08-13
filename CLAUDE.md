@@ -81,6 +81,13 @@ python verificar_mobile.py
 python auditoria_ui.py
 ```
 
+### `runserver --noreload` no recarga los templates
+Django usa el **cached loader** aunque `DEBUG=True`; lo que normalmente refresca
+un template editado es el autoreloader, no el loader. Con `--noreload` (que es
+como conviene levantarlo para verificar con Playwright) los cambios de template
+**no se ven hasta reiniciar el server**. Ya perdimos un rato buscando por qué un
+`print:hidden` "no aplicaba" cuando en el archivo estaba.
+
 ### Los comentarios `{# #}` de Django son de UNA línea
 Escritos en varias, Django **no los interpreta** y los manda al HTML como texto
 visible. Ya pasó en producción. Para varias líneas: `{% comment %}…{% endcomment %}`.

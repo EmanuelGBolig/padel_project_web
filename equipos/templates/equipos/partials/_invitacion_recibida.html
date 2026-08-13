@@ -1,0 +1,47 @@
+{% comment %}
+    Una invitación de pareja recibida.
+
+    Dos cosas que estaban mal y se arreglan acá:
+
+    1. Los botones vivían en dos <form> hermanos dentro de un flex junto al nombre
+       del que invita. En un celular el nombre no se achicaba y el "Rechazar" se
+       salía de la caja. Ahora la fila de botones va debajo, en dos columnas
+       iguales, y el bloque del nombre tiene min-w-0 para poder truncarse.
+
+    2. Aceptar o rechazar recargaba la página entera. Ahora es htmx: se cambia
+       sólo esta cajita por el resultado, que es lo único que cambió.
+
+    El <form> sigue existiendo por si no hay JS: sin htmx el submit normal hace
+    el POST de siempre y la vista redirige como antes.
+{% endcomment %}
+<div class="p-3 bg-base-200/50 rounded-xl" id="invitacion-{{ inv.pk }}">
+    <div class="flex items-center gap-3 min-w-0">
+        <div class="avatar placeholder shrink-0">
+            <div class="bg-neutral text-neutral-content rounded-full w-10">
+                <span>{{ inv.inviter.nombre|slice:":1" }}</span>
+            </div>
+        </div>
+        <div class="min-w-0">
+            <div class="font-bold truncate">{{ inv.inviter.full_name }}</div>
+            <div class="text-xs opacity-60">Te invitó a formar equipo</div>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+        <form method="post"
+              action="{% url 'equipos:aceptar_invitacion' inv.pk %}"
+              hx-post="{% url 'equipos:aceptar_invitacion' inv.pk %}"
+              hx-target="#invitacion-{{ inv.pk }}"
+              hx-swap="outerHTML">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success w-full">Aceptar</button>
+        </form>
+        <form method="post"
+              action="{% url 'equipos:rechazar_invitacion' inv.pk %}"
+              hx-post="{% url 'equipos:rechazar_invitacion' inv.pk %}"
+              hx-target="#invitacion-{{ inv.pk }}"
+              hx-swap="outerHTML">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-error btn-outline w-full">Rechazar</button>
+        </form>
+    </div>
+</div>

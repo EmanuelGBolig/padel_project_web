@@ -545,3 +545,165 @@ class PushNotificacionesTests(TestCase):
         html = self.client.get(reverse('core:instalar')).content.decode()
         self.assertIn('btn-push', html)
         self.assertIn('js/push.js', html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PanelNotificacionesTests(TestCase):
+    """El aviso tiene que quedar guardado aunque el push no llegue nunca."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Septima", orden=7)
+        self.user = User.objects.create_user(
+            email="notif@t.com", password="x", nombre="No", apellido="Ti",
+            genero="OTRO", division=self.division)
+        self.otro = User.objects.create_user(
+            email="otro@t.com", password="x", nombre="Ot", apellido="Ro",
+            genero="OTRO", division=self.division)
+
+    def test_se_guarda_sin_vapid_configurado(self):
+        # Este es el caso real hoy: sin claves VAPID el push es no-op, pero el
+        # usuario igual tiene que poder entrar y ver qué le avisaron.
+        from accounts.models import Notificacion
+        from accounts.push import push_activo, send_push_to_users
+
+        self.assertFalse(push_activo())
+        send_push_to_users([self.user], title="Ganaste", body="2-0", url="/torneos/1/")
+
+        notif = Notificacion.objects.get(usuario=self.user)
+        self.assertEqual(notif.titulo, "Ganaste")
+        self.assertEqual(notif.url, "/torneos/1/")
+        self.assertFalse(notif.leida)
+
+    def test_una_por_destinatario(self):
+        from accounts.models import Notificacion
+        from accounts.push import send_push_to_users
+
+        send_push_to_users([self.user, self.otro], title="Sorteo listo", body="")
+        self.assertEqual(Notificacion.objects.count(), 2)
+
+    def test_abrir_marca_leida_y_redirige(self):
+        from accounts.models import Notificacion
+
+        n = Notificacion.objects.create(
+            usuario=self.user, titulo="T", cuerpo="C", url="/torneos/5/")
+        self.client.force_login(self.user)
+        r = self.client.get(reverse('accounts:notificacion_abrir', args=[n.pk]))
+
+        self.assertRedirects(r, '/torneos/5/', fetch_redirect_response=False)
+        n.refresh_from_db()
+        self.assertTrue(n.leida)
+
+    def test_no_se_puede_abrir_la_de_otro(self):
+        from accounts.models import Notificacion
+
+        ajena = Notificacion.objects.create(usuario=self.otro, titulo="T", url="/")
+        self.client.force_login(self.user)
+        r = self.client.get(reverse('accounts:notificacion_abrir', args=[ajena.pk]))
+        self.assertEqual(r.status_code, 404)
+
+    def test_url_externa_no_redirige_afuera(self):
+        # Las notificaciones las arma la app, pero el redirect igual se limita a
+        # rutas internas para no dejar un open redirect a mano.
+        from accounts.models import Notificacion
+
+        n = Notificacion.objects.create(
+            usuario=self.user, titulo="T", url="https://malo.example/phishing")
+        self.assertEqual(n.destino_seguro, '/')
+
+    def test_contador_del_navbar_cuenta_solo_las_no_leidas(self):
+        from accounts.models import Notificacion
+        from django.core.cache import cache
+
+        Notificacion.objects.create(usuario=self.user, titulo="A", url="/")
+        Notificacion.objects.create(usuario=self.user, titulo="B", url="/", leida=True)
+        cache.clear()
+
+        self.client.force_login(self.user)
+        r = self.client.get(reverse('accounts:notificaciones'))
+        self.assertEqual(r.context['notificaciones_sin_leer'], 1)
+
+    def test_leer_todas(self):
+        from accounts.models import Notificacion
+
+        Notificacion.objects.create(usuario=self.user, titulo="A", url="/")
+        Notificacion.objects.create(usuario=self.user, titulo="B", url="/")
+        self.client.force_login(self.user)
+        self.client.post(reverse('accounts:notificaciones_leer_todas'))
+        self.assertEqual(Notificacion.objects.filter(usuario=self.user, leida=False).count(), 0)
+
+    def test_panel_pide_login(self):
+        r = self.client.get(reverse('accounts:notificaciones'))
+        self.assertEqual(r.status_code, 302)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ProgramacionOrganizacionFechasTests(TestCase):
+    """La planilla se arma por día jugado, no por fecha de inicio del torneo.
+
+    Un torneo de sábado y domingo tenía UNA sola fecha en el selector (el sábado)
+    y al elegirla imprimía los partidos de los dos días juntos. El domingo no
+    existía como opción.
+    """
+
+    def setUp(self):
+        import datetime
+
+        from django.utils import timezone
+        from equipos.models import Equipo
+        from torneos.models import Grupo, PartidoGrupo, Torneo
+
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.org = Organizacion.objects.create(nombre="Club Z", alias="club-z")
+
+        self.sabado = datetime.date(2026, 3, 7)
+        self.domingo = datetime.date(2026, 3, 8)
+
+        self.torneo = Torneo.objects.create(
+            nombre="Finde largo", division=self.division, organizacion=self.org,
+            fecha_inicio=self.sabado,
+            fecha_limite_inscripcion=timezone.now() + datetime.timedelta(days=1),
+            cupos_totales=8)
+
+        jugadores = [
+            User.objects.create_user(
+                email=f"j{i}@t.com", password="x", nombre=f"J{i}", apellido="X",
+                genero="OTRO", division=self.division)
+            for i in range(4)
+        ]
+        eq1 = Equipo.objects.create(
+            jugador1=jugadores[0], jugador2=jugadores[1], division=self.division)
+        eq2 = Equipo.objects.create(
+            jugador1=jugadores[2], jugador2=jugadores[3], division=self.division)
+
+        grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        tz = timezone.get_current_timezone()
+        # Un partido cada día.
+        self.p_sab = PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=eq1, equipo2=eq2,
+            fecha_hora=datetime.datetime(2026, 3, 7, 10, 0, tzinfo=tz))
+        self.p_dom = PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=eq2, equipo2=eq1,
+            fecha_hora=datetime.datetime(2026, 3, 8, 10, 0, tzinfo=tz))
+
+    def _get(self, fecha=None):
+        url = reverse('accounts:organizacion_programacion', args=[self.org.pk])
+        if fecha:
+            url += f'?fecha={fecha}'
+        return self.client.get(url)
+
+    def test_el_domingo_aparece_en_el_selector(self):
+        fechas = self._get().context['fechas_disponibles']
+        self.assertIn(self.domingo, fechas)
+        self.assertIn(self.sabado, fechas)
+
+    def test_cada_dia_muestra_solo_sus_partidos(self):
+        sab = self._get('2026-03-07').context['partidos_con_fecha']
+        dom = self._get('2026-03-08').context['partidos_con_fecha']
+
+        self.assertEqual([p['obj'].pk for p in sab], [self.p_sab.pk])
+        self.assertEqual([p['obj'].pk for p in dom], [self.p_dom.pk])
+
+    def test_no_repite_partido_de_grupo_al_lado_de_la_zona(self):
+        partidos = self._get('2026-03-07').context['partidos_con_fecha']
+        self.assertEqual(partidos[0]['fase'], "Zona A")
+        self.assertEqual(partidos[0]['descripcion_partido'], "")

@@ -1,144 +1,15 @@
 {% extends "base.html" %}
 {% block head_title %}Anotarse · {{ torneo.nombre }} · {% endblock head_title %}
 {% block content %}
+{% comment %}
+    Página suelta del alta sin cuenta. El formulario en sí vive en el partial,
+    porque el mismo se muestra dentro del popup de la ficha del torneo. Esta
+    página es la que se abre si el link se comparte directo o si el navegador no
+    ejecuta el JS del popup.
+{% endcomment %}
 <div class="max-w-2xl mx-auto px-4 py-8">
     <div class="card bg-base-100 shadow-xl border border-base-200 rounded-3xl">
-        <div class="card-body">
-
-            <h1 class="text-2xl font-bold">Anotate en {{ torneo.nombre }}</h1>
-            <p class="text-sm text-base-content/60">
-                {{ torneo.division.nombre|default:"Libre" }} · {{ torneo.get_categoria_display }}
-                · arranca el {{ torneo.fecha_inicio|date:"d/m/Y" }}
-            </p>
-
-            {% if torneo.requiere_pago %}
-                <div class="alert alert-info text-sm mt-3">
-                    <span>
-                        La inscripción sale <b>${{ torneo.precio_inscripcion|floatformat:0 }}</b> por pareja{% if torneo.senia %},
-                        con una seña de <b>${{ torneo.senia|floatformat:0 }}</b> para reservar el lugar{% endif %}.
-                        Después de anotarte te mostramos cómo pagarla.
-                    </span>
-                </div>
-            {% endif %}
-
-            <p class="text-sm text-base-content/70 mt-3 mb-2">
-                No hace falta que tengan cuenta. Con estos datos los anotamos a los
-                dos y les creamos su cuenta para que puedan ver sus partidos.
-            </p>
-
-            <form method="post" class="space-y-5">
-                {% csrf_token %}
-
-                {% if form.non_field_errors %}
-                    <div class="alert alert-error text-sm" role="alert">
-                        {% for e in form.non_field_errors %}<span>{{ e }}</span>{% endfor %}
-                    </div>
-                {% endif %}
-
-                <fieldset class="border border-base-300 rounded-2xl p-4">
-                    <legend class="px-2 text-sm font-bold">Tus datos</legend>
-                    <div class="grid sm:grid-cols-2 gap-3">
-                        {% for campo in form %}
-                            {% if campo.name == 'nombre' or campo.name == 'apellido' %}
-                                <div class="form-control">
-                                    <label class="label py-1" for="{{ campo.id_for_label }}">
-                                        <span class="label-text font-medium">{{ campo.label }}</span>
-                                    </label>
-                                    {{ campo }}
-                                    {% for e in campo.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="form-control mt-3">
-                        <label class="label py-1" for="{{ form.email.id_for_label }}">
-                            <span class="label-text font-medium">{{ form.email.label }}</span>
-                        </label>
-                        {{ form.email }}
-                        <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.email.help_text }}</span>
-                        {% for e in form.email.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                    </div>
-                    <div class="form-control mt-3">
-                        <label class="label py-1" for="{{ form.telefono.id_for_label }}">
-                            <span class="label-text font-medium">{{ form.telefono.label }}</span>
-                        </label>
-                        {{ form.telefono }}
-                        {% for e in form.telefono.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                    </div>
-                </fieldset>
-
-                <fieldset class="border border-base-300 rounded-2xl p-4">
-                    <legend class="px-2 text-sm font-bold">Tu compañero/a</legend>
-
-                    <div class="form-control mb-3">
-                        <span class="label-text font-medium mb-2 block">{{ form.companero_tiene_cuenta.label }}</span>
-                        <div class="flex flex-col gap-2">
-                            {% for opcion in form.companero_tiene_cuenta %}
-                                <label class="label cursor-pointer justify-start gap-3 py-1">
-                                    {{ opcion.tag }}
-                                    <span class="label-text">{{ opcion.choice_label }}</span>
-                                </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="grid sm:grid-cols-2 gap-3">
-                        <div class="form-control">
-                            <label class="label py-1" for="{{ form.companero_nombre.id_for_label }}">
-                                <span class="label-text font-medium">{{ form.companero_nombre.label }}</span>
-                            </label>
-                            {{ form.companero_nombre }}
-                            {% for e in form.companero_nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                        </div>
-                        <div class="form-control">
-                            <label class="label py-1" for="{{ form.companero_apellido.id_for_label }}">
-                                <span class="label-text font-medium">{{ form.companero_apellido.label }}</span>
-                            </label>
-                            {{ form.companero_apellido }}
-                            {% for e in form.companero_apellido.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="form-control mt-3">
-                        <label class="label py-1" for="{{ form.companero_telefono.id_for_label }}">
-                            <span class="label-text font-medium">{{ form.companero_telefono.label }}</span>
-                        </label>
-                        {{ form.companero_telefono }}
-                        <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_telefono.help_text }}</span>
-                        {% for e in form.companero_telefono.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                    </div>
-
-                    <div class="form-control mt-3">
-                        <label class="label py-1" for="{{ form.companero_email.id_for_label }}">
-                            <span class="label-text font-medium">{{ form.companero_email.label }}</span>
-                        </label>
-                        {{ form.companero_email }}
-                        <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_email.help_text }}</span>
-                        {% for e in form.companero_email.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-                    </div>
-                </fieldset>
-
-                <div class="form-control">
-                    <label class="label py-1" for="{{ form.division.id_for_label }}">
-                        <span class="label-text font-medium">{{ form.division.label }}</span>
-                    </label>
-                    {{ form.division }}
-                    {% if form.division.help_text %}
-                        <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.division.help_text }}</span>
-                    {% endif %}
-                </div>
-
-                <div class="flex gap-2 justify-end pt-1">
-                    <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-ghost">Cancelar</a>
-                    <button type="submit" class="btn btn-primary btn-lg">Anotarnos</button>
-                </div>
-
-                <p class="text-xs opacity-50">
-                    Si tu compañero/a ya está en TodoPadel (o el organizador ya lo cargó),
-                    usamos su cuenta de siempre con todo su historial. No creamos una repetida.
-                </p>
-            </form>
-        </div>
+        {% include "torneos/partials/_form_sin_cuenta.html" %}
     </div>
 </div>
 {% endblock content %}

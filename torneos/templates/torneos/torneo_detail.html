@@ -1,4 +1,10 @@
 {% extends "base.html" %}
+{% comment %}
+    Acá el banner genérico de «creá tu cuenta» sobra: ocupa 180px arriba de todo,
+    empuja el «Anotarme» fuera de la pantalla y contradice el texto de abajo, que
+    justamente dice que no hace falta cuenta para anotarse.
+{% endcomment %}
+{% block banner_registro %}{% endblock banner_registro %}
 {% block back_button %}
     <a href="{% if torneo.estado == 'AB' %}{% url 'torneos:abierto_list' %}{% elif torneo.estado == 'EJ' %}{% url 'torneos:en_juego_list' %}{% else %}{% url 'torneos:finalizado_list' %}{% endif %}"
        class="btn btn-ghost btn-sm gap-2 hover:bg-base-200 pl-0 mb-0">
@@ -110,7 +116,7 @@
             {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' and torneo.organizacion and user.organizacion == torneo.organizacion %}
                 <li><a href="{% url 'torneos:admin_editar' torneo.pk %}">⚙️ Editar torneo</a></li>
             {% endif %}
-            <li><a href="{% url 'torneos:programacion' torneo.pk %}">🗓️ Ver programación</a></li>
+            <li><a href="{% url 'torneos:programacion' torneo.pk %}">🗓️ Horarios · descargar PDF</a></li>
             <li><a href="{% url 'torneos:placa' torneo.pk %}">🖼️ Placa para redes</a></li>
             {% if torneo.organizacion.whatsapp %}
                 <li>
@@ -127,18 +133,24 @@
     <div class="space-y-12">
         <!-- HERO -->
         <div class="hero bg-base-100 rounded-3xl border border-base-300 shadow-sm">
-            <div class="hero-content flex-col text-center py-12 w-full">
+            <div class="hero-content flex-col text-center py-6 md:py-12 w-full">
+                {% comment %}
+                    En celular la foto va DESPUÉS del título y del botón (order-3):
+                    ocupaba 256px arriba de todo y empujaba el «Anotarme» fuera de
+                    la pantalla, así que había que scrollear para encontrarlo. En
+                    escritorio sigue arriba, donde sí entra todo junto.
+                {% endcomment %}
                 {% if torneo.cover_image %}
                     <img src="{{ torneo.cover_image.url }}"
                          alt="{{ torneo.nombre }}"
-                         class="w-full max-h-64 object-cover rounded-2xl mb-6 shadow-sm" />
+                         class="order-3 md:order-none w-full max-h-40 md:max-h-64 object-cover rounded-2xl mt-6 md:mt-0 md:mb-6 shadow-sm" />
                 {% else %}
                     <img src="{% static 'img/fondos/padel-court-1.jpg' %}"
                          alt="" aria-hidden="true"
-                         class="w-full max-h-64 object-cover object-center rounded-2xl mb-6 shadow-sm" />
+                         class="order-3 md:order-none w-full max-h-40 md:max-h-64 object-cover object-center rounded-2xl mt-6 md:mt-0 md:mb-6 shadow-sm" />
                 {% endif %}
-                <h1 class="text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
-                <div class="max-w-md w-full">
+                <h1 class="order-1 md:order-none text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>
+                <div class="order-2 md:order-none max-w-md w-full">
                     <div class="flex justify-center gap-2 mt-2 flex-wrap">
                         {% if torneo.division %}
                             <div class="badge badge-lg badge-secondary h-auto whitespace-normal text-center py-2">
@@ -163,6 +175,38 @@
                                 <span class="badge badge-warning badge-lg">¡Últimos {{ torneo.cupos_disponibles }} cupos!</span>
                             {% endif %}
                             <span class="text-sm opacity-70">Arranca en {{ torneo.fecha_inicio|timeuntil }}</span>
+                        </div>
+                    {% endif %}
+
+                    {% comment %}
+                        El botón de anotarse va ACÁ, apenas debajo del título: es lo
+                        primero que la persona busca al entrar. Antes estaba después de
+                        toda la ficha (premio, reglamento, sede) y había que scrollear
+                        para encontrarlo.
+                    {% endcomment %}
+                    {% if torneo.estado == 'AB' and not ya_inscrito %}
+                        <div class="mt-5">
+                            {% if user.is_authenticated %}
+                                {% if puede_inscribirse %}
+                                    <a href="{% url 'torneos:inscribirse' torneo.pk %}"
+                                       class="btn btn-success btn-lg text-white w-full shadow-lg">
+                                        Inscribirme
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <button type="button"
+                                        class="btn btn-success btn-lg text-white w-full shadow-lg"
+                                        hx-get="{% url 'torneos:inscribirse_sin_cuenta' torneo.pk %}"
+                                        hx-target="#alta_modal_content"
+                                        onclick="alta_modal.showModal()">
+                                    Anotarme al torneo
+                                </button>
+                                <p class="text-xs opacity-60 mt-2">
+                                    No necesitás tener cuenta: te la creamos al anotarte.
+                                    <button type="button" onclick="login_required_modal.showModal()"
+                                            class="link link-primary">Ya tengo cuenta</button>
+                                </p>
+                            {% endif %}
                         </div>
                     {% endif %}
                     {% if torneo.sede_nombre or torneo.ciudad or torneo.sede_direccion %}
@@ -333,21 +377,11 @@
                                             No hace falta que tu compañero/a tenga cuenta.
                                         </p>
                                     {% endif %}
-                                {% else %}
-                                    {% comment %}
-                                        Sin cuenta: el camino principal es anotarse directo.
-                                        Pedirle que se registre primero para poder registrarse
-                                        es justamente la fricción que este flujo saca del medio.
-                                    {% endcomment %}
-                                    <a href="{% url 'torneos:inscribirse_sin_cuenta' torneo.pk %}"
-                                       class="btn btn-success text-white btn-wide btn-lg shadow-lg">
-                                        Anotarme al torneo
-                                    </a>
-                                    <p class="text-xs opacity-60 mt-2">
-                                        No necesitás tener cuenta: te la creamos al anotarte.
-                                        <button type="button" onclick="login_required_modal.showModal()"
-                                                class="link link-primary">Ya tengo cuenta</button>
-                                    </p>
+                                {% comment %}
+                                    Para quien no tiene cuenta el botón ya está arriba del
+                                    todo, apenas debajo del título. Repetirlo acá sería el
+                                    mismo botón dos veces en la misma pantalla.
+                                {% endcomment %}
                                 {% endif %}
                             </div>
                         {% endif %}
@@ -810,6 +844,20 @@
         {% endif %}
 
         <!-- Modal Login Requerido -->
+        {% comment %}
+            Popup del alta sin cuenta. El formulario se trae con htmx desde la
+            misma vista que sirve la página suelta, así hay UNA sola definición
+            del form y del wizard de dos pasos.
+        {% endcomment %}
+        <dialog id="alta_modal" class="modal modal-bottom sm:modal-middle">
+            <div class="modal-box p-0 max-w-lg max-h-[92vh]" id="alta_modal_content">
+                <div class="p-8 text-center opacity-60 text-sm">Cargando…</div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button aria-label="Cerrar">cerrar</button>
+            </form>
+        </dialog>
+
         <dialog id="login_required_modal" class="modal modal-middle">
             <div class="modal-box">
                 <h3 class="font-bold text-lg text-info">Iniciar Sesión Requerido</h3>

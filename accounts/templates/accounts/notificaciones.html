@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block head_title %}Notificaciones · {% endblock head_title %}
+{% comment %}
+    Historial de avisos. Es el lugar al que se llega desde la campanita del navbar
+    y también desde el push (el service worker abre la URL que trae la notificación).
+
+    Cada ítem es un link a `notificacion_abrir`, que la marca leída y redirige al
+    lugar donde pasó la cosa. Así la notificación siempre lleva a algún lado: antes
+    el aviso aparecía en el celular, se descartaba y no quedaba forma de recuperarlo.
+{% endcomment %}
+{% block content %}
+    <div class="max-w-2xl mx-auto">
+        <div class="flex items-center justify-between gap-3 mb-5">
+            <h1 class="text-2xl md:text-3xl font-bold">Notificaciones</h1>
+            {% if notificaciones %}
+                <form method="post" action="{% url 'accounts:notificaciones_leer_todas' %}" class="shrink-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm">Marcar todas leídas</button>
+                </form>
+            {% endif %}
+        </div>
+
+        {% if notificaciones %}
+            <div class="flex flex-col gap-2">
+                {% for n in notificaciones %}
+                    <a href="{% url 'accounts:notificacion_abrir' n.pk %}"
+                       class="card bg-base-100 border {% if n.leida %}border-base-200{% else %}border-primary/40 bg-primary/5{% endif %} hover:border-primary transition-colors rounded-2xl">
+                        <div class="card-body p-4 flex-row items-start gap-3">
+                            {% comment %} El punto marca "sin leer". Ocupa lugar siempre para que no baile el texto. {% endcomment %}
+                            <span class="mt-2 shrink-0 w-2 h-2 rounded-full {% if n.leida %}bg-transparent{% else %}bg-primary{% endif %}"></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="font-semibold leading-snug break-words {% if not n.leida %}text-primary{% endif %}">{{ n.titulo }}</p>
+                                {% if n.cuerpo %}
+                                    <p class="text-sm opacity-70 mt-0.5 break-words">{{ n.cuerpo }}</p>
+                                {% endif %}
+                                {% comment %} timesince devuelve "0 minutos" para lo recién llegado. {% endcomment %}
+                                <p class="text-xs opacity-50 mt-1">
+                                    {% with cuando=n.creada|timesince %}
+                                        {% if cuando == "0 minutos" %}Recién{% else %}Hace {{ cuando }}{% endif %}
+                                    {% endwith %}
+                                </p>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="w-4 h-4 opacity-30 shrink-0 mt-2"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="2"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+
+            {% if is_paginated %}
+                <div class="join flex justify-center mt-6">
+                    {% if page_obj.has_previous %}
+                        <a class="join-item btn btn-sm" href="?page={{ page_obj.previous_page_number }}">«</a>
+                    {% endif %}
+                    <span class="join-item btn btn-sm btn-disabled">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                        <a class="join-item btn btn-sm" href="?page={{ page_obj.next_page_number }}">»</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-16 border-2 border-dashed border-base-300 rounded-3xl">
+                <p class="text-4xl mb-3">🔔</p>
+                <p class="font-semibold">Todavía no tenés notificaciones</p>
+                <p class="text-sm opacity-60 mt-1 px-6">
+                    Acá te van a llegar los avisos de tus partidos, invitaciones de pareja
+                    y novedades de los torneos en los que estés anotado.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

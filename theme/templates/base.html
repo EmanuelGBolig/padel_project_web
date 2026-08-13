@@ -596,6 +596,27 @@
                     </svg>
                 </label>
                 {% if user.is_authenticated %}
+                    {% comment %}
+                        Campanita: entrada al historial de avisos. Antes las
+                        notificaciones eran sólo push — si el celular estaba en
+                        silencio o el usuario descartaba el globito, el aviso se
+                        perdía y no había ningún lado donde ir a buscarlo.
+                    {% endcomment %}
+                    <a href="{% url 'accounts:notificaciones' %}"
+                       class="btn btn-ghost btn-circle btn-sm indicator"
+                       aria-label="Notificaciones{% if notificaciones_sin_leer %} ({{ notificaciones_sin_leer }} sin leer){% endif %}">
+                        {% if notificaciones_sin_leer %}
+                            <span class="indicator-item badge badge-error badge-sm border-none">{{ notificaciones_sin_leer }}</span>
+                        {% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="w-5 h-5"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke-width="1.8"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                        </svg>
+                    </a>
                     <div class="dropdown dropdown-end">
                         <div tabindex="0"
                              role="button"
@@ -619,6 +640,14 @@
                             class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64 border border-base-200">
                             <li class="menu-title opacity-50 px-4 py-2 bg-base-200/50 rounded-t-box truncate block"
                                 title="{{ user.email }}">{{ user.email }}</li>
+                            <li>
+                                <a href="{% url 'accounts:notificaciones' %}" class="flex justify-between">
+                                    Notificaciones
+                                    {% if notificaciones_sin_leer %}
+                                        <span class="badge badge-error badge-sm">{{ notificaciones_sin_leer }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
                             {% if pending_invitations_count > 0 %}
                                 <li>
                                     <a href="{% url 'accounts:perfil' %}"
@@ -689,7 +718,7 @@
                         {% if messages %}
                             {% comment %} La clase .toast es la que buscan el auto-cierre y el loader.
                                Sin ella los avisos quedaban fijos tapando el contenido. {% endcomment %}
-                            <div class="toast"
+                            <div class="toast print:hidden"
                                  style="position: fixed; top: 4.5rem; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 28rem; z-index: 90; display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
                                 {% for message in messages %}
                                     <div role="alert"
@@ -709,7 +738,7 @@
                         {% endblock content_title %}
                         <!-- BANNER INSTALAR APP (solo mobile, fuera de la app instalada, descartable) -->
                         <div id="banner-instalar" style="display:none"
-                             class="alert bg-primary/15 border border-primary/30 shadow-md flex items-center gap-3 py-2.5 px-4 rounded-2xl mb-2 transition-all duration-300">
+                             class="print:hidden alert bg-primary/15 border border-primary/30 shadow-md flex items-center gap-3 py-2.5 px-4 rounded-2xl mb-2 transition-all duration-300">
                             <span class="text-2xl">📲</span>
                             <div class="flex-1 text-sm">
                                 <span class="font-bold">¡Llevá TodoPadel en tu celu!</span>
@@ -736,7 +765,7 @@
                         </script>
                         <!-- BANNERS DE INCENTIVO (solo para jugadores sin foto / sin pareja) -->
                         {% if user_sin_foto or user_sin_equipo %}
-                            <div id="incentive-banners" class="flex flex-col gap-2 mb-2">
+                            <div id="incentive-banners" class="print:hidden flex flex-col gap-2 mb-2">
                                 {% if user_sin_foto %}
                                     <div id="banner-foto"
                                          class="alert bg-primary/10 border border-primary/20 shadow-sm flex items-center gap-3 py-2 px-4 rounded-2xl transition-all duration-300">
@@ -788,10 +817,17 @@
                             </script>
                         {% endif %}
                         
-                        <!-- BANNER DE REGISTRO (solo para usuarios no autenticados) -->
+                        {% comment %}
+                            BANNER DE REGISTRO (solo para usuarios no autenticados).
+                            Va en un bloque para que las páginas donde compite con su
+                            propio CTA lo puedan apagar: en la ficha de un torneo este
+                            banner empuja el «Anotarme» fuera de la pantalla y encima
+                            dice «creá tu cuenta» justo donde avisamos que no hace falta.
+                        {% endcomment %}
+                        {% block banner_registro %}
                         {% if not user.is_authenticated %}
                             <div id="banner-registro"
-                                 class="alert bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 shadow-sm flex items-center gap-3 py-3 px-5 rounded-2xl transition-all duration-300 mb-4">
+                                 class="print:hidden alert bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 shadow-sm flex items-center gap-3 py-3 px-5 rounded-2xl transition-all duration-300 mb-4">
                                 <span class="text-2xl drop-shadow-sm">🎾</span>
                                 <div class="flex-1 text-sm">
                                     <span class="font-bold text-base">¡Sumate a la comunidad TodoPadel!</span>
@@ -825,9 +861,10 @@
                             }
                             </script>
                         {% endif %}
+                        {% endblock banner_registro %}
 
                         <!-- HEADER ACTIONS (VOLVER + OTROS BOTONES) -->
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                        <div class="print:hidden flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                             <div class="w-full md:w-auto flex justify-start">
                                 {% if request.path != '/' and request.path != '/accounts/login/' and request.path != '/accounts/registro/' %}
                                 {% block back_button %}
@@ -989,7 +1026,7 @@
                                             <li>
                                                 <a href="{% url 'accounts:organizacion_programacion' user.organizacion.pk %}"
                                                    class="{% if request.resolver_match.url_name == 'organizacion_programacion' %}active{% endif %} rounded-xl">
-                                                    Programación Global
+                                                    Horarios · PDF
                                                 </a>
                                             </li>
                                             <li>

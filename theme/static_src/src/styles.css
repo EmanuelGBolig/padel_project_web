@@ -156,3 +156,28 @@
 svg:not(.w-full):not(.h-full):not(.absolute) {
     flex-shrink: 0;
 }
+
+/* ==========================================================================
+   Impresión
+   --------------------------------------------------------------------------
+   La planilla de horarios se imprime o se guarda como PDF, y es lo que el
+   organizador pega en el club. Todo lo que es "aplicación" (avisos, banners de
+   incentivo, la barra de Volver / Compartir) no tiene sentido en papel.
+
+   Los avisos llevan `display: flex` en el atributo `style`, así que la clase
+   `print:hidden` de Tailwind no les gana por especificidad: hay que ocultarlos
+   desde acá con `!important`.
+   ========================================================================== */
+@media print {
+    .toast,
+    #incentive-banners,
+    #banner-instalar,
+    #banner-registro {
+        display: none !important;
+    }
+
+    /* Nada de fondos oscuros ni sombras: en papel salen como manchas grises. */
+    body {
+        background: #fff !important;
+    }
+}

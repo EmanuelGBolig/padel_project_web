@@ -291,21 +291,37 @@ class EquipoCreateView(PlayerHasNoTeamMixin, CreateView):
         return redirect(self.success_url)
 
 
+def _respuesta_invitacion(request, invitation, estado, equipo=None, destino='accounts:perfil'):
+    """Devuelve el fragmento de la invitación resuelta, o redirige si no hay htmx.
+
+    Aceptar o rechazar cambia una cajita de la pantalla; recargar el perfil entero
+    (que trae stats, historial y torneos) para eso era tirar 300 KB por un cambio
+    de dos líneas. Con htmx se reemplaza sólo esa cajita.
+    """
+    if request.headers.get('HX-Request'):
+        return render(request, 'equipos/partials/_invitacion_resuelta.html', {
+            'inv': invitation,
+            'estado': estado,
+            'equipo': equipo,
+        })
+    return redirect(destino)
+
+
 class AceptarInvitacionView(LoginRequiredMixin, View):
     def post(self, request, pk):
         invitation = get_object_or_404(Invitation, pk=pk, invited=request.user, status=Invitation.Status.PENDING)
-        
+
         # Validar que ninguno tenga equipo ya
         if invitation.inviter.equipo or invitation.invited.equipo:
             messages.error(request, "Uno de los jugadores ya tiene equipo. La invitación no puede aceptarse.")
             invitation.status = Invitation.Status.REJECTED
             invitation.save()
-            return redirect('accounts:perfil')
-            
+            return _respuesta_invitacion(request, invitation, 'rechazada')
+
         # Validar que el invitador tenga división asignada
         if not invitation.inviter.division:
             messages.error(request, "El jugador que te invitó no tiene una división asignada. No se puede crear el equipo.")
-            return redirect('accounts:perfil')
+            return _respuesta_invitacion(request, invitation, 'rechazada')
 
         with transaction.atomic():
             # 1. Crear el equipo
@@ -348,7 +364,9 @@ class AceptarInvitacionView(LoginRequiredMixin, View):
             pass
 
         messages.success(request, f"¡Invitación aceptada! Equipo '{equipo.nombre}' creado exitosamente.")
-        return redirect('equipos:mi_equipo')
+        return _respuesta_invitacion(
+            request, invitation, 'aceptada', equipo=equipo, destino='equipos:mi_equipo'
+        )
 
 
 class RechazarInvitacionView(LoginRequiredMixin, View):
@@ -359,20 +377,20 @@ class RechazarInvitacionView(LoginRequiredMixin, View):
         if request.user != invitation.invited and request.user != invitation.inviter:
              messages.error(request, "No tienes permiso para realizar esta acción.")
              return redirect('accounts:perfil')
-             
+
         if invitation.status != Invitation.Status.PENDING:
              messages.error(request, "Esta invitación ya no está pendiente.")
-             return redirect('accounts:perfil')
+             return _respuesta_invitacion(request, invitation, 'rechazada')
 
         invitation.status = Invitation.Status.REJECTED
         invitation.save()
-        
+
         if request.user == invitation.inviter:
             messages.success(request, "Invitación cancelada.")
         else:
             messages.info(request, "Invitación rechazada.")
-            
-        return redirect('accounts:perfil')
+
+        return _respuesta_invitacion(request, invitation, 'rechazada')
 
 
 class EquipoDeleteView(PlayerOwnsTeamMixin, DeleteView):

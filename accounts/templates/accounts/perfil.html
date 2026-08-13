@@ -537,29 +537,7 @@
                             <h4 class="font-bold text-sm uppercase opacity-70 mb-2">Recibidas</h4>
                             <div class="space-y-3 mb-4">
                                 {% for inv in invitaciones_recibidas %}
-                                    <div class="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
-                                        <div class="flex items-center gap-3">
-                                            <div class="avatar placeholder">
-                                                <div class="bg-neutral text-neutral-content rounded-full w-10">
-                                                    <span>{{ inv.inviter.nombre|slice:":1" }}</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div class="font-bold">{{ inv.inviter.full_name }}</div>
-                                                <div class="text-xs opacity-60">Te invitó a formar equipo</div>
-                                            </div>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <form method="post" action="{% url 'equipos:aceptar_invitacion' inv.pk %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-success">Aceptar</button>
-                                            </form>
-                                            <form method="post" action="{% url 'equipos:rechazar_invitacion' inv.pk %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-error btn-outline">Rechazar</button>
-                                            </form>
-                                        </div>
-                                    </div>
+                                    {% include "equipos/partials/_invitacion_recibida.html" with inv=inv %}
                                 {% endfor %}
                             </div>
                         {% endif %}

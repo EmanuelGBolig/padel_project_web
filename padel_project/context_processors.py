@@ -33,6 +33,12 @@ def notifications(request):
     pending_invitations = 0
     upcoming_matches = 0
 
+    # 0. Notificaciones sin leer (las de la campanita).
+    from accounts.models import Notificacion
+    notificaciones_sin_leer = Notificacion.objects.filter(
+        usuario=user, leida=False
+    ).count()
+
     # 1. Invitaciones Pendientes (Recibidas)
     pending_invitations = Invitation.objects.filter(
         invited=user,
@@ -64,6 +70,7 @@ def notifications(request):
 
     res = {
         'notification_count': notification_count,
+        'notificaciones_sin_leer': notificaciones_sin_leer,
         'pending_invitations_count': pending_invitations,
         'upcoming_matches_count': upcoming_matches,
         # Flags para banners de incentivo (solo jugadores)
