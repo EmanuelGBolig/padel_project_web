@@ -1,6 +1,7 @@
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, UpdateView, ListView, DetailView, DeleteView, FormView, TemplateView
 from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
 from django.contrib import messages
@@ -885,3 +886,31 @@ class PosiblesDuplicadosView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
             )
         return redirect('accounts:duplicados')
 
+
+
+class CambiarPasswordObligatorioView(LoginRequiredMixin, FormView):
+    """Pantalla donde la persona reemplaza la contraseña automática por la suya.
+
+    Se llega acá por el middleware, apenas entra con la contraseña que le
+    dictaron por WhatsApp.
+    """
+    template_name = 'accounts/cambiar_password.html'
+    form_class = SetPasswordForm
+    success_url = reverse_lazy('core:home')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        from django.contrib.auth import update_session_auth_hash
+
+        form.save()
+        usuario = self.request.user
+        usuario.debe_cambiar_password = False
+        usuario.save(update_fields=['debe_cambiar_password'])
+        # Sin esto, cambiar la contraseña cierra la sesión.
+        update_session_auth_hash(self.request, usuario)
+        messages.success(self.request, "¡Listo! Ya podés usar tu cuenta.")
+        return super().form_valid(form)

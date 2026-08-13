@@ -126,6 +126,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         help_text="Indica si el usuario fue creado por un organizador para usar de relleno y no tiene cuenta real."
     )
 
+    # Cuentas creadas automáticamente al anotarse sin cuenta: la contraseña se le
+    # dicta por WhatsApp, así que tiene que cambiarla la primera vez que entra.
+    debe_cambiar_password = models.BooleanField(
+        default=False,
+        verbose_name="Tiene que cambiar la contraseña al entrar",
+        help_text="Se activa en las cuentas creadas con contraseña automática.",
+    )
+
     # Deduplicación de cuentas (TP-20): si está seteado, esta cuenta fue
     # fusionada dentro de otra. No aparece en rankings; en etapa 2 su email
     # podrá usarse para entrar a la cuenta canónica.

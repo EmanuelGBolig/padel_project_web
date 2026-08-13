@@ -1,6 +1,6 @@
 from django import forms
 from dal import autocomplete
-from accounts.models import CustomUser
+from accounts.models import CustomUser, Division
 from .models import (
     Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo,
     Americano, JugadorAmericano, ResolucionPartido, FormatoPersonalizado,
@@ -1040,4 +1040,96 @@ class InscripcionConCompaneroForm(forms.Form):
         cleaned['nombre'] = nombre
         cleaned['apellido'] = apellido
         cleaned['telefono'] = telefono
+        return cleaned
+
+
+class InscripcionSinCuentaForm(forms.Form):
+    """Anotarse a un torneo sin tener cuenta todavía.
+
+    Pide los datos de los dos jugadores. Si el compañero ya tiene cuenta (o el
+    organizador ya lo cargó a mano), el sistema la engancha por email o teléfono
+    en vez de duplicar la persona.
+    """
+    ESTILO = 'input input-bordered w-full bg-base-100'
+
+    # --- Yo ---
+    nombre = forms.CharField(
+        max_length=150, label="Tu nombre",
+        widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Juan', 'autocomplete': 'given-name'}))
+    apellido = forms.CharField(
+        max_length=150, label="Tu apellido",
+        widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Pérez', 'autocomplete': 'family-name'}))
+    email = forms.EmailField(
+        label="Tu email",
+        help_text="Con esto vas a poder entrar a ver tus partidos y estadísticas.",
+        widget=forms.EmailInput(attrs={'class': ESTILO, 'placeholder': 'juan@mail.com', 'autocomplete': 'email'}))
+    telefono = forms.CharField(
+        max_length=20, label="Tu WhatsApp",
+        widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': '+54 9 223 555-1234',
+                                      'inputmode': 'tel', 'autocomplete': 'tel'}))
+
+    # --- Mi compañero/a ---
+    companero_tiene_cuenta = forms.ChoiceField(
+        choices=[('no', 'Todavía no tiene cuenta'), ('si', 'Ya tiene cuenta en TodoPadel')],
+        initial='no', label="¿Tu compañero/a ya usa TodoPadel?",
+        widget=forms.RadioSelect)
+    companero_nombre = forms.CharField(
+        max_length=150, label="Nombre",
+        widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Pedro'}))
+    companero_apellido = forms.CharField(
+        max_length=150, label="Apellido",
+        widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Gómez'}))
+    companero_email = forms.EmailField(
+        required=False, label="Su email",
+        help_text="Si no lo sabés y todavía no tiene cuenta, dejalo vacío: le creamos la cuenta cuando nos pase el mail.",
+        widget=forms.EmailInput(attrs={'class': ESTILO, 'placeholder': 'pedro@mail.com'}))
+    companero_telefono = forms.CharField(
+        max_length=20, label="Su WhatsApp",
+        help_text="Le avisamos por acá que quedó anotado.",
+        widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': '+54 9 223 555-5678', 'inputmode': 'tel'}))
+
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.all(), required=False,
+        label="División en la que juegan",
+        widget=forms.Select(attrs={'class': 'select select-bordered w-full bg-base-100'}))
+
+    def __init__(self, *args, **kwargs):
+        self.torneo = kwargs.pop('torneo', None)
+        super().__init__(*args, **kwargs)
+        if self.torneo and self.torneo.division:
+            self.fields['division'].initial = self.torneo.division
+            self.fields['division'].help_text = (
+                f"Este torneo es de {self.torneo.division.nombre}.")
+
+    def _telefono_valido(self, valor, campo):
+        digitos = ''.join(c for c in (valor or '') if c.isdigit())
+        if len(digitos) < 8:
+            self.add_error(campo, "Ese teléfono no parece válido.")
+        return valor
+
+    def clean_telefono(self):
+        return self._telefono_valido(self.cleaned_data.get('telefono'), 'telefono')
+
+    def clean_companero_telefono(self):
+        return self._telefono_valido(
+            self.cleaned_data.get('companero_telefono'), 'companero_telefono')
+
+    def clean(self):
+        cleaned = super().clean()
+        mio = (cleaned.get('email') or '').strip().lower()
+        suyo = (cleaned.get('companero_email') or '').strip().lower()
+        if mio and suyo and mio == suyo:
+            raise forms.ValidationError(
+                "Pusiste el mismo email para los dos. Cada jugador necesita el suyo.")
+
+        d1 = ''.join(c for c in (cleaned.get('telefono') or '') if c.isdigit())
+        d2 = ''.join(c for c in (cleaned.get('companero_telefono') or '') if c.isdigit())
+        if d1 and d2 and d1[-8:] == d2[-8:]:
+            raise forms.ValidationError(
+                "Pusiste el mismo teléfono para los dos.")
+
+        # Si dice que ya tiene cuenta, necesitamos con qué encontrarla.
+        if cleaned.get('companero_tiene_cuenta') == 'si' and not suyo:
+            self.add_error('companero_email',
+                           "Si ya tiene cuenta, poné su email para encontrarla.")
         return cleaned

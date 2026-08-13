@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block head_title %}Revisión de torneos · {% endblock head_title %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+
+    <h1 class="text-2xl font-bold">🩺 Revisión de torneos</h1>
+    <p class="text-sm text-base-content/60 mb-6">
+        Busca datos que no cierran entre sí. No modifica nada.
+    </p>
+
+    {% if total_problemas == 0 %}
+        <div class="alert alert-success">
+            <span>
+                Todo en orden. Se revisaron {{ torneos_revisados }} torneo{{ torneos_revisados|pluralize }}
+                y no se encontraron inconsistencias.
+            </span>
+        </div>
+    {% else %}
+        <div class="alert alert-warning mb-6">
+            <span>
+                <b>{{ total_problemas }}</b> cosa{{ total_problemas|pluralize:"s" }} para revisar
+                en {{ torneos_con_problemas }} de {{ torneos_revisados }} torneos.
+            </span>
+        </div>
+    {% endif %}
+
+    <div class="space-y-4">
+        {% for r in revisiones %}
+            {% if r.problemas %}
+                <div class="card bg-base-100 border border-warning/40 shadow-sm rounded-2xl">
+                    <div class="card-body p-4 md:p-5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h2 class="card-title text-base">{{ r.torneo.nombre }}</h2>
+                            <span class="badge badge-sm badge-ghost">{{ r.torneo.get_estado_display }}</span>
+                            <a href="{% url 'torneos:admin_manage' r.torneo.pk %}"
+                               class="btn btn-xs btn-ghost ml-auto">Gestionar →</a>
+                        </div>
+
+                        <ul class="mt-2 space-y-3">
+                            {% for p in r.problemas %}
+                                <li class="border-l-2 pl-3
+                                    {% if p.gravedad == 'alta' %}border-error{% elif p.gravedad == 'media' %}border-warning{% else %}border-base-300{% endif %}">
+                                    <div class="text-sm">{{ p.detalle }}</div>
+                                    <div class="text-xs opacity-60 mt-0.5">{{ p.sugerencia }}</div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+        {% empty %}
+            <p class="text-sm opacity-60">No hay torneos con zonas armadas para revisar.</p>
+        {% endfor %}
+    </div>
+
+    <div class="mt-8 text-xs opacity-50 space-y-1">
+        <p><b>Qué significa cada cosa:</b></p>
+        <p>
+            <b>Partido en zona ajena:</b> el partido está listado en una zona pero la pareja
+            figura en otra. Es lo que hace que el cronograma impreso y la pantalla de Zonas
+            muestren cosas distintas: el cronograma lee la zona del partido.
+        </p>
+        <p>
+            <b>Pareja en dos zonas:</b> quedó cargada en dos tablas de posiciones a la vez.
+        </p>
+    </div>
+</div>
+{% endblock content %}

@@ -334,10 +334,20 @@
                                         </p>
                                     {% endif %}
                                 {% else %}
-                                    <button onclick="login_required_modal.showModal()"
-                                            class="btn btn-success text-white btn-wide shadow-lg">
-                                        Inscribirse Ahora
-                                    </button>
+                                    {% comment %}
+                                        Sin cuenta: el camino principal es anotarse directo.
+                                        Pedirle que se registre primero para poder registrarse
+                                        es justamente la fricción que este flujo saca del medio.
+                                    {% endcomment %}
+                                    <a href="{% url 'torneos:inscribirse_sin_cuenta' torneo.pk %}"
+                                       class="btn btn-success text-white btn-wide btn-lg shadow-lg">
+                                        Anotarme al torneo
+                                    </a>
+                                    <p class="text-xs opacity-60 mt-2">
+                                        No necesitás tener cuenta: te la creamos al anotarte.
+                                        <button type="button" onclick="login_required_modal.showModal()"
+                                                class="link link-primary">Ya tengo cuenta</button>
+                                    </p>
                                 {% endif %}
                             </div>
                         {% endif %}

@@ -2496,3 +2496,124 @@ class ReproTelefonoPropioTests(TestCase):
                 print("--- ERROR MOSTRADO:", texto[:250])
         print("--- inscripciones:", Inscripcion.objects.filter(torneo=self.torneo).count())
         print("--- usuarios creados de mas:", User.objects.filter(apellido="Mismo").count())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AltaSinCuentaTests(TestCase):
+    """Anotarse a un torneo sin tener cuenta: crea las dos cuentas y la pareja."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre="Sexta", orden=6)
+        self.org = Organizacion.objects.create(nombre="OrgAlta", alias="orgalta")
+        self.torneo = Torneo.objects.create(
+            nombre="Abierto Sin Cuenta", division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=7),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=3),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO)
+
+    def _datos(self, **extra):
+        d = {
+            "nombre": "Juan", "apellido": "Perez",
+            "email": "juan@mail.com", "telefono": "+54 9 223 555-1111",
+            "companero_tiene_cuenta": "no",
+            "companero_nombre": "Pedro", "companero_apellido": "Gomez",
+            "companero_email": "pedro@mail.com",
+            "companero_telefono": "+54 9 223 555-2222",
+            "division": self.division.pk,
+        }
+        d.update(extra)
+        return d
+
+    def test_crea_las_dos_cuentas_y_la_inscripcion(self):
+        resp = self.client.post(
+            reverse("torneos:inscribirse_sin_cuenta", kwargs={"torneo_pk": self.torneo.pk}),
+            self._datos())
+        self.assertIn(resp.status_code, (301, 302), getattr(resp, 'context', None) and resp.context.get('form').errors)
+
+        juan = User.objects.get(email="juan@mail.com")
+        pedro = User.objects.get(email="pedro@mail.com")
+        self.assertTrue(juan.debe_cambiar_password)
+        self.assertTrue(pedro.debe_cambiar_password)
+        self.assertFalse(juan.is_dummy)
+        self.assertEqual(self.torneo.inscripciones.count(), 1)
+        equipo = self.torneo.inscripciones.first().equipo
+        self.assertEqual({equipo.jugador1_id, equipo.jugador2_id}, {juan.pk, pedro.pk})
+
+    def test_la_password_no_es_adivinable(self):
+        from torneos.services.alta_sin_cuenta import generar_password
+        p = generar_password("Juan")
+        self.assertTrue(p.startswith("juan"))
+        self.assertNotEqual(p, "juan123")
+        self.assertRegex(p, r"^juan\d{4}$")
+        # Dos llamadas seguidas no dan lo mismo
+        self.assertNotEqual(generar_password("Juan"), generar_password("Juan"))
+
+    def test_engancha_al_jugador_que_cargo_el_organizador(self):
+        """Si el organizador ya lo habia cargado, se reusa ESA cuenta con su historial."""
+        dummy = User.objects.create_user(
+            email="dummy_x@padel.local", password="x", nombre="Pedro", apellido="Gomez",
+            division=self.division)
+        dummy.is_dummy = True
+        dummy.numero_telefono = "2235552222"
+        dummy.is_active = False
+        dummy.save()
+
+        antes = User.objects.count()
+        self.client.post(
+            reverse("torneos:inscribirse_sin_cuenta", kwargs={"torneo_pk": self.torneo.pk}),
+            self._datos())
+
+        dummy.refresh_from_db()
+        self.assertFalse(dummy.is_dummy, "Deberia haber dejado de ser dummy")
+        self.assertTrue(dummy.is_active)
+        self.assertEqual(dummy.email, "pedro@mail.com")
+        # Solo se creo el que faltaba (Juan), no un Pedro duplicado
+        self.assertEqual(User.objects.count(), antes + 1)
+
+    def test_no_permite_mismo_email_para_los_dos(self):
+        resp = self.client.post(
+            reverse("torneos:inscribirse_sin_cuenta", kwargs={"torneo_pk": self.torneo.pk}),
+            self._datos(companero_email="juan@mail.com"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "mismo email")
+
+    def test_no_deja_anotarse_si_el_torneo_esta_cerrado(self):
+        self.torneo.estado = Torneo.Estado.EN_JUEGO
+        self.torneo.save()
+        resp = self.client.post(
+            reverse("torneos:inscribirse_sin_cuenta", kwargs={"torneo_pk": self.torneo.pk}),
+            self._datos())
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.torneo.inscripciones.count(), 0)
+
+    def test_el_middleware_obliga_a_cambiar_la_password(self):
+        self.client.post(
+            reverse("torneos:inscribirse_sin_cuenta", kwargs={"torneo_pk": self.torneo.pk}),
+            self._datos())
+        juan = User.objects.get(email="juan@mail.com")
+        self.client.force_login(juan)
+        resp = self.client.get(reverse("core:home"))
+        self.assertIn(resp.status_code, (301, 302))
+        self.assertIn("cambiar-password", resp["Location"])
+
+    def test_despues_de_cambiarla_puede_navegar(self):
+        self.client.post(
+            reverse("torneos:inscribirse_sin_cuenta", kwargs={"torneo_pk": self.torneo.pk}),
+            self._datos())
+        juan = User.objects.get(email="juan@mail.com")
+        self.client.force_login(juan)
+        self.client.post(reverse("accounts:cambiar_password"), {
+            "new_password1": "UnaClaveLarga123", "new_password2": "UnaClaveLarga123"})
+        juan.refresh_from_db()
+        self.assertFalse(juan.debe_cambiar_password)
+        self.assertEqual(self.client.get(reverse("core:home")).status_code, 200)
+
+    def test_el_mensaje_de_whatsapp_trae_los_datos_de_acceso(self):
+        from torneos.services.alta_sin_cuenta import mensaje_bienvenida
+        u = User.objects.create_user(email="p@m.com", password="x", nombre="Pedro", apellido="G")
+        msg = mensaje_bienvenida(u, "pedro4821", self.torneo)
+        self.assertIn("Ya tenés tu cuenta", msg)
+        self.assertIn("p@m.com", msg)
+        self.assertIn("pedro4821", msg)
+        self.assertIn(self.torneo.nombre, msg)

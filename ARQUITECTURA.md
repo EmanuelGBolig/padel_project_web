@@ -11,7 +11,7 @@
 | **Repositorio** | `EmanuelGBolig/padel_project_web`, rama de trabajo `main` |
 | **Stack** | Django 5.2.16 · Python 3.11 · PostgreSQL (prod) / SQLite (local) · Tailwind + DaisyUI 4.7.2 · WhiteNoise · Cloudinary |
 | **Apps** | `core`, `accounts`, `equipos`, `torneos` (+ `theme` para Tailwind) |
-| **Tests** | 213 tests (`python manage.py test`, ~10 min) |
+| **Tests** | 221 tests (`python manage.py test`, ~10 min) |
 | **Última auditoría completa** | 2026-08-04 |
 
 ## Cómo leer este documento
@@ -1231,6 +1231,32 @@ Templates: `torneos/templates/torneos/emails/nuevo_torneo.html` y `nueva_inscrip
 | 8 | `emails.py:136-137`, `signals.py:17` | Envíos y recálculo de rankings en `threading.Thread` sin control de concurrencia ni reintentos |
 
 ---
+
+### Alta sin cuenta (anotarse sin estar registrado)
+
+`torneos/services/alta_sin_cuenta.py` — el camino para quien llega por un flyer o
+un link de WhatsApp y todavía no está en la app. Es la ÚNICA vista de inscripción
+sin `LoginRequired`, a propósito: pedir cuenta para poder crearse una cuenta era
+la fricción que este flujo saca.
+
+| Paso | Qué hace |
+|---|---|
+| `buscar_jugador` | Busca por email y por los últimos 8 dígitos del teléfono (cubre +54 9 / 0 / 15 y separadores) |
+| `obtener_o_crear_jugador` | Si lo encuentra y es **dummy** del organizador, lo asciende a cuenta real **conservando su historial** (mismo id, mismos partidos, mismo ranking). Si no existe, lo crea |
+| `generar_password` | `nombre` + 4 dígitos al azar. **No** `nombre123`: se dicta por WhatsApp y `nombre123` lo adivina cualquiera que sepa quién juega, y esa persona vería teléfono e historial del otro |
+| `inscribir_sin_cuenta` | Arma la pareja y la inscripción en una transacción, con `select_for_update` sobre el cupo |
+| `mensaje_bienvenida` | Texto del WhatsApp con los datos de acceso |
+
+**Cambio de contraseña obligatorio.** Las cuentas así creadas salen con
+`debe_cambiar_password=True`. `accounts.middleware.CambioDePasswordObligatorio`
+redirige a `accounts:cambiar_password` hasta que la persona elija la suya: la
+contraseña que viajó por un chat no queda vigente. El middleware deja pasar los
+pedidos htmx/AJAX (devolver HTML donde se espera otra cosa rompe la página).
+
+**Límite conocido.** La app **no manda WhatsApp por su cuenta**: genera links
+`wa.me` que una persona toca. El envío automático necesita la API de WhatsApp
+Business (cuenta verificada y costo por mensaje). El punto donde engancharlo es
+`AltaListaView`, reusando `mensaje_bienvenida()`.
 
 ## Subsistema de cuentas, roles y organizaciones
 

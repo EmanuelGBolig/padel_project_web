@@ -48,6 +48,7 @@ from .forms import (
     FormatoPersonalizadoForm,
     CircuitoForm,
     InscripcionConCompaneroForm,
+    InscripcionSinCuentaForm,
 )
 from .formats import get_format, calcular_estructura_grupos, describir_estructura
 from .emails import notificar_nuevo_torneo
@@ -2913,6 +2914,117 @@ class SalirDeLaParejaView(LoginRequiredMixin, View):
             f"Saliste de «{nombre}». Se cancelaron sus inscripciones a torneos abiertos."
         )
         return redirect('accounts:perfil')
+
+
+class InscribirseSinCuentaView(FormView):
+    """Anotarse a un torneo sin tener cuenta.
+
+    Es el camino para el que llega por un flyer o un link de WhatsApp y todavía
+    no está en la app. Carga sus datos y los de su compañero/a, y sale de acá con
+    la inscripción hecha y las dos cuentas creadas.
+
+    NO pide login a propósito: exigir cuenta para poder crearse una cuenta es el
+    problema que este flujo viene a resolver.
+    """
+    template_name = 'torneos/inscribirse_sin_cuenta.html'
+    form_class = InscripcionSinCuentaForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.torneo = get_object_or_404(Torneo, pk=self.kwargs['torneo_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['torneo'] = self.torneo
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['torneo'] = self.torneo
+        return ctx
+
+    def form_valid(self, form):
+        from .services.alta_sin_cuenta import AltaError, inscribir_sin_cuenta
+
+        try:
+            r = inscribir_sin_cuenta(self.torneo, form.cleaned_data)
+        except AltaError as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+
+        # Los datos de acceso se muestran UNA vez, en la pantalla siguiente.
+        # Van por sesión y no por la URL: son credenciales.
+        self.request.session['alta_reciente'] = {
+            'torneo_pk': self.torneo.pk,
+            'equipo': r['equipo'].nombre,
+            'yo_email': r['yo'].email,
+            'yo_password': r['password_yo'],
+            'yo_existia': r['yo_existia'],
+            'comp_nombre': r['companero'].full_name,
+            'comp_email': r['companero'].email,
+            'comp_password': r['password_companero'],
+            'comp_existia': r['companero_existia'],
+            'comp_telefono': r['companero'].telefono_numero,
+            'mensaje': r['mensaje_companero'],
+        }
+        return redirect('torneos:alta_lista', torneo_pk=self.torneo.pk)
+
+
+class AltaListaView(TemplateView):
+    """Confirmación del alta: qué quedó hecho y cómo avisarle al compañero.
+
+    El aviso sale por un link wa.me que la persona toca. La app no manda
+    WhatsApp por su cuenta: eso necesita la API de WhatsApp Business (cuenta
+    verificada y costo por mensaje). Si algún día se contrata, el envío
+    automático va acá, reusando `mensaje_bienvenida()`.
+    """
+    template_name = 'torneos/alta_lista.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        datos = self.request.session.get('alta_reciente')
+        torneo = get_object_or_404(Torneo, pk=self.kwargs['torneo_pk'])
+
+        if not datos or datos.get('torneo_pk') != torneo.pk:
+            ctx['sin_datos'] = True
+            ctx['torneo'] = torneo
+            return ctx
+
+        ctx['torneo'] = torneo
+        ctx['d'] = datos
+        ctx['wa_url'] = (
+            f"https://wa.me/{datos['comp_telefono']}?text={quote(datos['mensaje'])}"
+        )
+        # Se consumen una sola vez: si recarga, ya no se ven las contraseñas.
+        self.request.session.pop('alta_reciente', None)
+        return ctx
+
+
+class RevisarTorneosView(AdminRequiredMixin, TemplateView):
+    """Chequeo de consistencia de los torneos en curso.
+
+    Nace de un caso real: en el cronograma impreso la zona de un partido no
+    coincidía con la que se ve en la pantalla de Zonas. El cronograma lee la zona
+    DEL PARTIDO y la pantalla de Zonas la de la TABLA de posiciones; si una pareja
+    quedó movida a mano, las dos dejan de coincidir.
+
+    Sólo lectura: detecta y explica, no toca nada.
+    """
+    template_name = 'torneos/revisar_torneos.html'
+
+    def get_context_data(self, **kwargs):
+        from .services.diagnostico import revisar_todos
+
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        org = None if (user.is_staff or user.tipo_usuario == 'ADMIN') else user.organizacion
+        revisiones = revisar_todos(org)
+
+        ctx['revisiones'] = revisiones
+        ctx['total_problemas'] = sum(len(r['problemas']) for r in revisiones)
+        ctx['torneos_con_problemas'] = sum(1 for r in revisiones if r['problemas'])
+        ctx['torneos_revisados'] = len(revisiones)
+        return ctx
 
 
 class EmbudoInscripcionView(AdminRequiredMixin, TemplateView):

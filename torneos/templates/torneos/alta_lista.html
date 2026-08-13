@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block head_title %}¡Anotados! · {{ torneo.nombre }} · {% endblock head_title %}
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+
+    {% if sin_datos %}
+        <div class="card bg-base-100 border border-base-200 rounded-3xl shadow-sm">
+            <div class="card-body items-center text-center">
+                <h1 class="card-title">Esta página ya se usó</h1>
+                <p class="text-sm opacity-70">
+                    Los datos de acceso se muestran una sola vez, por seguridad.
+                    Si no los anotaste, entrá con «Olvidé mi contraseña».
+                </p>
+                <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-primary mt-2">
+                    Ver el torneo
+                </a>
+            </div>
+        </div>
+    {% else %}
+
+        <div class="text-center mb-6">
+            <div class="text-5xl mb-2">🎾</div>
+            <h1 class="text-3xl font-black">¡Listo, quedaron anotados!</h1>
+            <p class="text-base-content/70 mt-1">
+                <b>{{ d.equipo }}</b> en {{ torneo.nombre }}
+            </p>
+        </div>
+
+        {% comment %}
+            Paso 1 y único que requiere acción: avisarle al compañero.
+            El mensaje ya va escrito; sólo toca el botón y lo manda.
+        {% endcomment %}
+        <div class="card bg-base-100 border border-success/40 rounded-3xl shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="card-title text-lg">1 · Avisale a {{ d.comp_nombre }}</h2>
+                <p class="text-sm opacity-70">
+                    Le preparamos el mensaje con sus datos de acceso. Tocá el botón y se
+                    abre WhatsApp con todo escrito.
+                </p>
+                <pre class="bg-base-200 rounded-xl p-3 text-xs whitespace-pre-wrap mt-2 font-sans">{{ d.mensaje }}</pre>
+                <a href="{{ wa_url }}" target="_blank" rel="noopener"
+                   class="btn btn-success btn-lg gap-2 mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.52 14.97c-.25.7-1.47 1.34-2.02 1.39-.52.05-1.18.22-3.86-.81-3.24-1.28-5.32-4.58-5.48-4.79-.16-.21-1.31-1.74-1.31-3.32s.83-2.36 1.12-2.68c.29-.32.64-.4.85-.4l.61.01c.2.01.46-.07.72.55.25.61.86 2.11.94 2.26.08.16.13.34.02.55-.11.21-.16.34-.32.53-.16.18-.34.41-.48.55-.16.16-.33.34-.14.66.19.32.84 1.39 1.8 2.25 1.24 1.1 2.28 1.45 2.6 1.61.32.16.51.13.7-.08.19-.21.81-.94 1.02-1.27.21-.32.43-.27.72-.16.29.11 1.86.88 2.18 1.04.32.16.53.24.61.37.08.14.08.78-.17 1.48z" />
+                    </svg>
+                    Mandarle el mensaje por WhatsApp
+                </a>
+            </div>
+        </div>
+
+        {% if d.yo_password %}
+            <div class="card bg-base-100 border border-primary/40 rounded-3xl shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">2 · Tus datos para entrar</h2>
+                    <p class="text-sm opacity-70">
+                        Anotalos: por seguridad esta pantalla no se vuelve a mostrar.
+                    </p>
+                    <div class="bg-base-200 rounded-xl p-3 mt-1 space-y-1 text-sm">
+                        <div><span class="opacity-60 inline-block w-24">Mail</span> <b>{{ d.yo_email }}</b></div>
+                        <div><span class="opacity-60 inline-block w-24">Contraseña</span>
+                            <b class="font-mono text-base">{{ d.yo_password }}</b></div>
+                    </div>
+                    <p class="text-xs opacity-60 mt-1">
+                        Cuando entres te vamos a pedir que la cambies por una tuya.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary mt-2">Entrar a mi cuenta</a>
+                </div>
+            </div>
+        {% elif d.yo_existia %}
+            <div class="alert alert-info text-sm mb-4">
+                <span>Ya tenías cuenta con {{ d.yo_email }}: entrá con tu contraseña de siempre.</span>
+            </div>
+        {% endif %}
+
+        {% if torneo.requiere_pago and torneo.organizacion.tiene_datos_de_cobro %}
+            <div class="card bg-base-100 border border-warning/40 rounded-3xl shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title text-lg">3 · Pagá para confirmar el lugar</h2>
+                    <p class="text-sm opacity-70">
+                        La inscripción queda confirmada cuando el organizador recibe el
+                        comprobante.
+                    </p>
+                    <a href="{% url 'torneos:detail' torneo.pk %}#pago" class="btn btn-warning mt-2">
+                        Ver cómo pagar
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center">
+                <a href="{% url 'torneos:detail' torneo.pk %}" class="btn btn-ghost">Ver el torneo</a>
+            </div>
+        {% endif %}
+
+    {% endif %}
+</div>
+{% endblock content %}

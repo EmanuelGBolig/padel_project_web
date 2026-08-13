@@ -5,6 +5,8 @@ from . import views
 app_name = 'accounts'
 
 urlpatterns = [
+    # Cambio obligatorio de la contrasena automatica (alta sin cuenta)
+    path('cambiar-password/', views.CambiarPasswordObligatorioView.as_view(), name='cambiar_password'),
     # Usamos las vistas personalizadas
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),

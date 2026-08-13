@@ -50,6 +50,17 @@ urlpatterns = [
         views.InscripcionCreateView.as_view(),
         name='inscribirse',
     ),
+    # Anotarse SIN cuenta: crea las dos cuentas y la inscripcion de una
+    path(
+        '<int:torneo_pk>/anotarme-sin-cuenta/',
+        views.InscribirseSinCuentaView.as_view(),
+        name='inscribirse_sin_cuenta',
+    ),
+    path(
+        '<int:torneo_pk>/listo/',
+        views.AltaListaView.as_view(),
+        name='alta_lista',
+    ),
     # Anotarse armando la pareja en el mismo paso (sin esperar que el otro acepte)
     path(
         '<int:torneo_pk>/anotarme-con-pareja/',
@@ -73,6 +84,8 @@ urlpatterns = [
     path('admin/dashboard/', views.OrganizadorDashboardView.as_view(), name='dashboard'),
     # Embudo de inscripción (solo lectura; alternativa al shell de Render)
     path('admin/embudo/', views.EmbudoInscripcionView.as_view(), name='embudo'),
+    # Chequeo de consistencia (no hay shell en Render)
+    path('admin/revisar/', views.RevisarTorneosView.as_view(), name='revisar_torneos'),
     # Formatos personalizados (creador de torneos)
     path('admin/formatos/', views.FormatoPersonalizadoListView.as_view(), name='formatos_list'),
     path('admin/formatos/nuevo/', views.FormatoPersonalizadoCreateView.as_view(), name='formato_crear'),

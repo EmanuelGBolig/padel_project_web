@@ -619,7 +619,10 @@ def calcular_estructura_grupos(count, *, forzar_grupos_de_3=False, equipos_por_g
         s = min(epg, resto)
         sizes.append(s)
         resto -= s
-    nombres = [f"Grupo {LETRAS[i]}" for i in range(num_grupos)]
+    # "Zona", igual que en la rama de los formatos oficiales de más arriba. Antes
+    # esta decía "Grupo" y la otra "Zona", así que en un mismo cronograma impreso
+    # convivían "Zona B" y "Grupo B" y parecía un error de datos.
+    nombres = [f"Zona {LETRAS[i]}" for i in range(num_grupos)]
     return num_grupos, sizes, nombres, None
 
 

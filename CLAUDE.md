@@ -100,7 +100,7 @@ Copiar snippets de DaisyUI 3 de internet **rompe los colores en silencio**.
 Sin `python manage.py createcachetable` varias vistas fallan. Va en el setup y en `build.sh`.
 
 ### La suite de tests tarda ~7 minutos
-213 tests. Mientras iterás, corré solo la clase que tocaste
+221 tests. Mientras iterás, corré solo la clase que tocaste
 (`python manage.py test torneos.tests.NombreDeLaClase`) y dejá la suite completa para antes de mergear.
 
 ### `requirements.txt` está en UTF-16 LE con BOM

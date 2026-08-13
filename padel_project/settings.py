@@ -118,6 +118,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',  # Google OAuth2
+    # Obliga a cambiar la contrasena automatica del alta sin cuenta.
+    'accounts.middleware.CambioDePasswordObligatorio',
 ]
 
 ROOT_URLCONF = 'padel_project.urls'
