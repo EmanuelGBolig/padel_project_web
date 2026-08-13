@@ -37,7 +37,12 @@
                     Le preparamos el mensaje con sus datos de acceso. Tocá el botón y se
                     abre WhatsApp con todo escrito.
                 </p>
-                <pre class="bg-base-200 rounded-xl p-3 text-xs whitespace-pre-wrap mt-2 font-sans">{{ d.mensaje }}</pre>
+                {% comment %}
+                    break-words + min-w-0: un <pre> no achica su ancho al del
+                    contenedor, así que el mensaje (que trae un mail largo) se
+                    desbordaba y hacía scrollear toda la pantalla de costado.
+                {% endcomment %}
+                <pre class="bg-base-200 rounded-xl p-3 text-xs whitespace-pre-wrap break-words min-w-0 max-w-full mt-2 font-sans">{{ d.mensaje }}</pre>
                 <a href="{{ wa_url }}" target="_blank" rel="noopener"
                    class="btn btn-success btn-lg gap-2 mt-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">

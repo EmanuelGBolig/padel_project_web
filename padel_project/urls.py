@@ -38,7 +38,13 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+# iOS pide estos dos en la RAÍZ del dominio cuando no encuentra el <link> del
+# HTML (por ejemplo al agregar a la pantalla de inicio desde un marcador viejo).
+# Tienen que llevar al icono opaco de 180x180, no al de 192 que era transparente
+# en las esquinas: iOS rellena de blanco lo transparente y quedaba el halo.
 urlpatterns += [
-    path('apple-touch-icon.png', RedirectView.as_view(url=settings.STATIC_URL + 'img/favicon_192.png', permanent=True)),
-    path('apple-touch-icon-precomposed.png', RedirectView.as_view(url=settings.STATIC_URL + 'img/favicon_192.png', permanent=True)),
+    path('apple-touch-icon.png', RedirectView.as_view(
+        url=settings.STATIC_URL + 'img/apple-touch-icon.png', permanent=True)),
+    path('apple-touch-icon-precomposed.png', RedirectView.as_view(
+        url=settings.STATIC_URL + 'img/apple-touch-icon.png', permanent=True)),
 ]

@@ -9,9 +9,18 @@
               type="image/png"
               sizes="192x192"
               href="{% static 'img/favicon_192.png' %}">
+        {% comment %}
+            iOS NO soporta transparencia en el apple-touch-icon: rellena de BLANCO
+            lo transparente y después aplica su propia máscara redondeada. Como el
+            icono venía con las esquinas ya redondeadas y transparentes por fuera,
+            en la pantalla de inicio se veía un halo blanco alrededor del verde.
+
+            La imagen tiene que ser CUADRADA y OPACA, a sangre, en 180x180 (la
+            medida que pide iOS). El redondeo lo hace el sistema.
+        {% endcomment %}
         <link rel="apple-touch-icon"
-              sizes="192x192"
-              href="{% static 'img/favicon_192.png' %}">
+              sizes="180x180"
+              href="{% static 'img/apple-touch-icon.png' %}">
         <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}">
         <!-- PWA (instalable + listo para notificaciones) -->
         <link rel="manifest" href="/manifest.webmanifest">

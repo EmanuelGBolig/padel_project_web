@@ -1306,6 +1306,8 @@ class TorneoReplaceTeamView(AdminRequiredMixin, FormView):
                 
             messages.success(self.request, f"Se reemplazó a {equipo_viejo.nombre} por {nuevo_equipo.nombre}.")
             if self.request.headers.get('HX-Request'):
+                # Acá sí recargamos: reemplazar una pareja la cambia en TODO el
+                # torneo —zonas y llave a la vez—, no en una sección sola.
                 return _htmx_refrescar()
             return redirect('torneos:admin_manage', pk=torneo.pk)
             
@@ -1410,6 +1412,39 @@ def refrescar_zona(request, grupo):
     return resp
 
 
+def refrescar_bracket(request, torneo):
+    """Devuelve SOLO la sección de la fase eliminatoria, ya actualizada.
+
+    Se refresca entera y no una tarjeta suelta porque al cargar un resultado el
+    ganador avanza: cambia el partido cargado Y el de la ronda siguiente.
+    Igual es una fracción de lo que pesa recargar la pantalla completa.
+    """
+    import json
+
+    partidos = torneo.partidos.select_related(
+        'equipo1__jugador1', 'equipo1__jugador2',
+        'equipo2__jugador1', 'equipo2__jugador2',
+        'ganador__jugador1', 'ganador__jugador2',
+    ).order_by('ronda', 'orden_partido')
+
+    rondas = sorted({p.ronda for p in partidos})
+    html = render_to_string(
+        'torneos/partials/_bracket.html',
+        {
+            'torneo': torneo,
+            'partidos_eliminacion': partidos,
+            'total_rondas': len(rondas),
+            'request': request,
+        },
+        request=request,
+    )
+    resp = HttpResponse(html)
+    resp['HX-Retarget'] = '#bracketContainer'
+    resp['HX-Reswap'] = 'outerHTML'
+    resp['HX-Trigger'] = json.dumps({'zonaActualizada': {'nombre': 'la llave'}})
+    return resp
+
+
 class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
     model = PartidoGrupo
     form_class = CargarResultadoGrupoForm
@@ -1457,7 +1492,7 @@ class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_resultado(self.object, self.object.torneo)
         if self.request.headers.get('HX-Request'):
-            return _htmx_refrescar()
+            return refrescar_bracket(self.request, self.object.torneo)
         return response
 
 
@@ -1483,7 +1518,7 @@ class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_programado(self.object, self.object.grupo.torneo)
         if self.request.headers.get('HX-Request'):
-            return _htmx_refrescar()
+            return refrescar_zona(self.request, self.object.grupo)
         return response
 
 
@@ -1508,7 +1543,7 @@ class SchedulePartidoView(AdminRequiredMixin, UpdateView):
         response = super().form_valid(form)
         _push_programado(self.object, self.object.torneo)
         if self.request.headers.get('HX-Request'):
-            return _htmx_refrescar()
+            return refrescar_bracket(self.request, self.object.torneo)
         return response
 
 
@@ -2635,7 +2670,7 @@ class ReplacePartidoTeamsView(AdminRequiredMixin, OrgScopedQuerysetMixin, Update
     def form_valid(self, form):
         response = super().form_valid(form)
         if self.request.headers.get('HX-Request'):
-            return _htmx_refrescar()
+            return refrescar_bracket(self.request, self.object.torneo)
         return response
 
 
@@ -2672,7 +2707,7 @@ class ReplacePartidoGrupoTeamsView(AdminRequiredMixin, OrgScopedQuerysetMixin, U
             self._handle_team_change(grupo, old_equipo2, new_equipo2)
 
         if self.request.headers.get('HX-Request'):
-            return _htmx_refrescar()
+            return refrescar_zona(self.request, self.object.grupo)
         return response
 
     def _handle_team_change(self, current_group, old_team, new_team):
@@ -2787,6 +2822,8 @@ class SwapGroupTeamsView(AdminRequiredMixin, FormView):
             matches_destino.filter(equipo2=equipo_destino).update(equipo2=equipo_origen)
 
         if self.request.headers.get('HX-Request'):
+            # Acá sí recargamos: el intercambio toca DOS zonas a la vez, no una.
+            # Es una operación ocasional, no el camino que se repite.
             return _htmx_refrescar()
         
         return super().form_valid(form)

@@ -1258,6 +1258,30 @@ pedidos htmx/AJAX (devolver HTML donde se espera otra cosa rompe la página).
 Business (cuenta verificada y costo por mensaje). El punto donde engancharlo es
 `AltaListaView`, reusando `mensaje_bienvenida()`.
 
+### Guardar sin recargar la página
+
+Cada acción de guardado devuelve **sólo la sección que cambió**, con los headers
+de htmx `HX-Retarget` / `HX-Reswap`, y un `HX-Trigger` que el front usa para
+cerrar el modal y mostrar el aviso.
+
+| Acción | Qué se refresca |
+|---|---|
+| Cargar resultado de zona | Sólo esa zona (`refrescar_zona`) |
+| Cargar resultado de llave | Sólo la llave (`refrescar_bracket`) |
+| Programar horario (zona / llave) | Sólo esa zona / la llave |
+| Reemplazar parejas de un partido | Sólo esa zona / la llave |
+| Reemplazar pareja en todo el torneo | **Recarga**: cambia zonas y llave a la vez |
+| Intercambiar parejas entre zonas | **Recarga**: toca dos zonas, no una |
+
+Los parciales son `torneos/templates/torneos/partials/_grupo_panel.html` y
+`_bracket.html`. La llave se refresca entera y no una tarjeta suelta porque al
+cargar un resultado el ganador avanza: cambia el partido cargado **y** el de la
+ronda siguiente.
+
+Antes esto respondía `<script>window.location.reload()</script>`, o sea recargar
+~300 KB por cada resultado. En un celular al borde de la cancha eso son segundos
+de pantalla muerta, y el organizador carga decenas seguidos.
+
 ## Subsistema de cuentas, roles y organizaciones
 
 App transversal del proyecto. Define el modelo de usuario (`AUTH_USER_MODEL = 'accounts.CustomUser'`, `padel_project/settings.py:281`), la autenticación completa, las organizaciones (sedes/clubes), el perfil de jugador con estadísticas, el subsistema de deduplicación de cuentas y las notificaciones Web Push. Se monta bajo `/accounts/` (`padel_project/urls.py:28`).

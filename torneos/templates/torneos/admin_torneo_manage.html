@@ -580,91 +580,7 @@
                     </div>
                     <h2 class="text-2xl font-bold text-base-content">Fase Eliminatoria</h2>
                 </div>
-                <div class="space-y-4" id="bracketContainer">
-                    {% regroup partidos_eliminacion|dictsort:"ronda" by ronda as rondas_list %}
-                    {% for ronda in rondas_list %}
-                        <div class="collapse collapse-arrow bg-base-100 border border-base-300 round-item shadow-sm">
-                            <input type="checkbox" class="round-checkbox" data-panel-id="ronda-{{ ronda.grouper }}" />
-                            <div class="collapse-title text-xl font-medium flex justify-between items-center pr-14 sm:pr-12">
-                                <span class="round-name flex items-center gap-2">{% nombre_ronda_dinamico ronda.grouper total_rondas %}</span>
-                                <span class="text-sm font-normal opacity-70 hidden sm:inline">Ver Partidos</span>
-                            </div>
-                            <div class="collapse-content">
-                                <div class="space-y-2 mt-2">
-                                    {% for partido in ronda.list %}
-                                        <div class="collapse collapse-plus bg-base-200 border border-base-300 match-item">
-                                            <input type="checkbox" />
-                                            <div class="collapse-title text-sm font-medium flex justify-between items-center pr-8">
-                                                <div class="flex flex-col w-full">
-                                                    <div class="flex justify-between items-center w-full filter-text gap-2">
-                                                        <span class="flex-1 w-0 text-right break-words leading-tight {% if partido.ganador == partido.equipo1 %}text-success font-bold{% endif %}">
-                                                            {% get_team_display partido.equipo1 torneo %}
-                                                        </span>
-                                                        <span class="text-xs opacity-50 shrink-0">vs</span>
-                                                        <span class="flex-1 w-0 text-left break-words leading-tight {% if partido.ganador == partido.equipo2 %}text-success font-bold{% endif %}">
-                                                            {% get_team_display partido.equipo2 torneo %}
-                                                        </span>
-                                                    </div>
-                                                    {% if partido.fecha_hora %}
-                                                        <div class="text-xs text-center mt-1 opacity-70 font-mono">{{ partido.fecha_hora|date:"d/m H:i" }}</div>
-                                                    {% endif %}
-                                                    {% if partido.ganador %}
-                                                        <div class="text-xs text-center mt-1 text-primary font-bold">{{ partido.resultado }}</div>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                            <div class="collapse-content flex justify-center items-center pt-2">
-                                                {% if partido.equipo1 and partido.equipo2 %}
-                                                    <button class="btn btn-sm btn-primary"
-                                                            hx-get="{% url 'torneos:admin_partido_resultado' partido.pk %}"
-                                                            hx-target="#modal_content"
-                                                            onclick="resultado_modal.showModal()">
-                                                        {% if partido.ganador %}
-                                                            Editar Resultado
-                                                        {% else %}
-                                                            Cargar Resultado
-                                                        {% endif %}
-                                                    </button>
-                                                {% else %}
-                                                    <p class="text-sm opacity-50 italic mr-2">Esperando rivales...</p>
-                                                {% endif %}
-                                                <button class="btn btn-sm btn-ghost text-info"
-                                                        aria-label="Programar dia y hora del partido"
-                                                        title="Programar dia y hora"
-                                                        hx-get="{% url 'torneos:schedule_partido' partido.pk %}"
-                                                        hx-target="#schedule_modal_content"
-                                                        onclick="schedule_modal.showModal()">
-                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                         fill="none"
-                                                         viewBox="0 0 24 24"
-                                                         stroke-width="1.5"
-                                                         stroke="currentColor"
-                                                         class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0h18M5.25 12h13.5h-13.5v4.5h13.5" />
-                                                    </svg>
-                                                </button>
-                                                <button class="btn btn-sm btn-ghost text-warning"
-                                                        hx-get="{% url 'torneos:replace_partido_teams' partido.pk %}"
-                                                        hx-target="#schedule_modal_content"
-                                                        onclick="schedule_modal.showModal()"
-                                                        title="Reemplazar Equipos">
-                                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                                         fill="none"
-                                                         viewBox="0 0 24 24"
-                                                         stroke-width="1.5"
-                                                         stroke="currentColor"
-                                                         class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+                {% include "torneos/partials/_bracket.html" %}
             </section>
         {% elif torneo.estado != 'AB' %}
             <section class="bg-base-200/50 p-6 md:p-8 rounded-3xl border border-warning/30 flex flex-col items-center justify-center text-center gap-4">
@@ -881,16 +797,24 @@
     de esa zona. Acá cerramos el modal y avisamos, que es lo que antes hacía el reload.
 {% endcomment %}
 (function () {
-    var modal = document.getElementById('resultado_modal');
-    var contenido = document.getElementById('modal_content');
+    // Hay dos modales: el de cargar resultado y el de programar horario. Los dos
+    // terminan en el mismo evento, así que se cierra el que esté abierto.
+    var MODALES = [
+        ['resultado_modal', 'modal_content'],
+        ['schedule_modal', 'schedule_modal_content'],
+    ];
 
     document.body.addEventListener('zonaActualizada', function (e) {
-        if (modal && modal.open) modal.close();
-        // Vaciamos el modal para que no quede el form viejo si se reabre.
-        if (contenido) contenido.innerHTML = '';
+        MODALES.forEach(function (par) {
+            var m = document.getElementById(par[0]);
+            var c = document.getElementById(par[1]);
+            if (m && m.open) m.close();
+            // Vaciamos el contenido para que no quede el form viejo si se reabre.
+            if (c) c.innerHTML = '';
+        });
 
         var nombre = (e.detail && e.detail.nombre) || 'la zona';
-        avisar('Resultado guardado en ' + nombre);
+        avisar('Guardado en ' + nombre);
     });
 
     function avisar(texto) {
