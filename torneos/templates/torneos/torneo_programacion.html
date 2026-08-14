@@ -192,67 +192,188 @@
         /* A4 con margen chico: entran más partidos por hoja sin quedar apretado. */
         @page { size: A4; margin: 12mm; }
 
-        /* La hoja va blanca. El tema oscuro en papel sale gris parejo y se come
-           un cartucho por planilla. */
+        /* Las bandas negras de horario son lo que se lee de un vistazo con la
+           planilla pegada en la pared. Sin esto el navegador las "ahorra".
+           Va acotado a la planilla a propósito: puesto sobre `*` obliga al
+           navegador a pintar TAMBIÉN el fondo oscuro de la app, y la hoja sale
+           con un marco negro de 12mm (el área de margen del papel). */
+        .planilla-hoja, .planilla-hoja *,
+        .planilla-hoja *::before, .planilla-hoja *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* La hoja va blanca: el tema oscuro en papel sale gris parejo y se come
+           un cartucho por planilla.
+           El `color-scheme: light` no es decorativo. El tema oscuro deja el root
+           en `color-scheme: dark`, y con eso el navegador pinta de oscuro el
+           *canvas* de la hoja, o sea la franja de margen de 12mm que queda por
+           fuera del área imprimible: sin esta línea la planilla sale con un
+           marco negro alrededor, aunque el `background` del root sea blanco. */
+        html { color-scheme: light !important; }
         html, body { background: #fff !important; }
-        #planilla { max-width: none !important; padding: 0 !important; }
+        #planilla { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+        /* Los envoltorios de base.html reservan lugar para el navbar y los
+           banners (`.drawer` con `pt-16`, `<main>` con `p-4` y `space-y-8`).
+           En pantalla está bien; en papel eran ~3cm en blanco arriba de cada
+           hoja, porque el navbar ni siquiera se imprime. */
+        .drawer { padding-top: 0 !important; margin-top: 0 !important; }
+        main { padding: 0 !important; }
+        main > * + * { margin-top: 0 !important; }
         .planilla-hoja {
             background: #fff !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             padding: 0 !important;
         }
+        /* Las sombras del diseño de pantalla (`drop-shadow-md` en el título y en
+           el VS) en papel no se leen como sombra: salen como una mancha gris
+           corrida al lado de la letra. */
+        .planilla-hoja *, .planilla-hoja *::before, .planilla-hoja *::after {
+            filter: none !important;
+            text-shadow: none !important;
+        }
         .planilla-hoja h1 { color: #000 !important; font-size: 20pt !important; }
         .planilla-hoja h2 { color: #333 !important; font-size: 12pt !important; }
         .planilla-hoja .mb-10 { margin-bottom: 6mm !important; }
         .planilla-subtitulo { color: #444; font-size: 9pt; margin-top: 2mm; }
 
-        /* Separador de horario: se imprime como una banda negra sólida, que es lo
-           que se busca de un vistazo cuando la planilla está pegada en la pared. */
-        .planilla-bloque .bg-emerald-500 {
-            background: #000 !important;
-            color: #fff !important;
-            font-size: 11pt !important;
-        }
-        .planilla-bloque .bg-white {
-            background: #fff !important;
-            color: #000 !important;
-            border: 1px solid #000;
-            font-size: 11pt !important;
-        }
-        .planilla-bloque .bg-warning {
-            background: #000 !important;
-            color: #fff !important;
-        }
-        .planilla-bloque .absolute { display: none !important; }
-        .planilla-bloque .shadow-lg { box-shadow: none !important; }
-        .planilla-bloque .my-6 { margin: 4mm 0 !important; }
-        .planilla-bloque .space-y-12 > * + * { margin-top: 6mm !important; }
+        /* ── La tarjeta de partido, en papel, es una TABLA ──────────────────
+           Acá están las dos trampas de esta planilla. Leer antes de tocar.
 
-        /* Cada partido, una fila. Nunca partido a la mitad entre dos hojas. */
+           1) Imprimiendo A4 con margen de 12mm el viewport queda en ~703px, o
+              sea POR DEBAJO del breakpoint `md` de Tailwind (768px). En papel
+              NO aplica ninguna clase `md:`: la tarjeta se quedaba en
+              `flex-col` con los tres bloques en `w-full`, y como el bloque del
+              VS es además `shrink-0`, se comía el 100% del ancho y empujaba al
+              equipo 2 fuera de la hoja. Por eso salían partidos "contra
+              nadie": el rival estaba dibujado afuera del papel.
+
+           2) La planilla se imprime casi siempre desde el celular, y el PDF
+              que motivó este arreglo lo generó Safari de iOS. WebKit ignora
+              `break-inside: avoid` cuando el elemento es un contenedor flex,
+              así que los partidos se partían al medio entre hoja y hoja aunque
+              la regla estuviera puesta.
+
+           Las dos se arreglan con lo mismo: en papel la tarjeta deja de ser
+           flex y pasa a `display: table` con `table-layout: fixed`. Los anchos
+           quedan clavados (imposible que una columna desborde, no importa el
+           largo del nombre) y la tabla es el constructo que todos los motores
+           respetan para "no me cortes al medio".
+
+           Si tocás el markup de la tarjeta acordate: en papel mandan estas
+           reglas, no las `md:` del template. */
         .planilla-partido {
+            display: table !important;
+            width: 100% !important;
+            table-layout: fixed !important;
             background: #fff !important;
             border: 1px solid #999 !important;
             border-radius: 4px !important;
             box-shadow: none !important;
-            padding: 2.5mm 3mm !important;
-            flex-direction: row !important;
-            break-inside: avoid;
-            page-break-inside: avoid;
+            padding: 2mm 3mm !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
+        .planilla-partido > div {
+            display: table-cell !important;
+            vertical-align: middle !important;
+            float: none !important;
+            width: auto !important;
+            margin-bottom: 0 !important;
+        }
+        .planilla-partido > div:nth-child(1) {
+            width: 36.5% !important;
+            text-align: left !important;
+        }
+        /* Columna del medio: 27% de 186mm son 50mm, que es lo que necesita la
+           etiqueta más larga de la llave ("CUARTOS DE FINAL - PARTIDO 57")
+           para entrar en un renglón. Con menos, el número quedaba solo abajo. */
+        .planilla-partido > div:nth-child(2) {
+            width: 27% !important;
+            padding: 0 3mm !important;
+            text-align: center !important;
+        }
+        .planilla-partido > div:nth-child(3) {
+            width: 36.5% !important;
+            text-align: right !important;
         }
         .planilla-partido p {
             color: #000 !important;
             opacity: 1 !important;
             font-size: 10pt !important;
             line-height: 1.25 !important;
+            /* En pantalla los nombres van con `truncate`. En papel un nombre
+               cortado con puntos suspensivos es un jugador que no sabe si le
+               toca jugar: preferimos que doble a dos renglones. */
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
         }
-        .planilla-partido .text-3xl { font-size: 11pt !important; color: #000 !important; }
+        .planilla-partido .text-3xl { font-size: 12pt !important; color: #000 !important; }
         .planilla-partido span { color: #444 !important; }
-        .planilla-partido > div { margin-bottom: 0 !important; }
-        .planilla-partido .px-6 { padding: 0 4mm !important; }
-        .planilla-partido .flex-1 { text-align: left !important; }
-        .planilla-partido .flex-1:last-child { text-align: right !important; }
-        .grid.gap-4 { gap: 2mm !important; }
+        .planilla-partido > div:nth-child(2) span { display: block !important; }
+        .planilla-partido > div:nth-child(2) span:first-child { font-size: 7pt !important; }
+        .planilla-partido > div:nth-child(2) span:last-child { font-size: 6.5pt !important; }
+
+        /* ── Saltos de página ──────────────────────────────────────────────
+           Las tarjetas vivían dentro de un `grid` de Tailwind, y los items de
+           una grilla son otro caso donde los motores fragmentan mal. En papel
+           la grilla pasa a bloques, que es lo que todos cortan bien.
+           Se declaran las dos formas de cada propiedad a propósito: WebKit
+           entiende `page-break-*` y no siempre la versión moderna. */
+        .grid.gap-4 { display: block !important; }
+        .grid.gap-4 > * + * { margin-top: 2mm !important; }
+        /* Y la banda del horario nunca queda huérfana al pie de una hoja. */
+        .planilla-bloque > .my-6 {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+        }
+
+        /* ── Banda de horario ──────────────────────────────────────────────
+           Se imprime como una banda negra sólida, que es lo que se busca de un
+           vistazo cuando la planilla está pegada en la pared. En pantalla es un
+           pill de dos mitades con una línea de fondo; en papel la línea se
+           esconde, y el borde que antes se le ponía al recuadro blanco asomaba
+           por fuera del `overflow-hidden` redondeado: esa era la rayita suelta
+           que aparecía al lado de la fecha. Ahora el marco se dibuja una sola
+           vez, sobre el contenedor. */
+        .planilla-bloque .absolute { display: none !important; }
+        .planilla-bloque > .my-6 {
+            display: block !important;
+            text-align: center !important;
+            margin: 5mm 0 2mm !important;
+        }
+        .planilla-bloque > .my-6 > .rounded-full {
+            display: inline-flex !important;
+            align-items: stretch !important;
+            border: 1px solid #000 !important;
+            border-radius: 999px !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+        }
+        .planilla-bloque .bg-emerald-500,
+        .planilla-bloque .bg-warning {
+            background: #000 !important;
+            color: #fff !important;
+            border: 0 !important;
+            font-size: 10pt !important;
+            padding: 1mm 4mm !important;
+        }
+        .planilla-bloque .bg-white {
+            background: #fff !important;
+            color: #000 !important;
+            border: 0 !important;
+            font-size: 10pt !important;
+            padding: 1mm 4mm !important;
+        }
+        .planilla-bloque .shadow-lg { box-shadow: none !important; }
+        /* Separación entre horarios. Ojo con el selector: `.space-y-12` es el
+           contenedor *padre* de los bloques, no un descendiente — escrito como
+           `.planilla-bloque .space-y-12` (que es como estaba) no matchea nada y
+           quedaban los 3rem de Tailwind, casi media hoja desperdiciada. */
+        .space-y-12 > * + * { margin-top: 5mm !important; }
+        .planilla-bloque .pt-10 { padding-top: 4mm !important; }
         .opacity-80 { opacity: 1 !important; }
 
         .planilla-pie {

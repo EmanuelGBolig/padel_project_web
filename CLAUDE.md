@@ -81,6 +81,23 @@ python verificar_mobile.py
 python auditoria_ui.py
 ```
 
+### Al imprimir no existe el breakpoint `md:` (y el PDF lo hace Safari)
+Dos cosas que ya rompieron la planilla de programación en producción:
+
+- Una hoja A4 con margen de 12mm deja un viewport de **~703px**, por debajo de
+  los 768px de `md`. **En papel no aplica ninguna clase `md:`**: lo que en
+  pantalla se arma con `md:flex-row` + `w-full` se imprime en su versión mobile,
+  con los tres bloques al 100% de ancho. Si alguno es `shrink-0`, empuja al
+  resto **fuera del papel** (así desaparecía el equipo 2 de cada partido).
+- Los organizadores generan el PDF desde el celular, o sea **Safari de iOS**, que
+  **ignora `break-inside: avoid` en contenedores flex y en items de grid**. Poner
+  la regla no alcanza: lo que no se tiene que cortar va como bloque o como
+  `display: table`, y siempre con las dos formas (`break-inside` +
+  `page-break-inside`).
+
+En el `@media print` hay que replicar a mano lo que harían las clases `md:`.
+Está todo explicado en los comentarios de `torneos/templates/torneos/torneo_programacion.html`.
+
 ### `runserver --noreload` no recarga los templates
 Django usa el **cached loader** aunque `DEBUG=True`; lo que normalmente refresca
 un template editado es el autoreloader, no el loader. Con `--noreload` (que es
@@ -110,8 +127,9 @@ Sin `python manage.py createcachetable` varias vistas fallan. Va en el setup y e
 221 tests. Mientras iterás, corré solo la clase que tocaste
 (`python manage.py test torneos.tests.NombreDeLaClase`) y dejá la suite completa para antes de mergear.
 
-### `requirements.txt` está en UTF-16 LE con BOM
-`pip` lo lee bien, pero `grep`/`diff` lo muestran como basura. Si lo reescribís, **pasalo a UTF-8**.
+### `requirements.txt` tiene BOM (pero ya está en UTF-8)
+Estuvo en UTF-16 LE, que `grep`/`diff` mostraban como basura; **ya fue migrado a UTF-8 con BOM**.
+Si lo leés desde Python usá `encoding="utf-8-sig"`, porque el BOM se cuela como primer carácter.
 
 ### No escribir tests con heredoc
 Los `\n` dentro de strings se convierten en saltos reales y rompen el archivo. Usá la herramienta
