@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "todopadel-dev",
-      "runtimeExecutable": "python",
+      "runtimeExecutable": "venv/Scripts/python.exe",
       "runtimeArgs": ["manage.py", "runserver", "8010"],
       "port": 8010
     }
