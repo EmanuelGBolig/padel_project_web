@@ -53,6 +53,113 @@
         {% endfor %}
     </div>
 
+    {% if impacto %}
+        {% comment %}
+            Impacto de los cambios de comportamiento sobre los datos que YA
+            existen. Sin shell en Render, este es el lugar para mirarlo antes de
+            desplegar. Sólo para admins: es una foto de toda la plataforma.
+        {% endcomment %}
+        <div class="mt-10 pt-8 border-t border-base-300">
+            <h2 class="text-xl font-bold flex items-center gap-2">
+                🔧 Impacto de los últimos cambios
+            </h2>
+            <p class="text-sm opacity-60 mt-1 mb-4">
+                Qué datos ya cargados alcanzan las reglas nuevas. Es de sólo lectura.
+            </p>
+
+            {% if impacto.requiere_accion %}
+                <div class="alert alert-warning mb-4">
+                    <span>Hay algo para revisar antes del próximo deploy (ver abajo).</span>
+                </div>
+            {% else %}
+                <div class="alert alert-success mb-4">
+                    <span>Nada para hacer: ningún dato existente queda afectado.</span>
+                </div>
+            {% endif %}
+
+            <div class="space-y-4">
+                <div class="card bg-base-100 border {% if impacto.americanos.cantidad %}border-warning{% else %}border-base-300{% endif %}">
+                    <div class="card-body p-4">
+                        <h3 class="font-bold text-sm">Americanos sin club asignado</h3>
+                        <p class="text-sm opacity-70">
+                            El panel del americano pasó a filtrar por club, así que uno sin
+                            club no lo puede gestionar ningún organizador (sólo un admin).
+                        </p>
+                        {% if impacto.americanos.cantidad %}
+                            <p class="text-sm font-bold text-warning mt-1">
+                                {{ impacto.americanos.cantidad }} de {{ impacto.americanos.total }} necesitan que les asignes club:
+                            </p>
+                            <ul class="text-sm mt-1 space-y-1">
+                                {% for a in impacto.americanos.huerfanos %}
+                                    <li class="opacity-80">#{{ a.pk }} — {{ a.nombre }} ({{ a.get_estado_display }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm mt-1">
+                                Ninguno de los {{ impacto.americanos.total }} queda huérfano. ✅
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card bg-base-100 border border-base-300">
+                    <div class="card-body p-4">
+                        <h3 class="font-bold text-sm">Teléfonos en el alta sin cuenta</h3>
+                        <p class="text-sm opacity-70">
+                            Antes se comparaban los últimos 8 dígitos y se tomaba el primero
+                            que coincidiera; ahora se comparan 10 exactos y, si hay más de un
+                            candidato, no se engancha. Lo peor que puede pasar es un
+                            duplicado de más, que se resuelve fusionando.
+                        </p>
+                        <p class="text-sm mt-1">
+                            {{ impacto.telefonos.normalizables }} de {{ impacto.telefonos.total }} teléfonos
+                            cargados se comparan sin problema.
+                        </p>
+                        {% if impacto.telefonos.cantidad_cortos %}
+                            <p class="text-sm mt-2">
+                                <b>{{ impacto.telefonos.cantidad_cortos }} son demasiado cortos</b>
+                                y ya no enganchan solos:
+                            </p>
+                            <ul class="text-xs mt-1 space-y-0.5 opacity-70">
+                                {% for c in impacto.telefonos.cortos %}
+                                    <li>{{ c.nombre }} — «{{ c.numero }}» ({{ c.digitos }} dígitos)</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if impacto.telefonos.cantidad_compartidos %}
+                            <p class="text-sm mt-2">
+                                <b>{{ impacto.telefonos.cantidad_compartidos }} números están en 2+ cuentas</b>
+                                — son duplicados reales, conviene fusionarlos:
+                            </p>
+                            <ul class="text-xs mt-1 space-y-0.5 opacity-70">
+                                {% for g in impacto.telefonos.compartidos %}
+                                    <li>
+                                        …{{ g.cola }}:
+                                        {% for pk, nombre, numero in g.cuentas %}{{ nombre }} (#{{ pk }}){% if not forloop.last %}, {% endif %}{% endfor %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if not impacto.telefonos.cantidad_cortos and not impacto.telefonos.cantidad_compartidos %}
+                            <p class="text-sm mt-1">Ningún teléfono queda afectado. ✅</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card bg-base-100 border border-base-300">
+                    <div class="card-body p-4">
+                        <h3 class="font-bold text-sm">Cuentas ya fusionadas</h3>
+                        <p class="text-sm opacity-70">
+                            El alta dejó de devolverlas: antes podía revivir un duplicado que
+                            un admin ya había unificado. Es el arreglo, no un riesgo.
+                        </p>
+                        <p class="text-sm mt-1">{{ impacto.fusionadas }} cuenta{{ impacto.fusionadas|pluralize:"s" }} fusionada{{ impacto.fusionadas|pluralize:"s" }} en la base.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <div class="mt-8 text-xs opacity-50 space-y-1">
         <p><b>Qué significa cada cosa:</b></p>
         <p>

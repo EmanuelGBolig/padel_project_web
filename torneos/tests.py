@@ -952,6 +952,60 @@ class ByesConCascadaTests(TestCase):
         self.assertIsNone(semi.ganador_id)
 
 
+class ImpactoDiagnosticoTests(TestCase):
+    """La pagina de diagnostico muestra a que datos existentes los alcanzan
+    los cambios de comportamiento. Sirve para revisar produccion sin shell."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+
+        self.club = Organizacion.objects.create(nombre="Club Imp", alias="club-imp")
+        self.admin = User.objects.create_user(
+            email="admin-imp@test.com", password="x", nombre="A", apellido="I",
+            tipo_usuario="ADMIN", is_staff=True)
+        self.org = User.objects.create_user(
+            email="org-imp@test.com", password="x", nombre="O", apellido="I",
+            tipo_usuario="ORGANIZER", organizacion=self.club)
+        self.url = reverse("torneos:revisar_torneos")
+
+    def test_detecta_un_americano_sin_club(self):
+        from .models import Americano
+        from .services.impacto import revisar_impacto
+
+        Americano.objects.create(nombre="Huerfano", tipo=Americano.Tipo.AMERICANO)
+        imp = revisar_impacto()
+        self.assertEqual(imp['americanos']['cantidad'], 1)
+        self.assertTrue(imp['requiere_accion'])
+
+    def test_sin_huerfanos_no_pide_accion(self):
+        from .models import Americano
+        from .services.impacto import revisar_impacto
+
+        Americano.objects.create(nombre="Con club", tipo=Americano.Tipo.AMERICANO,
+                                 organizacion=self.club)
+        self.assertFalse(revisar_impacto()['requiere_accion'])
+
+    def test_detecta_telefonos_cortos_y_compartidos(self):
+        from .services.impacto import revisar_impacto
+
+        User.objects.create_user(email="corto@t.com", password="x", nombre="C",
+                                 apellido="T", numero_telefono="59371")
+        User.objects.create_user(email="dup1@t.com", password="x", nombre="D1",
+                                 apellido="T", numero_telefono="2235937115")
+        User.objects.create_user(email="dup2@t.com", password="x", nombre="D2",
+                                 apellido="T", numero_telefono="+54 9 223 593-7115")
+        tel = revisar_impacto()['telefonos']
+        self.assertEqual(tel['cantidad_cortos'], 1)
+        self.assertEqual(tel['cantidad_compartidos'], 1)
+
+    def test_solo_el_admin_ve_la_seccion(self):
+        self.client.force_login(self.admin)
+        self.assertIn('impacto', self.client.get(self.url).context)
+
+        self.client.force_login(self.org)
+        self.assertNotIn('impacto', self.client.get(self.url).context)
+
+
 class DescribirEstructuraTests(TestCase):
     """TP-17.3: proyección de estructura para la vista previa del alta."""
 

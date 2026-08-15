@@ -3053,13 +3053,22 @@ class RevisarTorneosView(AdminRequiredMixin, TemplateView):
 
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
-        org = None if (user.is_staff or user.tipo_usuario == 'ADMIN') else user.organizacion
+        es_global = user.is_staff or user.tipo_usuario == 'ADMIN'
+        org = None if es_global else user.organizacion
         revisiones = revisar_todos(org)
 
         ctx['revisiones'] = revisiones
         ctx['total_problemas'] = sum(len(r['problemas']) for r in revisiones)
         ctx['torneos_con_problemas'] = sum(1 for r in revisiones if r['problemas'])
         ctx['torneos_revisados'] = len(revisiones)
+
+        # Impacto de los cambios de comportamiento sobre los datos que ya
+        # existen. Es una foto de toda la plataforma (teléfonos, cuentas), así
+        # que sólo la ve un admin.
+        if es_global:
+            from .services.impacto import revisar_impacto
+
+            ctx['impacto'] = revisar_impacto()
         return ctx
 
 
