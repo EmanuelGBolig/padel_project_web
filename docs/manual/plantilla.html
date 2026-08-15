@@ -1,0 +1,834 @@
+<title>TodoPadel — Manual de usuario</title>
+
+<style>
+  /* Paleta de la cancha: verde profundo, línea blanca, verde de la marca.
+     La misma identidad que el informe de mejoras, así los documentos del
+     proyecto se reconocen entre sí. */
+  :root {
+    --cancha:  #f7f7f4;
+    --piso:    #ffffff;
+    --linea:   #d8dcd7;
+    --tinta:   #0d1f1a;
+    --polvo:   #5d6d66;
+    --red:     #00996a;
+    --red-sua: #e6f5ee;
+    --pelota:  #8a7b00;
+    --pelota-sua: #f7f3d9;
+    --sombra:  0 1px 2px rgba(13,31,26,.05), 0 8px 24px rgba(13,31,26,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --cancha:#0a1613; --piso:#11211c; --linea:#22352e; --tinta:#eaf1ed;
+      --polvo:#90a49b; --red:#22c98d; --red-sua:#102c22;
+      --pelota:#cddd5e; --pelota-sua:#2a2a10;
+      --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --cancha:#0a1613; --piso:#11211c; --linea:#22352e; --tinta:#eaf1ed;
+    --polvo:#90a49b; --red:#22c98d; --red-sua:#102c22;
+    --pelota:#cddd5e; --pelota-sua:#2a2a10;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--cancha); color: var(--tinta);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+  }
+  .envoltorio { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* --- Portada --------------------------------------------------- */
+  .portada { padding: 88px 0 48px; border-bottom: 1px solid var(--linea); }
+  .marca {
+    font-size: 12px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--red); margin: 0 0 20px;
+  }
+  h1 {
+    font-size: clamp(38px, 7vw, 64px); line-height: 1.02; letter-spacing: -.035em;
+    font-weight: 800; margin: 0 0 20px; text-wrap: balance; max-width: 18ch;
+  }
+  .bajada { font-size: clamp(17px, 2.2vw, 21px); color: var(--polvo); max-width: 58ch; margin: 0; }
+  .fecha { margin-top: 28px; font-size: 13px; color: var(--polvo); letter-spacing: .04em; }
+
+  /* --- Índice ---------------------------------------------------- */
+  .indice {
+    margin-top: 40px; display: grid; gap: 14px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 760px) { .indice { grid-template-columns: 1fr 1fr 1fr; } }
+  .indice a {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--piso); border: 1px solid var(--linea);
+    border-radius: 14px; padding: 20px 22px; box-shadow: var(--sombra);
+  }
+  .indice a:hover { border-color: var(--red); }
+  .indice b { display: block; font-size: 19px; letter-spacing: -.01em; }
+  .indice .num {
+    display: inline-grid; place-items: center; width: 30px; height: 30px;
+    border-radius: 50%; background: var(--red); color: var(--piso);
+    font-weight: 800; font-size: 14px; margin-bottom: 10px;
+  }
+  .indice span { color: var(--polvo); font-size: 14px; line-height: 1.5; display: block; margin-top: 4px; }
+
+  /* --- Partes y secciones ---------------------------------------- */
+  .parte { padding: 80px 0 0; }
+  .parte-cab { border-bottom: 2px solid var(--tinta); padding-bottom: 18px; margin-bottom: 8px; }
+  .parte-rol {
+    font-size: 12px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--red); margin: 0 0 10px;
+  }
+  h2 {
+    font-size: clamp(30px, 4.5vw, 44px); line-height: 1.08; letter-spacing: -.03em;
+    font-weight: 800; margin: 0; text-wrap: balance;
+  }
+  .parte-nota { color: var(--polvo); margin: 14px 0 0; max-width: 62ch; }
+
+  section { padding: 56px 0 0; }
+  h3 {
+    font-size: clamp(21px, 2.8vw, 27px); line-height: 1.2; letter-spacing: -.02em;
+    font-weight: 750; margin: 0 0 6px;
+  }
+  h3 .sec-n { color: var(--red); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  p { margin: 0 0 14px; max-width: 62ch; }
+  .apagado { color: var(--polvo); }
+
+  /* "Dónde está": la ruta para llegar a la pantalla. */
+  .ruta {
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 7px;
+    font-size: 13.5px; color: var(--polvo);
+    background: var(--piso); border: 1px solid var(--linea);
+    border-radius: 999px; padding: 6px 14px; margin: 2px 0 16px;
+  }
+  .ruta b { color: var(--tinta); font-weight: 650; }
+  .ruta .sep { opacity: .45; }
+
+  .par { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; margin-top: 18px; }
+  @media (min-width: 860px) {
+    .par { grid-template-columns: 1.05fr .95fr; gap: 52px; }
+    .par.invertido > .texto { order: 2; }
+  }
+
+  ul.puntos { list-style: none; padding: 0; margin: 14px 0 16px; display: grid; gap: 8px; max-width: 62ch; }
+  ul.puntos li { padding-left: 22px; position: relative; }
+  ul.puntos li::before {
+    content: ""; position: absolute; left: 2px; top: .58em;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--red);
+  }
+  ul.puntos b { font-weight: 650; }
+
+  .consejo {
+    border-left: 3px solid var(--red); background: var(--red-sua);
+    border-radius: 0 12px 12px 0; padding: 12px 16px; margin: 16px 0;
+    font-size: 15px; max-width: 62ch;
+  }
+  .consejo.atencion { border-left-color: var(--pelota); background: var(--pelota-sua); }
+  .consejo b { font-weight: 700; }
+
+  /* --- Capturas -------------------------------------------------- */
+  figure { margin: 0; }
+  figcaption { margin-top: 10px; font-size: 13px; color: var(--polvo); text-align: center; }
+  .celular {
+    width: 100%; max-width: 380px; margin: 0 auto;
+    border: 8px solid var(--tinta); border-radius: 28px; overflow: hidden;
+    box-shadow: var(--sombra); display: block; background: var(--tinta);
+  }
+  .celular img { display: block; width: 100%; }
+  /* Pantallas de escritorio: marco de navegador. */
+  .pantalla {
+    width: 100%; border: 1px solid var(--linea); border-radius: 12px;
+    overflow: hidden; box-shadow: var(--sombra); background: var(--piso);
+    margin-top: 20px;
+  }
+  .pantalla .barra {
+    display: flex; gap: 6px; padding: 10px 14px;
+    background: var(--piso); border-bottom: 1px solid var(--linea);
+  }
+  .pantalla .barra i {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--linea); display: block;
+  }
+  .pantalla img { display: block; width: 100%; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; align-items: start; }
+  @media (min-width: 620px) { .duo { gap: 30px; } }
+  .duo .celular { border-width: 6px; border-radius: 22px; }
+  .ventana {
+    width: 100%; border-radius: 20px; overflow: hidden;
+    box-shadow: var(--sombra); background: var(--tinta); border: 1px solid var(--linea);
+  }
+  .ventana img { display: block; width: 100%; }
+
+  .volver-arriba { text-align: right; margin-top: 36px; }
+  .volver-arriba a { color: var(--polvo); font-size: 13px; text-decoration: none; }
+  .volver-arriba a:hover { color: var(--red); }
+
+  .cierre {
+    margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--linea);
+    font-size: 14px; color: var(--polvo);
+  }
+  .cierre strong { color: var(--tinta); }
+</style>
+
+<div class="envoltorio" id="arriba">
+
+  <header class="portada">
+    <p class="marca">TodoPadel · todopadel.club</p>
+    <h1>Manual de usuario</h1>
+    <p class="bajada">
+      Todo lo que se puede hacer en la app, pantalla por pantalla, con capturas
+      reales. Está dividido en tres partes según quién la usa: el jugador, el
+      organizador del club y el administrador de la plataforma.
+    </p>
+    <p class="fecha">Versión de agosto 2026</p>
+
+    <nav class="indice">
+      <a href="#jugador">
+        <span class="num">1</span>
+        <b>Jugador</b>
+        <span>Instalar la app, anotarse a un torneo, pagar, formar pareja y
+        seguir tus partidos y estadísticas.</span>
+      </a>
+      <a href="#organizador">
+        <span class="num">2</span>
+        <b>Organizador</b>
+        <span>Crear torneos, gestionar zonas y llave, cargar resultados,
+        cobrar inscripciones e imprimir horarios.</span>
+      </a>
+      <a href="#admin">
+        <span class="num">3</span>
+        <b>Administrador</b>
+        <span>Cuentas de jugadores, duplicados y fusiones, circuitos y
+        herramientas de diagnóstico.</span>
+      </a>
+    </nav>
+
+    <div class="consejo" style="margin-top:32px">
+      <b>Sobre las capturas.</b> Están tomadas en modo oscuro y con datos de
+      demostración. La app también tiene modo claro (se cambia con el sol/luna
+      de la barra de arriba) y en tu cuenta vas a ver tus propios torneos y
+      nombres. Las del jugador son de celular, porque es como la usa casi todo
+      el mundo; las de gestión son de computadora.
+    </div>
+  </header>
+
+  <!-- ================================================================ -->
+  <!-- PARTE 1 · JUGADOR                                                -->
+  <!-- ================================================================ -->
+  <div class="parte" id="jugador">
+    <div class="parte-cab">
+      <p class="parte-rol">Parte 1 · Jugador</p>
+      <h2>Jugar torneos con TodoPadel</h2>
+      <p class="parte-nota">
+        Lo esencial en una línea: <b>encontrás un torneo, te anotás con tu
+        compañero, pagás por transferencia y después seguís tus partidos,
+        horarios y estadísticas desde el celular</b>. No hace falta saber nada
+        más para arrancar.
+      </p>
+    </div>
+
+    <section id="j-instalar">
+      <h3><span class="sec-n">1.1</span>Instalar la app en el celular</h3>
+      <p class="ruta"><b>todopadel.club</b> <span class="sep">→</span> menú <span class="sep">→</span> <b>📲 Instalar la app</b></p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            TodoPadel funciona directo en el navegador, pero instalada queda
+            como una app más del teléfono: con su ícono, a pantalla completa y
+            con <b>notificaciones</b> de tus partidos.
+          </p>
+          <ul class="puntos">
+            <li>En <b>Android</b>: el navegador ofrece «Agregar a la pantalla principal» — un toque y listo.</li>
+            <li>En <b>iPhone</b>: se abre desde Safari, botón Compartir → «Agregar a inicio».</li>
+            <li>La página <b>Instalar</b> muestra estos pasos con dibujos, por si se lo querés reenviar a alguien.</li>
+          </ul>
+          <div class="consejo">
+            <b>No es obligatorio.</b> Todo funciona igual desde el navegador;
+            instalarla solo lo hace más cómodo.
+          </div>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j02-instalar}}" alt="La página con las instrucciones de instalación" /></div>
+          <figcaption>La guía de instalación, con los pasos por sistema</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="j-cuenta">
+      <h3><span class="sec-n">1.2</span>Crear una cuenta y entrar</h3>
+      <p class="ruta">Barra de arriba <span class="sep">→</span> <b>Acceder</b> / <b>Crear cuenta</b></p>
+      <div class="par invertido">
+        <div class="texto">
+          <p>
+            La cuenta guarda tu historial: torneos jugados, partidos ganados,
+            posición en el ranking. Se crea con <b>mail y contraseña</b> o
+            directamente con <b>Google</b>, en un paso.
+          </p>
+          <ul class="puntos">
+            <li>Al registrarte elegís tu <b>división</b> (categoría de juego) — el club la puede corregir después.</li>
+            <li>Si te anotaste a un torneo <b>sin tener cuenta</b> (ver 1.5), la cuenta ya te la creamos nosotros: entrá con el mail que pusiste y la contraseña que te llegó por WhatsApp, y la app te pide cambiarla apenas entrás.</li>
+            <li>¿Contraseña olvidada? En la pantalla de acceso está <b>«¿Olvidaste tu contraseña?»</b>: te llega un mail para elegir una nueva.</li>
+          </ul>
+        </div>
+        <div class="duo">
+          <figure>
+            <div class="celular"><img src="{{img:jugador/j03-registro}}" alt="El formulario de registro" /></div>
+            <figcaption>Crear cuenta</figcaption>
+          </figure>
+          <figure>
+            <div class="celular"><img src="{{img:jugador/j04-login}}" alt="La pantalla de acceso" /></div>
+            <figcaption>Entrar</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="j-home">
+      <h3><span class="sec-n">1.3</span>La pantalla de inicio</h3>
+      <p class="ruta">Logo <b>TodoPadel</b> desde cualquier pantalla</p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            El inicio muestra lo que está pasando ahora: los <b>torneos en
+            juego</b>, los que tienen la <b>inscripción abierta</b> y los
+            últimos campeones.
+          </p>
+          <ul class="puntos">
+            <li>El <b>buscador</b> de arriba encuentra torneos y jugadores por nombre.</li>
+            <li>El <b>menú</b> (las tres rayitas) lleva a todas las secciones: torneos, rankings, tu equipo, tu perfil.</li>
+            <li>La <b>campanita</b> muestra tus avisos sin leer (ver 1.10).</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j01-home}}" alt="La pantalla de inicio de TodoPadel" /></div>
+          <figcaption>El inicio, con los torneos activos</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="j-buscar">
+      <h3><span class="sec-n">1.4</span>Encontrar un torneo</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Torneos</b> <span class="sep">→</span> <b>Abiertos</b></p>
+      <div class="par invertido">
+        <div class="texto">
+          <p>
+            El listado de torneos abiertos tiene <b>filtros por ciudad, división
+            y categoría</b>: un jugador de séptima en Mar del Plata ve los suyos
+            sin scrollear los del resto del país.
+          </p>
+          <ul class="puntos">
+            <li>Cada tarjeta muestra fecha, división, categoría y cupos.</li>
+            <li>Los filtros <b>se mantienen</b> al pasar de página.</li>
+            <li>También hay listados de torneos <b>en juego</b> y <b>finalizados</b>, para seguir resultados o revivir uno viejo.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j05-torneos}}" alt="El listado de torneos abiertos con filtros" /></div>
+          <figcaption>Torneos abiertos, filtrables</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="j-ficha">
+      <h3><span class="sec-n">1.5</span>La ficha del torneo y cómo anotarse</h3>
+      <p class="ruta">Listado de torneos <span class="sep">→</span> tocar un torneo</p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            La ficha es la página del torneo: fecha, categoría, precio, cupos
+            que quedan, las parejas ya anotadas y —cuando arranca— las zonas y
+            la llave.
+          </p>
+          <p>
+            El botón <b>«Anotarme al torneo»</b> está arriba de todo. No hace
+            falta tener cuenta: al anotarte te la creamos.
+          </p>
+          <ul class="puntos">
+            <li><b>Con cuenta y pareja formada</b>: un toque y quedan anotados los dos.</li>
+            <li><b>Con cuenta y sin pareja</b>: elegís compañero de la lista o lo invitás.</li>
+            <li><b>Sin cuenta</b>: el formulario de dos pasos que sigue abajo.</li>
+            <li>Si el torneo tiene precio, la ficha muestra <b>cuánto sale y cómo pagarlo</b> (ver 1.6).</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j06-ficha}}" alt="La ficha completa de un torneo abierto" /></div>
+          <figcaption>La ficha completa: botón de anotarse, datos de pago y parejas</figcaption>
+        </figure>
+      </div>
+
+      <p style="margin-top:36px">
+        <b>Anotarse sin cuenta</b> son dos pantallas cortas: primero tus datos,
+        después los de tu compañero/a.
+      </p>
+      <div class="duo">
+        <figure>
+          <div class="ventana"><img src="{{img:jugador/j07-alta-paso1}}" alt="Paso 1: tus datos" /></div>
+          <figcaption>Paso 1 · Tus datos: nombre, mail y WhatsApp</figcaption>
+        </figure>
+        <figure>
+          <div class="ventana"><img src="{{img:jugador/j08-alta-paso2}}" alt="Paso 2: los datos de tu compañero" /></div>
+          <figcaption>Paso 2 · Tu compañero/a y «Finalizar y pagar»</figcaption>
+        </figure>
+      </div>
+      <ul class="puntos" style="margin-top:20px">
+        <li>Al finalizar, la inscripción <b>ya está hecha</b> y aparece un mensaje de WhatsApp listo para avisarle a tu compañero, con sus datos de acceso.</li>
+        <li>Si tu compañero <b>ya está en TodoPadel</b> (o el organizador lo cargó alguna vez), se usa su cuenta de siempre con todo su historial — no se crea una repetida.</li>
+        <li>Tus datos de acceso se muestran <b>una sola vez</b>, por seguridad. La app te pide cambiar la contraseña la primera vez que entrás.</li>
+      </ul>
+    </section>
+
+    <section id="j-pagar">
+      <h3><span class="sec-n">1.6</span>Pagar la inscripción</h3>
+      <p class="ruta">Ficha del torneo <span class="sep">→</span> bloque <b>«Cómo pagar la inscripción»</b></p>
+      <p>
+        Si el torneo tiene precio, en la ficha están la <b>seña</b> y el
+        <b>total</b>, el <b>alias</b> con un botón para copiarlo y el titular de
+        la cuenta para verificar antes de transferir.
+      </p>
+      <ul class="puntos">
+        <li>Transferís al alias desde tu billetera o banco.</li>
+        <li>Mandás el comprobante por <b>WhatsApp</b> con el botón (el mensaje ya va escrito), o lo <b>subís en la app</b>.</li>
+        <li>El organizador lo confirma y tu lugar queda asegurado.</li>
+      </ul>
+      <div class="consejo atencion">
+        <b>El lugar se confirma con la seña.</b> Hasta que el organizador
+        registre tu pago, figurás como pendiente.
+      </div>
+    </section>
+
+    <section id="j-pareja">
+      <h3><span class="sec-n">1.7</span>Tu pareja: equipo, invitaciones y búsqueda</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Mi equipo</b> · <b>Buscar compañero</b></p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            En TodoPadel jugás en <b>pareja estable</b>: un equipo con nombre,
+            división e historial propio.
+          </p>
+          <ul class="puntos">
+            <li><b>Formar equipo</b>: invitás a un jugador; le llega la invitación y cuando la acepta el equipo queda armado.</li>
+            <li>Las <b>invitaciones recibidas</b> aparecen en tu perfil, con Aceptar / Rechazar.</li>
+            <li><b>Mi equipo</b> muestra el historial de la pareja y permite <b>disolverla</b> si cambia el compañero (el historial de cada uno se conserva).</li>
+            <li>¿No tenés compañero? En <b>Buscar compañero</b> se publican avisos por división y ciudad.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j10-mi-equipo}}" alt="La pantalla de Mi equipo" /></div>
+          <figcaption>Mi equipo</figcaption>
+        </figure>
+      </div>
+      <div class="duo">
+        <figure>
+          <div class="ventana"><img src="{{img:jugador/j18-invitacion}}" alt="Una invitación de pareja recibida" /></div>
+          <figcaption>Una invitación recibida, en tu perfil</figcaption>
+        </figure>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j11-buscar-companero}}" alt="Los avisos de búsqueda de compañero" /></div>
+          <figcaption>Avisos de «busco compañero»</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="j-seguir">
+      <h3><span class="sec-n">1.8</span>Seguir el torneo: zonas, llave, horarios y en vivo</h3>
+      <p class="ruta">Ficha del torneo <span class="sep">→</span> <b>Zonas / Llave</b> · <b>Más opciones → Horarios</b> · <b>Ver en vivo</b></p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            Cuando el torneo arranca, la ficha muestra la <b>fase de grupos</b>
+            (cada zona con su tabla de posiciones) y después el <b>cuadro de la
+            llave</b>, con las ramas que conectan cada cruce.
+          </p>
+          <ul class="puntos">
+            <li><b>Horarios</b>: la programación completa por día y hora, con un botón para <b>descargarla en PDF</b>.</li>
+            <li><b>En vivo</b>: los resultados se actualizan mientras se juega — sirve para seguirlo desde afuera.</li>
+            <li>Te llegan <b>recordatorios automáticos</b> 24 h y 2 h antes de cada partido tuyo.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j14-torneo-en-juego}}" alt="Un torneo en juego con zonas y llave" /></div>
+          <figcaption>El torneo en juego: zonas con posiciones y la llave</figcaption>
+        </figure>
+      </div>
+      <div class="duo">
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j16-horarios}}" alt="Los horarios del torneo" /></div>
+          <figcaption>Horarios, con descarga en PDF</figcaption>
+        </figure>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j15-vivo}}" alt="El torneo en vivo" /></div>
+          <figcaption>El en vivo</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="j-perfil">
+      <h3><span class="sec-n">1.9</span>Tu perfil, estadísticas y ranking</h3>
+      <p class="ruta">Avatar (arriba a la derecha) <span class="sep">→</span> <b>Mi Perfil</b> · Menú <span class="sep">→</span> <b>Rankings</b></p>
+      <div class="par invertido">
+        <div class="texto">
+          <p>
+            Tu perfil junta todo lo tuyo: <b>partidos jugados y ganados,
+            torneos, títulos</b>, tu equipo y tu historial torneo por torneo.
+          </p>
+          <ul class="puntos">
+            <li>Podés subir tu <b>foto</b> y completar tu ficha (posición en la cancha, mano hábil, club, ciudad, Instagram).</li>
+            <li>Cada torneo jugado suma <b>puntos al ranking</b> de tu división.</li>
+            <li>El <b>ranking</b> es público: entrá a ver cómo venís contra el resto.</li>
+            <li>Tu perfil también lo ve el resto: organizadores y rivales pueden mirar tu historial.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j12-perfil}}" alt="El perfil del jugador con estadísticas" /></div>
+          <figcaption>El perfil, con estadísticas e historial</figcaption>
+        </figure>
+      </div>
+      <div class="duo">
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j13-rankings}}" alt="El ranking de jugadores" /></div>
+          <figcaption>El ranking por división</figcaption>
+        </figure>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j17-placa-jugador}}" alt="La placa del jugador para redes" /></div>
+          <figcaption>Tu placa para compartir en redes</figcaption>
+        </figure>
+      </div>
+      <div class="consejo">
+        <b>Placas para redes.</b> Desde tu perfil (y desde cada torneo) se
+        genera una <b>placa lista para Instagram</b> con tus números — para
+        presumir la copa sin hacer diseño.
+      </div>
+    </section>
+
+    <section id="j-notif">
+      <h3><span class="sec-n">1.10</span>Notificaciones</h3>
+      <p class="ruta">Campanita en la barra de arriba <span class="sep">→</span> <b>Notificaciones</b></p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            La app te avisa de lo que te pasa a vos: salieron las zonas, jugás
+            en dos horas, tu pago fue confirmado, cargaron tu resultado,
+            aceptaron tu invitación.
+          </p>
+          <ul class="puntos">
+            <li>El aviso llega como <b>notificación al celular</b> (si instalaste la app y aceptaste recibirlas)…</li>
+            <li>…y además <b>queda guardado en el panel</b>: aunque el celular esté en silencio, entrás y está.</li>
+            <li>Cada aviso <b>lleva directo</b> a la pantalla que corresponde: tocás «salieron las zonas» y caés en el torneo.</li>
+            <li>Los sin leer tienen un punto verde; hay un botón para <b>marcar todas como leídas</b>.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="celular"><img src="{{img:jugador/j19-notificaciones}}" alt="El panel de notificaciones" /></div>
+          <figcaption>El panel de notificaciones</figcaption>
+        </figure>
+      </div>
+      <div class="volver-arriba"><a href="#arriba">↑ Volver al índice</a></div>
+    </section>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- PARTE 2 · ORGANIZADOR                                            -->
+  <!-- ================================================================ -->
+  <div class="parte" id="organizador">
+    <div class="parte-cab">
+      <p class="parte-rol">Parte 2 · Organizador</p>
+      <h2>Gestionar torneos del club</h2>
+      <p class="parte-nota">
+        El organizador ve todo lo del jugador y además el <b>panel de
+        gestión</b>: crear torneos, armar zonas y llave, cargar resultados al
+        borde de la cancha, cobrar inscripciones e imprimir la planilla de
+        horarios. Estas pantallas se muestran acá en computadora, pero todas
+        funcionan igual en el celular.
+      </p>
+    </div>
+
+    <section id="o-panel">
+      <h3><span class="sec-n">2.1</span>El panel del organizador</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Panel del organizador</b></p>
+      <p>
+        El punto de partida de cada jornada: tus torneos activos con su estado,
+        cuántas parejas hay anotadas, qué falta cobrar y accesos directos a lo
+        que más se usa.
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o01-dashboard}}" alt="El panel del organizador" /></div>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o02-listado}}" alt="El listado de torneos del organizador" /></div>
+      <p class="apagado" style="margin-top:14px">
+        Abajo, el listado de gestión: cada torneo con su botón <b>Gestionar</b>.
+        Solo ves los torneos de <b>tu</b> club.
+      </p>
+    </section>
+
+    <section id="o-crear">
+      <h3><span class="sec-n">2.2</span>Crear un torneo</h3>
+      <p class="ruta">Panel <span class="sep">→</span> <b>Crear torneo</b></p>
+      <p>Un formulario, un torneo publicado. Lo importante:</p>
+      <ul class="puntos">
+        <li><b>División y categoría</b> definen quiénes pueden anotarse.</li>
+        <li><b>Cupos</b>: cuántas parejas entran. La ficha avisa «¡Últimos N cupos!» sola.</li>
+        <li><b>Precio y seña</b>: si los cargás, la ficha muestra cuánto sale, tus datos de pago y se habilita el panel de <b>Cobros</b> (2.6). Si los dejás vacíos, el torneo es gratuito y no se pide nada.</li>
+        <li><b>Formato</b>: zonas + eliminatoria con los <b>cuadros oficiales FAP</b> (de 6 a 48 parejas), o un formato personalizado tuyo (2.10).</li>
+        <li><b>Foto de portada, sede, premio y reglamento</b>: opcionales, hacen la ficha más vendedora.</li>
+      </ul>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o03-crear-torneo}}" alt="El formulario de crear torneo" /></div>
+    </section>
+
+    <section id="o-inscriptos">
+      <h3><span class="sec-n">2.3</span>Mientras la inscripción está abierta</h3>
+      <p class="ruta">Panel <span class="sep">→</span> torneo <span class="sep">→</span> <b>Gestionar</b></p>
+      <p>
+        Con el torneo abierto, la pantalla de gestión muestra las <b>parejas
+        inscritas</b> y las herramientas de armado:
+      </p>
+      <ul class="puntos">
+        <li><b>Agregar parejas a mano</b>: para los que se anotan por WhatsApp o en el mostrador. Si el jugador no existe, lo cargás en el momento (2.4).</li>
+        <li><b>Exportar CSV</b>: la lista con mails y teléfonos para tu planilla.</li>
+        <li><b>Cobros</b>: quién pagó, quién señó, quién debe (2.6).</li>
+        <li><b>Iniciar torneo</b>: genera las zonas según el formato elegido y el torneo pasa a «En juego».</li>
+      </ul>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o04-gestion-abierto}}" alt="Gestión de un torneo abierto" /></div>
+    </section>
+
+    <section id="o-carga">
+      <h3><span class="sec-n">2.4</span>Cargar parejas y jugadores que no están en la app</h3>
+      <p class="ruta">Gestión <span class="sep">→</span> <b>Agregar pareja</b> · Menú <span class="sep">→</span> <b>Cargar jugador</b></p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            No todos tus jugadores van a tener cuenta, y no importa: podés
+            cargar un <b>jugador con solo el nombre</b> (mail y teléfono si los
+            tenés) y armarle pareja al toque.
+          </p>
+          <ul class="puntos">
+            <li>El buscador de jugadores <b>autocompleta</b> con los que ya existen: no se duplican cuentas.</li>
+            <li>Si esa persona después se anota sola con su mail, <b>hereda todo el historial</b> que le cargaste.</li>
+            <li>Las parejas que no encajan por división se listan aparte <b>con el motivo escrito</b>, no desaparecen en silencio.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="pantalla" style="margin-top:0"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o08-crear-jugador}}" alt="Cargar un jugador sin cuenta" /></div>
+          <figcaption>Cargar un jugador que no está en la app</figcaption>
+        </figure>
+      </div>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o07-crear-pareja}}" alt="Cargar una pareja a mano" /></div>
+    </section>
+
+    <section id="o-enjuego">
+      <h3><span class="sec-n">2.5</span>El día del torneo: zonas, resultados y llave</h3>
+      <p class="ruta">Gestión de un torneo <b>en juego</b></p>
+      <p>
+        Esta es la pantalla que usás al borde de la cancha. Cada zona tiene sus
+        partidos y su tabla; la llave se arma cuando avanzan los clasificados.
+      </p>
+      <ul class="puntos">
+        <li><b>Cargar un resultado</b>: abrís el partido, ponés los sets, guardar. La tabla y la llave se actualizan <b>sin recargar la página</b> — al siguiente partido de una.</li>
+        <li><b>Avanzar clasificados</b>: cerrada la zona, un botón pasa a los mejores a la llave según el cuadro FAP.</li>
+        <li><b>Ganadores que avanzan solos</b>: cargás la final de un cruce y el ganador aparece en el siguiente.</li>
+        <li><b>Walkover / abandono</b>: se registran como tales, sin inventar resultados.</li>
+        <li><b>Reemplazar pareja</b> y <b>regenerar llave</b> para los imprevistos de siempre.</li>
+        <li>El buscador de arriba salta directo a un <b>equipo, zona o ronda</b>.</li>
+      </ul>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o05-gestion-en-juego}}" alt="Gestión de un torneo en juego con zonas y llave" /></div>
+      <div class="consejo">
+        <b>Los jugadores lo ven en vivo.</b> Cada resultado que cargás aparece
+        al instante en la ficha pública y en el «en vivo» del torneo.
+      </div>
+    </section>
+
+    <section id="o-cobros">
+      <h3><span class="sec-n">2.6</span>Cobros</h3>
+      <p class="ruta">Gestión <span class="sep">→</span> <b>💰 Cobros</b></p>
+      <p>
+        El panel de cobros lleva la caja del torneo: <b>cuánto se recaudó</b> y
+        cada pareja en qué estado está — <b>pagado, señado o pendiente</b>.
+      </p>
+      <ul class="puntos">
+        <li>Cambiás el estado y el monto de cada pareja en la misma fila, con una nota si hace falta («pagó en efectivo», «debe la mitad»).</li>
+        <li>Los comprobantes que suben los jugadores quedan adjuntos a su inscripción.</li>
+        <li><b>Recordar</b>: un toque y sale el WhatsApp con el recordatorio de pago ya escrito.</li>
+        <li><b>Exportar CSV</b> para tu contabilidad.</li>
+      </ul>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o06-cobros}}" alt="El panel de cobros" /></div>
+    </section>
+
+    <section id="o-datos-pago">
+      <h3><span class="sec-n">2.7</span>Los datos de pago del club</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Ajustes de la organización</b></p>
+      <p>
+        El alias, el titular y los WhatsApp de contacto se cargan <b>una sola
+        vez</b> acá, y valen para todos tus torneos. Es lo que ve el jugador en
+        la ficha cuando el torneo tiene precio.
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o12-ajustes}}" alt="Los ajustes de la organización" /></div>
+      <div class="par" style="margin-top:28px">
+        <div class="texto">
+          <p>
+            En la misma sección se cargan los <b>sponsors del club</b>: sus
+            logos aparecen en las fichas y las placas de tus torneos.
+          </p>
+        </div>
+        <figure>
+          <div class="pantalla" style="margin-top:0"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o13-sponsors}}" alt="Los sponsors del club" /></div>
+          <figcaption>Sponsors</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="o-horarios">
+      <h3><span class="sec-n">2.8</span>Horarios: la planilla para pegar en el club</h3>
+      <p class="ruta">Gestión <span class="sep">→</span> <b>Horarios · PDF</b></p>
+      <p>
+        La programación del torneo como tabla —hora, zona, las dos parejas—
+        agrupada por día. El botón <b>«Descargar PDF»</b> la baja lista para
+        imprimir: blanco y negro, una hoja rinde el doble de partidos, y ningún
+        partido queda cortado entre dos páginas.
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o09-horarios}}" alt="La planilla de horarios con botón de descarga en PDF" /></div>
+      <p class="apagado" style="margin-top:14px">
+        También existe la <b>programación general del club</b>: todos los
+        partidos de todos tus torneos de una fecha, en una sola planilla
+        (Menú → Programación general).
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o11-prog-general}}" alt="La programación general del club" /></div>
+    </section>
+
+    <section id="o-difusion">
+      <h3><span class="sec-n">2.9</span>Difusión: placas y embudo</h3>
+      <p class="ruta">Ficha del torneo <span class="sep">→</span> <b>Placa para redes</b> · Panel <span class="sep">→</span> <b>Embudo</b></p>
+      <div class="par">
+        <div class="texto">
+          <p>
+            Cada torneo genera su <b>placa para Instagram</b> con la foto, la
+            fecha y los sponsors — lista para descargar y postear. Hay placas
+            de torneo, de jugador y de resultado.
+          </p>
+          <p>
+            El <b>embudo de inscripción</b> te dice cuánta gente entró a la
+            ficha, cuántos empezaron a anotarse y cuántos terminaron: si un
+            torneo no se llena, acá ves dónde se caen.
+          </p>
+        </div>
+        <figure>
+          <div class="pantalla" style="margin-top:0"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o10-placa-torneo}}" alt="La placa del torneo para redes" /></div>
+          <figcaption>La placa del torneo</figcaption>
+        </figure>
+      </div>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o14-embudo}}" alt="El embudo de inscripción" /></div>
+    </section>
+
+    <section id="o-otros">
+      <h3><span class="sec-n">2.10</span>Americanos y formatos personalizados</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Americanos</b> · Panel <span class="sep">→</span> <b>Formatos</b></p>
+      <div class="par invertido">
+        <div class="texto">
+          <p>
+            Para el entrenamiento del club está el modo <b>americano /
+            mexicano</b>: parejas rotativas, rondas por puntos y un <b>código
+            para sumarse</b> desde el celular. Se arma en un minuto y la tabla
+            se lleva sola.
+          </p>
+          <p>
+            Y si tus torneos no siguen el cuadro FAP, podés definir un
+            <b>formato personalizado</b> (cuántas zonas, cuántos clasifican,
+            cómo se cruza la llave) y reusarlo en cada torneo.
+          </p>
+        </div>
+        <figure>
+          <div class="pantalla" style="margin-top:0"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o15-americanos}}" alt="Los torneos americanos" /></div>
+          <figcaption>Americanos</figcaption>
+        </figure>
+      </div>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:organizador/o16-formatos}}" alt="Los formatos personalizados" /></div>
+      <div class="volver-arriba"><a href="#arriba">↑ Volver al índice</a></div>
+    </section>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- PARTE 3 · ADMINISTRADOR                                          -->
+  <!-- ================================================================ -->
+  <div class="parte" id="admin">
+    <div class="parte-cab">
+      <p class="parte-rol">Parte 3 · Administrador</p>
+      <h2>Administrar la plataforma</h2>
+      <p class="parte-nota">
+        El administrador puede todo lo del organizador —sobre <b>cualquier</b>
+        club, no solo el suyo— y además mantiene la casa en orden: cuentas,
+        duplicados, parejas, circuitos y diagnósticos.
+      </p>
+    </div>
+
+    <section id="a-usuarios">
+      <h3><span class="sec-n">3.1</span>Cuentas de jugadores</h3>
+      <p class="ruta">Perfil público de un jugador <span class="sep">→</span> <b>Editar</b></p>
+      <p>
+        Desde el perfil de cualquier jugador, el admin corrige sus datos:
+        nombre, mail, teléfono, división, género, tipo de cuenta. Es la
+        herramienta para los «me anoté con el mail mal escrito» de todas las
+        semanas.
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:admin/a03-editar-jugador}}" alt="Editar los datos de un jugador" /></div>
+    </section>
+
+    <section id="a-duplicados">
+      <h3><span class="sec-n">3.2</span>Duplicados y fusión de cuentas</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Posibles duplicados</b> · <b>Fusionar cuentas</b></p>
+      <p>
+        Cuando una persona termina con dos cuentas (una que le cargó el club y
+        otra que se creó sola), sus estadísticas quedan partidas. Acá se
+        arregla:
+      </p>
+      <ul class="puntos">
+        <li><b>Posibles duplicados</b> busca cuentas sospechosamente parecidas (mismo nombre, mails similares) y las lista.</li>
+        <li><b>Fusionar</b> junta las dos en una: los partidos, torneos y puntos de ambas pasan a la cuenta que queda, y la otra se desactiva. Nada del historial se pierde.</li>
+        <li>Cada fusión queda <b>registrada</b>: quién la hizo, cuándo y qué cuentas juntó.</li>
+      </ul>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:admin/a01-duplicados}}" alt="El listado de posibles duplicados" /></div>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:admin/a02-fusion}}" alt="La pantalla de fusionar cuentas" /></div>
+    </section>
+
+    <section id="a-parejas">
+      <h3><span class="sec-n">3.3</span>Parejas</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Parejas</b></p>
+      <p>
+        El listado completo de parejas de la plataforma, con buscador. Desde acá
+        se puede <b>disolver</b> una pareja mal armada: el equipo desaparece
+        pero el historial de cada jugador se conserva. Los organizadores ven y
+        gestionan las de su club.
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:admin/a04-equipos}}" alt="El listado de parejas" /></div>
+    </section>
+
+    <section id="a-circuitos">
+      <h3><span class="sec-n">3.4</span>Circuitos</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Circuitos</b></p>
+      <p>
+        Un circuito agrupa varios torneos en una temporada: los puntos de cada
+        fecha se acumulan y el circuito tiene su propia tabla general. Acá se
+        crean, se les asignan torneos y se cierran.
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:admin/a05-circuitos}}" alt="La gestión de circuitos" /></div>
+    </section>
+
+    <section id="a-diagnostico">
+      <h3><span class="sec-n">3.5</span>Diagnóstico de torneos</h3>
+      <p class="ruta">Menú <span class="sep">→</span> <b>Revisar torneos</b></p>
+      <p>
+        Una revisión automática de consistencia sobre todos los torneos: zonas
+        sin partidos, llaves incompletas, resultados imposibles, parejas
+        colgadas. Cada problema sale listado con su torneo, para arreglarlo
+        antes de que lo reporte un club. Es la herramienta a mirar si un
+        organizador dice «algo está raro».
+      </p>
+      <div class="pantalla"><div class="barra"><i></i><i></i><i></i></div><img src="{{img:admin/a06-revisar}}" alt="El diagnóstico de torneos" /></div>
+      <div class="volver-arriba"><a href="#arriba">↑ Volver al índice</a></div>
+    </section>
+  </div>
+
+  <p class="cierre">
+    <strong>TodoPadel</strong> · Manual de usuario · agosto 2026. Las capturas
+    son de la app real con datos de demostración. Ante cualquier duda que el
+    manual no resuelva, escribinos por WhatsApp desde el botón de contacto de
+    la app.
+  </p>
+
+</div>

@@ -3577,8 +3577,14 @@ Corren **contra la base de datos de desarrollo real**, borran por patrón (`Torn
 | `complete_inscriptions.py` | No | Completa inscripciones del torneo id=8 |
 | `create_big_tournament.py` / `create_tournament_48.py` | No | Crean 48 equipos + torneo con zonas de 3 |
 | `simulate_24_teams.py` | No | Simula un torneo de 24 de punta a punta |
+| `datos_demo_informe.py` / `datos_demo_manual.py` | No | Elenco de vitrina para capturas (usuarios demo por rol, resultados, pagos, notificaciones). Sólo base local |
+| `capturar_manual.py` | No | Captura todas las pantallas del manual por rol con Playwright → `docs/manual/img/<rol>/`. Requiere `runserver 8010` |
+| `armar_reporte.py` / `armar_manual.py` | No | Ensamblan `docs/reporte/reporte-clientes.html` y `docs/manual/manual-usuario.html` desde sus `plantilla.html`, incrustando las capturas como WebP |
+| `probar_planilla.py` | No | Genera el PDF de la planilla de horarios como lo haría el navegador y lo rasteriza para revisarlo |
 
-Los siete últimos son one-off con IDs hardcodeados: correrlos a ciegas contra una base con datos reales rompe cosas.
+Los one-off con IDs hardcodeados (`add_teams`, `assign_team_numbers`, `backfill_team_codes`, `complete_inscriptions`, `create_big_tournament`, `create_tournament_48`, `simulate_24_teams`): correrlos a ciegas contra una base con datos reales rompe cosas.
+
+**Documentos generados** (`docs/`): `reporte/reporte-clientes.html` (informe de mejoras para clientes) y `manual/manual-usuario.html` (manual de usuario por rol: jugador / organizador / admin). Ambos autocontenidos (imágenes embebidas); las capturas fuente quedan en `docs/reporte/img/` y `docs/manual/img/<rol>/`. Para regenerarlos: `datos_demo_*` → `capturar_*` → `armar_*`.
 
 ### A.7 Datos: dump, restore y media legacy
 
