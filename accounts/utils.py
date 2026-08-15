@@ -792,6 +792,9 @@ def merge_users(dummy_user, real_user):
     if dummy_user.pk == real_user.pk:
         raise ValueError("No se puede fusionar una cuenta consigo misma.")
 
+    # Se anota antes: si el origen es dummy se borra y después no se puede leer.
+    division_origen = dummy_user.division_id
+
     with transaction.atomic():
         # 1+2. Traspasar equipos del origen al destino, equipo por equipo, de forma
         # SEGURA ante la constraint unique_active_team (par activo único). Si ya
@@ -849,8 +852,32 @@ def merge_users(dummy_user, real_user):
             dummy_user.merged_into = real_user
             dummy_user.save(update_fields=['is_active', 'merged_into'])
 
-        # 4. Forzar recalculo de rankings para las divisiones del usuario real
-        from accounts.models import Division
-        for div in Division.objects.all():
-            actualizar_rankings_en_bd(div)
+    # 4. Recalcular los rankings de las divisiones AFECTADAS, en segundo plano.
+    #
+    # Antes esto recorría TODAS las divisiones de forma sincrónica y adentro del
+    # `transaction.atomic`. Cada pasada borra y reconstruye el ranking completo
+    # de una división, así que una fusión eran 8 recálculos completos bloqueando
+    # la respuesta; y como la pantalla de duplicados fusiona en loop, fusionar 5
+    # cuentas eran 40. En Render eso se comía el timeout del request.
+    #
+    # Va fuera del atomic a propósito: el hilo lee de la base y necesita ver la
+    # fusión ya comiteada.
+    divisiones = {
+        d for d in (
+            getattr(real_user, 'division_id', None),
+            division_origen,
+        ) if d
+    }
+    divisiones |= set(
+        Equipo.objects.filter(
+            Q(jugador1=real_user) | Q(jugador2=real_user)
+        ).values_list('division_id', flat=True)
+    )
+    # Import perezoso: torneos.signals importa de este módulo, así que al
+    # importarlo arriba se armaría un ciclo.
+    from torneos.signals import _programar_recalculo
+
+    for division_id in divisiones:
+        if division_id:
+            _programar_recalculo(division_id)
 

@@ -707,3 +707,47 @@ class ProgramacionOrganizacionFechasTests(TestCase):
         partidos = self._get('2026-03-07').context['partidos_con_fecha']
         self.assertEqual(partidos[0]['fase'], "Zona A")
         self.assertEqual(partidos[0]['descripcion_partido'], "")
+
+
+class MergeRecalculoAcotadoTests(TestCase):
+    """Auditoria - alto: fusionar recalculaba las 8 divisiones, sincronico.
+
+    `merge_users` terminaba con `for div in Division.objects.all():
+    actualizar_rankings_en_bd(div)` DENTRO del transaction.atomic del request.
+    Cada pasada borra y reconstruye el ranking completo de una division, asi
+    que una fusion eran 8 recalculos bloqueando la respuesta — y la pantalla de
+    duplicados fusiona en loop, o sea 5 duplicados = 40 recalculos.
+    """
+
+    def setUp(self):
+        self.divs = [
+            Division.objects.create(nombre="MR%d" % n, orden=n) for n in range(1, 9)
+        ]
+        User = get_user_model()
+        self.destino = User.objects.create_user(
+            email="destino-mr@test.com", password="x", nombre="Des", apellido="Tino",
+            division=self.divs[4],
+        )
+        self.origen = User.objects.create_user(
+            email="origen-mr@test.com", password="x", nombre="Ori", apellido="Gen",
+            division=self.divs[4],
+        )
+        self.origen.is_dummy = True
+        self.origen.save()
+
+    @override_settings(RANKINGS_DEBOUNCE_SEGUNDOS=0)
+    def test_solo_recalcula_las_divisiones_afectadas(self):
+        from unittest.mock import patch
+
+        from accounts.utils import merge_users
+
+        with patch('torneos.signals.actualizar_rankings_en_bd') as fake:
+            merge_users(self.origen, self.destino)
+
+        recalculadas = {c.args[0].id for c in fake.call_args_list if c.args}
+        self.assertTrue(recalculadas, "No recalculo ninguna division.")
+        self.assertLessEqual(
+            len(recalculadas), 2,
+            "Recalculo %d divisiones; solo deberia tocar las afectadas." % len(recalculadas),
+        )
+        self.assertIn(self.divs[4].id, recalculadas)

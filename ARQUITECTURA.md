@@ -359,7 +359,7 @@ Invitación de un jugador a otro para formar pareja.
 
 #### `RankingJugador` — `equipos/models.py:279`
 
-Tabla materializada de puntos por jugador y división (la regenera `accounts.utils.actualizar_rankings_en_bd`, disparada en un `threading.Thread` desde `torneos/signals.py:17`).
+Tabla materializada de puntos por jugador y división (la regenera `accounts.utils.actualizar_rankings_en_bd`, agendada con debounce desde `torneos/signals.py`).
 
 | Campo | Tipo | Default |
 |---|---|---|
@@ -507,7 +507,7 @@ No hay lógica en el modelo: la recalcula íntegramente el signal `post_save` de
 2. **Resetea a 0** ganados/perdidos/sets/games y setea `partidos_jugados = count()`.
 3. Suma `e1_sets_ganados`/`e2_sets_ganados` y `e1_games_ganados`/`e2_games_ganados` según el equipo sea local o visitante.
 4. Calcula `diferencia_sets` y `diferencia_games` y guarda.
-5. Si el partido tiene ganador, invalida el caché de rankings de la división y de los jugadores, y lanza `actualizar_rankings_en_bd(division)` en un `threading.Thread` (`torneos/signals.py:11-17`).
+5. Si el partido tiene ganador, invalida el caché de rankings de la división y de los jugadores, y **agenda** `actualizar_rankings_en_bd(division)` (ver debounce abajo).
 
 Un segundo receiver, `check_llaves_internas_generacion` (`torneos/signals.py:97-143`), cuando `formato_grupos_4 == 'LL'` y la zona tiene 4 equipos con exactamente 2 partidos ya resueltos, crea automáticamente la Ronda 2: **Ganador vs Ganador** y **Perdedor vs Perdedor**.
 
@@ -1236,7 +1236,30 @@ Templates: `torneos/templates/torneos/emails/nuevo_torneo.html` y `nueva_inscrip
 | `invalidar_cache_partido_bracket` (`signals.py:87`) | `post_save` de `Partido` | Invalida las mismas cachés cuando el partido de bracket tiene ganador |
 | `check_llaves_internas_generacion` (`signals.py:97`) | `post_save` de `PartidoGrupo` | Para `formato_grupos_4 == 'LL'` y zona de 4: si existen exactamente 2 partidos y ambos tienen ganador, crea la Ronda 2 (Ganador vs Ganador y Perdedor vs Perdedor) |
 
-`invalidar_cache_division` (`signals.py:11-17`) borra `rankings_jugadores_div_<id>` y lanza `actualizar_rankings_en_bd` en un thread separado.
+`invalidar_cache_division` (`torneos/signals.py`) borra las tres claves de caché
+de la división (`_gen_ALL` / `_MASCULINO` / `_FEMENINO`) y **agenda** el recálculo con
+`_programar_recalculo(division_id)`.
+
+**Debounce (auditoría).** Antes cada save disparaba su propio `threading.Thread` con
+un recálculo COMPLETO de la división: borrar todos los `RankingJugador` y
+reconstruirlos (~10 consultas pesadas + 2 por jugador). Cargar una zona de 24 partidos
+—lo que hace el organizador al borde de la cancha— eran 24 recálculos completos
+peleándose por la base. Ahora:
+
+- `_programar_recalculo` agenda **uno solo por división** con un `threading.Timer` de
+  `settings.RANKINGS_DEBOUNCE_SEGUNDOS` (default 8, override por env).
+- Es coalescing por **flanco de entrada**: si ya hay uno agendado no agenda otro (el
+  pendiente lee de la base recién cuando corre, así que ve también los cambios
+  nuevos). No se posterga indefinidamente mientras siguen llegando resultados.
+- El pendiente se saca del registro al **arrancar**, no al terminar: un resultado que
+  llega durante el recálculo puede agendar la pasada siguiente.
+- Con `RANKINGS_DEBOUNCE_SEGUNDOS = 0` corre **sincrónico** — es lo que usan los tests
+  y lo que conviene en comandos de management.
+
+**`update_fields`.** `actualizar_tabla_de_posiciones` ahora corta temprano si el save
+declaró `update_fields` y todos caen en `CAMPOS_SIN_IMPACTO` (`fecha_hora`,
+`recordatorios_enviados`): programar un horario o marcar un recordatorio enviado
+recomputaba la tabla completa del grupo al pedo.
 
 ### 10. Template tags (`torneos/templatetags/torneo_extras.py`)
 
@@ -1487,7 +1510,12 @@ Dentro de `transaction.atomic()`:
 2. **Cierre del origen** (líneas 837-845):
    - `is_dummy=True` → **`delete()`** (no tiene login ni valor propio);
    - cuenta real → `is_active=False` + `merged_into=real_user` (se conserva el email para el login multi-mail).
-3. **Recalculo**: `for div in Division.objects.all(): actualizar_rankings_en_bd(div)` (líneas 847-850).
+3. **Recalculo** (auditoría): se agendan con debounce **sólo las divisiones afectadas**
+   (la del destino, la del origen y las de sus equipos), y **fuera** del `transaction.atomic`
+   para que el hilo vea la fusión ya comiteada. Antes era `for div in Division.objects.all():
+   actualizar_rankings_en_bd(div)` sincrónico y dentro del atomic: una fusión eran 8
+   recálculos completos bloqueando la respuesta, y como `PosiblesDuplicadosView.post`
+   fusiona en loop, 5 duplicados eran 40 recálculos — se comía el timeout de Render.
 
 `_mover_historial_equipo(src_id, dst_id)` (líneas 737-765): reasigna `Inscripcion` y `EquipoGrupo` **evitando duplicados** por torneo/grupo (si ya existe, borra el del origen), y reapunta con `.update()` masivo `PartidoGrupo.equipo1/equipo2/ganador`, `Partido.equipo1/equipo2/ganador` y `Torneo.ganador_del_torneo`.
 
@@ -1700,7 +1728,7 @@ mismo lugar.
 | `get_player_achievements(jugador, stats)` | 532-556 | 6 logros derivados de las stats ya cacheadas: 🏆 Campeón (`tg>0`), 🔥 Racha (`rmax>=3`), 🎾 +10 partidos (`pj>=10`), 🎯 Efectivo (`wr>=60 and pj>=5`), y dos **hardcodeados en `False`** por falta de histórico: 💯 100% en zona y ⭐ Top 10. |
 | `get_profile_completeness(user)` | 559-580 | % de perfil completo + checklist con CTAs: foto, división, pareja (`user.equipo`), ficha de juego (cualquiera de posición/mano/club/ciudad/juega_desde/bio) e Instagram. |
 | `send_email_async(subject, html_template, context, recipient_list, from_email=None)` | 582-619 | Renderiza el template, deriva el texto plano con `strip_tags`, usa `DEFAULT_FROM_EMAIL` si no se pasa remitente y envía en un `threading.Thread` con `fail_silently=False` (loguea con `print` + traceback). Único consumidor real: invitaciones de pareja (`equipos/views.py:240-256`). |
-| `actualizar_rankings_en_bd(division)` | 621-648 | **Borra** todos los `RankingJugador` de la división, recalcula con `force_recalc=True` y persiste puntos/torneos_ganados/victorias/partidos. Se dispara desde los signals de partidos (en un hilo, `torneos/signals.py:11-17`) y al final de cada merge. |
+| `actualizar_rankings_en_bd(division)` | 621-648 | **Borra** todos los `RankingJugador` de la división, recalcula con `force_recalc=True` y persiste puntos/torneos_ganados/victorias/partidos. Se agenda con debounce desde `torneos/signals.py` y, al final de cada merge, **sólo para las divisiones afectadas**. |
 | `_normalizar_nombre(s)` | 651-657 | minúsculas + sin tildes (NFKD, descarta combining) + espacios colapsados. También lo reusa el filtro por ciudad de los mails de torneo (`torneos/emails.py:24`). |
 | `find_duplicate_candidates(limit_pairs=20000)` | 660-734 | Ver §4.1. |
 | `_mover_historial_equipo(src_id, dst_id)` | 737-765 | Ver §4.2. |
@@ -1737,7 +1765,7 @@ El context processor `notifications` (`padel_project/context_processors.py:19-75
 | 5 | Media | `accounts/views.py:676, 688-689` + `models.py:256-261` | `Sponsor.organizacion` es nullable y las vistas filtran por `organizacion=request.user.organizacion`; un usuario **sin** organización (`None`) matchea los sponsors huérfanos y puede editarlos o borrarlos. |
 | 6 | Media | `accounts/views.py:779-781` | El `unsubscribe` de push borra por endpoint **sin filtrar por `user`**: cualquier logueado que conozca un endpoint ajeno lo desuscribe. |
 | 7 | Media | `accounts/utils.py:11` vs `torneos/signals.py:14`, `equipos/signals.py:32` | Las claves de ranking se escriben con sufijo `_gen_<X>` pero se invalidan sin él → los rankings filtrados por género quedan hasta 300 s desactualizados tras cargar un resultado. |
-| 8 | Media | `accounts/utils.py:847-850` | Cada fusión dispara `actualizar_rankings_en_bd` para **todas** las divisiones (borrado + recálculo completo), de forma síncrona dentro del request. |
+| 8 | ~~Media~~ **resuelto** | `accounts/utils.py` | Cada fusión disparaba `actualizar_rankings_en_bd` para **todas** las divisiones, síncrono y dentro del atomic. Ahora agenda con debounce sólo las afectadas. |
 | 9 | Baja | `accounts/views.py:90-103`, `models.py:93` | Flujo de verificación por email **muerto**: `verification_code` no se genera ni se envía en ningún lado; el registro auto-verifica. Quedan campo, vista, form y template huérfanos. |
 | 10 | Baja | `accounts/forms.py:47-52, 64-71` + `admin.py:21-25` | `CustomUserAdminForm` permite pegar un hash de contraseña arbitrario directo en `user.password` (clonar la clave de otro usuario) y el admin muestra el hash real en un campo readonly. Solo accesible desde el admin de Django, pero es una puerta de escalada. |
 | 11 | Informativo | `accounts/utils.py:437-442` | El conteo de títulos usa `hasattr(Partido, 'es_final')`, campo que **no existe** en `torneos.models.Partido`; siempre corre el fallback por `equipos_como_jugador*.filter(torneos_ganados__isnull=False)`. La rama muerta invita a confusión. |

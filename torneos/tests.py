@@ -588,6 +588,296 @@ class CorreccionResultadoBracketTests(TestCase):
         self.assertEqual(self.torneo.estado, Torneo.Estado.EN_JUEGO)
 
 
+class RecalculoRankingsTests(TestCase):
+    """Auditoria - alto: cada resultado disparaba un recalculo completo.
+
+    `invalidar_cache_division` arrancaba un thread por cada save que borraba y
+    reconstruia el ranking entero de la division. Cargar una zona de 24
+    partidos eran 24 recalculos completos peleandose por la base, y es
+    exactamente lo que hace el organizador al borde de la cancha.
+    """
+
+    def setUp(self):
+        from . import signals
+
+        self.division = Division.objects.create(nombre="Quinta", orden=3)
+        # Estado limpio: los tests corren en el mismo proceso.
+        with signals._candado_recalculos:
+            signals._recalculos_pendientes.clear()
+
+    def tearDown(self):
+        from . import signals
+
+        with signals._candado_recalculos:
+            for t in signals._recalculos_pendientes.values():
+                t.cancel()
+            signals._recalculos_pendientes.clear()
+
+    @override_settings(RANKINGS_DEBOUNCE_SEGUNDOS=30)
+    def test_una_rafaga_de_resultados_agenda_un_solo_recalculo(self):
+        from . import signals
+
+        for _ in range(24):
+            signals._programar_recalculo(self.division.id)
+
+        self.assertEqual(
+            len(signals._recalculos_pendientes), 1,
+            "24 resultados seguidos deberian agendar UN recalculo, no 24.",
+        )
+
+    @override_settings(RANKINGS_DEBOUNCE_SEGUNDOS=30)
+    def test_divisiones_distintas_no_se_pisan(self):
+        from . import signals
+
+        otra = Division.objects.create(nombre="Cuarta", orden=4)
+        signals._programar_recalculo(self.division.id)
+        signals._programar_recalculo(otra.id)
+        self.assertEqual(len(signals._recalculos_pendientes), 2)
+
+    @override_settings(RANKINGS_DEBOUNCE_SEGUNDOS=0)
+    def test_en_cero_corre_sincronico(self):
+        from unittest.mock import patch
+
+        from . import signals
+
+        with patch.object(signals, 'actualizar_rankings_en_bd') as fake:
+            signals._programar_recalculo(self.division.id)
+        fake.assert_called_once()
+        self.assertEqual(len(signals._recalculos_pendientes), 0)
+
+
+class TablaPosicionesSinImpactoTests(TestCase):
+    """Auditoria - medio: la tabla se recalculaba aunque el save no tocara el resultado.
+
+    Programar el horario de un partido o marcar un recordatorio como enviado
+    recomputaba la tabla de posiciones completa del grupo.
+    """
+
+    contador = 0
+
+    def _equipo(self):
+        TablaPosicionesSinImpactoTests.contador += 1
+        n = TablaPosicionesSinImpactoTests.contador
+        j1 = User.objects.create_user(
+            email="tp%da@test.com" % n, password="x", nombre="T%dA" % n,
+            apellido="X", division=self.division,
+        )
+        j2 = User.objects.create_user(
+            email="tp%db@test.com" % n, password="x", nombre="T%dB" % n,
+            apellido="Y", division=self.division,
+        )
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Octava", orden=8)
+        self.torneo = Torneo.objects.create(
+            nombre="Sin impacto", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=4, estado=Torneo.Estado.EN_JUEGO,
+        )
+        self.grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        self.e1, self.e2 = self._equipo(), self._equipo()
+        EquipoGrupo.objects.create(grupo=self.grupo, equipo=self.e1, numero=1)
+        EquipoGrupo.objects.create(grupo=self.grupo, equipo=self.e2, numero=2)
+        self.partido = PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.e1, equipo2=self.e2,
+        )
+
+    def test_programar_el_horario_no_recalcula_la_tabla(self):
+        from unittest.mock import patch
+
+        from . import signals
+
+        self.partido.fecha_hora = timezone.now() + timedelta(days=1)
+        with patch.object(signals.EquipoGrupo.objects, 'bulk_update') as fake:
+            self.partido.save(update_fields=['fecha_hora'])
+        fake.assert_not_called()
+
+    def test_marcar_recordatorio_no_recalcula_la_tabla(self):
+        from unittest.mock import patch
+
+        from . import signals
+
+        self.partido.recordatorios_enviados = ['24h']
+        with patch.object(signals.EquipoGrupo.objects, 'bulk_update') as fake:
+            self.partido.save(update_fields=['recordatorios_enviados'])
+        fake.assert_not_called()
+
+    def test_guardar_un_resultado_si_recalcula(self):
+        from unittest.mock import patch
+
+        from . import signals
+
+        self.partido.ganador = self.e1
+        with patch.object(signals.EquipoGrupo.objects, 'bulk_update') as fake:
+            self.partido.save()
+        fake.assert_called()
+
+
+class EngancheTelefonoTests(TestCase):
+    """Auditoria - alto: el enganche por telefono agarraba cuentas ajenas.
+
+    Comparaba los ULTIMOS 8 DIGITOS con endswith y devolvia el PRIMERO que
+    matcheara, sin orden determinista. Dos numeros de ciudades distintas pueden
+    coincidir en 8 digitos: se anotaba a un tercero a un torneo y se le
+    mostraba su mail y telefono a quien estaba cargando el alta.
+    """
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Tercera", orden=5)
+
+    def _jugador(self, email, telefono, **extra):
+        return User.objects.create_user(
+            email=email, password="x", nombre=email[:4], apellido="T",
+            numero_telefono=telefono, division=self.division, **extra
+        )
+
+    def test_encuentra_el_mismo_numero_en_otro_formato(self):
+        from .services.alta_sin_cuenta import buscar_jugador
+
+        u = self._jugador("mar@test.com", "+54 9 223 593-7115")
+        self.assertEqual(buscar_jugador(telefono="2235937115"), u)
+        self.assertEqual(buscar_jugador(telefono="0223 15 593-7115"), u)
+
+    def test_no_confunde_numeros_de_ciudades_distintas(self):
+        from .services.alta_sin_cuenta import buscar_jugador
+
+        # Mismos 8 digitos finales, caracteristica distinta: son dos personas.
+        self._jugador("mardel@test.com", "+54 9 223 5937115")
+        buscado = "+54 9 261 5937115"
+        self.assertIsNone(
+            buscar_jugador(telefono=buscado),
+            "Engancho una cuenta ajena por coincidir solo los ultimos 8 digitos.",
+        )
+
+    def test_con_dos_candidatos_no_adivina(self):
+        from .services.alta_sin_cuenta import buscar_jugador
+
+        # Dos cuentas con el MISMO numero (duplicado real en la base).
+        self._jugador("a@test.com", "2235937115")
+        self._jugador("b@test.com", "+54 9 223 593 7115")
+        self.assertIsNone(
+            buscar_jugador(telefono="2235937115"),
+            "Con dos candidatos hay que crear cuenta nueva, no elegir al azar.",
+        )
+
+    def test_ignora_numeros_demasiado_cortos(self):
+        from .services.alta_sin_cuenta import buscar_jugador
+
+        self._jugador("corto@test.com", "5937115")
+        self.assertIsNone(buscar_jugador(telefono="5937115"))
+
+    def test_no_resucita_una_cuenta_ya_fusionada(self):
+        from .services.alta_sin_cuenta import buscar_jugador
+
+        bueno = self._jugador("bueno@test.com", "2236337881")
+        viejo = self._jugador("viejo@test.com", "2235937115")
+        viejo.merged_into = bueno
+        viejo.is_active = False
+        viejo.save()
+
+        self.assertIsNone(
+            buscar_jugador(telefono="2235937115"),
+            "Devolvio una cuenta que un admin ya habia fusionado.",
+        )
+        self.assertIsNone(buscar_jugador(email="viejo@test.com"))
+
+    def test_el_email_sigue_teniendo_prioridad(self):
+        from .services.alta_sin_cuenta import buscar_jugador
+
+        u = self._jugador("Prio@Test.com", "2235937115")
+        self.assertEqual(buscar_jugador(email="prio@test.com"), u)
+
+    def test_inscripcion_directa_usa_el_mismo_criterio(self):
+        from .services.inscripcion_directa import buscar_por_telefono
+
+        u = self._jugador("dir@test.com", "+54 9 223 593-7115")
+        self.assertEqual(buscar_por_telefono("2235937115"), u)
+        self.assertIsNone(buscar_por_telefono("+54 9 261 5937115"))
+
+
+class DesplegableParejasTests(TestCase):
+    """Auditoria - alto: la gestion traia TODAS las parejas de la plataforma.
+
+    Se acoto en SQL a las divisiones cercanas al torneo. El prefiltro es un
+    superconjunto: la regla real la sigue aplicando es_division_permitida(),
+    asi que la lista final tiene que ser identica a la de antes.
+    """
+
+    contador = 0
+
+    def _equipo(self, div1, div2=None):
+        DesplegableParejasTests.contador += 1
+        n = DesplegableParejasTests.contador
+        j1 = User.objects.create_user(
+            email="dp%da@test.com" % n, password="x", nombre="D%dA" % n,
+            apellido="X", division=div1,
+        )
+        j2 = User.objects.create_user(
+            email="dp%db@test.com" % n, password="x", nombre="D%dB" % n,
+            apellido="Y", division=div2 or div1,
+        )
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=div1)
+
+    def setUp(self):
+        # Ocho divisiones, como en produccion.
+        self.divs = {
+            n: Division.objects.create(nombre="Div%d" % n, orden=n)
+            for n in range(1, 9)
+        }
+        self.org = User.objects.create_user(
+            email="org-dp@test.com", password="x", nombre="O", apellido="D",
+            tipo_usuario="ADMIN", is_staff=True,
+        )
+        self.torneo = Torneo.objects.create(
+            nombre="Quinta abierta", division=self.divs[5],
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO,
+        )
+        # Una pareja pura por division, mas una mixta ancha y una sin division.
+        self.puras = {n: self._equipo(self.divs[n]) for n in range(1, 9)}
+        self.mixta_ancha = self._equipo(self.divs[3], self.divs[7])
+        self.sin_division = self._equipo(None, None)
+
+    def _del_desplegable(self):
+        self.client.force_login(self.org)
+        url = reverse("torneos:admin_manage", kwargs={"pk": self.torneo.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        return {e.pk for e in resp.context["equipos_para_inscribir"]}
+
+    def test_coincide_con_aplicar_la_regla_a_mano(self):
+        from .views import es_division_permitida
+
+        todos = list(Equipo.objects.filter(es_dummy=False, esta_activo=True))
+        esperado = {
+            eq.pk for eq in todos if es_division_permitida(eq, self.torneo)
+        }
+        self.assertEqual(
+            self._del_desplegable(), esperado,
+            "El prefiltro SQL cambio quien entra al desplegable.",
+        )
+
+    def test_entran_las_puras_de_mas_menos_una_division(self):
+        obtenidos = self._del_desplegable()
+        for n in (4, 5, 6):
+            self.assertIn(self.puras[n].pk, obtenidos, "Falta la pura de Div%d" % n)
+
+    def test_no_entran_las_puras_lejanas(self):
+        obtenidos = self._del_desplegable()
+        for n in (1, 2, 3, 7, 8):
+            self.assertNotIn(self.puras[n].pk, obtenidos, "Entro la pura de Div%d" % n)
+
+    def test_entra_la_mixta_que_abarca_la_division_del_torneo(self):
+        # 3ra y 7ma abarcan de 3 a 7, o sea incluye la 5ta del torneo.
+        self.assertIn(self.mixta_ancha.pk, self._del_desplegable())
+
+    def test_entra_la_pareja_sin_division_cargada(self):
+        self.assertIn(self.sin_division.pk, self._del_desplegable())
+
+
 class DescribirEstructuraTests(TestCase):
     """TP-17.3: proyección de estructura para la vista previa del alta."""
 

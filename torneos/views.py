@@ -244,6 +244,35 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             id__in=equipos_inscriptos
         ).select_related('jugador1__division', 'jugador2__division')
 
+        # Acotamos en SQL a las divisiones cercanas al torneo. Antes esto traía
+        # TODAS las parejas activas de la plataforma y las filtraba una por una
+        # en Python: como cada acción del panel redirige acá, el organizador
+        # pagaba ese barrido en cada click, y el costo crecía con la plataforma
+        # entera en vez de con su torneo.
+        #
+        # Es un SUPERCONJUNTO a propósito: la regla real la sigue decidiendo
+        # `es_division_permitida()` abajo, así que esto no puede cambiar quién
+        # entra — sólo evita traer parejas que no tenían ninguna chance. La banda
+        # es ±2 y no ±1 para que la lista de "fuera de división" siga mostrando
+        # los casos cercanos, que son los que el organizador está buscando.
+        if torneo.division_id:
+            from django.db.models import Q
+
+            orden_torneo = torneo.division.orden
+            banda_min, banda_max = orden_torneo - 2, orden_torneo + 2
+            # El OR tolera los nulos solo: si a un jugador le falta la división,
+            # alcanza con que el otro caiga en la banda (que es justo lo que
+            # hace el Coalesce de la regla en Python).
+            en_banda = (
+                (Q(jugador1__division__orden__lte=banda_max)
+                 | Q(jugador2__division__orden__lte=banda_max))
+                & (Q(jugador1__division__orden__gte=banda_min)
+                   | Q(jugador2__division__orden__gte=banda_min))
+            )
+            sin_division = Q(jugador1__division__isnull=True, jugador2__division__isnull=True)
+            falta_jugador = Q(jugador1__isnull=True) | Q(jugador2__isnull=True)
+            equipos_query = equipos_query.filter(en_banda | sin_division | falta_jugador)
+
         # Filtramos qué equipos pueden anotarse a este torneo usando las reglas centralizadas
         valid_team_ids = []
         rechazados = []

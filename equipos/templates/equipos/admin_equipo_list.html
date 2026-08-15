@@ -51,7 +51,7 @@
                                   class="inline"
                                   onsubmit="return confirm('¿Disolver la pareja {{ equipo.nombre|escapejs }}?\n\nNo se borra el historial: los jugadores quedan libres para formar una pareja nueva.')">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-xs btn-ghost text-warning"
+                                <button type="submit" class="btn btn-xs btn-ghost text-error"
                                         title="Disolver esta pareja">
                                     Disolver
                                 </button>

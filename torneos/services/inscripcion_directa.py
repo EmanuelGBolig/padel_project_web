@@ -30,18 +30,26 @@ def buscar_por_telefono(telefono):
     """Busca un jugador por teléfono, ignorando formato.
 
     Evita duplicar a alguien que ya está en la app con otro formato de número.
+    Usa el mismo criterio que el alta sin cuenta: 10 dígitos, igualdad exacta y
+    match único (ver `alta_sin_cuenta.buscar_jugador` para el porqué).
     """
-    solo_digitos = _normalizar_telefono(telefono)
-    if len(solo_digitos) < 8:
+    from .alta_sin_cuenta import _cola_telefono
+
+    cola = _cola_telefono(telefono)
+    if not cola:
         return None
 
     User = get_user_model()
-    # Comparamos por los últimos 8 dígitos: cubre +54 9 / 0 / 15 y separadores.
-    cola = solo_digitos[-8:]
-    for u in User.objects.exclude(numero_telefono='').exclude(numero_telefono__isnull=True):
-        if _normalizar_telefono(u.numero_telefono).endswith(cola):
-            return u
-    return None
+    vivos = User.objects.filter(merged_into__isnull=True)
+    candidatos = [
+        pk for pk, numero in vivos.exclude(numero_telefono='')
+                                  .exclude(numero_telefono__isnull=True)
+                                  .values_list('id', 'numero_telefono')
+        if _cola_telefono(numero) == cola
+    ]
+    if len(candidatos) != 1:
+        return None
+    return vivos.filter(pk=candidatos[0]).first()
 
 
 def crear_companero_sin_cuenta(nombre, apellido, telefono, division, genero=''):

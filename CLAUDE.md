@@ -121,6 +121,22 @@ color: hsl(var(--p));                   /* ❌ rompe: es convención de DaisyUI 
 ```
 Copiar snippets de DaisyUI 3 de internet **rompe los colores en silencio**.
 
+Esto también aplica a **medir** color desde JS: `getComputedStyle().color` devuelve
+`oklch(0.22 0.03 278)`, y sacarle los números con una regex y tratarlos como RGB da
+cualquier cosa (el tercero es el ángulo de tono, 0-360). Para medir contraste hay
+que dejar que el navegador convierta —pintar 1px en un `<canvas>` y leerlo—, que es
+lo que hace `auditoria_modo_claro.py`.
+
+### El modo claro es el tema por defecto, y casi nunca se prueba
+`text-white` sobre `bg-base-100` se ve perfecto en oscuro (base-100 es oscuro) y es
+**blanco sobre blanco** en claro. Así quedaron invisibles el título y TODAS las
+etiquetas de "Crear jugador" y "Crear pareja". Usá `text-base-content`, que se
+adapta solo; el blanco fijo va únicamente sobre fondos de color sólido (`btn-primary`).
+
+```bash
+python auditoria_modo_claro.py   # contraste real en 27 pantallas, por rol
+```
+
 ### El caché es `DatabaseCache`
 Sin `python manage.py createcachetable` varias vistas fallan. Va en el setup y en `build.sh`.
 

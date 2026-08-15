@@ -1,6 +1,7 @@
 import logging
 import threading
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -11,23 +12,67 @@ from .models import PartidoGrupo, EquipoGrupo, Partido
 
 logger = logging.getLogger(__name__)
 
-def _recalcular_rankings(division):
-    """Worker del thread: recalcula y SIEMPRE cierra la conexión a la base.
+# Recálculos ya agendados, por división. Agrupa la ráfaga de guardados que hace
+# el organizador al borde de la cancha: antes CADA resultado disparaba un
+# recálculo completo (borrar la tabla de la división entera y reconstruirla,
+# ~10 consultas pesadas + 2 por jugador). Cargar una zona de 24 partidos eran
+# 24 recálculos completos peleándose entre sí por la base.
+_recalculos_pendientes = {}
+_candado_recalculos = threading.Lock()
 
-    Sin el finally, cada thread deja abierta su propia conexión a Postgres
-    (Django abre una por thread) y se agotan las conexiones del plan.
+
+def _ejecutar_recalculo(division_id, cerrar_conexion=True):
+    """Worker: recalcula los rankings de una división.
+
+    Se saca de la lista de pendientes al ARRANCAR, no al terminar: si llega un
+    resultado nuevo mientras esto corre, tiene que poder agendar otra pasada
+    (sus datos podrían no haber entrado en ésta).
     """
     from django.db import connection
+
+    from accounts.models import Division
+
+    with _candado_recalculos:
+        _recalculos_pendientes.pop(division_id, None)
     try:
-        actualizar_rankings_en_bd(division)
+        division = Division.objects.filter(pk=division_id).first()
+        if division:
+            actualizar_rankings_en_bd(division)
     except Exception:
-        logger.exception("Fallo al actualizar rankings de la división %s", division)
+        logger.exception("Fallo al actualizar rankings de la división %s", division_id)
     finally:
-        connection.close()
+        # Django abre una conexión por thread: sin esto se agotan las del plan.
+        if cerrar_conexion:
+            connection.close()
+
+
+def _programar_recalculo(division_id):
+    """Agenda UN recálculo por división aunque lleguen 24 resultados seguidos.
+
+    Si ya hay uno en camino no agenda otro: el que está pendiente lee de la base
+    recién cuando corre, así que va a ver también estos cambios. Es coalescing
+    por el flanco de entrada —no se posterga indefinidamente mientras siguen
+    llegando resultados—, con techo de un recálculo por división cada
+    `RANKINGS_DEBOUNCE_SEGUNDOS`.
+    """
+    espera = getattr(settings, 'RANKINGS_DEBOUNCE_SEGUNDOS', 8)
+    if espera <= 0:
+        # Modo sincrónico: tests y comandos de management, donde un thread
+        # suelto correría contra una base ya desmontada.
+        _ejecutar_recalculo(division_id, cerrar_conexion=False)
+        return
+
+    with _candado_recalculos:
+        if division_id in _recalculos_pendientes:
+            return
+        temporizador = threading.Timer(espera, _ejecutar_recalculo, args=(division_id,))
+        temporizador.daemon = True
+        _recalculos_pendientes[division_id] = temporizador
+        temporizador.start()
 
 
 def invalidar_cache_division(division):
-    """Borra el caché de rankings cuando cambia algo en una división y regenera la BD."""
+    """Borra el caché de rankings cuando cambia algo en una división y agenda el recálculo."""
     if division:
         # get_division_rankings cachea por división Y género (sufijo _gen_XXX).
         # Borrar sólo `rankings_jugadores_div_<id>` no invalidaba nada: los
@@ -35,8 +80,7 @@ def invalidar_cache_division(division):
         for genero_key in ('ALL', 'MASCULINO', 'FEMENINO'):
             cache.delete(f'rankings_jugadores_div_{division.id}_gen_{genero_key}')
 
-        # Corremos la actualización de BD asíncrona para no trabar el thread de Django Guardar
-        threading.Thread(target=_recalcular_rankings, args=(division,), daemon=True).start()
+        _programar_recalculo(division.id)
 def invalidar_cache_jugadores_equipo(equipo):
     """Borra el caché de stats de los jugadores de un equipo."""
     if equipo:
@@ -53,16 +97,28 @@ CAMPOS_TABLA = [
 ]
 
 
+# Campos cuyo guardado NO puede cambiar la tabla de posiciones: programar el
+# día y hora de un partido, o el cron marcando el recordatorio que ya mandó.
+CAMPOS_SIN_IMPACTO = {'fecha_hora', 'recordatorios_enviados'}
+
+
 @receiver(post_save, sender=PartidoGrupo)
 def actualizar_tabla_de_posiciones(sender, instance, **kwargs):
     """
-    Recalcula las estadísticas de un grupo CADA VEZ que un partido se guarda.
+    Recalcula las estadísticas de un grupo cuando un partido se guarda.
     También invalida el caché de rankings si hay ganador asignado.
 
     Se resuelve con 3 queries fijas (filas de la tabla + partidos jugados +
     bulk_update). La versión anterior lanzaba 2 queries POR EQUIPO del grupo,
     justo en la acción que el organizador más repite.
     """
+    # Si el save declaró qué campos tocaba y ninguno afecta al resultado, no
+    # hay nada que recalcular: programar un horario o marcar un recordatorio
+    # enviado recomputaba la tabla entera del grupo al pedo.
+    update_fields = kwargs.get('update_fields')
+    if update_fields and set(update_fields) <= CAMPOS_SIN_IMPACTO:
+        return
+
     grupo_id = instance.grupo_id
 
     filas = list(EquipoGrupo.objects.filter(grupo_id=grupo_id))

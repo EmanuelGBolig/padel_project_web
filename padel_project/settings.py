@@ -190,6 +190,15 @@ USE_I18N = True
 USE_TZ = True
 
 
+# --- Rankings ---
+# Cuántos segundos esperar antes de recalcular el ranking de una división
+# después de un resultado. Agrupa la ráfaga de guardados del organizador al
+# borde de la cancha: sin esto, cargar una zona de 24 partidos disparaba 24
+# recálculos completos de la división (ver torneos/signals.py).
+# En 0 el recálculo corre sincrónico — es lo que usan los tests.
+RANKINGS_DEBOUNCE_SEGUNDOS = int(os.environ.get('RANKINGS_DEBOUNCE_SEGUNDOS', '8'))
+
+
 # --- Cloudinary (Media Storage in Production) ---
 # --- Cloudinary (Media Storage in Production) ---
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
