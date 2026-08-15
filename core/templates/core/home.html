@@ -103,15 +103,21 @@
                     {% if torneos_en_juego or torneos_abiertos %}
                         <div class="hero-carousel relative h-60" data-interval="4500">
                             {% if torneos_en_juego %}
+                                {% comment %}
+                                    Va a la ficha del torneo, no al "en vivo": lo que la
+                                    gente busca al entrar es el cuadro y las zonas, y el
+                                    en vivo es sólo la lista de resultados del momento.
+                                    Misma jerarquía que las cards de más abajo.
+                                {% endcomment %}
                                 {% for t in torneos_en_juego|slice:":6" %}
-                                    <a href="{% url 'torneos:vivo' t.pk %}"
+                                    <a href="{% url 'torneos:detail' t.pk %}"
                                        class="hero-slide card bg-base-100/90 backdrop-blur border border-base-300 shadow-xl card-elevate{% if forloop.first %} active{% endif %}">
                                         <div class="card-body">
                                             <span class="live-badge"><span class="live-dot"></span> En vivo</span>
                                             <h3 class="text-xl font-black mt-1 leading-tight line-clamp-2">{{ t.nombre }}</h3>
                                             <p class="text-sm opacity-70">{{ t.division.nombre|default:"Libre" }} · {{ t.get_categoria_display }}</p>
                                             <div class="card-actions mt-3">
-                                                <span class="btn btn-primary btn-sm w-full">Ver resultados en vivo</span>
+                                                <span class="btn btn-primary btn-sm w-full">Ver llaves y resultados</span>
                                             </div>
                                         </div>
                                     </a>
