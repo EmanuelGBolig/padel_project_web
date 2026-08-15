@@ -78,46 +78,10 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return redirect('core:home')
 
 
-class OrgScopedQuerysetMixin:
-    """Acota el queryset de la vista a la organización del usuario.
-
-    `AdminRequiredMixin` deja pasar a los ORGANIZER, así que sin este filtro
-    cualquier organizador puede operar sobre objetos de OTRO club con sólo
-    cambiar el pk de la URL (IDOR).
-
-    Definir `org_lookup` con el camino desde el modelo de la vista hasta la
-    organización, p. ej. `'torneo__organizacion'`. Los ADMIN y el staff no se
-    filtran.
-    """
-    org_lookup = None
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        user = self.request.user
-        if user.is_staff or user.tipo_usuario == 'ADMIN':
-            return qs
-        if not self.org_lookup:
-            raise ImproperlyConfigured(
-                f"{self.__class__.__name__} usa OrgScopedQuerysetMixin sin definir org_lookup."
-            )
-        if not user.organizacion_id:
-            return qs.none()
-        return qs.filter(**{self.org_lookup: user.organizacion_id})
-
-
-def objeto_de_mi_organizacion(user, obj, org_lookup):
-    """Igual que OrgScopedQuerysetMixin pero para vistas que no tienen queryset
-    (FormView que resuelve el objeto a mano). Devuelve True si puede operarlo."""
-    if user.is_staff or user.tipo_usuario == 'ADMIN':
-        return True
-    if not user.organizacion_id:
-        return False
-    actual = obj
-    for parte in org_lookup.split('__'):
-        actual = getattr(actual, parte, None)
-        if actual is None:
-            return False
-    return actual == user.organizacion_id or getattr(actual, 'pk', None) == user.organizacion_id
+# El scoping por organización vive en `permisos.py` para que `americano.py`
+# también pueda usarlo sin import circular. Se re-exporta acá porque muchas
+# vistas de este módulo ya lo importaban desde `views`.
+from .permisos import OrgScopedQuerysetMixin, objeto_de_mi_organizacion  # noqa: F401
 
 
 # --- FUNCIONES AUXILIARES ---

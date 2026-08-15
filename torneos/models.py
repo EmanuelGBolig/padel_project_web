@@ -550,9 +550,63 @@ class Partido(models.Model):
         else:
             return f"Ronda {self.ronda}"
 
+    @property
+    def _slot_en_siguiente(self):
+        """En qué lado del siguiente partido entra el ganador de éste.
+
+        El cruce lo define el orden: los impares alimentan el lado de arriba
+        (`equipo1`) y los pares el de abajo (`equipo2`).
+        """
+        return 'equipo1' if self.orden_partido % 2 == 1 else 'equipo2'
+
+    def limpiar_resultado(self, guardar=True):
+        """Borra el resultado de este partido dejando los equipos donde están.
+
+        Al guardar, el propio `save()` se encarga de propagar el borrado hacia
+        adelante (el ganador desaparece del cruce siguiente).
+        """
+        self.ganador = None
+        self.resultado = ''
+        self.sets_local = []
+        self.sets_visitante = []
+        self.resolucion = ResolucionPartido.NORMAL
+        if guardar:
+            self.save()
+
+    def _propagar_ganador(self, profundidad=0):
+        """Escribe el ganador (o lo borra) en el cruce siguiente, en cascada.
+
+        Antes esto sólo empujaba hacia adelante y **sólo si el ganador nuevo no
+        era nulo**, así que quedaban dos agujeros:
+
+        - Borrar un resultado dejaba a la pareja ya avanzada metida en la ronda
+          siguiente, como si hubiera ganado.
+        - Corregir un resultado cuando la ronda siguiente YA se había jugado
+          reemplazaba al participante pero dejaba intacto el resultado de ese
+          partido: quedaba un cruce cuyo ganador ni siquiera estaba jugándolo
+          (el "campeón fantasma" si pasaba en la final).
+
+        Ahora, si el partido de adelante ya tenía resultado, se invalida —y con
+        él toda la rama que colgaba— porque sus participantes cambiaron.
+        """
+        siguiente = self.siguiente_partido
+        if not siguiente:
+            return
+        # Guarda contra un bracket con ciclos por datos corruptos: sin esto una
+        # cadena circular colgaría el request para siempre.
+        if profundidad > 12:
+            return
+
+        setattr(siguiente, self._slot_en_siguiente, self.ganador)
+        if siguiente.ganador_id is not None:
+            # Ese resultado quedó viejo: cambiaron los que lo jugaban.
+            siguiente.limpiar_resultado(guardar=False)
+        siguiente.save(_profundidad_cascada=profundidad + 1)
+
     def save(self, *args, **kwargs):
         # Lógica de avance automático
-        
+        profundidad = kwargs.pop('_profundidad_cascada', 0)
+
         # 1. Asegurar que si es la FINAL y hay ganador, se actualice el torneo
         # (Esto corre siempre que se grabe el partido final con ganador, por si falló antes)
         if self.ganador and self.siguiente_partido is None:
@@ -579,16 +633,23 @@ class Partido(models.Model):
                  except Exception:
                      pass
 
-        # 2. Avance en el bracket (Solo si cambió el ganador)
-        if self.ganador_id != self.__original_ganador_id and self.ganador_id is not None:
+        # 1.b Si se BORRA el resultado de la final, el torneo deja de tener
+        # campeón. Sin esto quedaba finalizado y con un campeón que ya no ganó.
+        # Las parejas disueltas al finalizar NO se reactivan a propósito: para
+        # entonces los jugadores pueden haber armado pareja nueva y reactivarlas
+        # chocaría con la restricción de una pareja activa por jugador.
+        if (self.siguiente_partido is None
+                and self.ganador_id is None
+                and self.__original_ganador_id is not None
+                and self.torneo.ganador_del_torneo_id == self.__original_ganador_id):
+            self.torneo.ganador_del_torneo = None
+            self.torneo.estado = 'EJ'
+            self.torneo.save()
 
-            if self.siguiente_partido:  # Avanza
-                siguiente = self.siguiente_partido
-                if self.orden_partido % 2 == 1:
-                    siguiente.equipo1 = self.ganador
-                else:
-                    siguiente.equipo2 = self.ganador
-                siguiente.save()
+        # 2. Avance en el bracket (sólo si cambió el ganador, en cualquier
+        # sentido: cargarlo, corregirlo o borrarlo).
+        if self.ganador_id != self.__original_ganador_id:
+            self._propagar_ganador(profundidad=profundidad)
 
         super().save(*args, **kwargs)
         self.__original_ganador_id = self.ganador_id

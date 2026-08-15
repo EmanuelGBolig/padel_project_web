@@ -12,6 +12,7 @@ from django.contrib import messages
 
 from .models import Americano, JugadorAmericano, RondaAmericano, PartidoAmericano
 from .forms import AmericanoForm, JugadorAmericanoForm
+from .permisos import OrgScopedQuerysetMixin
 
 
 class AdminOrOrganizerMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -70,7 +71,19 @@ class AmericanoCreateView(AdminOrOrganizerMixin, CreateView):
 
     def form_valid(self, form):
         user = self.request.user
-        if not user.is_staff and getattr(user, 'organizacion_id', None):
+        es_gestor_global = user.is_staff or user.tipo_usuario == 'ADMIN'
+        if not es_gestor_global:
+            # Sin club, el americano nacería huérfano y su propio creador no
+            # podría gestionarlo (el panel filtra por organización). Mejor
+            # decirlo acá que dejarlo crear algo que no va a poder tocar.
+            if not user.organizacion_id:
+                messages.error(
+                    self.request,
+                    "Tu usuario todavía no está asociado a un club, así que no "
+                    "podrías gestionar el americano. Pedile a un administrador "
+                    "que te asigne uno."
+                )
+                return redirect('torneos:americano_list')
             form.instance.organizacion = user.organizacion
         self.object = form.save()
         messages.success(self.request, "Americano creado. Compartí el link de inscripción.")
@@ -126,10 +139,19 @@ class AmericanoJoinView(CreateView):
         return redirect(self.americano.get_absolute_url())
 
 
-class AmericanoManageView(AdminOrOrganizerMixin, DetailView):
+class AmericanoManageView(AdminOrOrganizerMixin, OrgScopedQuerysetMixin, DetailView):
+    """Panel de gestión del americano.
+
+    `AdminOrOrganizerMixin` sólo valida el ROL, no el club. Sin
+    `OrgScopedQuerysetMixin` cualquier organizador podía tomar el pk de un
+    americano ajeno (la URL usa el pk, que es secuencial) y ejecutar todo el
+    POST sobre él: rearmar las rondas —borrando las existentes—, cargar
+    resultados falsos o finalizarlo. Un evento en vivo de otro club.
+    """
     model = Americano
     template_name = 'torneos/americano_manage.html'
     context_object_name = 'americano'
+    org_lookup = 'organizacion'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -42,7 +42,7 @@ torneo y marca al campeón.
 > **Nota de mantenimiento (2026-08-03).** Se aplicó una tanda de mejoras que toca varias
 > secciones de este documento. Los cambios estructurales:
 >
-> - **Seguridad**: nuevo `OrgScopedQuerysetMixin` (`torneos/views.py`) que acota por
+> - **Seguridad**: `OrgScopedQuerysetMixin` (`torneos/permisos.py`, re-exportado desde `views.py`) que acota por
 >   organización las vistas de mutación; se eliminó el endpoint `crear-torneo-prueba`;
 >   `validar_imagen` (`core/validators.py`) aplicado a los 6 `ImageField`.
 > - **Rendimiento**: el signal `actualizar_tabla_de_posiciones` pasó de 2 queries por
@@ -556,10 +556,25 @@ Un segundo receiver, `check_llaves_internas_generacion` (`torneos/signals.py:97-
    - setea `torneo.ganador_del_torneo`, fuerza `torneo.estado = 'FN'` (string literal, equivalente a `Estado.FINALIZADO`) y guarda el torneo;
    - **desactiva TODAS las parejas inscriptas**: `Equipo.objects.filter(id__in=inscripciones.values_list('equipo_id')).update(esta_activo=False)` — "para que los jugadores queden libres"; esto libera la constraint `unique_active_team`;
    - envía push a los campeones vía `accounts.push.send_push_to_users`, envuelto en `try/except Exception: pass`.
-2. **Avance en el cuadro**: si `self.ganador != self.__original_ganador` y no es `None`, y existe `siguiente_partido`, escribe el ganador en `siguiente.equipo1` si `orden_partido % 2 == 1`, o en `siguiente.equipo2` si es par, y llama a `siguiente.save()` (que a su vez puede propagar en cascada).
-3. Recién entonces llama a `super().save(*args, **kwargs)` y refresca `__original_ganador`.
+   - **1.b (auditoría)**: si se BORRA el ganador de la final, se limpia `torneo.ganador_del_torneo` y el torneo vuelve a `EJ`. Las parejas disueltas **no** se reactivan a propósito: para entonces los jugadores pueden tener pareja nueva y chocaría con `unique_active_team`.
+2. **Avance en el cuadro**: si `self.ganador_id != self.__original_ganador_id` —en **cualquier** sentido: cargar, corregir o borrar— llama a `_propagar_ganador()`, que:
+   - escribe el ganador (o `None`) en `siguiente.equipo1` si `orden_partido % 2 == 1`, o en `siguiente.equipo2` si es par (`_slot_en_siguiente`);
+   - si ese `siguiente` **ya tenía ganador**, lo invalida con `limpiar_resultado(guardar=False)` porque cambiaron sus participantes, y la cascada sigue hacia adelante sola;
+   - corta a `profundidad > 12` como guarda contra un cuadro con ciclos por datos corruptos.
+3. Recién entonces llama a `super().save(*args, **kwargs)` y refresca `__original_ganador_id`.
 
 > El `siguiente.save()` ocurre **antes** del `super().save()` del propio partido.
+
+> ⚠️ **Antes de la auditoría** el paso 2 tenía `and self.ganador_id is not None` y no
+> tocaba el resultado de la ronda siguiente. Eso dejaba dos agujeros: borrar un
+> resultado dejaba a la pareja ya avanzada metida en la ronda siguiente, y corregir
+> un resultado con la ronda siguiente ya jugada dejaba un partido cuyo ganador ya no
+> lo estaba jugando (el "campeón fantasma" si pasaba en la final). Lo cubre
+> `torneos.tests.CorreccionResultadoBracketTests`.
+
+`Partido.limpiar_resultado(guardar=True)` es la forma correcta de borrar un
+resultado: deja los equipos donde están, limpia ganador/resultado/sets/resolución
+y, al guardar, propaga el borrado hacia adelante.
 
 ##### Resolución de placeholders y byes (vistas)
 

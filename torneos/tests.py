@@ -392,6 +392,202 @@ class AmericanoTests(TestCase):
         self.assertEqual(am.rondas.count(), 2)
 
 
+class AmericanoScopingTests(TestCase):
+    """Auditoria - critico 1: AmericanoManageView no validaba el club.
+
+    `AdminOrOrganizerMixin` solo mira el ROL, y la vista no acotaba el
+    queryset, asi que un organizador podia tomar el pk de un americano ajeno
+    (la URL usa el pk, secuencial) y ejecutar todo el POST sobre el.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        from .models import Americano, JugadorAmericano
+
+        self.club_a = Organizacion.objects.create(nombre="Club A", alias="club-a")
+        self.club_b = Organizacion.objects.create(nombre="Club B", alias="club-b")
+        self.org_b = User.objects.create_user(
+            email="org-b@test.com", password="x", nombre="Org", apellido="B",
+            tipo_usuario="ORGANIZER", organizacion=self.club_b,
+        )
+        self.admin = User.objects.create_user(
+            email="admin-scope@test.com", password="x", nombre="Ad", apellido="Min",
+            tipo_usuario="ADMIN", is_staff=True,
+        )
+        # El americano es del club A; lo va a atacar el organizador del club B.
+        self.am_a = Americano.objects.create(
+            nombre="Social del club A", tipo=Americano.Tipo.AMERICANO,
+            num_canchas=1, organizacion=self.club_a,
+        )
+        for i in range(4):
+            JugadorAmericano.objects.create(americano=self.am_a, nombre="A%d" % i, orden=i)
+        self.url = reverse("torneos:americano_manage", kwargs={"pk": self.am_a.pk})
+
+    def test_organizador_de_otro_club_no_puede_ver_el_panel(self):
+        self.client.force_login(self.org_b)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_organizador_de_otro_club_no_puede_iniciarlo(self):
+        from .models import Americano
+
+        self.client.force_login(self.org_b)
+        resp = self.client.post(self.url, {"action": "iniciar"})
+        self.assertEqual(resp.status_code, 404)
+        self.am_a.refresh_from_db()
+        self.assertNotEqual(self.am_a.estado, Americano.Estado.EN_JUEGO)
+        self.assertEqual(self.am_a.rondas.count(), 0)
+
+    def test_organizador_de_otro_club_no_puede_finalizarlo(self):
+        from .models import Americano
+
+        self.client.force_login(self.org_b)
+        resp = self.client.post(self.url, {"action": "finalizar"})
+        self.assertEqual(resp.status_code, 404)
+        self.am_a.refresh_from_db()
+        self.assertNotEqual(self.am_a.estado, Americano.Estado.FINALIZADO)
+
+    def test_el_dueno_si_puede(self):
+        from .models import Americano
+
+        duenio = User.objects.create_user(
+            email="org-a@test.com", password="x", nombre="Org", apellido="A",
+            tipo_usuario="ORGANIZER", organizacion=self.club_a,
+        )
+        self.client.force_login(duenio)
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+        self.client.post(self.url, {"action": "iniciar"})
+        self.am_a.refresh_from_db()
+        self.assertEqual(self.am_a.estado, Americano.Estado.EN_JUEGO)
+
+    def test_el_admin_puede_sobre_cualquier_club(self):
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+
+class CorreccionResultadoBracketTests(TestCase):
+    """Auditoria - critico 2: corregir o borrar un resultado dejaba basura.
+
+    `Partido.save()` solo propagaba el ganador hacia adelante y solo si no era
+    nulo, asi que la pareja que ya habia avanzado se quedaba en la ronda
+    siguiente, y si esa ronda ya se habia jugado su resultado quedaba en pie
+    con un ganador que ya no la jugaba.
+    """
+
+    contador = 0
+
+    def _equipo(self):
+        CorreccionResultadoBracketTests.contador += 1
+        n = CorreccionResultadoBracketTests.contador
+        j1 = User.objects.create_user(
+            email="br%da@test.com" % n, password="x", nombre="B%dA" % n,
+            apellido="X", division=self.division,
+        )
+        j2 = User.objects.create_user(
+            email="br%db@test.com" % n, password="x", nombre="B%dB" % n,
+            apellido="Y", division=self.division,
+        )
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Sexta", orden=2)
+        self.torneo = Torneo.objects.create(
+            nombre="Bracket Test", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=4, estado=Torneo.Estado.EN_JUEGO,
+        )
+        self.a, self.b, self.c, self.d = [self._equipo() for _ in range(4)]
+        # Semis (ronda 1) -> Final (ronda 2). Los impares entran por equipo1.
+        self.final = Partido.objects.create(
+            torneo=self.torneo, ronda=2, orden_partido=1,
+        )
+        self.semi1 = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.a, equipo2=self.b, siguiente_partido=self.final,
+        )
+        self.semi2 = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=2,
+            equipo1=self.c, equipo2=self.d, siguiente_partido=self.final,
+        )
+
+    def test_cargar_resultado_avanza_al_ganador(self):
+        self.semi1.ganador = self.a
+        self.semi1.save()
+        self.final.refresh_from_db()
+        self.assertEqual(self.final.equipo1_id, self.a.id)
+
+    def test_borrar_el_resultado_saca_al_equipo_de_la_ronda_siguiente(self):
+        self.semi1.ganador = self.a
+        self.semi1.save()
+        self.final.refresh_from_db()
+        self.assertEqual(self.final.equipo1_id, self.a.id)
+
+        # El organizador se dio cuenta de que habia cargado cualquier cosa.
+        self.semi1.limpiar_resultado()
+
+        self.final.refresh_from_db()
+        self.assertIsNone(
+            self.final.equipo1_id,
+            "La pareja quedo metida en la final despues de borrar la semi.",
+        )
+
+    def test_corregir_el_ganador_reemplaza_al_que_habia_avanzado(self):
+        self.semi1.ganador = self.a
+        self.semi1.save()
+        self.semi1.ganador = self.b
+        self.semi1.save()
+        self.final.refresh_from_db()
+        self.assertEqual(self.final.equipo1_id, self.b.id)
+
+    def test_corregir_una_semi_con_la_final_ya_jugada_invalida_la_final(self):
+        # Se juega todo: A gana su semi, C la otra, y A gana la final.
+        self.semi1.ganador = self.a
+        self.semi1.save()
+        self.semi2.ganador = self.c
+        self.semi2.save()
+        self.final.refresh_from_db()
+        self.final.ganador = self.a
+        self.final.resultado = "6-4, 6-2"
+        self.final.save()
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.ganador_del_torneo_id, self.a.id)
+
+        # Ahora se corrige la semi: en realidad habia ganado B.
+        self.semi1.refresh_from_db()
+        self.semi1.ganador = self.b
+        self.semi1.save()
+
+        self.final.refresh_from_db()
+        self.assertEqual(self.final.equipo1_id, self.b.id)
+        self.assertIsNone(
+            self.final.ganador_id,
+            "La final quedo con un ganador que ya no la esta jugando.",
+        )
+        self.assertFalse(self.final.resultado)
+
+        self.torneo.refresh_from_db()
+        self.assertIsNone(
+            self.torneo.ganador_del_torneo_id,
+            "El torneo quedo con un campeon fantasma.",
+        )
+        self.assertEqual(self.torneo.estado, Torneo.Estado.EN_JUEGO)
+
+    def test_borrar_la_final_deja_el_torneo_sin_campeon(self):
+        self.semi1.ganador = self.a
+        self.semi1.save()
+        self.final.refresh_from_db()
+        self.final.ganador = self.a
+        self.final.save()
+        self.torneo.refresh_from_db()
+        self.assertEqual(self.torneo.estado, Torneo.Estado.FINALIZADO)
+
+        self.final.limpiar_resultado()
+
+        self.torneo.refresh_from_db()
+        self.assertIsNone(self.torneo.ganador_del_torneo_id)
+        self.assertEqual(self.torneo.estado, Torneo.Estado.EN_JUEGO)
+
+
 class DescribirEstructuraTests(TestCase):
     """TP-17.3: proyección de estructura para la vista previa del alta."""
 
