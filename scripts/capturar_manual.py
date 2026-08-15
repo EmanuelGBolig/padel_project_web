@@ -130,6 +130,17 @@ def seccion_jugador(ctx):
     c.pag.wait_for_timeout(600)
     c.foto('j08-alta-paso2.png', 'Anotarse sin cuenta: paso 2', recorte='.card')
 
+    # Públicas: el torneo terminado (con campeones) y el circuito.
+    from torneos.models import Circuito, Torneo
+    t_fi = Torneo.objects.filter(estado='FI').order_by('-pk').first()
+    if t_fi:
+        c.ir('torneos:detail', [t_fi.pk])
+        c.foto('j22-torneo-finalizado.png', 'La ficha de un torneo terminado')
+    circ = Circuito.objects.first()
+    if circ:
+        c.ir('torneos:circuito_detail', [circ.pk])
+        c.foto('j23-circuito.png', 'Un circuito con sus fechas')
+
     # --- Logueado: jugador con equipo e historial ---
     c.entrar(JUGADOR_EQUIPO)
     c.ir('torneos:mis_torneos')
@@ -151,6 +162,9 @@ def seccion_jugador(ctx):
     jugador = CustomUser.objects.get(email=JUGADOR_EQUIPO)
     c.ir('torneos:placa_jugador', [jugador.pk])
     c.foto('j17-placa-jugador.png', 'La placa del jugador para redes')
+    # Anotarse CON cuenta y pareja formada: la confirmación de un toque.
+    c.ir('torneos:inscribirse', [T_ABIERTO])
+    c.foto('j20-inscribirse-cuenta.png', 'Anotarse con cuenta y pareja')
 
     # --- El jugador demo: invitación + notificaciones ---
     c.entrar(JUGADOR_DEMO)
@@ -159,6 +173,23 @@ def seccion_jugador(ctx):
            recorte='#invitaciones-recibidas')
     c.ir('accounts:notificaciones')
     c.foto('j19-notificaciones.png', 'El panel de notificaciones')
+    # Sin pareja formada: elegir o invitar compañero al anotarse.
+    c.ir('torneos:inscribirse_con_companero', [T_ABIERTO])
+    c.foto('j21-elegir-companero.png', 'Anotarse eligiendo compañero')
+    # El perfil público de OTRO jugador, como lo ve cualquiera.
+    c.ir('accounts:detalle', [jugador.pk])
+    c.foto('j25-perfil-publico.png', 'El perfil público de un jugador')
+    # El cambio de contraseña obligatorio tras el alta sin cuenta: se prende
+    # la marca, la app redirige sola, y se apaga al terminar.
+    demo = CustomUser.objects.get(email=JUGADOR_DEMO)
+    demo.debe_cambiar_password = True
+    demo.save(update_fields=['debe_cambiar_password'])
+    try:
+        c.ir(path='/')
+        c.foto('j24-cambiar-password.png', 'Cambio de contraseña al primer ingreso')
+    finally:
+        demo.debe_cambiar_password = False
+        demo.save(update_fields=['debe_cambiar_password'])
     c.cerrar()
 
 
@@ -200,6 +231,12 @@ def seccion_organizador(ctx):
     c.foto('o15-americanos.png', 'Torneos americanos')
     c.ir('torneos:formatos_list')
     c.foto('o16-formatos.png', 'Formatos de llave personalizados')
+    c.ir('torneos:admin_editar', [T_ABIERTO])
+    c.foto('o17-editar-torneo.png', 'La configuración de un torneo ya creado')
+    c.ir('torneos:formato_crear')
+    c.foto('o18-formato-nuevo.png', 'Definir un formato de llave propio')
+    c.ir('torneos:americano_crear')
+    c.foto('o19-americano-crear.png', 'Armar un americano')
     c.cerrar()
 
 

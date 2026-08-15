@@ -92,6 +92,58 @@ for i, insc in enumerate(ins):
     insc.save()
 print('  pagos: 1/3 pagado, 1/3 señado, 1/3 pendiente')
 
+# --- Un torneo FINALIZADO, para la ficha con campeones ----------------------
+import datetime  # noqa: E402
+
+campeon = j.equipo
+t_fi, creado = Torneo.objects.get_or_create(
+    nombre='Clausura Demo 2025',
+    defaults={
+        'division': DIV,
+        'fecha_inicio': datetime.date(2025, 11, 22),
+        'fecha_limite_inscripcion': datetime.date(2025, 11, 20),
+        'estado': 'FI',
+        'organizacion': ORG,
+        'ganador_del_torneo': campeon,
+        'ciudad': 'Mar del Plata',
+    },
+)
+if not creado and not t_fi.ganador_del_torneo:
+    t_fi.ganador_del_torneo = campeon
+    t_fi.save(update_fields=['ganador_del_torneo'])
+print(f'--- Torneo finalizado: {t_fi.nombre} (pk {t_fi.pk}), campeón {campeon} ---')
+
+# --- Un abierto de la MISMA división que el equipo demo ---------------------
+# Para la captura de "anotarse con cuenta": el Abierto Demo es de Primera y el
+# equipo demo de Séptima, así que ahí la app (con razón) no lo deja anotarse.
+t_ab7, _ = Torneo.objects.get_or_create(
+    nombre='Apertura Séptima 2026',
+    defaults={
+        'division': j.division,
+        'fecha_inicio': timezone.now().date() + datetime.timedelta(days=10),
+        'fecha_limite_inscripcion': timezone.now().date() + datetime.timedelta(days=8),
+        'estado': 'AB',
+        'organizacion': ORG,
+        'ciudad': 'Mar del Plata',
+    },
+)
+print(f'--- Abierto de {j.division}: {t_ab7.nombre} (pk {t_ab7.pk}) ---')
+
+# --- Un circuito que agrupe los torneos del club ----------------------------
+from torneos.models import Circuito  # noqa: E402
+
+circ, creado = Circuito.objects.get_or_create(
+    nombre='Circuito Club Demo 2026',
+    defaults={
+        'descripcion': 'Las cuatro fechas del año en el club. Los puntos de '
+                       'cada fecha se acumulan en la tabla general.',
+        'organizacion': ORG,
+        'activo': True,
+    },
+)
+circ.torneos.set([t2, t3, t_fi])
+print(f'--- Circuito: {circ.nombre} con {circ.torneos.count()} torneos ---')
+
 # --- Avisos de "busco compañero" -------------------------------------------
 print('--- Búsqueda de compañero ---')
 BusquedaCompanero.objects.all().delete()

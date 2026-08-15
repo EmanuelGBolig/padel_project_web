@@ -79,6 +79,7 @@ Después de tocar layout, verificá con:
 ```bash
 python verificar_mobile.py
 python auditoria_ui.py
+python auditoria_inputs.py   # formularios: inputs que se pasan de su tarjeta
 ```
 
 ### `runserver --noreload` no recarga los templates

@@ -69,7 +69,11 @@
             <div class="divider opacity-10"></div>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'accounts:organizacion_list' %}{% endif %}" class="btn btn-ghost">
+                {% comment %}
+                    Antes decía accounts:organizacion_list, un name que no existe:
+                    entrar a la página SIN venir de otra (sin referer) daba 500.
+                {% endcomment %}
+                <a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'accounts:organizador_list' %}{% endif %}" class="btn btn-ghost">
                     Cancelar
                 </a>
                 <button type="submit" class="btn btn-primary btn-wide shadow-lg shadow-primary/20">

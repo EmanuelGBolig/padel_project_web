@@ -2194,6 +2194,8 @@ a mano quedaba inconsistente.
 | `.collapse { grid-template-columns: minmax(0,1fr) }` | Impide que el panel se estire al contenido | La columna medía 399px dentro de un panel de 309 y cortaba el último botón |
 | `svg:not(.w-full):not(.h-full):not(.absolute)` | `flex-shrink: 0` | 170 de 200 íconos se aplastaban al lado de textos largos |
 | `.btn-sm` con `min-height: 2.5rem` en mobile | Área táctil de 40px | 32px es chico para el dedo |
+| `.tabs-boxed .tab` con `height: auto` | La pestaña crece si el texto envuelve | La altura fija de DaisyUI dejaba el segundo renglón dibujado FUERA de la pastilla |
+| `form .select2-container` con `min-width: 0 !important; width: 100% !important` | El autocompletar ocupa el ancho de su tarjeta | El CSS de django-autocomplete-light trae `min-width: 20em` (320px), que le gana a cualquier `width` y desbordaba 60px las tarjetas de 260px. Scopeado a `form` para no romper el desplegable que select2 cuelga del `body` |
 
 **Trampas que ya nos mordieron:**
 
@@ -2209,6 +2211,7 @@ a mano quedaba inconsistente.
 ```bash
 python verificar_mobile.py    # desbordes y alineación en 15 pantallas a 375px
 python auditoria_ui.py        # targets táctiles, labels, alt, consistencia
+python auditoria_inputs.py    # inputs/selects/select2 que se pasan de su tarjeta, en 24 pantallas con formularios (loguea por rol)
 ```
 
 ### 1. Stack de estilos
