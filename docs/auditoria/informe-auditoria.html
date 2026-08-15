@@ -1,0 +1,706 @@
+<title>TodoPadel — Auditoría técnica</title>
+
+<style>
+  :root {
+    --cancha:  #f7f7f4;
+    --piso:    #ffffff;
+    --linea:   #d8dcd7;
+    --tinta:   #0d1f1a;
+    --polvo:   #5d6d66;
+    --red:     #00996a;
+    --red-sua: #e6f5ee;
+    --sombra:  0 1px 2px rgba(13,31,26,.05), 0 8px 24px rgba(13,31,26,.06);
+    --critico: #c2410c;
+    --alto:    #a16207;
+    --medio:   #0369a1;
+    --bajo:    #5d6d66;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --cancha:#0a1613; --piso:#11211c; --linea:#22352e; --tinta:#eaf1ed;
+      --polvo:#90a49b; --red:#22c98d; --red-sua:#102c22;
+      --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      --critico:#fb923c; --alto:#facc15; --medio:#38bdf8; --bajo:#90a49b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --cancha:#0a1613; --piso:#11211c; --linea:#22352e; --tinta:#eaf1ed;
+    --polvo:#90a49b; --red:#22c98d; --red-sua:#102c22;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    --critico:#fb923c; --alto:#facc15; --medio:#38bdf8; --bajo:#90a49b;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--cancha); color: var(--tinta);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16.5px; line-height: 1.62; -webkit-font-smoothing: antialiased;
+  }
+  .envoltorio { max-width: 940px; margin: 0 auto; padding: 0 22px 90px; }
+
+  header.portada { padding: 76px 0 40px; border-bottom: 1px solid var(--linea); }
+  .marca {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--red); margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 6vw, 56px); line-height: 1.04; letter-spacing: -.035em;
+    font-weight: 800; margin: 0 0 18px; text-wrap: balance; max-width: 17ch;
+  }
+  .bajada { font-size: clamp(16.5px, 2vw, 20px); color: var(--polvo); max-width: 60ch; margin: 0; }
+  .fecha { margin-top: 24px; font-size: 13px; color: var(--polvo); }
+
+  .tablero {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--linea); border: 1px solid var(--linea);
+    border-radius: 14px; overflow: hidden; margin: 40px 0 0;
+  }
+  .dato { background: var(--piso); padding: 22px 20px; }
+  .dato b {
+    display: block; font-size: 36px; font-weight: 800; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .dato.c b { color: var(--critico); }
+  .dato.a b { color: var(--alto); }
+  .dato.m b { color: var(--medio); }
+  .dato.b b { color: var(--bajo); }
+  .dato span { display: block; margin-top: 9px; font-size: 13px; color: var(--polvo); }
+
+  section { padding: 62px 0 0; }
+  h2 {
+    font-size: clamp(25px, 3.4vw, 34px); line-height: 1.14; letter-spacing: -.025em;
+    font-weight: 780; margin: 0 0 8px; text-wrap: balance;
+  }
+  .h2-nota { color: var(--polvo); margin: 0 0 6px; max-width: 62ch; font-size: 15.5px; }
+  p { margin: 0 0 13px; max-width: 66ch; }
+  .apagado { color: var(--polvo); }
+
+  /* Hallazgos: la severidad se codifica en la franja Y en el chip, no sólo en color. */
+  .hallazgo {
+    background: var(--piso); border: 1px solid var(--linea);
+    border-left: 4px solid var(--bajo);
+    border-radius: 0 12px 12px 0; padding: 20px 22px; margin-top: 16px;
+    box-shadow: var(--sombra);
+  }
+  .hallazgo.sev-critica { border-left-color: var(--critico); }
+  .hallazgo.sev-alta    { border-left-color: var(--alto); }
+  .hallazgo.sev-media   { border-left-color: var(--medio); }
+  .hallazgo.sev-baja    { border-left-color: var(--bajo); }
+  .hallazgo-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; flex-wrap: wrap; }
+  .chip {
+    font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--c); border: 1.5px solid var(--c); border-radius: 999px; padding: 2px 10px;
+  }
+  .dim {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--polvo);
+  }
+  .num { margin-left: auto; font-size: 12px; color: var(--polvo); font-variant-numeric: tabular-nums; }
+  .hallazgo h3 {
+    font-size: 18.5px; line-height: 1.3; letter-spacing: -.015em; font-weight: 700;
+    margin: 0 0 8px; text-wrap: balance;
+  }
+  .donde { margin: 0 0 10px; }
+  /* Las rutas son largas y no tienen espacios: sin anywhere se pasan de la
+     pantalla en celular (medido: 402px de <code> en un viewport de 390). */
+  .donde code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px; background: var(--red-sua); color: var(--red);
+    padding: 2px 8px; border-radius: 5px;
+    display: inline-block; max-width: 100%;
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+  /* Las descripciones citan identificadores largos sin espacios
+     (qs.filter(torneo__organizacion=...), jugador1__division__orden): sin esto
+     estiran la tarjeta y la página scrollea de costado en celular. */
+  .hallazgo p { font-size: 15px; margin-bottom: 10px; max-width: 68ch; overflow-wrap: anywhere; }
+  .hallazgo h3 { overflow-wrap: anywhere; }
+  .arreglo {
+    background: var(--red-sua); border-radius: 8px; padding: 11px 14px;
+    font-size: 14.5px; margin: 12px 0 0 !important; color: var(--tinta);
+  }
+
+  ol.plan { counter-reset: p; list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 12px; }
+  ol.plan li {
+    background: var(--piso); border: 1px solid var(--linea); border-radius: 12px;
+    padding: 16px 20px 16px 56px; position: relative;
+  }
+  ol.plan li::before {
+    counter-increment: p; content: counter(p);
+    position: absolute; left: 16px; top: 15px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--red); color: var(--piso);
+    display: grid; place-items: center; font-weight: 800; font-size: 13px;
+  }
+  ol.plan b { font-weight: 700; }
+  ol.plan span { display: block; color: var(--polvo); font-size: 14.5px; margin-top: 3px; }
+
+  ul.limpio { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 9px; max-width: 68ch; }
+  ul.limpio li { padding-left: 26px; position: relative; font-size: 15.5px; }
+  ul.limpio li::before {
+    content: "✓"; position: absolute; left: 2px; top: 0;
+    color: var(--red); font-weight: 800;
+  }
+
+  .metodo {
+    background: var(--piso); border: 1px solid var(--linea); border-radius: 14px;
+    padding: 22px 24px; margin-top: 22px;
+  }
+  .metodo h3 { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+  .metodo p { font-size: 14.5px; color: var(--polvo); }
+  .metodo p:last-child { margin-bottom: 0; }
+
+  .cierre {
+    margin-top: 70px; padding-top: 28px; border-top: 1px solid var(--linea);
+    font-size: 14px; color: var(--polvo);
+  }
+  .cierre strong { color: var(--tinta); }
+</style>
+
+<div class="envoltorio">
+
+  <header class="portada">
+    <p class="marca">TodoPadel · Auditoría técnica</p>
+    <h1>Qué está roto y qué conviene arreglar primero</h1>
+    <p class="bajada">
+      Revisión completa del código y de la app corriendo: seguridad y permisos,
+      lógica del torneo, rendimiento, formularios y diseño. Cada hallazgo fue
+      verificado contra el código antes de entrar a esta lista.
+    </p>
+    <p class="fecha">Agosto 2026</p>
+
+    <div class="tablero">
+      <div class="dato c"><b>2</b><span>críticos: hay que arreglarlos ya</span></div>
+      <div class="dato a"><b>5</b><span>altos: se sufren seguido</span></div>
+      <div class="dato m"><b>18</b><span>medios: molestan o arriesgan datos</span></div>
+      <div class="dato b"><b>11</b><span>bajos: detalle y prolijidad</span></div>
+    </div>
+
+    <div class="metodo">
+      <h3>Cómo se hizo</h3>
+      <p>
+        Seis revisiones en paralelo sobre el código (permisos, lógica del torneo,
+        contratos de templates, rendimiento, formularios y diseño). Cada hallazgo
+        pasó después por un <b>verificador adversarial</b>: otro revisor cuyo
+        trabajo era ir al archivo y la línea citados e intentar <em>refutarlo</em>,
+        buscando la defensa que el primero pudo no ver. Lo que no sobrevivió a esa
+        segunda pasada no está acá.
+      </p>
+      <p>
+        En paralelo se probó la app corriendo: <b>174 requests</b> recorriendo
+        todas las páginas con cada rol (anónimo, jugador, organizador, admin),
+        midiendo errores y consultas a la base; y tres auditores automáticos de
+        interfaz a 390px, más una revisión de modo claro.
+      </p>
+    </div>
+  </header>
+
+  <section>
+    <h2>Por dónde empezar</h2>
+    <p class="h2-nota">
+      Si hubiera que tocar cinco cosas y nada más, serían estas — ordenadas por
+      daño evitado sobre esfuerzo.
+    </p>
+    <ol class="plan">
+      <li>
+        <b>Cerrar el acceso cruzado en Americanos</b>
+        <span>Un organizador puede hoy manipular el evento en vivo de otro club. Es un cambio de pocas líneas y corta un agujero real.</span>
+      </li>
+      <li>
+        <b>Arreglar la corrección de resultados en la llave</b>
+        <span>Corregir un resultado ya cargado deja parejas mal ubicadas en la ronda siguiente. Le pasa a cualquier organizador que se equivoque una vez.</span>
+      </li>
+      <li>
+        <b>Sacar el recálculo de ranking de cada guardado</b>
+        <span>Es la causa de fondo de la lentitud al cargar resultados al borde de la cancha: cada resultado recalcula el ranking entero de la división.</span>
+      </li>
+      <li>
+        <b>Pintar los formularios que quedan invisibles en modo claro</b>
+        <span>Los títulos y las etiquetas de «Crear jugador» y «Crear pareja» son blancos sobre blanco en el tema por defecto.</span>
+      </li>
+      <li>
+        <b>Endurecer el enganche por teléfono en el alta</b>
+        <span>Compara sólo los últimos 8 dígitos: puede anotar a una persona equivocada y mostrarle sus datos a un tercero.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Críticos</h2>
+    <p class="h2-nota">Rompen datos o exponen a otros clubes. Conviene tocarlos antes del próximo torneo.</p>
+    
+    <article class="hallazgo sev-critica" id="h1">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#c2410c">Crítico</span>
+        <span class="dim">Permisos</span>
+        <span class="num">#1</span>
+      </div>
+      <h3>AmericanoManageView deja a cualquier organizador gestionar (iniciar, cargar resultados, finalizar) el Americano de OTRO club por pk</h3>
+      <p class="donde"><code>torneos/americano.py:129</code></p>
+      <p>AmericanoManageView hereda de AdminOrOrganizerMixin + DetailView pero NO define get_queryset, así que get_object() resuelve sobre Americano.objects.all() sin ningún filtro de organización. El mixin (torneos/americano.py:17-22) sólo valida el ROL (is_staff o tipo_usuario in ADMIN/ORGANIZER), no la pertenencia al club. El modelo Americano SÍ tiene FK organizacion (torneos/models.py:703) y AmericanoCreateView la setea al crear, o sea el scoping era esperado y falta. La URL usa pk secuencial (/torneos/americano/&lt;int:pk&gt;/gestionar/, torneos/urls.py:44), trivial de enumerar. Un ORGANIZER del club B, logueado, puede POSTear a esa URL con el pk de un Americano del club A y ejecutar todo el POST handler sobre él: action=iniciar (arma las rondas y borra las existentes con am.rondas.all().delete()), siguiente_ronda, cargar_resultado (games_a/games_b) y finalizar (deja el torneo FINALIZADO). Es mutación total del estado de un evento en vivo de otro club. A diferencia de AmericanoJoinView, que usa un codigo de 8 chars no adivinable, acá la clave es el pk. Lo sufren el organizador del club A (le rompen/cierran el torneo) y los jugadores (resultados falsos).</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar get_queryset() en AmericanoManageView que acote por organización igual que el resto (if not user.is_staff and user.tipo_usuario != &#x27;ADMIN&#x27;: if not user.organizacion_id: return qs.none(); return qs.filter(organizacion=user.organizacion_id)). Idealmente extraer un OrgScopedQuerysetMixin común. También conviene scopear AmericanoCreateView (hoy iniciar/siguiente_ronda no se benefician porque el objeto ya viene sin filtrar).</p>
+    </article>
+
+    <article class="hallazgo sev-critica" id="h2">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#c2410c">Crítico</span>
+        <span class="dim">Lógica del torneo</span>
+        <span class="num">#2</span>
+      </div>
+      <h3>Corregir o borrar un resultado ya cargado en la llave deja al equipo mal avanzado en la ronda siguiente (y campeón fantasma)</h3>
+      <p class="donde"><code>torneos/models.py:583</code></p>
+      <p>Partido.save() solo propaga el ganador HACIA ADELANTE y solo cuando el ganador cambia a un valor no nulo (linea 583: `... and self.ganador_id is not None`). Nunca revierte al equipo que ya habia avanzado ni recalcula las rondas siguientes. Dos secuencias reales que rompen: (A) CORRECCION con la ronda siguiente ya jugada: Cuartos P (orden_partido=1) -&gt; Semi S (equipo1). Primero se carga ganador de P = A -&gt; escribe S.equipo1=A. Se juega S: ganador=A -&gt; A pasa a la Final. El organizador se da cuenta de que P estaba mal y corrige P: ganador=B. save() de P escribe S.equipo1=B y llama S.save(), pero en S el ganador (A) NO cambio, asi que el bloque 2 no corre: S queda con equipo1=B pero ganador=A (un equipo que ya no juega ese partido) y A sigue avanzando en la Final. El que realmente debia clasificar (B) queda estancado en una semi ya &#x27;ganada&#x27; por otro. (B) BORRAR/EMPATAR un resultado: si al editar el marcador queda empate o se limpia, PartidoResultadoForm deja ganador=None; el bloque 2 se saltea por el `is not None`, y el equipo anteriormente avanzado permanece en `siguiente_partido`. Ademas, si se corrige la FINAL a None, el bloque 1 (linea 558, `if self.ganador and ...`) tampoco corre y el torneo queda estado=&#x27;FN&#x27; con ganador_del_torneo viejo y parejas ya disueltas (esta_activo=False). Lo mismo aplica del lado de zonas: corregir un PartidoGrupo recalcula bien la tabla por signal, pero NO recalcula los placeholders del cuadro que ya se llenaron con &#x27;Avanzar Clasificados&#x27;.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Al detectar cambio de ganador (incluyendo -&gt; None), limpiar en cascada: quitar al ganador ANTERIOR del slot de `siguiente_partido`, y si `siguiente` (o mas adelante) ya tenia resultado/ganador, invalidarlo recursivamente (borrar ganador/resultado/sets de toda la rama aguas abajo) antes de reescribir. Guardar tambien el `__original_ganador_id` para saber que slot limpiar. Si es la final y el ganador pasa a None, revertir torneo.estado y ganador_del_torneo.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Altos</h2>
+    <p class="h2-nota">No son catástrofes, pero se sufren en el uso normal, todas las semanas.</p>
+    
+    <article class="hallazgo sev-alta" id="h3">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#a16207">Alto</span>
+        <span class="dim">Visual</span>
+        <span class="num">#3</span>
+      </div>
+      <h3>Título y labels en text-white sobre tarjeta blanca: invisibles en modo claro (tema por defecto)</h3>
+      <p class="donde"><code>accounts/templates/accounts/dummy_user_form.html:9</code></p>
+      <p>Los formularios de &#x27;Crear Jugador&#x27; (dummy) y &#x27;Crear Pareja&#x27; arman la tarjeta con &#x27;bg-base-100/90&#x27; (que en el tema corporate/claro es prácticamente blanco) pero pintan el título en &#x27;text-white&#x27; y TODOS los labels de los campos en &#x27;text-white/90&#x27;. En modo claro —que es el tema por defecto de la app y el que ve la mayoría— el título del formulario y los nombres de cada campo quedan blanco sobre blanco, o sea invisibles: el organizador ve una pila de inputs sin saber qué va en cada uno. En modo oscuro (business) se ve bien porque base-100 ahí es oscuro; por eso el bug pasa desapercibido si se prueba solo en oscuro. Afecta a organizadores/admins. Mismo defecto idéntico en organizador_equipo_form.html.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Cambiar &#x27;text-white&#x27; del título por &#x27;text-base-content&#x27; y &#x27;text-white/90&#x27; de los labels por &#x27;text-base-content/90&#x27; (o &#x27;text-base-content/70&#x27;), que se adapta a ambos temas. No usar blanco fijo salvo sobre fondos de color sólido.</p>
+    </article>
+
+    <article class="hallazgo sev-alta" id="h4">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#a16207">Alto</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#4</span>
+      </div>
+      <h3>merge_users recalcula TODAS las divisiones de forma SÍNCRONA dentro del request (y una vez por cada duplicado fusionado)</h3>
+      <p class="donde"><code>accounts/utils.py:854</code></p>
+      <p>Al fusionar cuentas, `merge_users` termina con un `for div in Division.objects.all(): actualizar_rankings_en_bd(div)` que corre DENTRO de la transacción del request, no en un thread. Cada `actualizar_rankings_en_bd` borra y reconstruye el ranking completo de una división (~10 consultas pesadas + 2 por jugador). Con N divisiones (p.ej. 8) es una fusión = 8 recálculos completos síncronos que bloquean la respuesta. Peor: `PosiblesDuplicadosView.post` fusiona en un loop sobre `source_ids`, llamando a `merge_users` una vez por cada cuenta origen, así que fusionar 5 duplicados = 5 x 8 = 40 recálculos completos síncronos en un solo POST. En Render (timeout ~30s) esto cuelga o revienta el request del organizador/admin, y como escanea todos los partidos de todos los torneos, empeora a medida que crece la base.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Recalcular solo la(s) división(es) realmente afectada(s) por la fusión (la del usuario destino y las de sus equipos), no todas; y hacerlo una sola vez después del loop de fusiones, en segundo plano (thread/cron) en lugar de dentro del request.</p>
+    </article>
+
+    <article class="hallazgo sev-alta" id="h5">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#a16207">Alto</span>
+        <span class="dim">Datos</span>
+        <span class="num">#5</span>
+      </div>
+      <h3>El enganche por teléfono usa &#x27;últimos 8 dígitos&#x27; y toma el PRIMER match: puede inscribir/filtrar una cuenta ajena</h3>
+      <p class="donde"><code>torneos/services/alta_sin_cuenta.py:67</code></p>
+      <p>buscar_jugador (alta sin cuenta) y buscar_por_telefono (inscripcion_directa.py:40-44) iteran TODOS los usuarios y devuelven el primero cuyo teléfono termina en los mismos 8 dígitos, sin order_by (orden no determinístico) y sin verificar que sea la misma persona. Dos números distintos (distinta característica de área/país, con o sin &#x27;15&#x27;/&#x27;9&#x27;) pueden coincidir en los últimos 8 dígitos. Cuando eso pasa, obtener_o_crear_jugador devuelve esa cuenta REAL ajena como &#x27;yo&#x27; o &#x27;compañero&#x27;: se crea una pareja y una inscripción a nombre de un tercero, se le manda push &#x27;te anotaron a un torneo&#x27;, y en la pantalla de confirmación (alta_reciente: comp_email, comp_telefono) se filtran su email y teléfono a un desconocido. Rompe integridad (inscribe a quien no quiso) y expone datos personales.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Comparar el número normalizado completo (o al menos 10 dígitos) exigiendo igualdad exacta, no &#x27;endswith(8)&#x27;; ante múltiples coincidencias NO enganchar automáticamente sino pedir el email o confirmar. Mismo fix en inscripcion_directa.buscar_por_telefono.</p>
+    </article>
+
+    <article class="hallazgo sev-alta" id="h6">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#a16207">Alto</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#6</span>
+      </div>
+      <h3>Cada resultado de zona guardado dispara un recálculo COMPLETO del ranking de toda la división (cargar 24 resultados = 24 recálculos)</h3>
+      <p class="donde"><code>torneos/signals.py:121</code></p>
+      <p>En `actualizar_tabla_de_posiciones` (post_save de PartidoGrupo), cuando el partido tiene ganador se llama a `invalidar_cache_division(division)`, que arranca un thread por cada save y ejecuta `actualizar_rankings_en_bd(division)`. Ese recálculo BORRA todos los RankingJugador de la división y vuelve a llamar a `get_division_rankings(force_recalc=True)`, que escanea TODOS los PartidoGrupo, Partido y Torneo de TODA la división (~10 consultas pesadas por corrida) y reescribe la tabla con `update_or_create` (2 consultas por jugador). El mismo patrón corre en el post_save de Partido (`invalidar_cache_partido_bracket`). Cuando el organizador carga una fase de grupos entera al borde de la cancha (p.ej. 24 partidos), se disparan 24 recálculos completos e independientes de la división, cada uno en su propio thread abriendo su propia conexión a Postgres. En un plan con pocas conexiones esto agota el pool justo mientras se cargan resultados, y como los 24 threads hacen DELETE + recreación de las mismas filas de RankingJugador de forma concurrente, puede dejar el ranking momentáneamente vacío o chocar contra la unique constraint (jugador, division). Solo el último recálculo aporta el valor final; los 23 anteriores son trabajo tirado.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Desacoplar el recálculo del save individual: en vez de recomputar toda la división por partido, hacer un recálculo diferido/coalescido (una sola corrida al final de la carga, o un debounce por división con marca &#x27;dirty&#x27; + cron/management command), y/o actualizar el ranking de forma incremental. Si se mantiene el thread, protegerlo con un lock por división para evitar los DELETE+recreate concurrentes.</p>
+    </article>
+
+    <article class="hallazgo sev-alta" id="h7">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#a16207">Alto</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#7</span>
+      </div>
+      <h3>La pantalla de gestión del torneo carga TODOS los equipos activos de la plataforma en cada GET (y después de cada acción POST)</h3>
+      <p class="donde"><code>torneos/views.py:277</code></p>
+      <p>AdminTorneoManageView.get_context_data arma el desplegable &#x27;inscribir pareja&#x27; trayendo TODOS los Equipo activos no-dummy de TODA la plataforma (sin filtrar por organización ni división en SQL), con select_related de 4 tablas, los filtra UNO POR UNO en Python con es_division_permitida(), y después hace una SEGUNDA query con id__in=[lista de cientos de ids]. Como cada acción del panel (asignar equipo, cargar fecha, avanzar grupo, agregar dummy...) redirige a esta misma vista, el organizador paga este costo en CADA click durante todo el torneo. Hoy con cientos de parejas ya son dos queries grandes + materialización completa por request; crece linealmente con toda la plataforma, no con el torneo.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Empujar la regla de división al SQL (torneo.division.orden ±1 sobre jugador1__division__orden / jugador2__division__orden, más el caso mixto), o directamente reemplazar el desplegable por el autocomplete Select2 que ya existe (OrganizadorJugadorAutocomplete) para no armar la lista completa en cada render.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Medios</h2>
+    <p class="h2-nota">Molestan, arriesgan datos o hacen la app más lenta de lo necesario.</p>
+    
+    <article class="hallazgo sev-media" id="h8">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Datos</span>
+        <span class="num">#8</span>
+      </div>
+      <h3>El alta normal no normaliza el email: se crean cuentas duplicadas por mayúsculas</h3>
+      <p class="donde"><code>accounts/forms.py:34</code></p>
+      <p>CustomUserCreationForm no tiene clean_email ni baja a minúsculas, y su save() llama user.save() directo (no create_user), así que ni siquiera corre normalize_email. Como CustomUser.email es EmailField(unique=True) y en PostgreSQL el unique es sensible a mayúsculas en la parte local, &#x27;Juan@mail.com&#x27; y &#x27;juan@mail.com&#x27; quedan como DOS cuentas de la misma persona, con historial y ranking partidos. Peor: el fallback de login por email__iexact (accounts/forms.py:215) hace User.objects.get(email__iexact=...) y ante dos variantes levanta MultipleObjectsReturned, que se traga en el except y devuelve &#x27;login inválido&#x27; -&gt; el usuario queda sin poder entrar por el camino case-insensitive.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar clean_email que haga .strip().lower() en CustomUserCreationForm (y en GoogleProfileCompletion/alta sin cuenta), idealmente normalizar en CustomUserManager/CustomUser.save(). Considerar índice/constraint case-insensitive (CITEXT o UniqueConstraint sobre Lower(&#x27;email&#x27;)).</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h9">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#9</span>
+      </div>
+      <h3>La propiedad CustomUser.equipo no está cacheada y se evalúa 3-4 veces por página caliente (1-2 queries cada vez)</h3>
+      <p class="donde"><code>accounts/models.py:219</code></p>
+      <p>`CustomUser.equipo` es un `@property` (no `cached_property`) que ejecuta una query a `equipos_como_jugador1` y, si el usuario es jugador2, una segunda a `equipos_como_jugador2`. No guarda el resultado, así que cada acceso re-consulta la base. En la ficha pública del torneo (TorneoDetailView, página muy caliente) se evalúa 4 veces por request: en `hasattr(user,&#x27;equipo&#x27;)`, en `user.equipo is not None`, en `equipo = user.equipo` y en `getattr(self.request.user,&#x27;equipo&#x27;,None)`. Para un jugador que figura como jugador2 son hasta 8 queries redundantes solo para resolver &#x27;cuál es mi equipo&#x27;. El mismo derroche pasa en el home (3 evaluaciones) y en los mixins de equipos (PlayerOwnsTeamMixin/PlayerHasNoTeamMixin/EquipoDeleteView).</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Convertir `equipo` en `@functools.cached_property` (o `@cached_property` de Django) para que se resuelva una sola vez por instancia de usuario/por request. Alternativamente, resolverlo una vez en la vista y pasarlo por contexto en lugar de re-acceder a la propiedad.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h10">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#10</span>
+      </div>
+      <h3>El caché DatabaseCache guarda y relee blobs pesados: rankings enteros con objetos CustomUser/Equipo picklados en una fila de Postgres</h3>
+      <p class="donde"><code>accounts/utils.py:92</code></p>
+      <p>El caché es DatabaseCache (settings.py:257), o sea que cada cache.get/set ES una query a Postgres. get_division_rankings cachea la lista completa del ranking con los objetos CustomUser (todos sus campos) más el primer Equipo de cada jugador (con jugador1/jugador2 adentro): con 150-200 jugadores es un blob de cientos de KB que se escribe en una fila y se relee + des-picklea en CADA vista del ranking y en CADA get_user_ranking (que además recorre la lista entera en Python para encontrar UNA fila, y se llama desde el perfil propio y el perfil público). perfil_stats_ctx_{id} hace lo mismo con todas las inscripciones y próximos partidos del jugador. El «caché» termina moviendo más bytes por la BD que las queries que evita.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Cachear datos planos (ids + campos que muestra el template: nombre, foto, puntos...) en vez de instancias de modelo, y para get_user_ranking consultar RankingJugador directo por (jugador, division) en vez de deserializar la división entera. Evaluar mover el caché a LocMem/Redis si Render lo permite.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h11">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#11</span>
+      </div>
+      <h3>Detección de duplicados: carga todos los jugadores y hace hasta 20.000 comparaciones difflib sincrónicas en cada GET</h3>
+      <p class="donde"><code>accounts/utils.py:709</code></p>
+      <p>PosiblesDuplicadosView llama find_duplicate_candidates() en cada render: materializa TODOS los CustomUser tipo PLAYER y compara claves de nombre de a pares con SequenceMatcher.ratio() (O(K²), capado en 20.000 pares). Con ~1.000 jugadores son varios segundos de CPU por carga de página, sin caché, y como el POST de fusión redirige a la misma vista, el organizador re-paga el cálculo completo después de CADA fusión. Se degrada linealmente a medida que crece la plataforma.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Cachear el resultado unos minutos (invalidando tras cada fusión) o precalcularlo con un management command periódico; como mínimo, bloquear por prefijo/inicial para no comparar todas las claves contra todas.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h12">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Lógica del torneo</span>
+        <span class="num">#12</span>
+      </div>
+      <h3>Los byes cuentan como victoria y partido jugado en estadisticas y ranking del jugador</h3>
+      <p class="donde"><code>accounts/utils.py:125</code></p>
+      <p>_resolver_byes crea un Partido real con ganador y resultado=&#x27;Bye&#x27; (views.py 1226-1233) para la pareja que pasa libre. Todas las agregaciones de stats/ranking cuentan cualquier Partido con ganador != None, sin excluir el bye ni mirar `resolucion`. Resultado: una pareja que zafo por bye suma una victoria fantasma y un partido jugado que nunca jugo. Esto infla victorias, partidos_jugados y win_rate del jugador, aparece como partido &#x27;Bye&#x27; ganado en &#x27;resultados recientes&#x27; y en la racha, y altera el ranking (el orden usa &#x27;-victorias&#x27; como desempate). Afecta a muchos torneos: en las llaves FAP los cruces del tipo (61,&#x27;1A&#x27;,None,64) generan exactamente un bye al llenarse la zona.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Excluir los byes de las agregaciones de partidos/victorias: filtrar `equipo1__isnull=False, equipo2__isnull=False` (como ya se hace para la ronda maxima en 134-135) o marcar el bye con un `resolucion`/flag y excluirlo. Idealmente el bye no deberia contar como &#x27;partido jugado&#x27;.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h13">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Permisos</span>
+        <span class="num">#13</span>
+      </div>
+      <h3>DisolverEquipoView permite a cualquier organizador desactivar la pareja de dos jugadores sin validar dueño ni club</h3>
+      <p class="donde"><code>equipos/views.py:449</code></p>
+      <p>DisolverEquipoView usa GestorRequiredMixin (ADMIN u ORGANIZER, definido en equipos/views.py:75-88) y en el POST hace get_object_or_404(Equipo, pk=pk, esta_activo=True) sin ninguna validación de dueño ni de organización: cualquier organizador logueado puede desactivar (esta_activo=False) la pareja de CUALQUIER par de jugadores de la plataforma con sólo pasar el pk. La única barrera es que bloquea si la pareja está inscripta en un torneo no finalizado (Inscripcion.exclude(torneo__estado=&#x27;FN&#x27;)); una pareja sin torneos activos, o que sólo jugó torneos ya finalizados de otro club, queda expuesta. Al setear esta_activo=False se libera la UniqueConstraint &#x27;unique_active_team&#x27; y se rompe la pareja que esos jugadores tienen armada. Un organizador de un club puede así interferir con jugadores que no gestiona. La acción es destructiva (POST) y su validación (sólo rol) es tan débil como la de lectura del listado, pero afecta datos de jugadores ajenos.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Como los Equipo no tienen FK de organización, restringir esta acción a ADMIN, o exigir que el organizador sólo pueda disolver parejas inscriptas en torneos de su propia organización (verificar Inscripcion(equipo=equipo, torneo__organizacion=user.organizacion).exists() antes de permitir). Como mínimo, registrar/auditar quién disuelve para poder revertir.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h14">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#14</span>
+      </div>
+      <h3>MiEquipoDetailView recomputa las mismas stats varias veces (get_partidos_jugados y get_victorias corren 3x cada una; get_object 2x)</h3>
+      <p class="donde"><code>equipos/views.py:183</code></p>
+      <p>El bloque de stats de &#x27;Mi equipo&#x27; arma el dict llamando a métodos del modelo que se re-consultan entre sí. `get_derrotas()` vuelve a llamar a `get_partidos_jugados()` + `get_victorias()`, y `get_win_rate()` los vuelve a llamar OTRA vez. Resultado: `get_partidos_jugados` (2 counts) corre 3 veces y `get_victorias` (2 counts) corre 3 veces; sumando get_torneos_ganados, get_racha_actual y get_ultimos_resultados da ~17 queries, de las cuales ~8 son puramente redundantes. Encima `get_object()` se ejecuta 2 veces (una en `get()` y otra dentro de `get_context_data`), y cada get_object resuelve `user.equipo` (property no cacheada) + un `select_related().get()`. Nada de esto está cacheado, así que se paga en cada visita a la página de mi equipo.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Calcular partidos_jugados y victorias una sola vez (variables locales) y derivar derrotas/win_rate de esos valores; guardar self.object y reutilizarlo en get_context_data en vez de re-llamar get_object(). Idealmente reusar get_player_stats (que ya está cacheada) o cachear estas stats por equipo.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h15">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Datos</span>
+        <span class="num">#15</span>
+      </div>
+      <h3>Al editar el torneo se puede poner cupos_totales por debajo de los ya inscriptos</h3>
+      <p class="donde"><code>torneos/forms.py:269</code></p>
+      <p>TorneoAdminForm.clean solo valida fecha límite vs inicio y cupos&lt;4 en fase de grupos; no controla, al EDITAR, que cupos_totales no sea menor a inscripciones.count(). AdminTorneoUpdateView (views.py:1914) usa este form sin chequeo extra. Si el organizador baja los cupos por debajo de las parejas ya anotadas, cupos_disponibles hace max(0, ...) y muestra 0/&#x27;completo&#x27; aunque haya MÁS equipos que cupos, y la estructura de zonas/llave (que se arma en función de cupos) queda inconsistente con los inscriptos reales.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> En clean(), si self.instance.pk, calcular inscritos = self.instance.inscripciones.count() y bloquear si cupos_totales &lt; inscritos con un mensaje claro (&#x27;ya hay N parejas inscriptas&#x27;).</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h16">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Lógica del torneo</span>
+        <span class="num">#16</span>
+      </div>
+      <h3>La tabla de posiciones no tiene desempate determinista ni head-to-head: la clasificacion (y el seeding de la llave) puede salir distinta en cada carga</h3>
+      <p class="donde"><code>torneos/models.py:355</code></p>
+      <p>El orden de EquipoGrupo se define solo por [&#x27;-partidos_ganados&#x27;,&#x27;-diferencia_sets&#x27;,&#x27;-diferencia_games&#x27;] (Meta.ordering, lineas 355-359). No hay criterio de resultado directo (head-to-head), que es el desempate estandar de padel, y no hay una clave final determinista (ni id). Cuando dos o mas parejas empatan en PG/dif.sets/dif.games (tipico en zonas de 3 con triple empate), el orden que devuelve Postgres es arbitrario y puede variar entre consultas. Como avanzar_grupo_logica toma `tabla[0]` como 1ro y `tabla[1]` como 2do (views.py 1178-1180) para sembrar el cuadro, el equipo que pasa como 1X/2X puede cambiar entre &#x27;ver la tabla&#x27; y &#x27;Avanzar Clasificados&#x27;, o entre dos clics. El organizador manda al cuadro a una pareja distinta de la que muestra la pantalla, sin forma de justificarlo.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar desempate por enfrentamiento directo entre los empatados y, como ultima clave siempre determinista, un campo estable (p.ej. &#x27;id&#x27; o el &#x27;numero&#x27; del EquipoGrupo). Resolver el orden en Python cuando hay empate real para poder aplicar head-to-head, en vez de delegar solo en Meta.ordering.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h17">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#17</span>
+      </div>
+      <h3>Partido.nombre_ronda ejecuta un aggregate Max(ronda) por partido dentro de loops: el cache por-torneo no se comparte entre filas de select_related</h3>
+      <p class="donde"><code>torneos/models.py:528</code></p>
+      <p>`nombre_ronda` cachea el máximo de rondas en `torneo._max_ronda_cache` asumiendo (según su docstring) que &#x27;todos los partidos de un mismo torneo comparten el objeto torneo cuando se usa select_related&#x27;. Eso es falso: `select_related(&#x27;torneo&#x27;)` crea una instancia de Torneo distinta por cada fila, así que el cache queda en un objeto por-partido y NO se comparte. Consecuencia: cada partido que evalúa `nombre_ronda` en un loop dispara su propio `torneo.partidos.aggregate(Max(&#x27;ronda&#x27;))`. En OrganizacionProgramacionView (planilla/impresión del organizador) se computa `pb.nombre_ronda.upper()` para cada partido de llave del día, así que con B partidos de bracket son B aggregates extra. También pasa en get_player_stats al armar &#x27;resultados_recientes&#x27; (hasta 8 aggregates por cache miss).</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Calcular el total de rondas del torneo UNA vez por request (ya se hace en varias vistas con aggregate(Max(&#x27;ronda&#x27;))) y usar el template tag `nombre_ronda_dinamico(ronda, total_rondas)` que ya existe, o pasar total_rondas al contexto y evitar la property en loops. Si se mantiene la property, cachear el máximo en un dict {torneo_id: max_ronda} a nivel request en vez de en la instancia de torneo.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h18">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Datos</span>
+        <span class="num">#18</span>
+      </div>
+      <h3>Las búsquedas de alta no excluyen cuentas fusionadas/inactivas: &#x27;resucitan&#x27; un duplicado ya fusionado (TP-20)</h3>
+      <p class="donde"><code>torneos/services/alta_sin_cuenta.py:60</code></p>
+      <p>buscar_jugador busca por email__iexact y por teléfono sin filtrar merged_into__isnull=True ni is_active=True. Una cuenta real que ya fue fusionada por la herramienta de duplicados (queda is_active=False, merged_into seteado, pero conserva email y teléfono) vuelve a ser encontrada al anotarse por mail o teléfono. obtener_o_crear_jugador la devuelve (no es dummy) y se arma la pareja/inscripción sobre la cuenta muerta, deshaciendo la deduplicación y volviendo a partir historial y ranking entre las dos cuentas. Lo mismo aplica a inscripcion_directa.buscar_por_telefono y a los querysets de compañero (InscripcionConCompaneroForm) que filtran is_dummy=False pero no merged_into.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar filter(merged_into__isnull=True) (y descartar cuentas is_active=False que no sean dummy) en buscar_jugador y buscar_por_telefono; si el match es una cuenta fusionada, redirigir a la canónica (merged_into) en vez de reusar la muerta.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h19">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#19</span>
+      </div>
+      <h3>El cron de recordatorios escanea todos los partidos futuros sin índice en fecha_hora y sin cota superior</h3>
+      <p class="donde"><code>torneos/services/recordatorios.py:56</code></p>
+      <p>partidos_a_recordar filtra Partido y PartidoGrupo por fecha_hora__gte=ahora + ganador__isnull=True, pero fecha_hora no tiene db_index en ninguno de los dos modelos (los índices declarados son (torneo, ronda, orden) y (grupo, ganador)), así que cada corrida del cron (cada 30 min) es un seq scan de ambas tablas, que crecen con cada torneo jugado. Además el filtro no tiene cota superior: trae a Python TODOS los partidos programados a futuro (aunque falten semanas) y el descarte por ventana (24h/2h) se hace en el loop. OrganizacionProgramacionView también filtra por fecha_hora__date sin índice (accounts/views.py:572 y 581).</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar db_index=True a fecha_hora en Partido y PartidoGrupo (o Meta.indexes con (fecha_hora,)), y acotar la query con fecha_hora__lte=ahora + 25h (la ventana más lejana + holgura) para traer solo los candidatos reales.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h20">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#20</span>
+      </div>
+      <h3>actualizar_tabla_de_posiciones corre en CADA save de PartidoGrupo aunque el cambio no toque el resultado (programar hora, marcar recordatorio)</h3>
+      <p class="donde"><code>torneos/signals.py:57</code></p>
+      <p>El post_save no mira update_fields ni si cambió el resultado: programar día/hora de un partido (SchedulePartidoGrupoView) o el cron de recordatorios marcando recordatorios_enviados (save(update_fields=[&#x27;recordatorios_enviados&#x27;])) recomputan la tabla de posiciones completa del grupo (3 queries + bulk_update) más check_llaves_internas_generacion (2-4 queries extra: instance.grupo, grupo.torneo, y si es LLAVES el count y la lista de partidos). Un cron que marca 20 recordatorios dispara 20 recálculos de tabla al pedo cada 30 minutos; un organizador programando los horarios de sus 24 partidos paga 24 recálculos antes de cargar un solo resultado.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Early-return en ambos receivers cuando update_fields venga definido y no incluya campos de resultado (ganador, sets, games): «uf = kwargs.get(&#x27;update_fields&#x27;); if uf and not (set(uf) &amp; CAMPOS_RESULTADO): return», y usar save(update_fields=[...]) en los flujos de programación.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h21">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#21</span>
+      </div>
+      <h3>N+1 de COUNT por tarjeta: torneo.inscripciones.count en los listados de torneos (abiertos, mis torneos, admin)</h3>
+      <p class="donde"><code>torneos/templates/torneos/torneo_abierto_list.html:114</code></p>
+      <p>Los listados renderizan «Cupos: {{ torneo.inscripciones.count }}» por cada tarjeta sin annotate, así que cada torneo dispara una query COUNT propia: listado de abiertos ≈ 10 (paginado) + sección Mis Inscripciones + En Juego → 10-25 queries extra por vista en una página pública caliente. Lo mismo en mis_torneos.html (3 secciones vía torneo_card.html:40) y en admin_torneo_list.html con paginate_by=20 → 20 COUNTs por página. El home ya resuelve esto con annotate (core/views.py:16), la corrección nunca llegó a los otros listados.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar .annotate(n_inscriptos=Count(&#x27;inscripciones&#x27;)) a las querysets de TorneoAbiertoListView, MisTorneosView y AdminTorneoListView, y usar {{ torneo.n_inscriptos }} en los templates, igual que ya hace el home.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h22">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Datos</span>
+        <span class="num">#22</span>
+      </div>
+      <h3>El comprobante de pago se guarda sin validar tipo ni tamaño (se saltea validar_imagen y ImageField)</h3>
+      <p class="donde"><code>torneos/views.py:3197</code></p>
+      <p>SubirComprobanteView asigna el archivo subido directo a inscripcion.comprobante y hace save(update_fields=[&#x27;comprobante&#x27;]) sin pasar por un form ni por full_clean(). Los validators del modelo (validar_imagen: máx 5MB / 4000px) y la verificación de que ImageField es realmente una imagen SOLO corren en la validación de formularios/full_clean, nunca en save(). Resultado: cualquier jugador logueado (dueño de su inscripción) puede subir como &#x27;comprobante&#x27; un archivo que NO es imagen (PDF, binario arbitrario, HTML) o un archivo enorme. El organizador lo ve en su panel y el archivo queda servido desde el storage. Afecta a organizadores (comprobantes corruptos/no visibles) y abre abuso de almacenamiento.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Procesar el upload con un ModelForm (fields=[&#x27;comprobante&#x27;]) y usar form.is_valid(), o llamar inscripcion.full_clean(exclude=[...]) antes de save(); además validar content-type/extensión y tamaño explícitamente en la vista.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h23">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Lógica del torneo</span>
+        <span class="num">#23</span>
+      </div>
+      <h3>Los cupos se pueden pasar del limite: el select_for_update se libera antes del INSERT de la inscripcion</h3>
+      <p class="donde"><code>torneos/views.py:2580</code></p>
+      <p>El re-chequeo de cupo bajo lock (linea 2580-2589) cuenta las inscripciones dentro de `with transaction.atomic()` con select_for_update, pero el INSERT real ocurre en `super().form_valid(form)` (linea 2598), FUERA de ese bloque atomic. El lock de fila se libera al cerrar el `with`, antes de insertar. Entonces dos inscripciones concurrentes se serializan solo en el conteo, no en conteo+insercion: T1 bloquea, cuenta 15&lt;16, libera; T2 bloquea, cuenta 15&lt;16 (T1 aun no inserto), libera; T1 inserta -&gt;16; T2 inserta -&gt;17. El overflow que el comentario dice arreglar sigue vivo (solo se angosto la ventana). La UniqueConstraint (equipo,torneo) evita duplicar la MISMA pareja, no que parejas distintas se pasen del limite.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Meter el INSERT dentro del mismo bloque atomic que toma el lock: adquirir select_for_update, contar y crear la Inscripcion en la MISMA transaccion antes de soltar el lock.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h24">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Lógica del torneo</span>
+        <span class="num">#24</span>
+      </div>
+      <h3>generar_octavos_logica no es idempotente: doble clic o doble POST duplica toda la llave</h3>
+      <p class="donde"><code>torneos/views.py:412</code></p>
+      <p>La accion &#x27;generar_octavos&#x27; llama a generar_octavos_logica sin ninguna guardia de existencia previa: ninguna de sus ramas (FAP con bracket_structure, legacy crossings, generico, o _generar_bracket_manual) verifica `if torneo.partidos.exists()` antes de crear Partidos. A diferencia de &#x27;forzar_cuadro_vacio&#x27; (lineas 427-433) que si chequea, aca dos POST casi simultaneos (doble clic del organizador al borde de la cancha, o reenvio) crean DOS arboles de llave completos superpuestos. El cuadro queda con partidos duplicados por ronda y el avance/visualizacion se corrompe. La accion es alcanzable tras &#x27;agregar_zona&#x27;, que borra la llave (linea 686) y vuelve a mostrar el boton &#x27;Calcular Clasificacion y Generar Bracket&#x27;.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar guardia de idempotencia al inicio de generar_octavos_logica (cuando no es solo_estructura): si ya existen partidos, abortar con mensaje o borrarlos explicitamente primero (como reset_bracket). Deshabilitar el boton en submit tambien ayuda pero no reemplaza la guardia server-side.</p>
+    </article>
+
+    <article class="hallazgo sev-media" id="h25">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#0369a1">Medio</span>
+        <span class="dim">Lógica del torneo</span>
+        <span class="num">#25</span>
+      </div>
+      <h3>Finalizar Torneo permite cerrar sin llave terminada ni campeon, dejando el torneo en estado inconsistente</h3>
+      <p class="donde"><code>torneos/views.py:435</code></p>
+      <p>La accion &#x27;finalizar_torneo&#x27; setea estado=&#x27;FN&#x27; y guarda, sin ninguna validacion de que la llave este completa ni de que exista un campeon. Un organizador puede finalizar un torneo a mitad de camino: queda con estado FINALIZADO pero ganador_del_torneo=None, no se disuelven las parejas (esta_activo sigue True, a diferencia del cierre &#x27;correcto&#x27; via Partido.save que hace update esta_activo=False), y no se dispara el push de campeones. En las vistas publicas el torneo aparece finalizado sin ganador, y torneo.fecha_fin cae al fallback de fecha_inicio. Ademas no hay accion de &#x27;reabrir&#x27;: iniciar_torneo_logica exige estado ABIERTO, con lo cual un torneo finalizado por error queda trabado.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Antes de finalizar, exigir que la final tenga ganador (o pedir confirmacion explicita) y ejecutar el mismo cierre que Partido.save: setear ganador_del_torneo, disolver parejas y notificar. Si se permite finalizar &#x27;a la fuerza&#x27;, dejar constancia y ofrecer una accion de reabrir controlada.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Bajos</h2>
+    <p class="h2-nota">Detalle, prolijidad y deuda menor. Ninguno frena a nadie hoy.</p>
+    
+    <article class="hallazgo sev-baja" id="h26">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Datos</span>
+        <span class="num">#26</span>
+      </div>
+      <h3>merge_users no traspasa los campos de perfil del origen al canónico (pérdida de datos en fusión)</h3>
+      <p class="donde"><code>accounts/utils.py:842</code></p>
+      <p>merge_users solo mueve equipos, partidos e inscripciones; nunca copia al destino los campos propios del origen (numero_telefono, imagen, bio, instagram, club, ciudad, division, genero, posicion_cancha, mano_habil, juega_desde). Si el origen es dummy se hace dummy_user.delete() y esos datos se pierden; si el origen es una cuenta REAL (fusión de duplicados desde la vista de duplicados, accounts/views.py:896, habilitada a admins) queda desactivada con merged_into, y su teléfono/foto/ficha quedan huérfanos aunque el canónico los tenga vacíos. La cuenta principal puede terminar más incompleta que la que se absorbió.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Antes de cerrar el origen, rellenar en el destino los campos vacíos con los del origen (teléfono, imagen, ficha, división/género si el destino no los tiene) para no perder el perfil más completo.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h27">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#27</span>
+      </div>
+      <h3>Cachés de perfil que nunca se invalidan: stats viejas hasta 5 minutos después de cargar un resultado, e inscripciones desactualizadas en el panel del organizador</h3>
+      <p class="donde"><code>accounts/views.py:203</code></p>
+      <p>perfil_stats_ctx_{id} y public_profile_ctx_{id} se setean con TTL 300 pero no se borran nunca: cuando se carga un resultado, el signal invalida player_stats_{id} (la clave interna) pero el contexto de perfil que la ENVUELVE sigue sirviendo las stats viejas hasta que vence el TTL — el jugador carga su partido y su perfil no lo refleja por hasta 5 minutos. Lo mismo con perfil_gestion_{id}: solo lo invalida la inscripción del propio jugador (InscripcionCreateView); las altas hechas por el organizador (agregar_equipo, agregar_dummy, eliminar_inscripcion, inscribirse sin cuenta, cancelación del jugador) no lo tocan, así que el dashboard del organizador muestra la lista de inscriptos vieja justo después de que él mismo la modificó.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Centralizar la invalidación: que invalidar_cache_jugadores_equipo borre también perfil_stats_ctx_{id} y public_profile_ctx_{id}, y extraer un helper invalidar_perfil_gestion(torneo) que se llame desde todas las mutaciones de inscripciones (altas/bajas del organizador y del jugador).</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h28">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Visual</span>
+        <span class="num">#28</span>
+      </div>
+      <h3>Variantes dark: nunca se activan (darkMode:&#x27;class&#x27; pero el tema va por data-theme) y clase &#x27;base-400&#x27; inexistente</h3>
+      <p class="donde"><code>equipos/templates/equipos/admin_equipo_list.html:12</code></p>
+      <p>El tailwind.config.js define &#x27;darkMode: class&#x27;, que activa el prefijo &#x27;dark:&#x27; solo cuando hay una clase .dark en un ancestro. Pero la app nunca agrega la clase .dark: el tema se cambia con el atributo data-theme=&#x27;corporate&#x27;/&#x27;business&#x27; (base.html). Resultado: todas las clases &#x27;dark:...&#x27; de los templates son código muerto que nunca aplica; en modo oscuro se queda el estilo base y no el que el autor pensó para oscuro. Además, en admin_equipo_list.html el fallback apunta a &#x27;bg-base-400&#x27;, que NO existe en DaisyUI/Tailwind (solo hay base-100/200/300 y el config solo extiende &#x27;primary&#x27;), así que esa utilidad tampoco compila. El impacto visual es bajo porque los fondos base ya son oscuros en business, pero es estilo que se pierde en silencio.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Si se quiere estilo distinto por tema, usar directamente las variables de DaisyUI (base-100/200/300 ya cambian con data-theme) y borrar los prefijos &#x27;dark:&#x27; que no hacen nada; eliminar &#x27;bg-base-400&#x27;. Si de verdad se necesita &#x27;dark:&#x27;, cambiar darkMode a [&#x27;selector&#x27;,&#x27;[data-theme=business]&#x27;] en el config.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h29">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Visual</span>
+        <span class="num">#29</span>
+      </div>
+      <h3>Estado vacío con concordancia de género mal y texto inconsistente (&#x27;parejas registrados&#x27;)</h3>
+      <p class="donde"><code>equipos/templates/equipos/admin_equipo_list.html:81</code></p>
+      <p>En la gestión de parejas, la versión mobile del estado vacío dice &#x27;No hay parejas registrados&#x27; (masculino), cuando &#x27;parejas&#x27; es femenino: debería ser &#x27;registradas&#x27;. Encima es inconsistente con la versión de tabla (desktop), que en la misma pantalla ya dice bien &#x27;No hay parejas registradas&#x27;.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Corregir a &#x27;No hay parejas registradas.&#x27; para que concuerde y coincida con la versión de tabla.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h30">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Templates</span>
+        <span class="num">#30</span>
+      </div>
+      <h3>{% url &#x27;torneos:detalle&#x27; %} no existe (el name es &#x27;detail&#x27;) -&gt; NoReverseMatch 500 si se reactiva el partial</h3>
+      <p class="donde"><code>equipos/templates/equipos/torneos_card.html:29</code></p>
+      <p>El partial de &#x27;Torneos jugados&#x27; de la pareja arma el link a cada torneo con {% url &#x27;torneos:detalle&#x27; item.torneo.pk %}. En el namespace &#x27;torneos&#x27; NO existe el name &#x27;detalle&#x27;: la ruta al detalle del torneo se llama &#x27;detail&#x27; (torneos/urls.py:45). El name &#x27;detalle&#x27; solo existe en el namespace &#x27;accounts&#x27; (accounts/urls.py:17, perfil publico del jugador). Por lo tanto, en cuanto este template se renderice con al menos un torneo en &#x27;torneos_jugados&#x27;, Django tira NoReverseMatch y devuelve un 500 completo de la pagina. HOY el impacto es latente: torneos_card.html esta huerfano -&gt; no lo incluye ningun template (mi_equipo_detail.html:47 solo hace {% include &#x27;equipos/estadisticas_card.html&#x27; %}, y estadisticas_card.html tampoco lo incluye) ni lo renderiza ninguna vista (grep de &#x27;torneos_card&#x27; en *.py: sin resultados). El riesgo real es que ARQUITECTURA.md:2733 documenta este partial como si SI se renderizara dentro de mi_equipo_detail.html; cualquiera que siga esa doc y vuelva a colgar el {% include %} rompe la pantalla &#x27;Mi Equipo&#x27; para toda pareja que tenga torneos jugados. Es el mismo tipo de bug ya corregido en merge_users.html.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Cambiar en torneos_card.html:29 &#x27;torneos:detalle&#x27; por &#x27;torneos:detail&#x27;. Si el partial ya no se usa, borrarlo y sacar su fila del inventario de ARQUITECTURA.md (linea 2733) para que nadie lo reactive con el name roto.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h31">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Visual</span>
+        <span class="num">#31</span>
+      </div>
+      <h3>Mezcla de tú/vos: textos en imperativo &#x27;tú&#x27; rompen la convención rioplatense</h3>
+      <p class="donde"><code>theme/templates/base.html:834</code></p>
+      <p>La convención del proyecto es español rioplatense (vos: &#x27;Creá&#x27;, &#x27;Ingresá&#x27;, &#x27;Seleccioná&#x27;), pero quedaron varios textos visibles en forma &#x27;tú&#x27;. Convive con formas &#x27;vos&#x27; en la misma pantalla (p.ej. dummy_user_form dice &#x27;Creá un jugador&#x27; mientras organizador_equipo_form dice &#x27;Crea una pareja&#x27;), lo que se nota inconsistente para el usuario.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Pasar a voseo: &#x27;Agregá&#x27;, &#x27;Creá&#x27;, &#x27;Ingresá&#x27;, &#x27;Seleccioná&#x27;. Revisar con un grep de imperativos en tú (Ingresa/Selecciona/Crea/Agrega/Escribe/Elige).</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h32">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Datos</span>
+        <span class="num">#32</span>
+      </div>
+      <h3>No se valida que la seña sea menor o igual al precio de inscripción</h3>
+      <p class="donde"><code>torneos/forms.py:250</code></p>
+      <p>TorneoAdminForm.clean no compara senia con precio_inscripcion. Un organizador puede cargar una seña mayor al precio total (o seña sin precio), y al jugador se le muestra en la ficha de inscripción una &#x27;seña para reservar&#x27; más alta que el costo total del torneo. Ambos son PositiveIntegerField, así que negativos ya están cubiertos por el modelo; lo que falta es la coherencia seña&lt;=precio.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar en clean(): si senia y precio_inscripcion y senia &gt; precio_inscripcion -&gt; add_error(&#x27;senia&#x27;, &#x27;La seña no puede ser mayor al precio de la inscripción.&#x27;).</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h33">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#33</span>
+      </div>
+      <h3>El ranking del circuito se recalcula completo en cada visita, sin caché</h3>
+      <p class="donde"><code>torneos/models.py:649</code></p>
+      <p>CircuitoDetailView (página pública TP-12) llama Circuito.tabla_posiciones() en cada GET: calcular_puntos_por_jugador recorre TODOS los partidos de zona y de llave de TODOS los torneos del circuito (~7 queries agregadas + loops en Python) más una query de usuarios. A diferencia del ranking por división (cacheado 300s), acá no hay caché de ningún tipo, y el costo crece con cada torneo que se suma al circuito. Si un circuito con la temporada entera se comparte por WhatsApp, cada visita repite el cálculo completo.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Cachear tabla_posiciones() por circuito (ej. 300s como el ranking de división) e invalidar desde invalidar_cache_division o al guardar resultados de torneos que pertenezcan a un circuito.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h34">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Visual</span>
+        <span class="num">#34</span>
+      </div>
+      <h3>Font Awesome no está cargado: todos los íconos &lt;i class=&quot;fa-...&quot;&gt; se renderizan vacíos</h3>
+      <p class="donde"><code>torneos/templates/torneos/partials/torneo_card.html:30</code></p>
+      <p>Varias plantillas usan íconos de Font Awesome (&#x27;fa-solid&#x27;, &#x27;fa-regular&#x27;, &#x27;fas fa-...&#x27;), pero base.html no incluye ningún &lt;link&gt; a Font Awesome (solo carga Inter y tailwind.css) y no hay ningún css de FA en el repo. Tailwind no provee esas clases, así que los &lt;i&gt; quedan como cajas/espacios vacíos: falta el ícono en silencio. En torneo_card.html (la tarjeta reutilizable de torneo, incluida 3 veces en &#x27;Mis Torneos&#x27;) se pierden los íconos de División, fecha de Inicio y Cupos; en los formularios de crear jugador/pareja se pierden los íconos de los botones y de los alerts de error.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> O bien agregar Font Awesome al build/base.html, o —más consistente con el resto de la app— reemplazar esos &lt;i class=&quot;fa-...&quot;&gt; por SVGs inline como ya se usan en todo el proyecto. Un grep de &#x27;fa-solid|fa-regular|fas fa-&#x27; encuentra todos los casos.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h35">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Rendimiento</span>
+        <span class="num">#35</span>
+      </div>
+      <h3>cupos_disponibles ejecuta el mismo COUNT 4 veces por carga de la ficha del torneo</h3>
+      <p class="donde"><code>torneos/templates/torneos/torneo_detail.html:174</code></p>
+      <p>La property Torneo.cupos_disponibles hace inscripciones.count() en cada acceso sin memoizar. El template de la ficha pública la evalúa 3 veces seguidas (dos en el if y una para mostrar el número) y la vista ya contó lo mismo para hay_cupos → 4 COUNTs idénticos por página, en la página más visitada durante la inscripción. Son queries chicas, pero es puro desperdicio en el camino caliente.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Contar una vez en la vista (o cached_property en la instancia) y pasar el número al template; en la ficha, reusar el mismo count para hay_cupos y el badge de últimos cupos.</p>
+    </article>
+
+    <article class="hallazgo sev-baja" id="h36">
+      <div class="hallazgo-cab">
+        <span class="chip" style="--c:#5d6d66">Bajo</span>
+        <span class="dim">Permisos</span>
+        <span class="num">#36</span>
+      </div>
+      <h3>Vistas de carga/programación de resultados no cortan cuando el organizador no tiene organización (organizacion=None) y filtran torneos huérfanos</h3>
+      <p class="donde"><code>torneos/views.py:1456</code></p>
+      <p>CargarResultadoGrupoView (1453-1458), AdminPartidoUpdateView (1479-1484), SchedulePartidoGrupoView (1505-1510) y SchedulePartidoView (1530-1535) acotan al ORGANIZER con qs.filter(torneo__organizacion=user.organizacion) pero, a diferencia de AdminTorneoManageView (línea 220-224), AdminTorneoUpdateView (1930-1933) y AdminTorneoDeleteView (1957-1960), NO guardan el caso user.organizacion is None. Torneo.organizacion es nullable (torneos/models.py:186-192), y un ORGANIZER puede existir sin organización asignada. Si un organizador sin org entra a estas vistas, el filtro queda filter(torneo__organizacion=None) y le da acceso a cargar resultados / programar horarios de TODOS los torneos huérfanos (organizacion NULL, típicamente creados por staff/ADMIN). Es una inconsistencia con el resto de las vistas del mismo archivo, que sí devuelven qs.none() en ese caso. Precondición acotada (organizador sin org + torneos con org NULL), por eso severidad baja, pero rompe el patrón de scoping documentado.</p>
+      <p class="arreglo"><b>Cómo se arregla.</b> Agregar en las 4 vistas el guard if not user.organizacion_id: return qs.none() antes del filter, replicando el patrón de AdminTorneoUpdateView/DeleteView/ManageView. Ideal: unificar todas en OrgScopedQuerysetMixin (que ya contempla organizacion_id None -&gt; qs.none()) para evitar que cada vista repita el chequeo y se olvide.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Qué salió limpio</h2>
+    <p class="h2-nota">
+      Vale decir también lo que se revisó y está bien: es donde <em>no</em> hace
+      falta gastar tiempo.
+    </p>
+    <ul class="limpio">
+      <li><b>174 requests con los cuatro roles</b>: ninguna página de gestión accesible a quien no corresponde, y un solo error de status en toda la app.</li>
+      <li><b>Interfaz en celular</b>: 0 problemas en 15 pantallas (desbordes y alineación) y 0 en 24 pantallas con formularios, después de los arreglos de esta semana.</li>
+      <li><b>Modo claro</b>: home, listados, rankings, en vivo, horarios y placas se leen bien. Los problemas están acotados a dos formularios y a las posiciones del cuadro.</li>
+      <li><b>Enlaces de templates</b>: se revisaron todos los <code>{% url %}</code> contra las rutas reales; sólo apareció uno roto, en un parcial que hoy no se usa.</li>
+      <li><b>El flujo de inscripción y cobro</b> —el camino más transitado de la app— no tiene hallazgos críticos ni altos de lógica.</li>
+    </ul>
+  </section>
+
+  <p class="cierre">
+    <strong>Alcance.</strong> Auditoría de código en modo lectura más pruebas
+    sobre la app corriendo en local con datos de demostración; no se ejecutó nada
+    contra la base de producción. Los 36 hallazgos incluyen archivo y
+    línea, y cada uno trae la corrección sugerida. Quedan fuera de esta lista los
+    temas ya reportados por separado (repositorio público, respaldos con datos
+    reales versionados y contraseña por defecto del superusuario), que siguen
+    pendientes de decisión.
+  </p>
+
+</div>
