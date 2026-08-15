@@ -878,6 +878,80 @@ class DesplegableParejasTests(TestCase):
         self.assertIn(self.sin_division.pk, self._del_desplegable())
 
 
+class ByesConCascadaTests(TestCase):
+    """Un bye nace CON ganador. La cascada nueva no tiene que romperlo.
+
+    `_resolver_byes` crea un Partido con ganador y resultado="Bye" para la
+    pareja que pasa libre. Como ahora `Partido.save()` propaga (y puede
+    invalidar) la ronda siguiente, hay que verificar que el flujo normal de un
+    cuadro con byes sigue funcionando igual.
+    """
+
+    contador = 0
+
+    def _equipo(self):
+        ByesConCascadaTests.contador += 1
+        n = ByesConCascadaTests.contador
+        j1 = User.objects.create_user(email="by%da@t.com" % n, password="x",
+                                      nombre="Y%dA" % n, apellido="X",
+                                      division=self.division)
+        j2 = User.objects.create_user(email="by%db@t.com" % n, password="x",
+                                      nombre="Y%dB" % n, apellido="Y",
+                                      division=self.division)
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="ByeDiv", orden=6)
+        self.torneo = Torneo.objects.create(
+            nombre="Con byes", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=4, estado=Torneo.Estado.EN_JUEGO,
+        )
+        self.a, self.b, self.c = [self._equipo() for _ in range(3)]
+
+    def test_el_bye_avanza_y_el_cuadro_queda_coherente(self):
+        final = Partido.objects.create(torneo=self.torneo, ronda=2, orden_partido=1)
+        # Semi 1: partido de verdad. Semi 2: bye (A pasa libre).
+        semi1 = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            equipo1=self.b, equipo2=self.c, siguiente_partido=final)
+        semi2 = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=2,
+            equipo1=self.a, siguiente_partido=final)
+
+        # El bye se resuelve como lo hace la vista: ganador + resultado "Bye".
+        semi2.ganador = self.a
+        semi2.resultado = "Bye"
+        semi2.save()
+
+        final.refresh_from_db()
+        self.assertEqual(final.equipo2_id, self.a.id, "El bye no avanzo a la final.")
+
+        # Se juega la otra semi: el bye NO se tiene que tocar.
+        semi1.ganador = self.b
+        semi1.save()
+        semi2.refresh_from_db()
+        final.refresh_from_db()
+        self.assertEqual(semi2.ganador_id, self.a.id, "La cascada borro el bye.")
+        self.assertEqual(semi2.resultado, "Bye")
+        self.assertEqual(final.equipo1_id, self.b.id)
+        self.assertEqual(final.equipo2_id, self.a.id)
+
+    def test_avanzar_clasificados_con_update_no_dispara_cascada(self):
+        # "Avanzar clasificados" usa queryset.update(), que no llama a save():
+        # los placeholders se llenan sin tocar resultados ya cargados.
+        final = Partido.objects.create(torneo=self.torneo, ronda=2, orden_partido=1)
+        semi = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=1,
+            placeholder_e1="1A", placeholder_e2="2B", siguiente_partido=final)
+        semi.ganador = None
+        Partido.objects.filter(pk=semi.pk).update(equipo1=self.a, equipo2=self.b)
+        semi.refresh_from_db()
+        self.assertEqual(semi.equipo1_id, self.a.id)
+        self.assertIsNone(semi.ganador_id)
+
+
 class DescribirEstructuraTests(TestCase):
     """TP-17.3: proyección de estructura para la vista previa del alta."""
 
