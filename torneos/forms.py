@@ -820,6 +820,7 @@ class TorneoReplaceTeamForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self.torneo = kwargs.pop('torneo', None)
+        self.companero_elegido = None
         super().__init__(*args, **kwargs)
         
         if self.torneo:
@@ -1073,18 +1074,23 @@ class InscripcionSinCuentaForm(forms.Form):
         choices=[('no', 'Todavía no tiene cuenta'), ('si', 'Ya tiene cuenta en TodoPadel')],
         initial='no', label="¿Tu compañero/a ya usa TodoPadel?",
         widget=forms.RadioSelect)
+    # Estos cuatro sólo se piden si el compañero NO tiene cuenta. Si ya la
+    # tiene, se lo elige del buscador y alcanza con `companero_id`: pedirle a
+    # alguien que reescriba datos que ya están cargados es pedirle que los
+    # escriba distinto, y ahí nace el duplicado.
+    companero_id = forms.IntegerField(required=False, widget=forms.HiddenInput)
     companero_nombre = forms.CharField(
-        max_length=150, label="Nombre",
+        max_length=150, label="Nombre", required=False,
         widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Pedro'}))
     companero_apellido = forms.CharField(
-        max_length=150, label="Apellido",
+        max_length=150, label="Apellido", required=False,
         widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Gómez'}))
     companero_email = forms.EmailField(
         required=False, label="Su email",
         help_text="Si no lo sabés y todavía no tiene cuenta, dejalo vacío: le creamos la cuenta cuando nos pase el mail.",
         widget=forms.EmailInput(attrs={'class': ESTILO, 'placeholder': 'pedro@mail.com'}))
     companero_telefono = forms.CharField(
-        max_length=20, label="Su WhatsApp",
+        max_length=20, label="Su WhatsApp", required=False,
         help_text="Le avisamos por acá que quedó anotado.",
         widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': '+54 9 223 555-5678', 'inputmode': 'tel'}))
 
@@ -1111,11 +1117,63 @@ class InscripcionSinCuentaForm(forms.Form):
         return self._telefono_valido(self.cleaned_data.get('telefono'), 'telefono')
 
     def clean_companero_telefono(self):
-        return self._telefono_valido(
-            self.cleaned_data.get('companero_telefono'), 'companero_telefono')
+        # Vacío es válido acá: si eligió a alguien del buscador, no se pide.
+        # Que el campo sea obligatorio o no lo decide clean() según la rama.
+        valor = self.cleaned_data.get('companero_telefono')
+        if not (valor or '').strip():
+            return valor
+        return self._telefono_valido(valor, 'companero_telefono')
+
+    def _resolver_companero_elegido(self, cleaned):
+        """Trae la cuenta que se eligió en el buscador.
+
+        El id llega del cliente, así que se valida como cualquier dato de
+        formulario: tiene que ser un jugador vivo y no fusionado.
+        """
+        from django.contrib.auth import get_user_model
+
+        pk = cleaned.get('companero_id')
+        if not pk:
+            self.add_error(
+                None, "Buscá a tu compañero/a y elegilo de la lista para continuar.")
+            return None
+        usuario = get_user_model().objects.filter(
+            pk=pk, merged_into__isnull=True, tipo_usuario='PLAYER').first()
+        if usuario is None:
+            self.add_error(
+                None, "No encontramos esa cuenta. Volvé a buscarla, por favor.")
+        return usuario
 
     def clean(self):
         cleaned = super().clean()
+
+        if cleaned.get('companero_tiene_cuenta') == 'si':
+            # Rama "ya tiene cuenta": sólo importa a quién eligió. Los campos de
+            # carga manual se ignoran aunque el navegador los haya mandado.
+            usuario = self._resolver_companero_elegido(cleaned)
+            if usuario is not None:
+                cleaned['companero_usuario'] = usuario
+                # Lo lee el template para volver a mostrar el elegido si el
+                # formulario vuelve con un error: sin esto, la persona ve el
+                # buscador vacío y cree que perdió la selección.
+                self.companero_elegido = usuario
+                if usuario.pk and (cleaned.get('email') or '').strip().lower() == \
+                        (usuario.email or '').strip().lower():
+                    raise forms.ValidationError(
+                        "Te elegiste a vos mismo como compañero/a.")
+            for campo in ('companero_nombre', 'companero_apellido',
+                          'companero_email', 'companero_telefono'):
+                cleaned[campo] = ''
+                self.errors.pop(campo, None)
+            return cleaned
+
+        # Rama "todavía no tiene cuenta": se cargan los datos a mano.
+        for campo, mensaje in (('companero_nombre', "Poné el nombre de tu compañero/a."),
+                               ('companero_apellido', "Poné su apellido."),
+                               ('companero_telefono', "Necesitamos su WhatsApp para avisarle.")):
+            if not (cleaned.get(campo) or '').strip():
+                self.add_error(campo, mensaje)
+
         mio = (cleaned.get('email') or '').strip().lower()
         suyo = (cleaned.get('companero_email') or '').strip().lower()
         if mio and suyo and mio == suyo:
@@ -1128,8 +1186,4 @@ class InscripcionSinCuentaForm(forms.Form):
             raise forms.ValidationError(
                 "Pusiste el mismo teléfono para los dos.")
 
-        # Si dice que ya tiene cuenta, necesitamos con qué encontrarla.
-        if cleaned.get('companero_tiene_cuenta') == 'si' and not suyo:
-            self.add_error('companero_email',
-                           "Si ya tiene cuenta, poné su email para encontrarla.")
         return cleaned

@@ -21,6 +21,7 @@ import unicodedata
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 
 from equipos.models import Equipo
 
@@ -124,6 +125,112 @@ def buscar_jugador(email=None, telefono=None):
     return vivos.filter(pk=candidatos[0]).first()
 
 
+# Vocales y sus variantes acentuadas, para buscar sin depender de la tilde.
+_EQUIVALENTES = {
+    'a': 'aáàäâ', 'e': 'eéèëê', 'i': 'iíìïî',
+    'o': 'oóòöô', 'u': 'uúùüû', 'n': 'nñ', 'c': 'cç',
+}
+
+
+def _parece_telefono(texto):
+    """True si la consulta es un numero y no un nombre.
+
+    Se mira que NO tenga letras, en vez de que tenga digitos: "Sim1" tiene un
+    digito y es claramente un apellido, y con el criterio anterior se iba por la
+    rama de telefono y no encontraba a nadie.
+    """
+    return bool(texto) and not any(c.isalpha() for c in texto)
+
+
+def _patron_sin_acentos(palabra):
+    """Regex que matchea la palabra ignorando tildes y enies.
+
+    Los apellidos argentinos estan llenos de tildes (Gomez/Gómez,
+    Martin/Martín, Nunez/Núñez) y nadie las escribe al buscar en el celular.
+    `icontains` es literal, asi que "Gomez" no encontraba a "Gómez" y el
+    buscador parecia roto.
+
+    Se resuelve del lado de la consulta y no de la base: `unaccent` de Postgres
+    obligaria a una extension y a una migracion, y en desarrollo la base es
+    SQLite. `iregex` anda igual en las dos.
+    """
+    # Se le sacan las tildes tambien a lo que escribio el usuario: si escribe
+    # "Gómez" tiene que encontrar igual a los "Gomez" cargados sin tilde.
+    # La enie se traduce aparte porque NFKD la parte en "n" + tilde.
+    palabra = _sin_acentos(palabra.lower()).replace('̃', '')
+    partes = []
+    for caracter in palabra:
+        equivalentes = _EQUIVALENTES.get(caracter)
+        if equivalentes:
+            partes.append(f'[{equivalentes}]')
+        elif caracter.isalnum():
+            partes.append(re.escape(caracter))
+        # Lo demas (comillas, guiones sueltos) se ignora: no aporta a la busqueda
+        # y podria romper la expresion.
+    return ''.join(partes)
+
+
+def buscar_companeros(consulta, limite=8):
+    """Busca jugadores para el selector de "mi compañero ya tiene cuenta".
+
+    Lo consume un endpoint PUBLICO (el alta sin cuenta no pide login a
+    proposito), asi que esta escrito para no convertirse en un directorio
+    scrapeable de la base de usuarios:
+
+    - El nombre se busca por partes, pero exige al menos 3 caracteres.
+    - El email y el telefono se buscan **exactos**. Con `icontains` alcanzaba
+      con probar "@gmail" para listar medio padron; asi hay que saber el dato.
+    - Nunca se devuelve el email ni el telefono de nadie: solo el nombre y la
+      division, que es lo unico que hace falta para reconocer a la persona.
+
+    Devuelve una lista de dicts listos para serializar.
+    """
+    User = get_user_model()
+    consulta = (consulta or '').strip()
+    if len(consulta) < 3:
+        return []
+
+    vivos = User.objects.filter(
+        merged_into__isnull=True, tipo_usuario='PLAYER',
+    ).select_related('division')
+
+    # Email exacto: quien lo sabe, ya conoce a la persona.
+    if '@' in consulta:
+        encontrados = vivos.filter(email__iexact=consulta)[:limite]
+    elif _parece_telefono(consulta):
+        cola = _cola_telefono(consulta)
+        if not cola:
+            # Son numeros pero no alcanzan para un telefono. No se busca por
+            # nombre (no tendria sentido) ni se devuelve media base.
+            return []
+        # Telefono completo: se compara normalizado, igual que el enganche.
+        ids = [
+            pk for pk, numero in vivos.exclude(numero_telefono='')
+                                      .exclude(numero_telefono__isnull=True)
+                                      .values_list('id', 'numero_telefono')
+            if _cola_telefono(numero) == cola
+        ]
+        encontrados = vivos.filter(pk__in=ids)[:limite]
+    else:
+        filtro = Q()
+        for palabra in consulta.split()[:3]:
+            patron = _patron_sin_acentos(palabra)
+            filtro &= (Q(nombre__iregex=patron) | Q(apellido__iregex=patron))
+        encontrados = vivos.filter(filtro).order_by(
+            'nombre', 'apellido')[:limite]
+
+    return [
+        {
+            'id': u.pk,
+            'nombre': u.full_name,
+            # Sin email ni telefono: con la division alcanza para distinguir
+            # entre dos homonimos, y no filtra datos de contacto.
+            'detalle': u.division.nombre if u.division else 'Sin division',
+        }
+        for u in encontrados
+    ]
+
+
 def obtener_o_crear_jugador(nombre, apellido, email, telefono, division):
     """Devuelve (usuario, password_generada, ya_existia).
 
@@ -207,9 +314,16 @@ def inscribir_sin_cuenta(torneo, datos):
 
     yo, pass_yo, yo_existia = obtener_o_crear_jugador(
         datos['nombre'], datos['apellido'], datos['email'], datos['telefono'], division)
-    companero, pass_comp, comp_existia = obtener_o_crear_jugador(
-        datos['companero_nombre'], datos['companero_apellido'],
-        datos.get('companero_email'), datos['companero_telefono'], division)
+
+    # Si eligio a su companero del buscador, la cuenta ya esta resuelta: no hay
+    # nada que crear ni que adivinar, y no se le toca la contrasena.
+    elegido = datos.get('companero_usuario')
+    if elegido is not None:
+        companero, pass_comp, comp_existia = elegido, None, True
+    else:
+        companero, pass_comp, comp_existia = obtener_o_crear_jugador(
+            datos['companero_nombre'], datos['companero_apellido'],
+            datos.get('companero_email'), datos['companero_telefono'], division)
 
     if yo.pk == companero.pk:
         raise AltaError("Cargaste los mismos datos para los dos jugadores.")

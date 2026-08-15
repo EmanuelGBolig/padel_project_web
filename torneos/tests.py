@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -1004,6 +1005,161 @@ class ImpactoDiagnosticoTests(TestCase):
 
         self.client.force_login(self.org)
         self.assertNotIn('impacto', self.client.get(self.url).context)
+
+
+class BuscarCompaneroPublicoTests(TestCase):
+    """El buscador del alta sin cuenta.
+
+    Es un endpoint PUBLICO, asi que ademas de andar tiene que no convertirse en
+    un directorio de la base de usuarios.
+    """
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()   # el throttle es por IP y se comparte entre tests
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.pedro = User.objects.create_user(
+            email="pedro.gomez@mail.com", password="x", nombre="Pedro",
+            apellido="Gómez", division=self.division,
+            numero_telefono="+54 9 223 555-5678")
+        self.pablo = User.objects.create_user(
+            email="pablo.gomez@mail.com", password="x", nombre="Pablo",
+            apellido="Gómez", division=self.division)
+        self.url = reverse("torneos:buscar_companero_publico")
+
+    def _buscar(self, q):
+        return self.client.get(self.url, {"q": q}).json()["resultados"]
+
+    def test_busca_por_nombre_sin_login(self):
+        r = self._buscar("Pedro")
+        self.assertEqual(len(r), 1)
+        self.assertEqual(r[0]["nombre"], "Pedro Gómez")
+
+    def test_busca_por_apellido_devuelve_los_dos(self):
+        self.assertEqual(len(self._buscar("Gómez")), 2)
+
+    def test_nunca_devuelve_email_ni_telefono(self):
+        for fila in self._buscar("Gómez"):
+            self.assertEqual(set(fila), {"id", "nombre", "detalle"})
+            crudo = str(fila)
+            self.assertNotIn("@", crudo)
+            self.assertNotIn("5678", crudo)
+
+    def test_menos_de_3_caracteres_no_busca(self):
+        self.assertEqual(self._buscar("Pe"), [])
+
+    def test_email_solo_matchea_exacto(self):
+        # Con `icontains`, "@mail.com" listaba a todos: hay que saber el mail.
+        self.assertEqual(self._buscar("@mail.com"), [])
+        self.assertEqual(len(self._buscar("pedro.gomez@mail.com")), 1)
+
+    def test_telefono_completo_encuentra(self):
+        r = self._buscar("2235555678")
+        self.assertEqual(len(r), 1)
+        self.assertEqual(r[0]["id"], self.pedro.pk)
+
+    def test_telefono_parcial_no_lista_a_nadie(self):
+        self.assertEqual(self._buscar("2235"), [])
+
+    def test_no_devuelve_cuentas_fusionadas(self):
+        self.pablo.merged_into = self.pedro
+        self.pablo.save()
+        r = self._buscar("Gómez")
+        self.assertEqual([f["id"] for f in r], [self.pedro.pk])
+
+    def test_throttle_corta_el_scraping(self):
+        from django.core.cache import cache
+
+        cache.set("buscar_companero_127.0.0.1", 60, 600)
+        resp = self.client.get(self.url, {"q": "Gómez"})
+        self.assertEqual(resp.status_code, 429)
+        self.assertEqual(resp.json()["resultados"], [])
+
+
+class AltaConCompaneroElegidoTests(TestCase):
+    """Rama "mi companero ya tiene cuenta": se elige del buscador."""
+
+    def setUp(self):
+        from accounts.models import Organizacion
+
+        self.division = Division.objects.create(nombre="Cuarta", orden=4)
+        self.org = Organizacion.objects.create(nombre="Club Elegir", alias="club-elegir")
+        self.torneo = Torneo.objects.create(
+            nombre="Abierto Elegir", division=self.division,
+            fecha_inicio=timezone.now().date() + timedelta(days=7),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=3),
+            cupos_totales=8, estado=Torneo.Estado.ABIERTO, organizacion=self.org)
+        self.pedro = User.objects.create_user(
+            email="pedro.elegir@mail.com", password="x", nombre="Pedro",
+            apellido="Gómez", division=self.division)
+        self.url = reverse("torneos:inscribirse_sin_cuenta",
+                           kwargs={"torneo_pk": self.torneo.pk})
+
+    def _datos(self, **over):
+        d = {
+            "nombre": "Juan", "apellido": "Pérez",
+            "email": "juan.elegir@mail.com", "telefono": "+54 9 223 555-1111",
+            "companero_tiene_cuenta": "si",
+            "companero_id": self.pedro.pk,
+            "division": self.division.pk,
+        }
+        d.update(over)
+        return d
+
+    def test_anota_sin_pedir_los_datos_del_companero(self):
+        from equipos.models import Equipo
+
+        resp = self.client.post(self.url, self._datos())
+        self.assertEqual(resp.status_code, 302)
+        # Equipo.save() normaliza el orden por id, así que puede quedar en
+        # cualquiera de los dos lados.
+        equipo = Equipo.objects.filter(
+            Q(jugador1=self.pedro) | Q(jugador2=self.pedro)).first()
+        self.assertIsNotNone(equipo, "No se armó la pareja con el elegido.")
+        self.assertTrue(self.torneo.inscripciones.filter(equipo=equipo).exists())
+
+    def test_no_le_toca_la_contrasena_al_que_ya_tenia_cuenta(self):
+        antes = User.objects.get(pk=self.pedro.pk).password
+        self.client.post(self.url, self._datos())
+        self.assertEqual(User.objects.get(pk=self.pedro.pk).password, antes)
+
+    def test_no_crea_una_cuenta_nueva_para_el_companero(self):
+        antes = User.objects.count()
+        self.client.post(self.url, self._datos())
+        # Solo se crea la cuenta del que se anota, no la del companero.
+        self.assertEqual(User.objects.count(), antes + 1)
+
+    def test_sin_elegir_a_nadie_no_deja_seguir(self):
+        resp = self.client.post(self.url, self._datos(companero_id=""))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "elegilo de la lista")
+
+    def test_un_id_inventado_no_pasa(self):
+        resp = self.client.post(self.url, self._datos(companero_id=999999))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "No encontramos esa cuenta")
+
+    def test_la_rama_manual_sigue_pidiendo_los_datos(self):
+        resp = self.client.post(self.url, self._datos(
+            companero_tiene_cuenta="no", companero_id="",
+            companero_nombre="", companero_apellido="", companero_telefono=""))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Poné el nombre de tu compañero")
+
+    def test_la_rama_manual_completa_sigue_andando(self):
+        from equipos.models import Equipo
+
+        resp = self.client.post(self.url, self._datos(
+            companero_tiene_cuenta="no", companero_id="",
+            companero_nombre="Nuevo", companero_apellido="Jugador",
+            companero_email="nuevo.jugador@mail.com",
+            companero_telefono="+54 9 223 555-2222"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(
+            Equipo.objects.filter(
+                Q(jugador1__email="nuevo.jugador@mail.com")
+                | Q(jugador2__email="nuevo.jugador@mail.com")).exists())
 
 
 class DescribirEstructuraTests(TestCase):

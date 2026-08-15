@@ -2946,6 +2946,56 @@ class SalirDeLaParejaView(LoginRequiredMixin, View):
         return redirect('accounts:perfil')
 
 
+def _ip_del_cliente(request):
+    """IP real del visitante, para contar búsquedas por origen.
+
+    Detrás del proxy de Render la IP viene en X-Forwarded-For; se toma el ÚLTIMO
+    salto (el que agregó el proxy), porque los anteriores los puede falsear
+    cualquiera. Mismo criterio que el throttle del login.
+    """
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        saltos = [p.strip() for p in xff.split(',') if p.strip()]
+        if saltos:
+            return saltos[-1]
+    return request.META.get('REMOTE_ADDR', 'desconocida')
+
+
+class BuscarCompaneroPublicoView(View):
+    """Buscador de jugadores para el alta sin cuenta (público, JSON).
+
+    Va sin login porque el alta sin cuenta tampoco lo pide: exigir cuenta para
+    poder crearse una es el problema que ese flujo viene a resolver.
+
+    Como es público, está pensado para NO ser un directorio scrapeable:
+
+    - Exige 3 caracteres y devuelve como mucho 8 resultados.
+    - Nunca devuelve el email ni el teléfono de nadie (ver `buscar_companeros`).
+    - Tiene throttle por IP: 60 búsquedas cada 10 minutos alcanzan de sobra para
+      encontrar a un compañero y no para recorrer el padrón.
+    """
+
+    LIMITE = 60
+    VENTANA = 600
+
+    def get(self, request, *args, **kwargs):
+        from django.core.cache import cache
+
+        from .services.alta_sin_cuenta import buscar_companeros
+
+        clave = f"buscar_companero_{_ip_del_cliente(request)}"
+        usados = cache.get(clave, 0)
+        if usados >= self.LIMITE:
+            return JsonResponse(
+                {'resultados': [], 'error': 'Demasiadas búsquedas seguidas. '
+                                            'Esperá unos minutos.'},
+                status=429)
+        cache.set(clave, usados + 1, self.VENTANA)
+
+        consulta = request.GET.get('q', '')
+        return JsonResponse({'resultados': buscar_companeros(consulta)})
+
+
 class InscribirseSinCuentaView(FormView):
     """Anotarse a un torneo sin tener cuenta.
 

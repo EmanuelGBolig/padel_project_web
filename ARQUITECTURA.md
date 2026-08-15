@@ -1300,11 +1300,58 @@ la fricción que este flujo saca.
 
 | Paso | Qué hace |
 |---|---|
-| `buscar_jugador` | Busca por email y por los últimos 8 dígitos del teléfono (cubre +54 9 / 0 / 15 y separadores) |
+| `buscar_jugador` | Enganche automático: email exacto, o teléfono normalizado a 10 dígitos. Si hay más de un candidato **no engancha** (ver más abajo) |
+| `buscar_companeros` | Busca jugadores para el selector de "mi compañero ya tiene cuenta". Alimenta un endpoint **público** |
 | `obtener_o_crear_jugador` | Si lo encuentra y es **dummy** del organizador, lo asciende a cuenta real **conservando su historial** (mismo id, mismos partidos, mismo ranking). Si no existe, lo crea |
 | `generar_password` | `nombre` + 4 dígitos al azar. **No** `nombre123`: se dicta por WhatsApp y `nombre123` lo adivina cualquiera que sepa quién juega, y esa persona vería teléfono e historial del otro |
 | `inscribir_sin_cuenta` | Arma la pareja y la inscripción en una transacción, con `select_for_update` sobre el cupo |
 | `mensaje_bienvenida` | Texto del WhatsApp con los datos de acceso |
+
+#### El compañero que ya tiene cuenta: se busca, no se recarga
+
+El paso 2 del alta tiene dos ramas excluyentes según el radio
+*"¿Tu compañero/a ya usa TodoPadel?"*:
+
+- **Todavía no tiene cuenta** → se cargan nombre, apellido, WhatsApp y email.
+- **Ya tiene cuenta** → **sólo un buscador**. Se elige a la persona de la lista y
+  al form viaja únicamente `companero_id`.
+
+El motivo del segundo camino: pedirle a alguien que reescriba datos que ya están
+en la base es pedirle que los escriba distinto, y ahí nace el duplicado que
+después hay que fusionar a mano.
+
+`InscripcionSinCuentaForm.clean()` decide qué exigir según la rama; los campos
+del compañero son `required=False` a nivel de campo porque su obligatoriedad
+depende de esa elección. En la rama "ya tiene cuenta", `clean()` resuelve el id
+contra la base (jugador vivo y no fusionado) y deja el usuario en
+`cleaned_data['companero_usuario']`; `inscribir_sin_cuenta` lo usa tal cual, sin
+crear nada y **sin tocarle la contraseña**.
+
+| Vista | Nombre | Ruta | Login | Qué hace |
+|---|---|---|---|---|
+| `BuscarCompaneroPublicoView` | `buscar_companero_publico` | `/torneos/buscar-companero/` | **No** (igual que el alta) | JSON con los candidatos |
+
+Al ser público está escrito para **no** ser un directorio scrapeable de la base:
+
+- Exige 3 caracteres y devuelve como mucho 8 resultados.
+- **Nunca devuelve email ni teléfono**: sólo nombre y división, que alcanza para
+  distinguir homónimos.
+- Email y teléfono se buscan **exactos**. Con `icontains`, escribir `@gmail`
+  listaba medio padrón; así hay que saber el dato.
+- Throttle por IP: 60 búsquedas cada 10 minutos (`_ip_del_cliente` toma el último
+  salto de `X-Forwarded-For`, igual que el throttle del login).
+
+**Acentos.** Los apellidos argentinos están llenos de tildes (Gómez, Martín,
+Núñez) y nadie las escribe en el celular. `icontains` es literal, así que "Gomez"
+no encontraba a "Gómez" y el buscador parecía roto. Se resuelve del lado de la
+consulta con `_patron_sin_acentos()`, que arma un `iregex` con clases de
+caracteres (`G[oó]m[eé]z`) y normaliza también lo que escribió el usuario, para
+que funcione en las dos direcciones. No se usa `unaccent` de Postgres porque
+obligaría a una extensión y a una migración, y en desarrollo la base es SQLite.
+
+**Nombres con dígitos.** `_parece_telefono()` mira que la consulta **no tenga
+letras**, en vez de que tenga dígitos: un apellido como "Sim1" tiene un dígito y
+con el criterio anterior se iba por la rama de teléfono y no encontraba a nadie.
 
 **Cambio de contraseña obligatorio.** Las cuentas así creadas salen con
 `debe_cambiar_password=True`. `accounts.middleware.CambioDePasswordObligatorio`

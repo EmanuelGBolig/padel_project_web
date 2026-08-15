@@ -56,6 +56,13 @@ urlpatterns = [
         views.InscribirseSinCuentaView.as_view(),
         name='inscribirse_sin_cuenta',
     ),
+    # Buscador de companeros para el alta sin cuenta. Publico (ese flujo no
+    # pide login), con throttle y sin devolver datos de contacto.
+    path(
+        'buscar-companero/',
+        views.BuscarCompaneroPublicoView.as_view(),
+        name='buscar_companero_publico',
+    ),
     path(
         '<int:torneo_pk>/listo/',
         views.AltaListaView.as_view(),

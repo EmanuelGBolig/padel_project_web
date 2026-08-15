@@ -108,39 +108,82 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            {% comment %}
+                Dos caminos excluyentes segun el radio de arriba. Antes se pedian
+                los cuatro campos siempre, incluso cuando el companero YA estaba
+                en la app: hacerle reescribir datos que ya existen es la forma
+                mas facil de que los escriba distinto y termine con dos cuentas.
+            {% endcomment %}
+
+            {# --- Ya tiene cuenta: solo buscarlo --- #}
+            <div id="comp-buscador" class="hidden"
+                 {% if form.companero_elegido %}data-elegido-nombre="{{ form.companero_elegido.full_name }}"
+                 data-elegido-detalle="{{ form.companero_elegido.division.nombre|default:'Sin división' }}"{% endif %}>
+                {{ form.companero_id }}
                 <div class="form-control">
-                    <label class="label py-1" for="{{ form.companero_nombre.id_for_label }}">
-                        <span class="label-text font-medium">{{ form.companero_nombre.label }}</span>
+                    <label class="label py-1" for="comp-q">
+                        <span class="label-text font-medium">Buscá a tu compañero/a</span>
                     </label>
-                    {{ form.companero_nombre }}
-                    {% for e in form.companero_nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                    <input type="text" id="comp-q" autocomplete="off"
+                           class="input input-bordered w-full bg-base-100"
+                           placeholder="Nombre, email o WhatsApp" />
+                    <span class="label-text-alt opacity-60 text-xs mt-1">
+                        Escribí al menos 3 letras. Por email o teléfono, poné el dato completo.
+                    </span>
                 </div>
-                <div class="form-control">
-                    <label class="label py-1" for="{{ form.companero_apellido.id_for_label }}">
-                        <span class="label-text font-medium">{{ form.companero_apellido.label }}</span>
-                    </label>
-                    {{ form.companero_apellido }}
-                    {% for e in form.companero_apellido.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+
+                <div id="comp-resultados" class="mt-2 space-y-1"></div>
+
+                {# El elegido, con opcion de cambiarlo. #}
+                <div id="comp-elegido" class="hidden mt-2 alert bg-success/10 border border-success/30 py-2">
+                    <div class="flex items-center justify-between gap-2 w-full min-w-0">
+                        <div class="min-w-0">
+                            <div class="font-bold truncate" id="comp-elegido-nombre"></div>
+                            <div class="text-xs opacity-60" id="comp-elegido-detalle"></div>
+                        </div>
+                        <button type="button" id="comp-cambiar" class="btn btn-ghost btn-xs shrink-0">
+                            Cambiar
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-control mt-3">
-                <label class="label py-1" for="{{ form.companero_telefono.id_for_label }}">
-                    <span class="label-text font-medium">{{ form.companero_telefono.label }}</span>
-                </label>
-                {{ form.companero_telefono }}
-                <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_telefono.help_text }}</span>
-                {% for e in form.companero_telefono.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
-            </div>
+            {# --- Todavia no tiene cuenta: se cargan los datos --- #}
+            <div id="comp-manual">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="form-control">
+                        <label class="label py-1" for="{{ form.companero_nombre.id_for_label }}">
+                            <span class="label-text font-medium">{{ form.companero_nombre.label }}</span>
+                        </label>
+                        {{ form.companero_nombre }}
+                        {% for e in form.companero_nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-1" for="{{ form.companero_apellido.id_for_label }}">
+                            <span class="label-text font-medium">{{ form.companero_apellido.label }}</span>
+                        </label>
+                        {{ form.companero_apellido }}
+                        {% for e in form.companero_apellido.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                    </div>
+                </div>
 
-            <div class="form-control mt-3">
-                <label class="label py-1" for="{{ form.companero_email.id_for_label }}">
-                    <span class="label-text font-medium">{{ form.companero_email.label }}</span>
-                </label>
-                {{ form.companero_email }}
-                <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_email.help_text }}</span>
-                {% for e in form.companero_email.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                <div class="form-control mt-3">
+                    <label class="label py-1" for="{{ form.companero_telefono.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.companero_telefono.label }}</span>
+                    </label>
+                    {{ form.companero_telefono }}
+                    <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_telefono.help_text }}</span>
+                    {% for e in form.companero_telefono.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                </div>
+
+                <div class="form-control mt-3">
+                    <label class="label py-1" for="{{ form.companero_email.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.companero_email.label }}</span>
+                    </label>
+                    {{ form.companero_email }}
+                    <span class="label-text-alt opacity-60 text-xs mt-1">{{ form.companero_email.help_text }}</span>
+                    {% for e in form.companero_email.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
+                </div>
             </div>
 
             <div class="form-control mt-3">
@@ -208,6 +251,128 @@
     });
 
     document.getElementById('alta-volver').addEventListener('click', function () { mostrar(1); });
+
+    // ---- Companero: buscador vs carga manual --------------------------------
+    // El radio decide que bloque se muestra. Si ya tiene cuenta no se le piden
+    // los datos: se lo busca y se manda solo el id.
+    var URL_BUSCAR = '{% url "torneos:buscar_companero_publico" %}';
+    var buscador = document.getElementById('comp-buscador');
+    var manual = document.getElementById('comp-manual');
+    var campoId = document.getElementById('id_companero_id');
+    var caja = document.getElementById('comp-q');
+    var lista = document.getElementById('comp-resultados');
+    var elegido = document.getElementById('comp-elegido');
+    var elegidoNombre = document.getElementById('comp-elegido-nombre');
+    var elegidoDetalle = document.getElementById('comp-elegido-detalle');
+
+    function radioTieneCuenta() {
+        var m = form.querySelector('input[name="companero_tiene_cuenta"]:checked');
+        return m && m.value === 'si';
+    }
+
+    function pintarRama() {
+        var tiene = radioTieneCuenta();
+        buscador.classList.toggle('hidden', !tiene);
+        manual.classList.toggle('hidden', tiene);
+        // Los campos de la rama oculta se deshabilitan para que el navegador no
+        // los valide ni los mande: un `required` invisible bloquea el submit sin
+        // que se vea por que.
+        manual.querySelectorAll('input').forEach(function (i) { i.disabled = tiene; });
+    }
+
+    form.querySelectorAll('input[name="companero_tiene_cuenta"]').forEach(function (r) {
+        r.addEventListener('change', pintarRama);
+    });
+
+    function limpiarEleccion() {
+        campoId.value = '';
+        elegido.classList.add('hidden');
+        caja.classList.remove('hidden');
+    }
+
+    function elegir(p) {
+        campoId.value = p.id;
+        elegidoNombre.textContent = p.nombre;
+        elegidoDetalle.textContent = p.detalle;
+        elegido.classList.remove('hidden');
+        caja.classList.add('hidden');
+        lista.innerHTML = '';
+    }
+
+    document.getElementById('comp-cambiar').addEventListener('click', function () {
+        limpiarEleccion();
+        caja.value = '';
+        caja.focus();
+    });
+
+    function aviso(texto) {
+        lista.innerHTML = '';
+        var d = document.createElement('div');
+        d.className = 'text-xs opacity-60 px-1 py-2';
+        d.textContent = texto;
+        lista.appendChild(d);
+    }
+
+    function pintarResultados(rs) {
+        lista.innerHTML = '';
+        if (!rs.length) {
+            aviso('No encontramos a nadie con eso. Si no está en TodoPadel, ' +
+                  'elegí «Todavía no tiene cuenta».');
+            return;
+        }
+        rs.forEach(function (p) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn btn-ghost btn-block justify-start normal-case h-auto py-2';
+            var n = document.createElement('span');
+            n.className = 'font-bold';
+            n.textContent = p.nombre;
+            var d = document.createElement('span');
+            d.className = 'text-xs opacity-60 ml-2';
+            d.textContent = p.detalle;
+            b.appendChild(n);
+            b.appendChild(d);
+            b.addEventListener('click', function () { elegir(p); });
+            lista.appendChild(b);
+        });
+    }
+
+    var reloj = null, pedido = 0;
+    caja.addEventListener('input', function () {
+        limpiarEleccion();
+        var q = caja.value.trim();
+        clearTimeout(reloj);
+        if (q.length < 3) { lista.innerHTML = ''; return; }
+        // Se espera a que deje de tipear: una consulta por tecla gasta el
+        // throttle del servidor en tres palabras.
+        reloj = setTimeout(function () {
+            var mio = ++pedido;
+            aviso('Buscando…');
+            fetch(URL_BUSCAR + '?q=' + encodeURIComponent(q), {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    // Llegó tarde: ya hay una búsqueda más nueva en curso.
+                    if (mio !== pedido) return;
+                    if (data.error) { aviso(data.error); return; }
+                    pintarResultados(data.resultados || []);
+                })
+                .catch(function () {
+                    if (mio === pedido) aviso('No pudimos buscar. Probá de nuevo.');
+                });
+        }, 350);
+    });
+
+    // Si el formulario volvió con error y ya había alguien elegido, se lo
+    // vuelve a mostrar en vez de dejar el buscador en blanco.
+    if (campoId.value && buscador.dataset.elegidoNombre) {
+        elegir({id: campoId.value,
+                nombre: buscador.dataset.elegidoNombre,
+                detalle: buscador.dataset.elegidoDetalle || ''});
+    }
+
+    pintarRama();
 
     // Si el servidor devolvió errores del compañero, abrimos directo el paso 2.
     var hayErrorEn2 = form.querySelector('.alta-paso[data-paso="2"] .text-error');
