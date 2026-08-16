@@ -1364,6 +1364,38 @@ pedidos htmx/AJAX (devolver HTML donde se espera otra cosa rompe la página).
 Business (cuenta verificada y costo por mensaje). El punto donde engancharlo es
 `AltaListaView`, reusando `mensaje_bienvenida()`.
 
+### El popup de cargar resultado
+
+`torneos/templates/torneos/partials/_form_resultado.html` — **uno solo** para los
+dos casos. Antes eran `cargar_resultado_grupo.html` y `admin_partido_form.html`,
+casi idénticos y desincronizándose (uno tenía los casilleros en magenta y el otro
+no). Ahora cada uno es una línea de `{% include %}` que pasa el partido.
+
+Los seis campos de sets **van por parámetro** (`s1a`, `s1b`, …) y no se leen del
+form: el de zona los llama `e1_setN` / `e2_setN` y el de llave
+`setN_local` / `setN_visitante`. Asumir un nombre dejaba el marcador vacío.
+
+| Parámetro | Qué es |
+|---|---|
+| `titulo`, `contexto` | Encabezado y de qué partido se trata ("Zona B", "Semifinal") |
+| `equipo1`, `equipo2`, `torneo` | Para resolver el nombre de cada pareja |
+| `form` | Resolución (normal / W.O. / abandono), lados y errores |
+| `s1a`…`s3b` | Los seis casilleros, en orden |
+| `idp` | Prefijo de los ids: zona y llave conviven en la misma página |
+| `accion` | URL del POST |
+
+Tres cosas del diseño que vale la pena no volver a romper:
+
+- **Nada de `input-secondary`** en los casilleros: en este tema el secundario es
+  magenta, y quedaban seis recuadros fucsia en el medio de una app verde. Borde
+  neutro y `focus:input-primary`.
+- El encabezado trae el **contexto del partido**. Sin eso, con el popup abierto no
+  se sabía de qué zona era el resultado que se estaba cargando.
+- **Contador de sets en vivo**: al tipear se muestra "2 – 0" y se pinta al que va
+  ganando. Cargar resultados es lo que más se repite en un torneo y un número en
+  la casilla de al lado se arrastra hasta la tabla de posiciones; verlo en el
+  momento evita el error.
+
 ### Guardar sin recargar la página
 
 Cada acción de guardado devuelve **sólo la sección que cambió**, con los headers

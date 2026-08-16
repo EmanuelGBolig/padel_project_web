@@ -1,0 +1,190 @@
+{% load torneo_extras %}
+{% comment %}
+    Carga de resultado. Lo usan el popup de zona y el de la llave, que antes
+    eran dos archivos casi idénticos y se iban desincronizando.
+
+    Parámetros:
+      titulo      texto del encabezado
+      contexto    de qué partido se trata ("Zona B", "Semifinal"…)
+      equipo1     / equipo2   parejas del partido
+      torneo      para resolver el código corto de cada pareja
+      form        el formulario (para resolucion / lados / errores)
+      s1a s1b …  los seis campos de sets, en orden. Van por parametro porque el
+                 form de zona los llama `e1_set1` y el de llave `set1_local`
+      idp         prefijo para los ids del bloque (zona/llave conviven en la página)
+      accion      URL del POST
+
+    Qué se corrigió del diseño anterior:
+    - Los casilleros usaban `input-secondary`, que en este tema es magenta: seis
+      recuadros fucsia en el medio de una app verde. Ahora es el borde neutro de
+      siempre y el foco se pinta con el color de marca.
+    - La barra verde llena del encabezado pesaba más que el contenido y no decía
+      de qué partido era el resultado. Ahora es sobria y trae el contexto.
+    - Se marca en vivo quién va ganando: el organizador carga esto al borde de la
+      cancha, entre partido y partido, y un número en la casilla equivocada se
+      arrastra hasta la tabla de posiciones.
+{% endcomment %}
+<div class="px-5 py-4 bg-base-200 border-b border-base-300 flex items-start justify-between gap-3 rounded-t-2xl">
+    <div class="min-w-0">
+        <h3 class="font-bold text-lg leading-tight">{{ titulo }}</h3>
+        {% if contexto %}
+            <p class="text-xs text-base-content/60 mt-0.5 truncate">{{ contexto }}</p>
+        {% endif %}
+    </div>
+    <button type="button"
+            class="btn btn-sm btn-circle btn-ghost shrink-0"
+            aria-label="Cerrar"
+            onclick="resultado_modal.close()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+             stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
+</div>
+
+<form method="post"
+      hx-post="{{ accion }}"
+      hx-target="#modal_content"
+      id="{{ idp }}-form"
+      class="p-5 bg-base-100 text-base-content rounded-b-2xl">
+    {% csrf_token %}
+
+    {# --- Marcador --- #}
+    <div class="grid grid-cols-[1fr_3rem_1fr] gap-x-2 gap-y-3 items-center">
+        {# Nombres, con el contador de sets ganados #}
+        <div class="text-center min-w-0">
+            <div class="font-bold text-sm sm:text-base break-words leading-tight"
+                 id="{{ idp }}-n1">{% get_team_code equipo1 torneo %}{% if not equipo1 %}Pareja 1{% endif %}</div>
+            <div class="text-2xl font-black tabular-nums mt-1 text-base-content/25"
+                 id="{{ idp }}-s1">0</div>
+        </div>
+        <div class="text-center">
+            <span class="text-xs font-black text-base-content/30">VS</span>
+        </div>
+        <div class="text-center min-w-0">
+            <div class="font-bold text-sm sm:text-base break-words leading-tight"
+                 id="{{ idp }}-n2">{% get_team_code equipo2 torneo %}{% if not equipo2 %}Pareja 2{% endif %}</div>
+            <div class="text-2xl font-black tabular-nums mt-1 text-base-content/25"
+                 id="{{ idp }}-s2">0</div>
+        </div>
+
+        {# Los tres sets #}
+        <div class="col-span-3" id="{{ idp }}-sets">
+            <div class="grid grid-cols-[1fr_3rem_1fr] gap-x-2 items-center mt-2">
+                {{ s1a }}
+                <span class="text-center text-[10px] font-black uppercase tracking-wider text-base-content/40">Set 1</span>
+                {{ s1b }}
+            </div>
+            <div class="grid grid-cols-[1fr_3rem_1fr] gap-x-2 items-center mt-2">
+                {{ s2a }}
+                <span class="text-center text-[10px] font-black uppercase tracking-wider text-base-content/40">Set 2</span>
+                {{ s2b }}
+            </div>
+            <div class="grid grid-cols-[1fr_3rem_1fr] gap-x-2 items-center mt-2">
+                {{ s3a }}
+                <span class="text-center text-[10px] font-black uppercase tracking-wider text-base-content/40">Set 3</span>
+                {{ s3b }}
+            </div>
+            <p class="text-xs text-base-content/50 text-center mt-3">
+                Dejá el set 3 vacío si el partido terminó en dos.
+            </p>
+        </div>
+    </div>
+
+    {# --- Casos especiales --- #}
+    <div class="mt-5 pt-4 border-t border-base-300">
+        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5"
+               for="{{ idp }}-resolucion">¿Cómo terminó?</label>
+        <select name="resolucion" id="{{ idp }}-resolucion"
+                class="select select-bordered w-full bg-base-100 text-base-content">
+            <option value="N" {% if form.resolucion.value == 'N' or not form.resolucion.value %}selected{% endif %}>Se jugó normal</option>
+            <option value="W" {% if form.resolucion.value == 'W' %}selected{% endif %}>Walkover (no se presentó)</option>
+            <option value="A" {% if form.resolucion.value == 'A' %}selected{% endif %}>Abandono (se retiró)</option>
+        </select>
+    </div>
+
+    <div id="{{ idp }}-wo" class="hidden mt-3">
+        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5">
+            ¿Quién gana por W.O.?
+        </label>
+        {{ form.lado_ganador }}
+        {% for e in form.lado_ganador.errors %}<span class="text-error text-xs mt-1 block">{{ e }}</span>{% endfor %}
+    </div>
+    <div id="{{ idp }}-ab" class="hidden mt-3">
+        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5">
+            ¿Qué pareja abandonó?
+        </label>
+        {{ form.lado_abandona }}
+        {% for e in form.lado_abandona.errors %}<span class="text-error text-xs mt-1 block">{{ e }}</span>{% endfor %}
+    </div>
+
+    {{ form.resultado_local }}
+    {{ form.resultado_visitante }}
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-error text-sm py-2 mt-4" role="alert">
+            <span>{{ form.non_field_errors.0 }}</span>
+        </div>
+    {% endif %}
+
+    <div class="mt-5 flex flex-col gap-2">
+        <button type="submit" class="btn btn-primary btn-block">Guardar resultado</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="resultado_modal.close()">
+            Cancelar
+        </button>
+    </div>
+</form>
+
+<script>
+(function () {
+    var raiz = document.getElementById('{{ idp }}-form');
+    if (!raiz) return;
+
+    var sets = document.getElementById('{{ idp }}-sets');
+    var wo = document.getElementById('{{ idp }}-wo');
+    var ab = document.getElementById('{{ idp }}-ab');
+    var resol = document.getElementById('{{ idp }}-resolucion');
+
+    function verCasoEspecial() {
+        var v = resol.value;
+        sets.classList.toggle('hidden', v === 'W');
+        wo.classList.toggle('hidden', v !== 'W');
+        ab.classList.toggle('hidden', v !== 'A');
+    }
+    resol.addEventListener('change', verCasoEspecial);
+    verCasoEspecial();
+
+    // Contador de sets en vivo. Cargar resultados es lo que más se repite en un
+    // torneo, y un número en la casilla de al lado se arrastra hasta la tabla:
+    // ver "2 - 1" mientras se escribe hace evidente el error en el momento.
+    var marcadores = [document.getElementById('{{ idp }}-s1'),
+                      document.getElementById('{{ idp }}-s2')];
+    var nombres = [document.getElementById('{{ idp }}-n1'),
+                   document.getElementById('{{ idp }}-n2')];
+
+    function contar() {
+        var filas = sets.querySelectorAll('.grid');
+        var g = [0, 0];
+        filas.forEach(function (fila) {
+            var campos = fila.querySelectorAll('input');
+            if (campos.length < 2) return;
+            var a = parseInt(campos[0].value, 10);
+            var b = parseInt(campos[1].value, 10);
+            if (isNaN(a) || isNaN(b) || a === b) return;
+            g[a > b ? 0 : 1] += 1;
+        });
+        marcadores.forEach(function (m, i) {
+            m.textContent = g[i];
+            var gana = g[i] > g[1 - i];
+            m.classList.toggle('text-primary', gana);
+            m.classList.toggle('text-base-content/25', !gana);
+            nombres[i].classList.toggle('text-primary', gana);
+        });
+    }
+
+    sets.querySelectorAll('input').forEach(function (i) {
+        i.addEventListener('input', contar);
+    });
+    contar();
+})();
+</script>

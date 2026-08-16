@@ -306,7 +306,9 @@ class CargarResultadoGrupoForm(forms.ModelForm):
         # Estilo DaisyUI + Dark Mode Ready para los inputs de sets.
         # h-14: objetivo táctil cómodo para cargar resultados con una mano al borde
         # de la cancha (antes h-10 = 40px, por debajo del mínimo recomendado).
-        estilo_input = 'input input-bordered w-full text-center font-extrabold text-lg p-0 h-14 bg-base-100 text-base-content focus:border-primary'
+        estilo_input = ('input input-bordered w-full text-center font-black text-2xl '
+                        'p-0 h-14 bg-base-100 text-base-content tabular-nums '
+                        'focus:input-primary focus:outline-none')
         nombre_e1 = self._nombre_equipo(getattr(self.instance, 'equipo1', None), 'Pareja 1')
         nombre_e2 = self._nombre_equipo(getattr(self.instance, 'equipo2', None), 'Pareja 2')
         for field_name in ['e1_set1', 'e2_set1', 'e1_set2', 'e2_set2', 'e1_set3', 'e2_set3']:
@@ -463,7 +465,12 @@ class PartidoResultadoForm(forms.ModelForm):
         self.fields['lado_ganador'].widget.attrs['class'] = estilo_select
         self.fields['lado_abandona'].widget.attrs['class'] = estilo_select
 
-        estilo_input = 'input input-bordered input-secondary w-full text-center font-extrabold text-lg p-0 h-14 bg-base-100 text-base-content focus:border-secondary'
+        # Sin `input-secondary`: en este tema el secundario es magenta y dejaba
+        # seis recuadros fucsia en el medio de una app verde. Borde neutro, y el
+        # foco se pinta con el color de marca.
+        estilo_input = ('input input-bordered w-full text-center font-black text-2xl '
+                        'p-0 h-14 bg-base-100 text-base-content tabular-nums '
+                        'focus:input-primary focus:outline-none')
 
         nombre_local = str(self.instance.equipo1) if self.instance.equipo1_id else "Pareja 1"
         nombre_visita = str(self.instance.equipo2) if self.instance.equipo2_id else "Pareja 2"
