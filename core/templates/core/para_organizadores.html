@@ -1,81 +1,1114 @@
-{% extends "base.html" %}
-{% load static %}
-{% block title %}Para Organizadores | TodoPadel{% endblock title %}
-{% block meta_description %}¿Organizás torneos de pádel? Creá y gestioná tus torneos gratis en TodoPadel: zonas, cuadros, resultados en vivo, rankings y difusión automática. Sin Excel.{% endblock meta_description %}
-{% block og_title %}Organizá tus torneos de pádel en TodoPadel{% endblock og_title %}
-{% block og_description %}Creá tu torneo gratis: zonas, cuadros, resultados en vivo, rankings y difusión. Sin planillas.{% endblock og_description %}
-{% block content %}
-    <div class="flex flex-col gap-12">
-        <!-- Hero -->
-        <section class="text-center py-12 md:py-16 bg-base-100 rounded-3xl border border-base-300 shadow-sm">
-            <div class="max-w-3xl mx-auto px-4">
-                <div class="badge badge-primary badge-lg mb-4">Para organizadores</div>
-                <h1 class="text-4xl md:text-5xl font-black text-base-content mb-6 tracking-tight">
-                    Organizá tus torneos de <span class="text-primary brightness-110">Pádel</span> sin planillas
-                </h1>
-                <p class="text-lg md:text-xl text-base-content/80 font-medium mb-8 leading-relaxed">
-                    TodoPadel se encarga de las zonas, los cuadros, los resultados en vivo y el ranking.
-                    Vos ponés el torneo, nosotros la difusión.
-                </p>
-                <div class="flex flex-col sm:flex-row justify-center gap-4">
-                    <a href="{{ organizador_whatsapp_url }}" target="_blank" rel="noopener"
-                       class="btn btn-primary btn-lg shadow-lg hover:-translate-y-1 transition-all gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2z" /></svg>
-                        Creá tu torneo gratis
-                    </a>
-                    <a href="{% url 'accounts:organizador_list' %}"
-                       class="btn btn-outline btn-lg gap-2">
-                        Ver organizadores
-                    </a>
-                </div>
-            </div>
-        </section>
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TodoPadel · Publicá el torneo y las parejas se anotan solas</title>
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'core:para_organizadores' %}">
+<link rel="icon" href="{% static 'core/landing/favicon.ico' %}" sizes="any">
+<link rel="apple-touch-icon" href="{% static 'core/landing/apple-touch-icon.png' %}">
+<meta name="description" content="Publicás el torneo, compartís un link y las parejas se anotan solas. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo. El primer torneo es gratis; después, desde $70.000 por mes y sin comisión.">
+<meta property="og:title" content="TodoPadel · Publicá el torneo y las parejas se anotan solas">
+<meta property="og:description" content="Sin Excel, sin perseguir señas y sin contestar cien veces «¿a qué hora juego?». El primer torneo es gratis.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_AR">
+<meta property="og:site_name" content="TodoPadel">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'core:para_organizadores' %}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'core/landing/og-todopadel.jpg' %}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="TodoPadel · Publicá el torneo y las parejas se anotan solas">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TodoPadel · Publicá el torneo y las parejas se anotan solas">
+<meta name="twitter:description" content="Zonas y cuadro automáticos, resultados en vivo y ranking por categoría. El primer torneo es gratis.">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'core/landing/og-todopadel.jpg' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --green:#10B981; --green-2:#34D9A0; --green-deep:#059669;
+  --live:#FF5861; --amber:#FFBE00; --cyan:#00CDB7;
+  --bg:#0A0E13; --bg-2:#0F151C; --panel:#131A22; --panel-2:#182029;
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --txt:#EAF0F6; --txt-2:#9AA7B4; --txt-3:#6B7885;
+  --r-s:12px; --r:18px; --r-l:28px;
+  --max:1200px;
+  --shadow:0 30px 80px -20px rgba(0,0,0,.75);
+  --logo:url("{% static 'core/landing/logo-todopadel.png' %}");
+  --glow:0 0 0 1px rgba(16,185,129,.22), 0 24px 70px -20px rgba(16,185,129,.35);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  font-size:17px; line-height:1.62; letter-spacing:-.011em;
+  overflow-x:hidden; -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%; display:block}
+a{color:inherit; text-decoration:none}
+h1,h2,h3,h4{line-height:1.08; letter-spacing:-.035em; margin:0; font-weight:800}
+p{margin:0}
+::selection{background:var(--green); color:#04120C}
 
-        <!-- Beneficios -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body items-center text-center">
-                    <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Adiós al Excel</h3>
-                    <p class="text-base-content/70 text-sm">Armá zonas y cuadros automáticamente. Cargá resultados desde el celular y la tabla se actualiza sola.</p>
-                </div>
-            </div>
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body items-center text-center">
-                    <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Difusión que vuela</h3>
-                    <p class="text-base-content/70 text-sm">Cada torneo se comparte con un toque por WhatsApp, con placa de campeones incluida. Más inscriptos, menos esfuerzo.</p>
-                </div>
-            </div>
-            <div class="card bg-base-100 border border-base-300 shadow-sm">
-                <div class="card-body items-center text-center">
-                    <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-                        </svg>
-                    </div>
-                    <h3 class="card-title">Ranking por categorías</h3>
-                    <p class="text-base-content/70 text-sm">Los jugadores siguen su ranking e historial. Tus torneos suman puntos y fidelizan a la comunidad.</p>
-                </div>
-            </div>
-        </section>
+/* ============ LAYOUT ============ */
+.wrap{width:min(var(--max),calc(100% - 44px)); margin-inline:auto}
+section{position:relative; padding:clamp(72px,10vw,132px) 0}
+.eyebrow{
+  display:inline-flex; align-items:center; gap:9px; font-size:12px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--green);
+  padding:7px 14px; border:1px solid rgba(16,185,129,.28); border-radius:999px;
+  background:rgba(16,185,129,.07); margin-bottom:22px;
+}
+.eyebrow::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 12px var(--green)}
+h2.title{font-size:clamp(32px,5vw,54px)}
+.lead{color:var(--txt-2); font-size:clamp(16px,1.9vw,19px); max-width:62ch; margin-top:18px}
+.center{text-align:center}
+.center .lead{margin-inline:auto}
+.grad{background:linear-gradient(96deg,var(--green) 0%,var(--green-2) 45%,var(--cyan) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
 
-        <!-- CTA final -->
-        <section class="text-center py-10 bg-primary/5 rounded-3xl border border-primary/20">
-            <h2 class="text-2xl md:text-3xl font-black mb-3">¿Listo para tu próximo torneo?</h2>
-            <p class="text-base-content/70 mb-6">Escribinos por WhatsApp y te ayudamos a armar tu torneo.</p>
-            <a href="{{ organizador_whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-primary btn-lg shadow-lg gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2z" /></svg>
-                Consultá por WhatsApp
-            </a>
-        </section>
+/* ============ BACKDROP ============ */
+.bgfx{position:fixed; inset:0; z-index:-2; pointer-events:none; overflow:hidden}
+.bgfx .orb{position:absolute; border-radius:50%; filter:blur(90px); opacity:.42}
+.orb.a{width:620px;height:620px; background:radial-gradient(circle,#10B981,transparent 68%); top:-220px; left:-140px}
+.orb.b{width:520px;height:520px; background:radial-gradient(circle,#00CDB7,transparent 68%); top:38%; right:-200px; opacity:.22}
+.orb.c{width:560px;height:560px; background:radial-gradient(circle,#10B981,transparent 70%); bottom:-180px; left:30%; opacity:.16}
+.grid-bg{
+  position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 20%,transparent 78%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 20%,transparent 78%);
+}
+
+/* ============ NAV ============ */
+header{
+  position:sticky; top:0; z-index:80; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  background:rgba(10,14,19,.72); border-bottom:1px solid transparent; transition:border-color .3s, background .3s;
+}
+header.stuck{border-bottom-color:var(--line); background:rgba(10,14,19,.9)}
+nav{display:flex; align-items:center; gap:26px; height:70px}
+/* Logotipo segun el brandboard: isotipo oficial + "Todo" Inter 600/70% + "Padel" Inter 900.
+   Aire minimo = la mitad del alto del isotipo. Sin sombras, degradados ni recoloreo. */
+.brand{display:flex; align-items:center; gap:20px; font-size:20px; letter-spacing:-.035em}
+.brand b{font-weight:900}
+.brand b .lite{font-weight:600; opacity:.7}
+.brand .mark{
+  width:40px; height:37px; flex:none;
+  background:var(--logo) center/contain no-repeat;
+}
+footer .brand{gap:16px; font-size:17px}
+footer .brand .mark{width:32px; height:30px}
+@media(max-width:620px){
+  .brand{gap:16px; font-size:18px}
+  .brand .mark{width:32px; height:30px}
+}
+@media(max-width:430px){ nav .brand b{display:none} }
+.navlinks{display:flex; gap:26px; margin-left:auto; font-size:14.5px; color:var(--txt-2); font-weight:500}
+.navlinks a{position:relative; transition:color .2s}
+.navlinks a:hover{color:var(--txt)}
+.navlinks a::after{content:''; position:absolute; left:0; right:100%; bottom:-6px; height:2px; background:var(--green); transition:right .28s}
+.navlinks a:hover::after{right:0}
+@media(max-width:900px){.navlinks{display:none}}
+
+/* ============ BUTTONS ============ */
+.btn{
+  display:inline-flex; align-items:center; gap:9px; padding:13px 22px; border-radius:999px;
+  font-weight:700; font-size:15px; border:1px solid transparent; cursor:pointer; transition:transform .2s, box-shadow .25s, background .25s, border-color .25s;
+  white-space:nowrap;
+}
+.btn-primary{background:linear-gradient(140deg,var(--green),var(--green-deep)); color:#04120C; box-shadow:0 14px 34px -12px rgba(16,185,129,.85)}
+.btn-primary:hover{transform:translateY(-2px); box-shadow:0 22px 46px -14px rgba(16,185,129,1)}
+.btn-ghost{border-color:var(--line-2); color:var(--txt); background:rgba(255,255,255,.03)}
+.btn-ghost:hover{border-color:var(--green); color:var(--green); transform:translateY(-2px)}
+.btn-sm{padding:10px 18px; font-size:14px}
+
+/* ============ HERO ============ */
+.hero{padding-top:clamp(48px,7vw,84px); padding-bottom:0; overflow:hidden}
+.hero h1{font-size:clamp(38px,6vw,74px); font-weight:900; letter-spacing:-.045em}
+.hero .lead{font-size:clamp(17px,2.1vw,21px); margin-top:24px}
+.hero-cta{display:flex; gap:14px; flex-wrap:wrap; margin-top:34px}
+.hero-note{margin-top:16px; font-size:13.5px; color:var(--txt-3)}
+.stats{display:flex; gap:38px; margin-top:44px; flex-wrap:wrap}
+.stat b{display:block; font-size:clamp(28px,3.6vw,40px); font-weight:900; letter-spacing:-.04em; color:var(--green); line-height:1}
+.stat span{font-size:12.5px; color:var(--txt-3); text-transform:uppercase; letter-spacing:.12em; font-weight:600}
+
+.showcase{position:relative; margin-top:clamp(48px,7vw,80px); padding-bottom:clamp(40px,6vw,70px)}
+.showcase::after{
+  content:''; position:absolute; left:50%; transform:translateX(-50%); bottom:0; width:min(1100px,94%); height:280px;
+  background:radial-gradient(ellipse at center,rgba(16,185,129,.20),transparent 70%); filter:blur(30px); z-index:-1;
+}
+.phone-float{
+  position:absolute; right:-6px; bottom:34px; width:min(228px,25vw); z-index:3;
+  animation:float 7s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+@media(max-width:760px){.phone-float{display:none}}
+
+/* ============ DEVICE FRAMES ============ */
+.browser{
+  border-radius:var(--r-l); overflow:hidden; border:1px solid var(--line-2);
+  background:linear-gradient(180deg,#1A222C,#0F151C); box-shadow:var(--shadow);
+}
+.browser .bar{display:flex; align-items:center; gap:8px; padding:12px 16px; background:#1A222C; border-bottom:1px solid var(--line)}
+.browser .dot{width:11px;height:11px;border-radius:50%}
+.browser .url{
+  flex:1; margin-left:10px; text-align:center; font-size:12px; color:var(--txt-3);
+  background:#0F151C; border-radius:999px; padding:5px 12px; font-family:'JetBrains Mono',monospace;
+}
+.browser img{border-radius:0}
+.phone{
+  border-radius:34px; padding:9px; background:linear-gradient(160deg,#242E3A,#0D1218);
+  border:1px solid var(--line-2); box-shadow:var(--shadow); position:relative;
+}
+.phone::before{
+  content:''; position:absolute; top:16px; left:50%; transform:translateX(-50%);
+  width:74px; height:6px; border-radius:99px; background:#0A0E13; z-index:2;
+}
+.phone img{border-radius:26px}
+.phone.phone-float{position:absolute}
+
+/* ============ MARQUEE ============ */
+.ticker{border-block:1px solid var(--line); background:rgba(255,255,255,.015); padding:16px 0; overflow:hidden}
+.ticker-track{display:flex; gap:46px; width:max-content; animation:slide 34s linear infinite}
+.ticker-track span{
+  display:inline-flex; align-items:center; gap:11px; font-size:14px; font-weight:600;
+  color:var(--txt-3); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap;
+}
+.ticker-track span::before{content:''; width:5px;height:5px;border-radius:50%;background:var(--green)}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* ============ PROBLEM / SOLUTION ============ */
+.split{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:52px}
+@media(max-width:820px){.split{grid-template-columns:1fr}}
+.card{
+  background:linear-gradient(180deg,var(--panel),rgba(19,26,34,.55)); border:1px solid var(--line);
+  border-radius:var(--r-l); padding:34px;
+}
+.card.bad{border-color:rgba(255,88,97,.2)}
+.card.good{border-color:rgba(16,185,129,.32); box-shadow:var(--glow)}
+.card h3{font-size:22px; display:flex; align-items:center; gap:11px; margin-bottom:8px}
+.tag{font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; padding:5px 11px; border-radius:999px}
+.tag.bad{background:rgba(255,88,97,.14); color:var(--live)}
+.tag.good{background:rgba(16,185,129,.14); color:var(--green)}
+.tick{list-style:none; padding:0; margin:22px 0 0; display:grid; gap:13px}
+.tick li{display:flex; gap:12px; align-items:flex-start; font-size:15.5px; color:var(--txt-2)}
+.tick li i{flex:none; width:21px;height:21px;border-radius:6px; display:grid; place-items:center; font-style:normal; font-size:12px; font-weight:800; margin-top:3px}
+.tick.bad li i{background:rgba(255,88,97,.14); color:var(--live)}
+.tick.good li i{background:rgba(16,185,129,.16); color:var(--green)}
+
+/* ============ STEPS ============ */
+.steps{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:52px; counter-reset:s}
+@media(max-width:880px){.steps{grid-template-columns:1fr}}
+.step{
+  position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--r-l);
+  padding:34px 30px; overflow:hidden; transition:transform .3s, border-color .3s;
+}
+.step:hover{transform:translateY(-5px); border-color:rgba(16,185,129,.4)}
+.step::before{
+  counter-increment:s; content:'0' counter(s); position:absolute; top:14px; right:22px;
+  font-size:72px; font-weight:900; color:rgba(255,255,255,.035); letter-spacing:-.06em;
+}
+.step h3{font-size:20px; margin-bottom:10px}
+.step p{color:var(--txt-2); font-size:15.5px}
+.ic svg{width:21px;height:21px;fill:none;stroke:var(--green);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.step .ic{
+  width:44px;height:44px;border-radius:13px; display:grid; place-items:center; font-size:21px; margin-bottom:18px;
+  background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.24);
+}
+
+/* ============ TABS ============ */
+.tabs{display:flex; gap:6px; padding:6px; background:var(--panel); border:1px solid var(--line); border-radius:999px; width:max-content; margin:0 auto 46px}
+.tab{
+  padding:12px 28px; border-radius:999px; font-weight:700; font-size:15px; cursor:pointer;
+  color:var(--txt-2); border:none; background:transparent; transition:.25s; font-family:inherit;
+}
+.tab.on{background:linear-gradient(140deg,var(--green),var(--green-deep)); color:#04120C; box-shadow:0 10px 26px -12px var(--green)}
+.pane{display:none} .pane.on{display:block; animation:fade .45s ease}
+@keyframes fade{from{opacity:0; transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(max-width:520px){.tabs{width:100%} .tab{flex:1; padding:12px 10px; font-size:14px}}
+
+/* ============ FEATURE ROWS ============ */
+.frow{display:grid; grid-template-columns:0.85fr 1.15fr; gap:clamp(30px,5vw,70px); align-items:center; margin-top:clamp(56px,8vw,96px)}
+.frow.rev{grid-template-columns:1.15fr 0.85fr}
+.frow.rev .ftext{order:2}
+@media(max-width:900px){.frow,.frow.rev{grid-template-columns:1fr} .frow.rev .ftext{order:0}}
+.ftext h3{font-size:clamp(24px,3.2vw,34px); margin-bottom:14px}
+.ftext p{color:var(--txt-2); font-size:16.5px}
+.chips{display:flex; flex-wrap:wrap; gap:9px; margin-top:22px}
+.chip{
+  font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px;
+  background:rgba(255,255,255,.04); border:1px solid var(--line); color:var(--txt-2);
+}
+.chip.hl{background:rgba(16,185,129,.1); border-color:rgba(16,185,129,.3); color:var(--green-2)}
+.shot{
+  border-radius:var(--r); overflow:hidden; border:1px solid var(--line-2); background:var(--bg-2);
+  box-shadow:var(--shadow); position:relative;
+}
+.shot::after{content:''; position:absolute; inset:0; box-shadow:inset 0 0 60px rgba(0,0,0,.35); pointer-events:none; border-radius:var(--r)}
+.shot.tall{max-height:520px; overflow:hidden}
+.shot.cap{max-height:470px; overflow:hidden}
+.shot.cap::before{content:''; position:absolute; left:0; right:0; bottom:0; height:110px; z-index:2; background:linear-gradient(transparent,var(--bg)); pointer-events:none}
+.shot.tall::before{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:120px; z-index:2;
+  background:linear-gradient(transparent,var(--bg)); pointer-events:none;
+}
+
+/* ============ PROBLEMA POR FEATURE ============ */
+.prob{
+  display:flex; align-items:flex-start; gap:10px; font-size:14px; font-weight:500;
+  color:#FFA8AC; background:rgba(255,88,97,.07); border:1px solid rgba(255,88,97,.2);
+  padding:11px 16px; border-radius:14px; margin-bottom:18px; line-height:1.45; max-width:56ch;
+}
+.prob b{
+  font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:10.5px;
+  color:var(--live); margin-top:3px; flex:none;
+}
+
+/* ============ CAMINO / PASOS COMERCIALES ============ */
+.path{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:46px 0 10px}
+@media(max-width:880px){.path{grid-template-columns:1fr}}
+.pstep{background:rgba(255,255,255,.025); border:1px solid var(--line); border-radius:var(--r); padding:26px 24px}
+.pstep b{display:block; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--green); font-weight:800; margin-bottom:12px}
+.pstep h4{font-size:18.5px; margin-bottom:8px; font-weight:800}
+.pstep p{color:var(--txt-2); font-size:15px}
+.pricenote{margin-top:28px; text-align:center; color:var(--txt-3); font-size:14px; max-width:70ch; margin-inline:auto}
+.plan .price small.from{font-size:16px; font-weight:700; color:var(--txt-2); letter-spacing:-.01em}
+
+/* ============ BENTO ============ */
+.bento{display:grid; grid-template-columns:repeat(6,1fr); gap:18px; margin-top:52px}
+.b{
+  background:linear-gradient(180deg,var(--panel),rgba(19,26,34,.5)); border:1px solid var(--line);
+  border-radius:var(--r-l); padding:30px; position:relative; overflow:hidden; transition:transform .3s,border-color .3s;
+}
+.b:hover{transform:translateY(-4px); border-color:rgba(16,185,129,.35)}
+.b .ic{width:42px;height:42px;border-radius:12px; display:grid;place-items:center; font-size:20px; margin-bottom:16px; background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.22)}
+.b h3{font-size:19px; margin-bottom:8px}
+.b p{font-size:15px; color:var(--txt-2)}
+.b-3{grid-column:span 3} .b-2{grid-column:span 2} .b-6{grid-column:span 6} .b-4{grid-column:span 4}
+@media(max-width:980px){.b-3,.b-2,.b-4{grid-column:span 6}}
+
+/* ============ LIVE SECTION ============ */
+.live-wrap{position:relative; border-radius:var(--r-l); overflow:hidden; border:1px solid rgba(255,88,97,.22); box-shadow:0 40px 90px -30px rgba(255,88,97,.3)}
+.live-badge{
+  position:absolute; top:20px; left:20px; z-index:4; display:inline-flex; align-items:center; gap:9px;
+  background:rgba(255,88,97,.14); border:1px solid rgba(255,88,97,.45); color:var(--live);
+  padding:8px 16px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  backdrop-filter:blur(8px);
+}
+.live-badge::before{content:''; width:8px;height:8px;border-radius:50%; background:var(--live); animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(255,88,97,.6)}50%{opacity:.6; box-shadow:0 0 0 8px rgba(255,88,97,0)}}
+
+/* ============ PHONES ROW ============ */
+.phones{display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:52px}
+@media(max-width:900px){.phones{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.phones{grid-template-columns:1fr; max-width:320px; margin-inline:auto}}
+.phones figure{margin:0}
+.phones figcaption{margin-top:14px; text-align:center; font-size:14px; color:var(--txt-2); font-weight:600}
+.phones figcaption small{display:block; color:var(--txt-3); font-weight:400; font-size:13px; margin-top:2px}
+
+/* ============ COMPARISON ============ */
+.tablewrap{margin-top:48px; overflow-x:auto; border:1px solid var(--line); border-radius:var(--r-l); background:var(--panel)}
+table{width:100%; border-collapse:collapse; min-width:720px; font-size:15px}
+th,td{padding:17px 20px; text-align:left; border-bottom:1px solid var(--line)}
+thead th{font-size:12.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--txt-3); font-weight:700; background:rgba(255,255,255,.02)}
+tbody tr:last-child td{border-bottom:none}
+td:first-child{color:var(--txt); font-weight:600}
+td:not(:first-child){color:var(--txt-2)}
+.col-hl{background:rgba(16,185,129,.06); position:relative}
+thead .col-hl{color:var(--green); background:rgba(16,185,129,.1)}
+td.yes{color:var(--green); font-weight:700}
+td.no{color:var(--txt-3)}
+td.mid{color:var(--amber)}
+
+/* ============ TECH ============ */
+.tech{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-top:44px}
+.tech div{
+  background:rgba(255,255,255,.025); border:1px solid var(--line); border-radius:var(--r);
+  padding:22px; text-align:center;
+}
+.tech b{display:block; font-size:26px; font-weight:900; color:var(--green); letter-spacing:-.03em}
+.tech span{font-size:13px; color:var(--txt-3); font-weight:600}
+.stack{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:32px}
+.stack code{
+  font-family:'JetBrains Mono',monospace; font-size:13px; padding:8px 14px; border-radius:9px;
+  background:rgba(255,255,255,.04); border:1px solid var(--line); color:var(--txt-2);
+}
+
+/* ============ PRICING ============ */
+.plans{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:52px}
+@media(max-width:900px){.plans{grid-template-columns:1fr}}
+.plan{background:var(--panel); border:1px solid var(--line); border-radius:var(--r-l); padding:34px; display:flex; flex-direction:column}
+.plan.feat{border-color:rgba(16,185,129,.4); box-shadow:var(--glow); position:relative}
+.plan.feat::before{
+  content:'Recomendado'; position:absolute; top:-12px; left:34px; font-size:11px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase; background:linear-gradient(140deg,var(--green),var(--green-deep));
+  color:#04120C; padding:5px 14px; border-radius:999px;
+}
+.plan h3{font-size:21px; margin-bottom:6px}
+.plan .price{font-size:38px; font-weight:900; letter-spacing:-.04em; margin:16px 0 4px}
+.plan .price small{font-size:15px; font-weight:600; color:var(--txt-3); letter-spacing:0}
+.plan p.desc{color:var(--txt-3); font-size:14.5px}
+.plan ul{list-style:none; padding:0; margin:24px 0 28px; display:grid; gap:11px; font-size:15px; color:var(--txt-2)}
+.plan ul li{display:flex; gap:10px}
+.plan ul li::before{content:'✓'; color:var(--green); font-weight:800}
+.plan .btn{width:100%; justify-content:center; margin-top:auto}
+
+/* ============ FAQ ============ */
+.faq{margin-top:48px; display:grid; gap:12px; max-width:930px; margin-inline:auto}
+details{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; transition:border-color .25s}
+details[open]{border-color:rgba(16,185,129,.3)}
+summary{padding:22px 26px; cursor:pointer; font-weight:700; font-size:16.5px; list-style:none; display:flex; justify-content:space-between; gap:16px; align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+'; color:var(--green); font-size:24px; font-weight:400; transition:transform .3s; flex:none}
+details[open] summary::after{transform:rotate(45deg)}
+details p{padding:0 26px 24px; color:var(--txt-2); font-size:15.5px}
+
+/* ============ CTA ============ */
+.cta{
+  border-radius:var(--r-l); padding:clamp(44px,7vw,80px) clamp(28px,5vw,64px); text-align:center; position:relative; overflow:hidden;
+  background:linear-gradient(150deg,rgba(16,185,129,.16),rgba(0,205,183,.06) 55%,transparent);
+  border:1px solid rgba(16,185,129,.28);
+}
+.cta::before{content:''; position:absolute; width:520px;height:520px; border-radius:50%; background:radial-gradient(circle,rgba(16,185,129,.3),transparent 68%); top:-260px; left:50%; transform:translateX(-50%); filter:blur(50px)}
+.cta-mark{
+  position:relative; display:block; width:60px; height:56px; margin:0 auto 26px;
+  background:var(--logo) center/contain no-repeat;
+}
+.cta h2{font-size:clamp(30px,4.6vw,50px); position:relative}
+.cta p{position:relative}
+.cta .hero-cta{justify-content:center; position:relative}
+
+/* ============ FOOTER ============ */
+footer{border-top:1px solid var(--line); padding:44px 0 56px; color:var(--txt-3); font-size:14px}
+.fgrid{display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; align-items:center}
+footer a:hover{color:var(--green)}
+
+/* ============ REVEAL ============ */
+.rv{opacity:0; transform:translateY(28px); transition:opacity .75s cubic-bezier(.2,.7,.3,1), transform .75s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+/* ============ MOBILE POLISH ============ */
+@media(max-width:620px){
+  .wrap{width:calc(100% - 32px)}
+  .eyebrow{font-size:10.5px; letter-spacing:.12em; padding:6px 12px; line-height:1.5}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  .stat b{font-size:26px}
+  .stat span{font-size:10px; letter-spacing:.08em}
+  .hero-cta .btn{width:100%; justify-content:center}
+  .card,.step,.b,.plan{padding:26px 22px}
+  .tablewrap{position:relative}
+  .swipe-hint{display:block}
+  .frow{margin-top:52px}
+  summary{padding:18px 20px; font-size:15.5px}
+  details p{padding:0 20px 20px}
+}
+.swipe-hint{display:none; text-align:center; font-size:12.5px; color:var(--txt-3); margin-top:12px; letter-spacing:.06em}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1; transform:none} .ticker-track,.phone-float{animation:none}}
+
+/* ============ IMAGENES AMPLIABLES ============ */
+.zoom{cursor:zoom-in; position:relative}
+.zoom img{transition:transform .5s cubic-bezier(.2,.7,.3,1)}
+.zoom:hover img{transform:scale(1.015)}
+.zoom:focus-visible{outline:2px solid var(--green); outline-offset:4px}
+.zoom-hint{
+  position:absolute; z-index:6; right:14px; top:14px;
+  display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border-radius:999px;
+  background:rgba(10,14,19,.78); border:1px solid var(--line-2); color:var(--txt);
+  font-size:12.5px; font-weight:700; letter-spacing:.02em; white-space:nowrap;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  opacity:0; transform:translateY(-5px); transition:opacity .25s, transform .25s; pointer-events:none;
+}
+.zoom-hint svg{width:14px;height:14px;fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.zoom:hover .zoom-hint,.zoom:focus-visible .zoom-hint{opacity:1; transform:none}
+.phone .zoom-hint{right:12px; top:26px; padding:6px 10px; font-size:11.5px}
+@media(hover:none){.zoom-hint{opacity:.92; transform:none}}
+
+.lbox{
+  position:fixed; inset:0; z-index:200; display:none; place-items:center;
+  padding:clamp(16px,4vw,54px); background:rgba(6,9,12,.92);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+.lbox.on{display:grid; animation:lbin .26s ease}
+@keyframes lbin{from{opacity:0}to{opacity:1}}
+.lb-fig{margin:0; display:grid; gap:16px; justify-items:center; max-width:min(1280px,100%); min-width:0}
+.lb-fig img{
+  max-width:100%; max-height:calc(100vh - 170px); width:auto; object-fit:contain;
+  border-radius:16px; border:1px solid var(--line-2); box-shadow:0 40px 110px -30px #000;
+  animation:lbzoom .3s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes lbzoom{from{opacity:0; transform:scale(.965)}to{opacity:1; transform:none}}
+.lb-fig figcaption{color:var(--txt-2); font-size:14.5px; text-align:center; max-width:74ch; line-height:1.5}
+.lb-fig figcaption b{display:block; color:var(--txt-3); font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-top:8px}
+.lb-btn{
+  position:absolute; display:grid; place-items:center; cursor:pointer; color:var(--txt);
+  background:rgba(255,255,255,.06); border:1px solid var(--line-2); border-radius:999px;
+  width:48px; height:48px; font-size:24px; line-height:1; font-family:inherit;
+  transition:background .2s, border-color .2s, transform .2s;
+}
+.lb-btn:hover{background:rgba(16,185,129,.16); border-color:var(--green); color:var(--green); transform:scale(1.06)}
+.lb-close{top:18px; right:18px; font-size:19px}
+.lb-prev{left:18px; top:50%; margin-top:-24px}
+.lb-next{right:18px; top:50%; margin-top:-24px}
+@media(max-width:720px){
+  .lb-fig img{max-height:calc(100vh - 210px)}
+  .lb-prev{left:50%; top:auto; bottom:18px; margin:0 0 0 -60px}
+  .lb-next{right:50%; top:auto; bottom:18px; margin:0 -60px 0 0}
+}
+@media(prefers-reduced-motion:reduce){
+  .zoom:hover img{transform:none}
+  .lbox.on,.lb-fig img{animation:none}
+}
+
+/* ============ FLOATING WHATSAPP ============ */
+.fab{
+  position:fixed; right:22px; bottom:22px; z-index:90; width:56px; height:56px; border-radius:50%;
+  background:#25D366; display:grid; place-items:center; box-shadow:0 14px 34px -10px rgba(37,211,102,.7);
+  transition:transform .25s;
+}
+.fab:hover{transform:scale(1.08)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="i-trophy"><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 13v4M9 21h6M10 17h4"/></g>
+<g id="i-link"><path d="M10 13a4 4 0 0 0 5.66 0l2.5-2.5a4 4 0 0 0-5.66-5.66L11 6.34"/><path d="M14 11a4 4 0 0 0-5.66 0l-2.5 2.5A4 4 0 0 0 11.5 19.2l1.5-1.5"/></g>
+<g id="i-live"><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><path d="M8.6 8.6a4.8 4.8 0 0 0 0 6.8M15.4 8.6a4.8 4.8 0 0 1 0 6.8"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></g>
+<g id="i-form"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M17.5 2.5a2.1 2.1 0 0 1 3 3L14 12l-4 1 1-4 6.5-6.5Z"/></g>
+<g id="i-users"><path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M17 11a3.5 3.5 0 1 0-2-6.4M21 20v-1.5a4 4 0 0 0-3-3.87"/></g>
+<g id="i-gear"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4 17 7M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4"/></g>
+<g id="i-clock"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></g>
+<g id="i-mega"><path d="m4 10.5 14-5.5v14l-14-5.5v-3Z"/><path d="M4 10.5H3.2A1.7 1.7 0 0 0 1.5 12.2a1.7 1.7 0 0 0 1.7 1.7H4"/><path d="M8 14.3V18a2 2 0 0 0 4 0v-2.2"/></g>
+<g id="i-club"><path d="M4 21V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"/><path d="M14 10h4a2 2 0 0 1 2 2v9"/><path d="M2 21h20M7.5 8h2M7.5 12h2M7.5 16h2"/></g>
+<g id="i-cash"><rect x="2" y="6" width="20" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></g>
+<g id="i-bolt"><path d="M13 2 4.8 13.4H11L10.4 22l8.4-11.6H12.4L13 2Z"/></g>
+<g id="i-tv"><rect x="2" y="5" width="20" height="13" rx="2.5"/><path d="M8.5 21h7M12 18v3"/></g>
+<g id="i-medal"><circle cx="12" cy="15" r="5.2"/><path d="m8.4 10.4-2-7.4h11.2l-2 7.4"/></g>
+<g id="i-bell"><path d="M18 8.4a6 6 0 1 0-12 0c0 5.6-3 7-3 7h18s-3-1.4-3-7"/><path d="M13.7 20.6a2 2 0 0 1-3.4 0"/></g>
+<g id="i-phone"><rect x="6" y="2" width="12" height="20" rx="3.2"/><path d="M10.8 18.6h2.4"/></g>
+</defs></svg>
+<div class="bgfx"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+<div class="grid-bg"></div>
+
+<!-- ================= NAV ================= -->
+<header id="top">
+  <nav class="wrap">
+    <a class="brand" href="#top" aria-label="TodoPadel"><span class="mark" role="img" aria-label="Isotipo de TodoPadel"></span><b><span class="lite">Todo</span>Padel</b></a>
+    <div class="navlinks">
+      <a href="#problema">Por qué</a>
+      <a href="#producto">Producto</a>
+      <a href="#roles">Organizador / Jugador</a>
+      <a href="#diferencia">Diferencia</a>
+      <a href="#planes">Precios</a>
     </div>
-{% endblock content %}
+    <a class="btn btn-primary btn-sm" href="#contacto">Empezar gratis</a>
+  </nav>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap">
+    <div style="max-width:930px">
+      <span class="eyebrow rv">Torneos de pádel · Argentina</span>
+      <h1 class="rv">Publicá el torneo y<br>las parejas <span class="grad">se anotan solas</span>.</h1>
+      <p class="lead rv">Vos mandás un link por WhatsApp. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo. Ni Excel, ni perseguir señas, ni contestar cien veces «¿a qué hora juego?».</p>
+      <div class="hero-cta rv">
+        <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Publicar mi primer torneo gratis →</a>
+        <a class="btn btn-ghost" href="#planes">Ver precios</a>
+      </div>
+      <p class="hero-note rv">El primer torneo va sin costo · Después, desde $70.000 · Cero comisión sobre las inscripciones</p>
+      <div class="stats rv">
+        <div class="stat"><b data-count="27">0</b><span>Torneos gestionados</span></div>
+        <div class="stat"><b data-count="380">0</b><span>Jugadores</span></div>
+        <div class="stat"><b data-count="532">0</b><span>Partidos cargados</span></div>
+      </div>
+    </div>
+
+    <div class="showcase rv">
+      <div class="browser">
+        <div class="bar">
+          <span class="dot" style="background:#FF5F57"></span>
+          <span class="dot" style="background:#FEBC2E"></span>
+          <span class="dot" style="background:#28C840"></span>
+          <span class="url">todopadel.club</span>
+        </div>
+        <img src="{% static 'core/landing/02-inicio-de-todopadel-en-escritorio-torneos-abierto.webp' %}" alt="Inicio de TodoPadel en escritorio: torneos abiertos, en juego y organizadores">
+      </div>
+      <div class="phone phone-float"><img src="{% static 'core/landing/03-todopadel-en-el-celular.webp' %}" alt="TodoPadel en el celular"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TICKER ================= -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Inscripciones online</span><span>Zonas automáticas</span><span>Cuadro final</span><span>Resultados en vivo</span>
+    <span>Programación por horario</span><span>Ranking por categoría</span><span>Placas para redes</span><span>Perfil del club</span>
+    <span>Inscripciones online</span><span>Zonas automáticas</span><span>Cuadro final</span><span>Resultados en vivo</span>
+    <span>Programación por horario</span><span>Ranking por categoría</span><span>Placas para redes</span><span>Perfil del club</span>
+  </div>
+</div>
+
+<!-- ================= PROBLEMA ================= -->
+<section id="problema">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">El día del torneo</span>
+      <h2 class="title rv">Organizar un torneo no debería<br>ser un trabajo de oficina</h2>
+      <p class="lead rv">Entre el grupo de WhatsApp, la planilla, los audios preguntando a qué hora juegan y el papel pegado en la pared, se va más tiempo en administrar que en jugar.</p>
+    </div>
+    <div class="split">
+      <div class="card bad rv">
+        <h3><span class="tag bad">Hoy</span> Excel + WhatsApp</h3>
+        <ul class="tick bad">
+          <li><i>✕</i><span>Las parejas se anotan por mensaje privado y se pierden entre 200 mensajes del grupo.</span></li>
+          <li><i>✕</i><span>Armás las zonas a mano y las rehacés cada vez que alguien se baja.</span></li>
+          <li><i>✕</i><span>El cuadro se dibuja en un papel y se saca una foto borrosa.</span></li>
+          <li><i>✕</i><span>Te preguntan cien veces “¿a qué hora juego?”.</span></li>
+          <li><i>✕</i><span>Cuando el torneo termina, no queda registro de nada.</span></li>
+        </ul>
+      </div>
+      <div class="card good rv">
+        <h3><span class="tag good">Con TodoPadel</span> Un link</h3>
+        <ul class="tick good">
+          <li><i>✓</i><span>Publicás el torneo y compartís un link: las parejas se anotan solas.</span></li>
+          <li><i>✓</i><span>Zonas y cuadro se generan y se recalculan solos con cada resultado.</span></li>
+          <li><i>✓</i><span>La programación queda online y se descarga en PDF para imprimir.</span></li>
+          <li><i>✓</i><span>Los jugadores miran resultados en vivo desde el celular.</span></li>
+          <li><i>✓</i><span>Todo queda guardado: historial, campeones y ranking por categoría.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3 PASOS ================= -->
+<section>
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Así funciona</span>
+      <h2 class="title rv">De la idea al torneo publicado<br>en tres pasos</h2>
+    </div>
+    <div class="steps">
+      <div class="step rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-trophy"/></svg></div>
+        <h3>Creás el torneo</h3>
+        <p>Categoría, género, fecha, cupos, precio de inscripción y datos de pago. Queda publicado con la foto y el nombre de tu club.</p>
+      </div>
+      <div class="step rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></div>
+        <h3>Compartís el link</h3>
+        <p>Un solo link para WhatsApp, Instagram o el grupo de siempre. Cada pareja se anota sola, sin bajar ninguna app.</p>
+      </div>
+      <div class="step rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-live"/></svg></div>
+        <h3>Cargás resultados</h3>
+        <p>Anotás cada partido y la plataforma actualiza zonas, cuadro, programación y ranking al instante, a la vista de todos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRODUCTO / FEATURE ROWS ================= -->
+<section id="producto">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">El producto por dentro</span>
+      <h2 class="title rv">Cada pantalla te saca de encima<br>un problema del domingo</h2>
+      <p class="lead rv">Capturas reales de todopadel.club funcionando con torneos de verdad. Arriba de cada una, el problema que elimina.</p>
+    </div>
+
+    <div class="frow">
+      <div class="ftext rv">
+        <p class="prob"><b>Antes</b><span>Dos horas de Excel por torneo — y a rehacer la planilla cada vez que una pareja se baja.</span></p>
+        <h3>Las zonas se arman y se reacomodan solas</h3>
+        <p>Cargás las parejas y la plataforma distribuye las zonas. Cada resultado recalcula puntos, diferencia de sets y de games, y ordena la tabla en el momento. Si una pareja se baja, se reacomoda sin que toques nada.</p>
+        <div class="chips">
+          <span class="chip hl">Zonas ilimitadas</span><span class="chip">Puntos · Dif. sets · Dif. games</span>
+          <span class="chip">Walkover y abandono</span><span class="chip">Clasificados automáticos</span>
+        </div>
+      </div>
+      <div class="shot cap rv"><img src="{% static 'core/landing/04-pantalla-de-zonas-con-cinco-grupos-tablas-de-posi.webp' %}" alt="Pantalla de zonas con cinco grupos, tablas de posiciones y resultados cargados"></div>
+    </div>
+
+    <div class="frow rev">
+      <div class="shot rv"><img src="{% static 'core/landing/05-cuadro-final-del-torneo-con-octavos-cuartos-semif.webp' %}" alt="Cuadro final del torneo con octavos, cuartos, semifinal y final"></div>
+      <div class="ftext rv">
+        <p class="prob"><b>Antes</b><span>El cuadro dibujado en un papel y una foto borrosa dando vueltas por el grupo.</span></p>
+        <h3>El cuadro sale en un click, sin Excel</h3>
+        <p>De octavos a la final, con horarios, resultados set por set y el ganador propagándose a la ronda siguiente. Se ve igual de bien en la pantalla del club que en el celular de un jugador que está en la tribuna.</p>
+        <div class="chips">
+          <span class="chip hl">Llave automática</span><span class="chip">Horario por partido</span>
+          <span class="chip">Resultado set a set</span><span class="chip">Campeón destacado</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="frow">
+      <div class="ftext rv">
+        <p class="prob"><b>Antes</b><span>Perseguir la seña por WhatsApp y llevar a mano la lista de quién ya pagó.</span></p>
+        <h3>La seña entra antes de que armes la zona</h3>
+        <p>Publicás cuánto sale la inscripción, cuánto es la seña y a qué alias se transfiere. El jugador copia el alias con un toque y manda el comprobante por WhatsApp. Vos confirmás y el cupo queda tomado.</p>
+        <div class="chips">
+          <span class="chip hl">Seña y total</span><span class="chip">Alias con botón copiar</span>
+          <span class="chip">WhatsApp directo</span><span class="chip">Control de cupos</span>
+        </div>
+      </div>
+      <div class="shot rv"><img src="{% static 'core/landing/06-bloque-de-como-pagar-la-inscripcion-con-sena-alia.webp' %}" alt="Bloque de cómo pagar la inscripción con seña, alias y contacto de WhatsApp"></div>
+    </div>
+
+    <div class="frow rev">
+      <div class="shot rv tall"><img src="{% static 'core/landing/07-programacion-del-torneo-por-horario-con-zona-fase.webp' %}" alt="Programación del torneo por horario con zona, fase y parejas"></div>
+      <div class="ftext rv">
+        <p class="prob"><b>Antes</b><span>Sesenta mensajes preguntando «¿a qué hora juego?», uno por uno.</span></p>
+        <h3>Cada pareja ve su horario sin preguntarte</h3>
+        <p>Todos los partidos del día ordenados por hora, con zona o fase y las dos parejas. Se comparte online y se baja en PDF para pegar en la cancha. Se terminaron los cien mensajes preguntando a qué hora juegan.</p>
+        <div class="chips">
+          <span class="chip hl">Descarga en PDF</span><span class="chip">Agrupado por día</span>
+          <span class="chip">Partidos sin horario aparte</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="frow">
+      <div class="ftext rv">
+        <p class="prob"><b>Antes</b><span>Te anotan en séptima parejas que ya ganaron media ciudad, y no tenés con qué discutirlo.</span></p>
+        <h3>El historial queda a la vista: el que ganó todo no juega en octava</h3>
+        <p>Cada torneo suma puntos: campeón 600, finalista 360, semifinal 180, cuartos 90, octavos 45 y 15 por victoria en zona. El ranking se arma solo, por división y por género, con win rate y torneos jugados. Y cuantos más torneos cargás, más vale ese historial: es el archivo de tu club.</p>
+        <div class="chips">
+          <span class="chip hl">Por división y género</span><span class="chip">Win rate</span>
+          <span class="chip">Historial del jugador</span><span class="chip">Puntaje público</span>
+        </div>
+      </div>
+      <div class="shot rv"><img src="{% static 'core/landing/08-ranking-de-jugadores-con-posiciones-puntos-victor.webp' %}" alt="Ranking de jugadores con posiciones, puntos, victorias y win rate"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= EN VIVO ================= -->
+<section>
+  <div class="wrap">
+    <div class="center" style="margin-bottom:46px">
+      <span class="eyebrow rv" style="color:var(--live); border-color:rgba(255,88,97,.3); background:rgba(255,88,97,.07)">Modo en vivo</span>
+      <h2 class="title rv">Una pantalla que el club puede<br>proyectar y todos pueden seguir</h2>
+      <p class="lead rv">Zonas, posiciones y llave final en una sola vista que se actualiza sola. Sirve en el televisor del club y en el celular del que no pudo ir.</p>
+    </div>
+    <div class="live-wrap rv">
+      <span class="live-badge">En vivo</span>
+      <img src="{% static 'core/landing/09-pantalla-en-vivo-con-las-tablas-de-zona-a-y-b-y-l.webp' %}" alt="Pantalla en vivo con las tablas de zona A y B y la llave final">
+    </div>
+  </div>
+</section>
+
+<!-- ================= ROLES (TABS) ================= -->
+<section id="roles">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Dos caras del mismo producto</span>
+      <h2 class="title rv">Qué gana cada uno</h2>
+      <p class="lead rv" style="margin-bottom:42px">El organizador deja de administrar. El jugador deja de preguntar.</p>
+    </div>
+
+    <div class="tabs rv">
+      <button class="tab on" data-pane="org">Soy organizador</button>
+      <button class="tab" data-pane="jug">Soy jugador</button>
+    </div>
+
+    <div class="pane on" id="pane-org">
+      <div class="bento">
+        <div class="b b-3 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-form"/></svg></div>
+          <h3>Alta de torneo en minutos</h3>
+          <p>Categoría, género, cupos, fecha, precio, seña y foto de portada. Publicado y compartible al instante.</p>
+        </div>
+        <div class="b b-3 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-users"/></svg></div>
+          <h3>Parejas e inscripciones bajo control</h3>
+          <p>Ves quién se anotó, cuántos cupos quedan y quién ya señó, sin buscar en la conversación.</p>
+        </div>
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></div>
+          <h3>Zonas y cuadro automáticos</h3>
+          <p>Vos cargás resultados; la plataforma hace las cuentas.</p>
+        </div>
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-clock"/></svg></div>
+          <h3>Programación y PDF</h3>
+          <p>El cronograma del día, online y para imprimir.</p>
+        </div>
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-mega"/></svg></div>
+          <h3>Placas para redes</h3>
+          <p>Historias 1080×1920 generadas del torneo, listas para postear.</p>
+        </div>
+        <div class="b b-4 rv" style="display:grid; grid-template-columns:1.05fr .95fr; gap:26px; align-items:center">
+          <div>
+            <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-club"/></svg></div>
+            <h3>Tu club, con tu marca</h3>
+            <p>Perfil público con logo, dirección, WhatsApp, tu equipo, tus sponsors, los torneos en juego y todo el historial. Un link para poner en la bio de Instagram.</p>
+          </div>
+          <div class="shot"><img src="{% static 'core/landing/10-perfil-publico-del-organizador-con-logo-datos-equ.webp' %}" alt="Perfil público del organizador con logo, datos, equipo y torneos"></div>
+        </div>
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></div>
+          <h3>Cero comisión</h3>
+          <p>La inscripción se cobra como siempre. No tocamos tu plata.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-jug">
+      <div class="bento">
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-bolt"/></svg></div>
+          <h3>Se anota sin cuenta</h3>
+          <p>Entra por el link, pone los datos de la pareja y listo: la cuenta se crea sola.</p>
+        </div>
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-tv"/></svg></div>
+          <h3>Sigue todo en vivo</h3>
+          <p>Posiciones y llave actualizadas mientras se juega, desde cualquier celular.</p>
+        </div>
+        <div class="b b-2 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-medal"/></svg></div>
+          <h3>Tiene ranking propio</h3>
+          <p>Puntos, victorias, win rate y torneos jugados por categoría.</p>
+        </div>
+        <div class="b b-3 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-bell"/></svg></div>
+          <h3>Le avisa cuándo juega</h3>
+          <p>Programación por horario y notificaciones push: no depende de que alguien reenvíe la foto de la planilla.</p>
+        </div>
+        <div class="b b-3 rv">
+          <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></div>
+          <h3>Se instala como app</h3>
+          <p>Es una PWA: se agrega a la pantalla de inicio desde el navegador, sin pasar por ninguna tienda.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MOBILE ================= -->
+<section>
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Diseñado para la cancha</span>
+      <h2 class="title rv">Se usa con una mano,<br>parado al lado de la red</h2>
+      <p class="lead rv">Todo el producto está pensado primero para el celular, que es donde realmente se mira un torneo. Estas son capturas reales, sin retocar.</p>
+    </div>
+    <div class="phones">
+      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/11-listado-de-torneos-abiertos-en-el-celular.webp' %}" alt="Listado de torneos abiertos en el celular"></div><figcaption>Torneos abiertos<small>Filtrados por categoría</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/12-detalle-del-torneo-con-boton-de-anotarse.webp' %}" alt="Detalle del torneo con botón de anotarse"></div><figcaption>Anotarse<small>Sin crear cuenta antes</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/13-resultados-en-vivo-en-el-celular.webp' %}" alt="Resultados en vivo en el celular"></div><figcaption>En vivo<small>Zonas y llave al toque</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/14-pantalla-para-instalar-la-app.webp' %}" alt="Pantalla para instalar la app"></div><figcaption>Instalar la app<small>PWA, sin tiendas</small></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLACAS ================= -->
+<section>
+  <div class="wrap">
+    <div class="frow">
+      <div class="ftext rv">
+        <span class="eyebrow">Difusión</span>
+        <p class="prob"><b>Antes</b><span>Cada fin de semana, pensar qué publicar y armarlo a mano en un editor.</span></p>
+        <h3>Sale el resultado y ya tenés la placa lista</h3>
+        <p>Cada partido y cada campeón generan una placa 1080×1920 con el nombre del torneo, las parejas, tu logo y el link. En el celular se comparte directo a Historias o WhatsApp; en la compu se descarga el PNG. No hace falta abrir un editor.</p>
+        <div class="chips">
+          <span class="chip hl">1080×1920</span><span class="chip">Con tu marca</span>
+          <span class="chip">Compartir nativo</span><span class="chip">Descarga PNG</span>
+        </div>
+      </div>
+      <div class="rv" style="display:grid; place-items:center">
+        <div class="phone" style="max-width:290px"><img src="{% static 'core/landing/15-placa-para-historias-con-el-partido-en-vivo-y-el.webp' %}" alt="Placa para historias con el partido en vivo y el link al torneo"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DIFERENCIA ================= -->
+<section id="diferencia">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Por qué no es lo mismo</span>
+      <h2 class="title rv">No competimos con las apps<br>de reservar cancha</h2>
+      <p class="lead rv">Las apps grandes resuelven alquilar una cancha. TodoPadel resuelve la competencia: categorías, zonas, cuadros y ranking, como se juega realmente en Argentina.</p>
+    </div>
+    <div class="tablewrap rv">
+      <table>
+        <thead>
+          <tr>
+            <th>&nbsp;</th>
+            <th class="col-hl">TodoPadel</th>
+            <th>Excel + WhatsApp</th>
+            <th>Apps de reservas</th>
+            <th>Apps de torneos genéricas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>El jugador tiene que instalar algo</td><td class="col-hl yes">No, entra por el link</td><td class="no">No</td><td class="no">Sí, app y registro</td><td class="no">Casi siempre sí</td></tr>
+          <tr><td>Categorías argentinas (4ta a 8va, damas, mixto)</td><td class="col-hl yes">Nativo</td><td class="mid">A mano</td><td class="no">Niveles genéricos</td><td class="mid">Parcial</td></tr>
+          <tr><td>Zonas + cuadro automáticos</td><td class="col-hl yes">Sí</td><td class="no">No</td><td class="no">No es su foco</td><td class="yes">Sí</td></tr>
+          <tr><td>Resultados en vivo públicos y compartibles</td><td class="col-hl yes">Sí</td><td class="no">Foto de la planilla</td><td class="no">No</td><td class="mid">Adentro de la app</td></tr>
+          <tr><td>Perfil del club con marca y sponsors</td><td class="col-hl yes">Sí</td><td class="no">No</td><td class="mid">Ficha estándar</td><td class="no">No</td></tr>
+          <tr><td>Ranking propio por categoría</td><td class="col-hl yes">Sí</td><td class="no">No</td><td class="mid">Nivel interno</td><td class="mid">A veces</td></tr>
+          <tr><td>Comisión sobre la inscripción</td><td class="col-hl yes">Ninguna</td><td class="yes">Ninguna</td><td class="no">Suele haber</td><td class="mid">Depende</td></tr>
+          <tr><td>Qué te sale</td><td class="col-hl yes">Desde $70.000/mes, publicado</td><td class="mid">Gratis, pero te cuesta el domingo</td><td class="no">Comisión por operación</td><td class="no">«Consultar precio»</td></tr>
+          <tr><td>Soporte y cambios a pedido</td><td class="col-hl yes">Directo por WhatsApp</td><td class="no">—</td><td class="no">Mesa de ayuda</td><td class="no">Mesa de ayuda</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="split" style="margin-top:22px">
+      <div class="card rv">
+        <h3>🔗 El canal es el link, no la tienda de apps</h3>
+        <p style="color:var(--txt-2); margin-top:10px">Un torneo de barrio se difunde en un grupo de WhatsApp. Si para ver el cuadro hay que bajar una app y registrarse, la mitad de la gente se cae en el camino. Acá el link abre el torneo, y recién si querés te instalás la app.</p>
+      </div>
+      <div class="card rv">
+        <h3>📍 Hecho acá, para cómo se juega acá</h3>
+        <p style="color:var(--txt-2); margin-top:10px">Séptima damas, quinta caballeros, mixto, seña por transferencia, alias, comprobante por WhatsApp. Nada de traducir el producto a una realidad que no es la nuestra.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TECH ================= -->
+<section>
+  <div class="wrap center">
+    <span class="eyebrow rv">Debajo del capó</span>
+    <h2 class="title rv">No es un maquetado:<br>es un producto en producción</h2>
+    <p class="lead rv">Desarrollado íntegramente a medida, con base de datos propia, tests automatizados y despliegue continuo. Funcionando hoy con torneos reales.</p>
+    <div class="tech">
+      <div class="rv"><b>23</b><span>modelos de datos</span></div>
+      <div class="rv"><b>+200</b><span>tests automatizados</span></div>
+      <div class="rv"><b>109</b><span>rutas del sistema</span></div>
+      <div class="rv"><b>17k</b><span>líneas de código</span></div>
+    </div>
+    <div class="stack rv">
+      <code>Django 5.2</code><code>Python 3.11</code><code>PostgreSQL</code><code>Tailwind + DaisyUI</code>
+      <code>HTMX</code><code>PWA + Web Push</code><code>Gunicorn</code><code>Deploy continuo</code>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLANES ================= -->
+<section id="planes">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Cómo empezamos</span>
+      <h2 class="title rv">El primer torneo lo hacemos juntos<br>y no te cuesta nada</h2>
+      <p class="lead rv">Cargamos tu próximo torneo con vos, lo seguimos el día del evento y recién después decidís si seguís. Esto es lo que pasa desde que escribís:</p>
+    </div>
+
+    <div class="path">
+      <div class="pstep rv">
+        <b>Paso 1 · hoy</b>
+        <h4>Escribís por WhatsApp</h4>
+        <p>Te contestamos el mismo día. No hace falta reunión ni presentación: alcanza con que nos digas cuándo es tu próximo torneo.</p>
+      </div>
+      <div class="pstep rv">
+        <b>Paso 2 · en 24 horas</b>
+        <h4>El torneo queda cargado</h4>
+        <p>Lo cargamos con vos: categorías, cupos, precio, seña y alias. Si ya lo tenés armado en Excel, lo pasamos nosotros.</p>
+      </div>
+      <div class="pstep rv">
+        <b>Paso 3 · el fin de semana</b>
+        <h4>Lo corrés y después decidís</h4>
+        <p>Zonas, cuadro, horarios y resultados en vivo el día del torneo, con nosotros atrás. Recién ahí hablamos de plata.</p>
+      </div>
+    </div>
+
+    <div class="plans">
+      <div class="plan rv">
+        <h3>Piloto</h3>
+        <p class="desc">Para probarlo sin riesgo</p>
+        <div class="price">Gratis<small> · 1 torneo</small></div>
+        <ul>
+          <li>Carga del torneo hecha con vos</li>
+          <li>Acompañamiento el día del evento</li>
+          <li>Zonas, cuadro y en vivo completos</li>
+          <li>Placas para redes incluidas</li>
+          <li>Sin tarjeta y sin reunión previa</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Empezar gratis</a>
+      </div>
+      <div class="plan feat rv">
+        <h3>Club</h3>
+        <p class="desc">Para el que organiza todos los meses</p>
+        <div class="price"><small class="from">desde </small>$70.000<small> / mes</small></div>
+        <ul>
+          <li>Torneos ilimitados</li>
+          <li>Perfil del club con marca y sponsors</li>
+          <li>Ranking propio por categoría</li>
+          <li>Placas y difusión automática</li>
+          <li>Soporte directo por WhatsApp</li>
+          <li>Cero comisión sobre las inscripciones</li>
+        </ul>
+        <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Quiero el plan Club</a>
+      </div>
+      <div class="plan rv">
+        <h3>Circuito</h3>
+        <p class="desc">Varias sedes o un circuito anual</p>
+        <div class="price"><small class="from">desde </small>$120.000<small> / mes</small></div>
+        <ul>
+          <li>Múltiples sedes y organizadores</li>
+          <li>Ranking anual del circuito</li>
+          <li>Ajustes y funciones a pedido</li>
+          <li>Acompañamiento en la difusión</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Armemos el circuito</a>
+      </div>
+    </div>
+    <p class="pricenote rv">Precios en pesos, por club y por mes: no se cobra por torneo ni por jugador. Las inscripciones las cobrás vos como siempre — esa plata no pasa por acá y no lleva comisión.</p>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section>
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Preguntas</span>
+      <h2 class="title rv">Lo que siempre nos preguntan</h2>
+    </div>
+    <div class="faq">
+      <details class="rv"><summary>¿Los jugadores tienen que bajar una app?</summary><p>No. Entran por el link que compartís y ven todo desde el navegador. Si quieren, pueden instalarla en la pantalla de inicio del celular, pero es opcional y no pasa por ninguna tienda.</p></details>
+      <details class="rv"><summary>¿Puedo cobrar la inscripción por la plataforma?</summary><p>Hoy el cobro lo seguís manejando vos: publicás el precio, la seña y tu alias, el jugador transfiere y te manda el comprobante por WhatsApp desde la misma pantalla. No cobramos comisión sobre la inscripción.</p></details>
+      <details class="rv"><summary>¿Y si una pareja se baja a último momento?</summary><p>La sacás del torneo y las zonas se reacomodan. Los resultados ya cargados se mantienen y la tabla se recalcula sola.</p></details>
+      <details class="rv"><summary>¿Sirve para americanos o solo para torneos con cuadro?</summary><p>Sirve para torneos por categoría con fase de zonas y cuadro final, que es el formato más común, y también hay una sección para americanos. Si tu formato es distinto, se puede adaptar.</p></details>
+      <details class="rv"><summary>¿Quién carga los resultados el día del torneo?</summary><p>Los cargás vos o alguien de tu equipo desde el celular, partido por partido. Lleva segundos y todo lo demás se actualiza solo.</p></details>
+      <details class="rv"><summary>¿Cuánto sale y qué incluye?</summary><p>El primer torneo no se cobra. Después, el plan Club arranca en $70.000 por mes con torneos ilimitados, perfil del club, ranking y placas; un circuito con varias sedes arranca en $120.000. No hay comisión sobre las inscripciones: eso lo seguís cobrando vos. Si organizás muy de vez en cuando, escribinos igual y lo vemos.</p></details>
+      <details class="rv"><summary>¿Me atan con un contrato?</summary><p>No. Es mes a mes: seguís mientras te sirva. La idea es que cada mes te lo tengamos que ganar de nuevo.</p></details>
+      <details class="rv"><summary>¿Puedo traer los torneos que ya tengo en Excel?</summary><p>Sí. Pasanos la planilla y la cargamos nosotros, para que el historial y el ranking de tu club no arranquen de cero.</p></details>
+      <details class="rv"><summary>¿Los torneos quedan públicos en Google?</summary><p>Sí. Cada torneo es una página pública, así que aparece en buscadores y se puede compartir en cualquier lado sin que el otro tenga cuenta.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section id="contacto">
+  <div class="wrap">
+    <div class="cta rv">
+      <span class="cta-mark" role="img" aria-label="TodoPadel"></span>
+      <h2>Tu próximo torneo,<br><span class="grad">sin Excel y sin costo.</span></h2>
+      <p class="lead center" style="margin-top:20px">Escribinos hoy y el torneo queda cargado en 24 horas. Lo corremos juntos el fin de semana y recién ahí decidís si seguís. Si no te sirve, no perdiste nada.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Escribir por WhatsApp</a>
+        <a class="btn btn-ghost" href="{% url 'core:home' %}">Ver la plataforma en vivo</a>
+      </div>
+      <p class="hero-note" style="position:relative; margin-top:20px">Hoy trabajamos sobre todo con clubes de Mar del Plata y el sur del Gran Buenos Aires. Si organizás en otra ciudad, escribinos igual.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap fgrid">
+    <div>
+      <a class="brand" href="#top" aria-label="TodoPadel"><span class="mark" role="img" aria-label="Isotipo de TodoPadel"></span><b><span class="lite">Todo</span>Padel</b></a>
+      <p style="margin-top:10px">Plataforma de gestión de torneos de pádel · Argentina</p>
+    </div>
+    <div style="display:flex; gap:24px; flex-wrap:wrap">
+      <a href="{% url 'core:home' %}">todopadel.club</a>
+      <a href="https://www.instagram.com/todo_padel_club/" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://wa.me/{{ organizador_whatsapp }}" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </div>
+</footer>
+
+<a class="fab" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="#04120C"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.8-.78.97-.14.16-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.16 0-.43.06-.65.31-.23.25-.85.83-.85 2.03s.87 2.35.99 2.51c.12.16 1.71 2.61 4.15 3.66.58.25 1.03.4 1.39.51.58.19 1.11.16 1.53.1.47-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>
+</a>
+
+<script>
+// nav shadow
+const hdr=document.querySelector('header');
+addEventListener('scroll',()=>hdr.classList.toggle('stuck',scrollY>12),{passive:true});
+
+// reveal
+const io=new IntersectionObserver((es)=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:.12, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.rv').forEach((el,i)=>{ el.style.transitionDelay=(i%4)*70+'ms'; io.observe(el); });
+
+// counters
+const cio=new IntersectionObserver((es)=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const el=e.target, end=+el.dataset.count, t0=performance.now(), dur=1400;
+    const tick=(t)=>{ const p=Math.min((t-t0)/dur,1); el.textContent=Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick); cio.unobserve(el);
+  });
+},{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
+
+// lightbox: cualquier captura se amplia
+(function(){
+  const imgs=[...document.querySelectorAll('.browser img,.phone img,.shot img,.live-wrap img')];
+  if(!imgs.length) return;
+  const box=document.createElement('div');
+  box.className='lbox';
+  box.setAttribute('role','dialog');
+  box.setAttribute('aria-modal','true');
+  box.setAttribute('aria-label','Captura ampliada');
+  box.innerHTML='<button class="lb-btn lb-close" aria-label="Cerrar (Esc)">&#10005;</button>'
+    +'<button class="lb-btn lb-prev" aria-label="Anterior">&#8249;</button>'
+    +'<button class="lb-btn lb-next" aria-label="Siguiente">&#8250;</button>'
+    +'<figure class="lb-fig"><img alt=""><figcaption></figcaption></figure>';
+  document.body.appendChild(box);
+  const big=box.querySelector('img'), cap=box.querySelector('figcaption'),
+        btnClose=box.querySelector('.lb-close'), btnPrev=box.querySelector('.lb-prev'), btnNext=box.querySelector('.lb-next');
+  let idx=0, before=null;
+  const show=n=>{
+    idx=(n+imgs.length)%imgs.length;
+    const src=imgs[idx];
+    big.src=src.currentSrc||src.src;
+    big.alt=src.alt||'';
+    cap.innerHTML=(src.alt||'Captura de TodoPadel')+'<b>'+(idx+1)+' de '+imgs.length+' · flechas para moverte · Esc para cerrar</b>';
+  };
+  const open=n=>{ before=document.activeElement; show(n); box.classList.add('on'); document.documentElement.style.overflow='hidden'; btnClose.focus(); };
+  const close=()=>{ box.classList.remove('on'); document.documentElement.style.overflow=''; if(before&&before.focus) before.focus(); };
+  imgs.forEach((im,n)=>{
+    const w=im.closest('.shot,.browser,.phone,.live-wrap')||im.parentElement;
+    w.classList.add('zoom');
+    w.tabIndex=0; w.setAttribute('role','button');
+    w.setAttribute('aria-label','Ampliar: '+(im.alt||'captura de TodoPadel'));
+    const hint=document.createElement('span');
+    hint.className='zoom-hint';
+    hint.innerHTML='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8.4v5.2M8.4 11h5.2"/></svg>Ampliar';
+    w.appendChild(hint);
+    w.addEventListener('click',e=>{ e.preventDefault(); open(n); });
+    w.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(n); } });
+  });
+  btnClose.addEventListener('click',close);
+  btnPrev.addEventListener('click',()=>show(idx-1));
+  btnNext.addEventListener('click',()=>show(idx+1));
+  box.addEventListener('click',e=>{ if(e.target===box||e.target.closest('.lb-fig')===box.querySelector('.lb-fig')&&e.target.tagName!=='IMG') close(); });
+  addEventListener('keydown',e=>{
+    if(!box.classList.contains('on')) return;
+    if(e.key==='Escape') close();
+    else if(e.key==='ArrowLeft') show(idx-1);
+    else if(e.key==='ArrowRight') show(idx+1);
+  });
+  let x0=null;
+  box.addEventListener('touchstart',e=>{ x0=e.changedTouches[0].clientX; },{passive:true});
+  box.addEventListener('touchend',e=>{
+    if(x0===null) return;
+    const d=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(d)>48) show(idx+(d<0?1:-1));
+  },{passive:true});
+})();
+
+// tabs
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    btn.classList.add('on');
+    const pane=document.getElementById('pane-'+btn.dataset.pane);
+    pane.classList.add('on');
+    pane.querySelectorAll('.rv').forEach(el=>el.classList.add('in'));
+  });
+});
+</script>
+</body>
+</html>

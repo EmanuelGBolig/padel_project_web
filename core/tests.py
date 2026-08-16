@@ -14,13 +14,30 @@ class LandingOrganizadoresTests(TestCase):
     def test_para_organizadores_responde_200(self):
         resp = self.client.get(reverse("core:para_organizadores"))
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("Creá tu torneo", resp.content.decode())
+        html = resp.content.decode()
+        # La landing vende desde el problema y cierra en WhatsApp.
+        self.assertIn("las parejas", html)
+        self.assertIn("wa.me/5492236886313", html)
 
-    def test_home_cta_organizador_va_a_whatsapp(self):
+    def test_para_organizadores_publica_precio_y_preview(self):
+        """El precio de lista y la imagen de preview son parte de la venta."""
+        resp = self.client.get(reverse("core:para_organizadores"))
+        html = resp.content.decode()
+        self.assertIn("70.000", html)
+        self.assertIn("og-todopadel", html)
+
+    def test_clubes_redirige_a_la_landing(self):
+        """/clubes/ es el atajo para dictar; redirige permanente a la landing."""
+        resp = self.client.get("/clubes/")
+        self.assertRedirects(
+            resp, reverse("core:para_organizadores"), status_code=301
+        )
+
+    def test_home_cta_organizador_va_a_la_landing(self):
         resp = self.client.get(reverse("core:home"))
         self.assertEqual(resp.status_code, 200)
-        # Los CTA de organizador redirigen a WhatsApp del dueño.
-        self.assertIn("wa.me/5492236886313", resp.content.decode())
+        # Los CTA de organizador llevan a la landing, que despues cierra en WhatsApp.
+        self.assertIn(reverse("core:para_organizadores"), resp.content.decode())
 
     def test_home_muestra_contadores_y_testimonio(self):
         from .models import Testimonio
