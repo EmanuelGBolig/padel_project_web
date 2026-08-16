@@ -406,6 +406,7 @@ footer a:hover{color:var(--green)}
   details p{padding:0 20px 20px}
 }
 .swipe-hint{display:none; text-align:center; font-size:12.5px; color:var(--txt-3); margin-top:12px; letter-spacing:.06em}
+.swipe-cue{display:none}
 
 /* ============ MOBILE: MENOS SCROLL ============ */
 /* En el celular la pagina se lee de un tiron: aire mas chico, dos columnas donde
@@ -489,7 +490,11 @@ footer a:hover{color:var(--green)}
     margin-inline:-16px; padding:4px 16px 14px; scrollbar-width:none;
   }
   .steps::-webkit-scrollbar,.plans::-webkit-scrollbar,.path::-webkit-scrollbar,.bento::-webkit-scrollbar{display:none}
-  .steps>*,.plans>*,.path>*,.bento>*{flex:0 0 82%; scroll-snap-align:center}
+  /* sin esto, todas las fichas se estiran al alto de la mas alta y quedan
+     tarjetas gigantes medio vacias */
+  .steps,.plans,.path,.bento{align-items:flex-start}
+  .steps>*,.plans>*,.path>*,.bento>*{flex:0 0 82%; scroll-snap-align:center; align-self:flex-start}
+  .plans>*{align-self:stretch}
   .bento>.b-4{flex-basis:92%}
   .plan{height:auto}
   .swipe-cue{
@@ -497,7 +502,6 @@ footer a:hover{color:var(--green)}
     letter-spacing:.1em; text-transform:uppercase; font-weight:700; margin-top:2px;
   }
 }
-.swipe-cue{display:none}
 @media(prefers-reduced-motion:reduce){.rv{opacity:1; transform:none} .ticker-track,.phone-float{animation:none}}
 
 /* ============ MOVIMIENTO ============ */
@@ -552,6 +556,27 @@ details:hover{transform:translateY(-2px)}
   .btn-primary:hover::after{animation:none}
   .plan:hover,.card:hover,.pstep:hover,details:hover,.chip:hover{transform:none}
   header.stuck nav{height:70px}
+}
+
+/* ============ CELULAR: VERSION CORTA ============ */
+/* En el telefono la pagina tiene que invitar, no agotar. Se muestran el gancho,
+   como funciona, tres pruebas, el precio y el WhatsApp. Lo demas queda para el
+   escritorio; el que tiene dudas pregunta por WhatsApp. */
+@media(max-width:620px){
+  #roles, #envivo, #mobile, #placas, #tech .tech, #diferencia .tablewrap, #diferencia .swipe-hint{display:none}
+  .solo-desk{display:none}
+
+  /* del problema, tres golpes por columna alcanzan */
+  #problema .tick li:nth-child(n+4){display:none}
+
+  /* del producto quedan las tres pantallas que mas duelen: cuadro, seña y horarios */
+  /* (el .center del encabezado tambien es div: las filas van del 2 al 6) */
+  #producto .frow:nth-of-type(2), #producto .frow:nth-of-type(6){display:none}
+  #producto .chips{display:none}
+  #producto .ftext p{font-size:15px}
+
+  /* preguntas: las tres primeras */
+  #faq details:nth-of-type(n+4){display:none}
 }
 
 /* ============ IMAGENES AMPLIABLES ============ */
@@ -682,7 +707,7 @@ details:hover{transform:translateY(-2px)}
     <div style="max-width:930px">
       <span class="eyebrow rv">Torneos de pádel · Argentina</span>
       <h1 class="rv">Publicá el torneo y <br>las parejas <span class="grad">se anotan solas</span>.</h1>
-      <p class="lead rv">Vos mandás un link por WhatsApp. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo. Ni Excel, ni perseguir señas, ni contestar cien veces «¿a qué hora juego?».</p>
+      <p class="lead rv">Vos mandás un link por WhatsApp. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo.<span class="solo-desk"> Ni Excel, ni perseguir señas, ni contestar cien veces «¿a qué hora juego?».</span></p>
       <div class="hero-cta rv">
         <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Publicar mi primer torneo gratis →</a>
         <a class="btn btn-ghost" href="#planes">Ver precios</a>
@@ -726,7 +751,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">El día del torneo</span>
       <h2 class="title rv">Organizar un torneo no debería <br>ser un trabajo de oficina</h2>
-      <p class="lead rv">Entre el grupo de WhatsApp, la planilla, los audios preguntando a qué hora juegan y el papel pegado en la pared, se va más tiempo en administrar que en jugar.</p>
+      <p class="lead rv solo-desk">Entre el grupo de WhatsApp, la planilla, los audios preguntando a qué hora juegan y el papel pegado en la pared, se va más tiempo en administrar que en jugar.</p>
     </div>
     <div class="split">
       <div class="card bad rv">
@@ -754,7 +779,7 @@ details:hover{transform:translateY(-2px)}
 </section>
 
 <!-- ================= 3 PASOS ================= -->
-<section>
+<section id="pasos">
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Así funciona</span>
@@ -786,7 +811,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">El producto por dentro</span>
       <h2 class="title rv">Cada pantalla te saca de encima <br>un problema del domingo</h2>
-      <p class="lead rv">Capturas reales de todopadel.club funcionando con torneos de verdad. Arriba de cada una, el problema que elimina.</p>
+      <p class="lead rv solo-desk">Capturas reales de todopadel.club funcionando con torneos de verdad. Arriba de cada una, el problema que elimina.</p>
     </div>
 
     <div class="frow">
@@ -857,7 +882,7 @@ details:hover{transform:translateY(-2px)}
 </section>
 
 <!-- ================= EN VIVO ================= -->
-<section>
+<section id="envivo">
   <div class="wrap">
     <div class="center" style="margin-bottom:46px">
       <span class="eyebrow rv" style="color:var(--live); border-color:rgba(255,88,97,.3); background:rgba(255,88,97,.07)">Modo en vivo</span>
@@ -961,7 +986,7 @@ details:hover{transform:translateY(-2px)}
 </section>
 
 <!-- ================= MOBILE ================= -->
-<section>
+<section id="mobile">
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Diseñado para la cancha</span>
@@ -978,7 +1003,7 @@ details:hover{transform:translateY(-2px)}
 </section>
 
 <!-- ================= PLACAS ================= -->
-<section>
+<section id="placas">
   <div class="wrap">
     <div class="frow">
       <div class="ftext rv">
@@ -1004,7 +1029,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">Por qué no es lo mismo</span>
       <h2 class="title rv">No competimos con las apps <br>de reservar cancha</h2>
-      <p class="lead rv">Las apps grandes resuelven alquilar una cancha. TodoPadel resuelve la competencia: categorías, zonas, cuadros y ranking, como se juega realmente en Argentina.</p>
+      <p class="lead rv solo-desk">Las apps grandes resuelven alquilar una cancha. TodoPadel resuelve la competencia: categorías, zonas, cuadros y ranking, como se juega realmente en Argentina.</p>
     </div>
     <div class="tablewrap rv">
       <table>
@@ -1044,11 +1069,11 @@ details:hover{transform:translateY(-2px)}
 </section>
 
 <!-- ================= TECH ================= -->
-<section>
+<section id="tech">
   <div class="wrap center">
     <span class="eyebrow rv">Cómo está hecho</span>
     <h2 class="title rv">No es una demo: <br>es un sistema que ya está andando</h2>
-    <p class="lead rv">Está hecho a medida para los torneos de pádel de acá, no es una plantilla comprada. Todo lo que cargás queda guardado y respaldado, y las mejoras entran solas sin que tengas que actualizar nada ni frenar un torneo.</p>
+    <p class="lead rv solo-desk">Está hecho a medida para los torneos de pádel de acá, no es una plantilla comprada. Todo lo que cargás queda guardado y respaldado, y las mejoras entran solas sin que tengas que actualizar nada ni frenar un torneo.</p>
     <div class="tech">
       <div class="rv"><b>23</b><span>tipos de información que guarda: torneos, parejas, partidos, pagos</span></div>
       <div class="rv"><b>+200</b><span>controles automáticos que se corren antes de cada mejora</span></div>
@@ -1069,7 +1094,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">Cómo empezamos</span>
       <h2 class="title rv">El primer torneo lo hacemos juntos <br>y no te cuesta nada</h2>
-      <p class="lead rv">Cargamos tu próximo torneo con vos, lo seguimos el día del evento y recién después decidís si seguís. Esto es lo que pasa desde que escribís:</p>
+      <p class="lead rv">Cargamos tu próximo torneo con vos y lo seguimos el día del evento.<span class="solo-desk"> Recién después decidís si seguís. Esto es lo que pasa desde que escribís:</span></p>
     </div>
 
     <div class="path">
@@ -1136,7 +1161,7 @@ details:hover{transform:translateY(-2px)}
 </section>
 
 <!-- ================= FAQ ================= -->
-<section>
+<section id="faq">
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Preguntas</span>
@@ -1162,7 +1187,7 @@ details:hover{transform:translateY(-2px)}
     <div class="cta rv">
       <span class="cta-mark" role="img" aria-label="TodoPadel"></span>
       <h2>Tu próximo torneo, <br><span class="grad">sin Excel y sin costo.</span></h2>
-      <p class="lead center" style="margin-top:20px">Escribinos hoy y el torneo queda cargado en 24 horas. Lo corremos juntos el fin de semana y recién ahí decidís si seguís. Si no te sirve, no perdiste nada.</p>
+      <p class="lead center" style="margin-top:20px">Escribinos hoy y el torneo queda cargado en 24 horas.<span class="solo-desk"> Lo corremos juntos el fin de semana y recién ahí decidís si seguís. Si no te sirve, no perdiste nada.</span></p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Escribir por WhatsApp</a>
         <a class="btn btn-ghost" href="{% url 'core:home' %}">Ver la plataforma en vivo</a>
