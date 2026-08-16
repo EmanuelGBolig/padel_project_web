@@ -333,7 +333,7 @@ td.mid{color:var(--amber)}
 .tech span{font-size:13px; color:var(--txt-3); font-weight:600}
 .stack{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:32px}
 .stack code{
-  font-family:'JetBrains Mono',monospace; font-size:13px; padding:8px 14px; border-radius:9px;
+  font-family:inherit; font-size:14px; font-weight:600; padding:9px 16px; border-radius:999px;
   background:rgba(255,255,255,.04); border:1px solid var(--line); color:var(--txt-2);
 }
 
@@ -401,11 +401,66 @@ footer a:hover{color:var(--green)}
   .tablewrap{position:relative}
   .swipe-hint{display:block}
   .frow{margin-top:52px}
+  .hero h1 br, h2.title br, .cta h2 br, .ftext h3 br{display:none}
   summary{padding:18px 20px; font-size:15.5px}
   details p{padding:0 20px 20px}
 }
 .swipe-hint{display:none; text-align:center; font-size:12.5px; color:var(--txt-3); margin-top:12px; letter-spacing:.06em}
 @media(prefers-reduced-motion:reduce){.rv{opacity:1; transform:none} .ticker-track,.phone-float{animation:none}}
+
+/* ============ MOVIMIENTO ============ */
+/* barra de progreso de lectura */
+.prog{
+  position:fixed; top:0; left:0; height:2px; width:0; z-index:100;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  box-shadow:0 0 14px rgba(16,185,129,.75);
+}
+/* la barra de navegacion se compacta al bajar */
+header nav{transition:height .32s cubic-bezier(.2,.7,.3,1)}
+header.stuck nav{height:60px}
+.brand .mark{transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+.brand:hover .mark{transform:rotate(-7deg) scale(1.06)}
+
+/* las filas de producto entran desde el lado donde esta su imagen */
+.rv-l,.rv-r{transition:opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1)}
+.rv-l{opacity:0; transform:translateX(-38px)}
+.rv-r{opacity:0; transform:translateX(38px)}
+.rv-l.in,.rv-r.in{opacity:1; transform:none}
+@media(max-width:900px){.rv-l,.rv-r{transform:translateY(28px)}}
+
+/* brillo que cruza el boton principal */
+.btn-primary{position:relative; overflow:hidden}
+.btn-primary::after{
+  content:''; position:absolute; top:0; bottom:0; left:-60%; width:42%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:skewX(-18deg); pointer-events:none;
+}
+.btn-primary:hover::after{animation:shine .8s cubic-bezier(.3,.1,.3,1)}
+@keyframes shine{from{left:-60%}to{left:130%}}
+
+/* levantadas al pasar el mouse */
+.plan,.card,.pstep,details,.chip{transition:transform .3s cubic-bezier(.2,.7,.3,1), border-color .3s, box-shadow .3s, background .3s}
+.plan:hover,.card:hover,.pstep:hover{transform:translateY(-5px); border-color:rgba(16,185,129,.32)}
+.plan.feat:hover{box-shadow:0 0 0 1px rgba(16,185,129,.4), 0 36px 84px -24px rgba(16,185,129,.5)}
+details:hover{transform:translateY(-2px)}
+.chip:hover{transform:translateY(-2px); border-color:var(--line-2)}
+.stat b{transition:transform .3s}
+.stats:hover .stat b{transform:translateY(-2px)}
+
+/* el fondo respira */
+.bgfx .orb{animation:breathe 15s ease-in-out infinite; will-change:transform}
+.orb.b{animation-duration:19s; animation-delay:-5s}
+.orb.c{animation-duration:23s; animation-delay:-10s}
+@keyframes breathe{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,-28px,0) scale(1.07)}}
+.bgfx{transition:transform .1s linear}
+
+@media(prefers-reduced-motion:reduce){
+  .rv-l,.rv-r{opacity:1; transform:none}
+  .bgfx .orb{animation:none}
+  .btn-primary:hover::after{animation:none}
+  .plan:hover,.card:hover,.pstep:hover,details:hover,.chip:hover{transform:none}
+  header.stuck nav{height:70px}
+}
 
 /* ============ IMAGENES AMPLIABLES ============ */
 .zoom{cursor:zoom-in; position:relative}
@@ -427,18 +482,35 @@ footer a:hover{color:var(--green)}
 
 .lbox{
   position:fixed; inset:0; z-index:200; display:none; place-items:center;
-  padding:clamp(16px,4vw,54px); background:rgba(6,9,12,.92);
+  padding:clamp(14px,4vw,54px); background:rgba(6,9,12,.93);
   backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
 }
 .lbox.on{display:grid; animation:lbin .26s ease}
 @keyframes lbin{from{opacity:0}to{opacity:1}}
-.lb-fig{margin:0; display:grid; gap:16px; justify-items:center; max-width:min(1280px,100%); min-width:0}
-.lb-fig img{
-  max-width:100%; max-height:calc(100vh - 170px); width:auto; object-fit:contain;
+.lb-fig{margin:0; display:grid; gap:14px; justify-items:center; max-width:min(1280px,100%); min-width:0}
+
+/* la imagen vive en una ventana: sin zoom entra entera, con zoom se puede recorrer */
+.lb-stage{overflow:hidden; border-radius:16px; max-width:100%; line-height:0; scrollbar-width:thin}
+.lb-stage img{
+  max-width:100%; max-height:calc(100vh - 176px); width:auto; object-fit:contain; cursor:zoom-in;
   border-radius:16px; border:1px solid var(--line-2); box-shadow:0 40px 110px -30px #000;
   animation:lbzoom .3s cubic-bezier(.2,.8,.3,1);
 }
+.lb-stage.zoom-on{
+  overflow:auto; width:min(1280px,100%); height:calc(100vh - 176px);
+  cursor:grab; border:1px solid var(--line-2); box-shadow:0 40px 110px -30px #000;
+  -webkit-overflow-scrolling:touch;
+}
+.lb-stage.zoom-on:active{cursor:grabbing}
+.lb-stage.zoom-on img{
+  max-width:none; max-height:none; cursor:zoom-out;
+  border:none; border-radius:0; box-shadow:none; animation:none;
+}
+.lb-stage::-webkit-scrollbar{width:9px;height:9px}
+.lb-stage::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22); border-radius:99px}
+.lb-stage::-webkit-scrollbar-track{background:transparent}
 @keyframes lbzoom{from{opacity:0; transform:scale(.965)}to{opacity:1; transform:none}}
+
 .lb-fig figcaption{color:var(--txt-2); font-size:14.5px; text-align:center; max-width:74ch; line-height:1.5}
 .lb-fig figcaption b{display:block; color:var(--txt-3); font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-top:8px}
 .lb-btn{
@@ -452,13 +524,19 @@ footer a:hover{color:var(--green)}
 .lb-prev{left:18px; top:50%; margin-top:-24px}
 .lb-next{right:18px; top:50%; margin-top:-24px}
 @media(max-width:720px){
-  .lb-fig img{max-height:calc(100vh - 210px)}
-  .lb-prev{left:50%; top:auto; bottom:18px; margin:0 0 0 -60px}
-  .lb-next{right:50%; top:auto; bottom:18px; margin:0 -60px 0 0}
+  .lb-stage img{max-height:calc(100vh - 228px)}
+  .lb-stage.zoom-on{height:calc(100vh - 228px)}
+  .lb-fig figcaption{font-size:13px; line-height:1.4}
+  .lb-fig figcaption b{font-size:10px; letter-spacing:.08em; margin-top:6px}
+  .lb-btn{width:42px;height:42px;font-size:21px}
+  .lb-close{top:12px; right:12px; font-size:17px}
+  /* en el celular las flechas van abajo: si no, tapan la imagen mientras la recorres */
+  .lb-prev{left:50%; top:auto; bottom:14px; margin:0 0 0 -56px}
+  .lb-next{right:50%; top:auto; bottom:14px; margin:0 -56px 0 0}
 }
 @media(prefers-reduced-motion:reduce){
   .zoom:hover img{transform:none}
-  .lbox.on,.lb-fig img{animation:none}
+  .lbox.on,.lb-stage img{animation:none}
 }
 
 /* ============ FLOATING WHATSAPP ============ */
@@ -511,7 +589,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div style="max-width:930px">
       <span class="eyebrow rv">Torneos de pádel · Argentina</span>
-      <h1 class="rv">Publicá el torneo y<br>las parejas <span class="grad">se anotan solas</span>.</h1>
+      <h1 class="rv">Publicá el torneo y <br>las parejas <span class="grad">se anotan solas</span>.</h1>
       <p class="lead rv">Vos mandás un link por WhatsApp. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo. Ni Excel, ni perseguir señas, ni contestar cien veces «¿a qué hora juego?».</p>
       <div class="hero-cta rv">
         <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Publicar mi primer torneo gratis →</a>
@@ -555,7 +633,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">El día del torneo</span>
-      <h2 class="title rv">Organizar un torneo no debería<br>ser un trabajo de oficina</h2>
+      <h2 class="title rv">Organizar un torneo no debería <br>ser un trabajo de oficina</h2>
       <p class="lead rv">Entre el grupo de WhatsApp, la planilla, los audios preguntando a qué hora juegan y el papel pegado en la pared, se va más tiempo en administrar que en jugar.</p>
     </div>
     <div class="split">
@@ -588,7 +666,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Así funciona</span>
-      <h2 class="title rv">De la idea al torneo publicado<br>en tres pasos</h2>
+      <h2 class="title rv">De la idea al torneo publicado <br>en tres pasos</h2>
     </div>
     <div class="steps">
       <div class="step rv">
@@ -615,7 +693,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">El producto por dentro</span>
-      <h2 class="title rv">Cada pantalla te saca de encima<br>un problema del domingo</h2>
+      <h2 class="title rv">Cada pantalla te saca de encima <br>un problema del domingo</h2>
       <p class="lead rv">Capturas reales de todopadel.club funcionando con torneos de verdad. Arriba de cada una, el problema que elimina.</p>
     </div>
 
@@ -691,7 +769,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center" style="margin-bottom:46px">
       <span class="eyebrow rv" style="color:var(--live); border-color:rgba(255,88,97,.3); background:rgba(255,88,97,.07)">Modo en vivo</span>
-      <h2 class="title rv">Una pantalla que el club puede<br>proyectar y todos pueden seguir</h2>
+      <h2 class="title rv">Una pantalla que el club puede <br>proyectar y todos pueden seguir</h2>
       <p class="lead rv">Zonas, posiciones y llave final en una sola vista que se actualiza sola. Sirve en el televisor del club y en el celular del que no pudo ir.</p>
     </div>
     <div class="live-wrap rv">
@@ -795,7 +873,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Diseñado para la cancha</span>
-      <h2 class="title rv">Se usa con una mano,<br>parado al lado de la red</h2>
+      <h2 class="title rv">Se usa con una mano, <br>parado al lado de la red</h2>
       <p class="lead rv">Todo el producto está pensado primero para el celular, que es donde realmente se mira un torneo. Estas son capturas reales, sin retocar.</p>
     </div>
     <div class="phones">
@@ -833,7 +911,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Por qué no es lo mismo</span>
-      <h2 class="title rv">No competimos con las apps<br>de reservar cancha</h2>
+      <h2 class="title rv">No competimos con las apps <br>de reservar cancha</h2>
       <p class="lead rv">Las apps grandes resuelven alquilar una cancha. TodoPadel resuelve la competencia: categorías, zonas, cuadros y ranking, como se juega realmente en Argentina.</p>
     </div>
     <div class="tablewrap rv">
@@ -876,18 +954,19 @@ footer a:hover{color:var(--green)}
 <!-- ================= TECH ================= -->
 <section>
   <div class="wrap center">
-    <span class="eyebrow rv">Debajo del capó</span>
-    <h2 class="title rv">No es un maquetado:<br>es un producto en producción</h2>
-    <p class="lead rv">Desarrollado íntegramente a medida, con base de datos propia, tests automatizados y despliegue continuo. Funcionando hoy con torneos reales.</p>
+    <span class="eyebrow rv">Cómo está hecho</span>
+    <h2 class="title rv">No es una demo: <br>es un sistema que ya está andando</h2>
+    <p class="lead rv">Está hecho a medida para los torneos de pádel de acá, no es una plantilla comprada. Todo lo que cargás queda guardado y respaldado, y las mejoras entran solas sin que tengas que actualizar nada ni frenar un torneo.</p>
     <div class="tech">
-      <div class="rv"><b>23</b><span>modelos de datos</span></div>
-      <div class="rv"><b>+200</b><span>tests automatizados</span></div>
-      <div class="rv"><b>109</b><span>rutas del sistema</span></div>
-      <div class="rv"><b>17k</b><span>líneas de código</span></div>
+      <div class="rv"><b>23</b><span>tipos de información que guarda: torneos, parejas, partidos, pagos</span></div>
+      <div class="rv"><b>+200</b><span>controles automáticos que se corren antes de cada mejora</span></div>
+      <div class="rv"><b>109</b><span>pantallas y funciones adentro del sistema</span></div>
+      <div class="rv"><b>0</b><span>planillas de Excel</span></div>
     </div>
     <div class="stack rv">
-      <code>Django 5.2</code><code>Python 3.11</code><code>PostgreSQL</code><code>Tailwind + DaisyUI</code>
-      <code>HTMX</code><code>PWA + Web Push</code><code>Gunicorn</code><code>Deploy continuo</code>
+      <code>Funciona sin instalar nada</code><code>Tus datos respaldados</code>
+      <code>Mejoras sin cortar el servicio</code><code>Avisos al celular</code>
+      <code>Conexión segura</code>
     </div>
   </div>
 </section>
@@ -897,7 +976,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="center">
       <span class="eyebrow rv">Cómo empezamos</span>
-      <h2 class="title rv">El primer torneo lo hacemos juntos<br>y no te cuesta nada</h2>
+      <h2 class="title rv">El primer torneo lo hacemos juntos <br>y no te cuesta nada</h2>
       <p class="lead rv">Cargamos tu próximo torneo con vos, lo seguimos el día del evento y recién después decidís si seguís. Esto es lo que pasa desde que escribís:</p>
     </div>
 
@@ -990,7 +1069,7 @@ footer a:hover{color:var(--green)}
   <div class="wrap">
     <div class="cta rv">
       <span class="cta-mark" role="img" aria-label="TodoPadel"></span>
-      <h2>Tu próximo torneo,<br><span class="grad">sin Excel y sin costo.</span></h2>
+      <h2>Tu próximo torneo, <br><span class="grad">sin Excel y sin costo.</span></h2>
       <p class="lead center" style="margin-top:20px">Escribinos hoy y el torneo queda cargado en 24 horas. Lo corremos juntos el fin de semana y recién ahí decidís si seguís. Si no te sirve, no perdiste nada.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Escribir por WhatsApp</a>
@@ -1028,7 +1107,34 @@ addEventListener('scroll',()=>hdr.classList.toggle('stuck',scrollY>12),{passive:
 const io=new IntersectionObserver((es)=>{
   es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
 },{threshold:.12, rootMargin:'0px 0px -40px 0px'});
-document.querySelectorAll('.rv').forEach((el,i)=>{ el.style.transitionDelay=(i%4)*70+'ms'; io.observe(el); });
+// cada fila de producto entra desde el lado en el que esta su captura
+document.querySelectorAll('.frow').forEach(row=>{
+  const rev=row.classList.contains('rev');
+  const txt=row.querySelector('.ftext');
+  const pic=row.querySelector('.shot, .rv:not(.ftext)');
+  if(txt) txt.classList.add(rev?'rv-r':'rv-l');
+  if(pic&&pic!==txt) pic.classList.add(rev?'rv-l':'rv-r');
+});
+// el escalonado se cuenta por seccion, no por toda la pagina
+document.querySelectorAll('.hero, section, footer').forEach(sec=>{
+  [...sec.querySelectorAll('.rv,.rv-l,.rv-r')].forEach((el,i)=>{
+    el.style.transitionDelay=Math.min(i,6)*80+'ms';
+  });
+});
+document.querySelectorAll('.rv,.rv-l,.rv-r').forEach(el=>io.observe(el));
+
+// barra de progreso de lectura + parallax suave del fondo
+const prog=document.createElement('div'); prog.className='prog'; document.body.appendChild(prog);
+const bgfx=document.querySelector('.bgfx');
+let ticking=false;
+const onScroll=()=>{
+  const h=document.documentElement.scrollHeight-innerHeight;
+  prog.style.width=(h>0?Math.min(scrollY/h,1)*100:0)+'%';
+  if(bgfx) bgfx.style.transform='translate3d(0,'+(scrollY*-0.045)+'px,0)';
+  ticking=false;
+};
+addEventListener('scroll',()=>{ if(!ticking){ ticking=true; requestAnimationFrame(onScroll); } },{passive:true});
+onScroll();
 
 // counters
 const cio=new IntersectionObserver((es)=>{
@@ -1041,7 +1147,7 @@ const cio=new IntersectionObserver((es)=>{
 },{threshold:.5});
 document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
 
-// lightbox: cualquier captura se amplia
+// lightbox: cualquier captura se amplia, y adentro se puede acercar con un click
 (function(){
   const imgs=[...document.querySelectorAll('.browser img,.phone img,.shot img,.live-wrap img')];
   if(!imgs.length) return;
@@ -1053,20 +1159,52 @@ document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
   box.innerHTML='<button class="lb-btn lb-close" aria-label="Cerrar (Esc)">&#10005;</button>'
     +'<button class="lb-btn lb-prev" aria-label="Anterior">&#8249;</button>'
     +'<button class="lb-btn lb-next" aria-label="Siguiente">&#8250;</button>'
-    +'<figure class="lb-fig"><img alt=""><figcaption></figcaption></figure>';
+    +'<figure class="lb-fig"><div class="lb-stage"><img alt=""></div><figcaption></figcaption></figure>';
   document.body.appendChild(box);
-  const big=box.querySelector('img'), cap=box.querySelector('figcaption'),
+  const fig=box.querySelector('.lb-fig'), stage=box.querySelector('.lb-stage'),
+        big=box.querySelector('img'), cap=box.querySelector('figcaption'),
         btnClose=box.querySelector('.lb-close'), btnPrev=box.querySelector('.lb-prev'), btnNext=box.querySelector('.lb-next');
-  let idx=0, before=null;
+  let idx=0, before=null, zoomed=false, dragged=false;
+
+  const zoomOut=()=>{ zoomed=false; stage.classList.remove('zoom-on'); big.style.width=''; };
+
+  // Acerca centrando el punto que se toco. En pantallas angostas una captura de
+  // escritorio entra como una tira finita: ahi el factor crece hasta llenar el alto.
+  const zoomTo=(fx,fy)=>{
+    const r=big.getBoundingClientRect();
+    if(!r.width||!r.height) return;
+    const alto=Math.min(innerHeight-(innerWidth<=720?228:176), innerHeight*0.86);
+    const factor=Math.max(2.3, alto/r.height);
+    const w=r.width*factor, h=r.height*factor;
+    stage.classList.add('zoom-on');
+    big.style.width=w+'px';
+    zoomed=true;
+    stage.scrollLeft=fx*w-stage.clientWidth/2;
+    stage.scrollTop=fy*h-stage.clientHeight/2;
+  };
+
   const show=n=>{
+    zoomOut();
     idx=(n+imgs.length)%imgs.length;
     const src=imgs[idx];
     big.src=src.currentSrc||src.src;
     big.alt=src.alt||'';
-    cap.innerHTML=(src.alt||'Captura de TodoPadel')+'<b>'+(idx+1)+' de '+imgs.length+' · flechas para moverte · Esc para cerrar</b>';
+    const ayuda=matchMedia('(hover:none)').matches
+      ? 'tocá la imagen para acercar · deslizá para cambiar'
+      : 'click en la imagen para acercar · flechas para moverte · Esc para cerrar';
+    cap.innerHTML=(src.alt||'Captura de TodoPadel')+'<b>'+(idx+1)+' de '+imgs.length+' · '+ayuda+'</b>';
+    // en pantalla angosta, una captura apaisada se abre ya acercada: si no, es una tira ilegible
+    if(innerWidth<=720){
+      requestAnimationFrame(()=>{
+        const r=big.getBoundingClientRect();
+        if(r.height && r.width/r.height>1.25){ zoomTo(0.12,0.5); stage.scrollLeft=0; }
+      });
+    }
   };
-  const open=n=>{ before=document.activeElement; show(n); box.classList.add('on'); document.documentElement.style.overflow='hidden'; btnClose.focus(); };
-  const close=()=>{ box.classList.remove('on'); document.documentElement.style.overflow=''; if(before&&before.focus) before.focus(); };
+
+  const open=n=>{ before=document.activeElement; box.classList.add('on'); document.documentElement.style.overflow='hidden'; show(n); btnClose.focus(); };
+  const close=()=>{ zoomOut(); box.classList.remove('on'); document.documentElement.style.overflow=''; if(before&&before.focus) before.focus(); };
+
   imgs.forEach((im,n)=>{
     const w=im.closest('.shot,.browser,.phone,.live-wrap')||im.parentElement;
     w.classList.add('zoom');
@@ -1079,21 +1217,50 @@ document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
     w.addEventListener('click',e=>{ e.preventDefault(); open(n); });
     w.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(n); } });
   });
+
+  // click adentro del visor: acerca o aleja
+  stage.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(dragged){ dragged=false; return; }
+    if(zoomed){ zoomOut(); return; }
+    if(e.target!==big) return;
+    const r=big.getBoundingClientRect();
+    zoomTo((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+  });
+
+  // arrastrar con el mouse para recorrer la imagen acercada (en tactil scrollea solo)
+  let drag=null;
+  stage.addEventListener('pointerdown',e=>{
+    if(!zoomed||e.pointerType==='touch'||e.button!==0) return;
+    drag={x:e.clientX,y:e.clientY,l:stage.scrollLeft,t:stage.scrollTop}; dragged=false;
+    e.preventDefault();
+  });
+  addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(Math.abs(dx)+Math.abs(dy)>5) dragged=true;
+    stage.scrollLeft=drag.l-dx; stage.scrollTop=drag.t-dy;
+  });
+  addEventListener('pointerup',()=>{ drag=null; });
+
   btnClose.addEventListener('click',close);
-  btnPrev.addEventListener('click',()=>show(idx-1));
-  btnNext.addEventListener('click',()=>show(idx+1));
-  box.addEventListener('click',e=>{ if(e.target===box||e.target.closest('.lb-fig')===box.querySelector('.lb-fig')&&e.target.tagName!=='IMG') close(); });
+  btnPrev.addEventListener('click',e=>{e.stopPropagation(); show(idx-1);});
+  btnNext.addEventListener('click',e=>{e.stopPropagation(); show(idx+1);});
+  box.addEventListener('click',e=>{ if(e.target===box||e.target===cap||e.target===fig) close(); });
+
   addEventListener('keydown',e=>{
     if(!box.classList.contains('on')) return;
-    if(e.key==='Escape') close();
+    if(e.key==='Escape'){ zoomed?zoomOut():close(); }
     else if(e.key==='ArrowLeft') show(idx-1);
     else if(e.key==='ArrowRight') show(idx+1);
   });
+
   let x0=null;
   box.addEventListener('touchstart',e=>{ x0=e.changedTouches[0].clientX; },{passive:true});
   box.addEventListener('touchend',e=>{
     if(x0===null) return;
     const d=e.changedTouches[0].clientX-x0; x0=null;
+    if(zoomed) return;                    // acercada: el dedo recorre la imagen
     if(Math.abs(d)>48) show(idx+(d<0?1:-1));
   },{passive:true});
 })();
