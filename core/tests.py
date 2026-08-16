@@ -174,3 +174,45 @@ class TemaCompiladoTests(TestCase):
             'daisyui@', html,
             "Volvio el CDN de DaisyUI a base.html: son 2,1 MB y un origen externo "
             "en el camino critico.")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PaginasDeErrorTests(TestCase):
+    """Las paginas de error tienen que ser de la app, no el HTML pelado.
+
+    Django toma templates/404.html y compania automaticamente porque `templates`
+    esta en TEMPLATES['DIRS']; no hacen falta handlers.
+    """
+
+    def test_404_usa_la_plantilla_de_la_app(self):
+        # DEBUG=False: con DEBUG=True Django muestra su propia pagina de debug.
+        with self.settings(DEBUG=False, ALLOWED_HOSTS=['*']):
+            resp = self.client.get('/esta-url-no-existe-nunca/')
+        self.assertEqual(resp.status_code, 404)
+        self.assertTemplateUsed(resp, '404.html')
+        self.assertContains(resp, 'Esta página no existe', status_code=404)
+
+    def test_404_ofrece_salidas_utiles(self):
+        with self.settings(DEBUG=False, ALLOWED_HOSTS=['*']):
+            resp = self.client.get('/landing-comercial.html')
+        # Los 404 suelen venir de links viejos: la pagina tiene que ofrecer a
+        # donde ir, no dejar a la persona en un callejon sin salida.
+        self.assertContains(resp, reverse('torneos:abierto_list'), status_code=404)
+        self.assertContains(resp, reverse('core:search'), status_code=404)
+
+    def test_500_no_depende_de_la_base_ni_del_contexto(self):
+        # Django renderiza 500.html SIN request ni context processors. Si la
+        # plantilla extendiera base.html o consultara la base, la pagina de
+        # error fallaria justo cuando mas se la necesita.
+        from django.template.loader import render_to_string
+
+        html = render_to_string('500.html')
+        self.assertIn('Se nos rompió algo', html)
+        self.assertIn('<!doctype html>', html.lower())
+
+    def test_403_y_400_existen_y_no_rompen(self):
+        from django.template.loader import render_to_string
+
+        for plantilla in ('403.html', '400.html'):
+            html = render_to_string(plantilla)
+            self.assertIn('TodoPadel', html, f'{plantilla} no renderizo la base')

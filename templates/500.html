@@ -1,0 +1,75 @@
+{% comment %}
+    Error del servidor.
+
+    Esta página es la ÚNICA que NO extiende base.html, y es a propósito:
+
+    - Django renderiza 500.html con un contexto vacío y sin `request` (ver
+      django.views.defaults.server_error). Los context processors no corren, así
+      que todo lo que base.html espera (`user`, `request`, el contador de
+      notificaciones) llegaría vacío.
+    - Y sobre todo: si lo que se rompió es la base de datos o los estáticos, una
+      página de error que depende de ellos se rompe también, y el usuario termina
+      viendo el error crudo de Django igual.
+
+    Por eso va sola: sin CSS externo, sin imágenes, sin consultas. Los colores
+    están escritos a mano acá porque tampoco hay acceso al tema compilado.
+{% endcomment %}
+<!doctype html>
+<html lang="es-AR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Se nos rompió algo · TodoPadel</title>
+    <style>
+        :root {
+            --fondo: #f7f7f4; --tarjeta: #ffffff; --borde: #d8dcd7;
+            --tinta: #0d1f1a; --suave: #5d6d66; --marca: #00996a;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --fondo: #15191e; --tarjeta: #1a1f26; --borde: #2a323c;
+                --tinta: #eaf1ed; --suave: #90a49b; --marca: #14b17c;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: grid; place-items: center;
+            padding: 24px; background: var(--fondo); color: var(--tinta);
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6; -webkit-font-smoothing: antialiased;
+        }
+        .caja {
+            max-width: 440px; width: 100%; text-align: center;
+            background: var(--tarjeta); border: 1px solid var(--borde);
+            border-radius: 20px; padding: 40px 28px;
+        }
+        .pelota { width: 64px; height: 64px; margin: 0 auto 20px; display: block; }
+        h1 { font-size: 24px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -.02em; }
+        p { margin: 0 0 24px; color: var(--suave); font-size: 15.5px; }
+        .btn {
+            display: inline-block; background: var(--marca); color: #fff;
+            text-decoration: none; font-weight: 700; font-size: 15px;
+            padding: 12px 28px; border-radius: 12px;
+        }
+        .btn:hover { filter: brightness(1.08); }
+        .pie { margin: 20px 0 0; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <main class="caja">
+        <svg class="pelota" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" fill="var(--marca)" />
+            <path d="M12 22a58 58 0 0 1 0 56M88 22a58 58 0 0 0 0 56"
+                  fill="none" stroke="#fff" stroke-width="5"
+                  stroke-linecap="round" opacity=".9" />
+        </svg>
+        <h1>Se nos rompió algo</h1>
+        <p>
+            No es culpa tuya: falló algo de nuestro lado. Ya quedó registrado.
+            Probá de nuevo en un minuto.
+        </p>
+        <a class="btn" href="/">Volver al inicio</a>
+        <p class="pie">Si sigue pasando, avisanos y lo miramos.</p>
+    </main>
+</body>
+</html>

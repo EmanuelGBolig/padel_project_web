@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% comment %}
+    Página no encontrada. Django la usa sola (está en TEMPLATES['DIRS']), no hace
+    falta declarar handler404.
+
+    La mayoría de los 404 acá son links viejos compartidos por WhatsApp, así que
+    en vez de dejar a la persona en un callejón sin salida se le ofrecen los dos
+    caminos que casi siempre estaba buscando: los torneos abiertos y el buscador.
+{% endcomment %}
+{% block head_title %}Página no encontrada · {% endblock head_title %}
+{% block back_button %}{% endblock back_button %}
+{% block banner_registro %}{% endblock banner_registro %}
+{% block content %}
+    <div class="max-w-xl mx-auto text-center py-10 md:py-16">
+        {% comment %} El 0 del 404 es una pelota de pádel. {% endcomment %}
+        <div class="flex items-center justify-center gap-1 mb-6" aria-hidden="true">
+            <span class="text-7xl md:text-8xl font-black text-base-content/15 leading-none">4</span>
+            <svg viewBox="0 0 100 100" class="w-16 h-16 md:w-20 md:h-20 -mx-1">
+                <circle cx="50" cy="50" r="46" fill="oklch(var(--p))" />
+                <path d="M12 22a58 58 0 0 1 0 56M88 22a58 58 0 0 0 0 56"
+                      fill="none" stroke="oklch(var(--pc))" stroke-width="5"
+                      stroke-linecap="round" opacity=".9" />
+            </svg>
+            <span class="text-7xl md:text-8xl font-black text-base-content/15 leading-none">4</span>
+        </div>
+
+        <h1 class="text-2xl md:text-3xl font-black mb-3">Esta página no existe</h1>
+        <p class="text-base-content/70 mb-8">
+            Puede que el link esté viejo o que el torneo ya no esté publicado.
+            Probá desde acá:
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-2 justify-center mb-8">
+            <a href="{% url 'torneos:abierto_list' %}" class="btn btn-primary">
+                Ver torneos abiertos
+            </a>
+            <a href="{% url 'core:home' %}" class="btn btn-outline">Ir al inicio</a>
+        </div>
+
+        <form action="{% url 'core:search' %}" method="get" class="max-w-sm mx-auto">
+            <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-2"
+                   for="q404">O buscá lo que necesitás</label>
+            <div class="join w-full">
+                <input type="text" name="q" id="q404"
+                       class="input input-bordered join-item flex-1 min-w-0 bg-base-100"
+                       placeholder="Torneo o jugador" />
+                <button type="submit" class="btn btn-primary join-item">Buscar</button>
+            </div>
+        </form>
+    </div>
+{% endblock content %}

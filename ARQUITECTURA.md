@@ -2573,6 +2573,43 @@ Tres banners condicionales, todos descartables:
 | 🤝 Formá tu pareja | `user_sin_equipo` | `sessionStorage['dismissed_banner-equipo']` | 739-752 |
 | 🎾 Sumate a la comunidad | `not user.is_authenticated` | `sessionStorage['dismissed_banner-registro']` | 777-812 |
 
+#### 2.5.b Páginas de error
+
+En `templates/` (que está en `TEMPLATES['DIRS']`), así que **Django las toma
+solas**: no hacen falta `handler404` ni `handler500`. Sólo se ven con
+`DEBUG=False`; en desarrollo Django muestra su propia página de depuración.
+
+| Archivo | Cuándo | Qué ofrece |
+|---|---|---|
+| `404.html` | Página inexistente | El 0 del "404" es una pelota. Casi todos los 404 vienen de links viejos de WhatsApp, así que da salidas: torneos abiertos, inicio y buscador |
+| `403.html` | Sin permiso | Cambia el mensaje según haya sesión o no: si está logueado, le dice con qué cuenta; si no, lo manda a entrar (suele ser sesión vencida) |
+| `400.html` | Pedido inválido | Explica que suele ser una página vieja recargada |
+| `500.html` | Error del servidor | **No extiende `base.html`** (ver abajo) |
+
+> ⚠️ **`500.html` va suelta a propósito.** Django la renderiza con un contexto
+> vacío y **sin `request`** (`django.views.defaults.server_error`), así que los
+> context processors no corren y todo lo que `base.html` espera llegaría vacío.
+> Y sobre todo: si lo que se rompió es la base o los estáticos, una página de
+> error que depende de ellos falla también y el usuario termina viendo el error
+> crudo igual. Por eso lleva su CSS inline, sin imágenes y sin consultas.
+
+Cubiertas por `core.tests.PaginasDeErrorTests`, que además verifica que la 500
+renderice sin contexto.
+
+#### 2.5.c Íconos (favicon, PWA)
+
+Los genera `generar_iconos.py` a partir de `docs/reporte/iconos/original/favicon.png`.
+La regla es **según quién aplica la máscara**:
+
+| Archivo | Forma | Por qué |
+|---|---|---|
+| `apple-touch-icon.png` | Cuadrado opaco, a sangre | iOS rellena de **blanco** lo transparente y después redondea. Mandarlo ya redondeado deja un halo blanco alrededor del verde |
+| `pwa-512-maskable.png` | Cuadrado opaco + zona segura | Android lo recorta con la forma del launcher (círculo, gota, squircle) |
+| `favicon.ico`, `favicon.png`, `favicon_192.png`, `pwa-512.png` | **Redondeado**, transparente afuera | La pestaña del navegador y el manifest lo muestran tal cual: acá va la pastilla con las esquinas de la marca |
+
+El redondeo no se dibuja a mano: se conserva el **canal alfa del archivo
+original**, que ya trae la silueta exacta del logo.
+
 #### 2.6 Footer
 
 `base.html:1152-1189`, `footer-center`, `print:hidden`, con clase `.app-footer` que en ≥1536px se desplaza `margin-left: 20rem` para no quedar bajo el sidebar fijo (`base.html:500-503`). Contiene:

@@ -6,9 +6,13 @@ rellena de blanco lo transparente y recién después aplica su propia máscara
 redondeada, así que en la pantalla de inicio quedaba un halo blanco alrededor
 del verde.
 
-La solución NO es cambiar el dibujo: es entregarlo **cuadrado, opaco y a
-sangre**. Las esquinas se rellenan con el mismo verde del icono, y el redondeo
-lo hace el sistema operativo.
+La solución depende de DÓNDE se muestra el icono:
+
+- Donde el sistema aplica su propia máscara (apple-touch-icon de iOS, maskable
+  de Android) se entrega **cuadrado, opaco y a sangre**: el redondeo lo hace él.
+- Donde el icono se muestra tal cual (la pestaña del navegador, el manifest) va
+  **con las esquinas redondeadas de la marca** y transparencia afuera, que es
+  como se ve el logo.
 
 Uso:  python generar_iconos.py
 """
@@ -48,6 +52,30 @@ def base_cuadrada(lado):
     return fondo.resize((lado, lado), Image.LANCZOS)
 
 
+def con_esquinas_redondeadas(lado):
+    """El icono con sus esquinas redondeadas de siempre y transparencia afuera.
+
+    Es la forma de la marca tal cual: en vez de dibujar un rectangulo redondeado
+    a ojo, se conserva el canal alfa del archivo original.
+
+    Va SOLO donde la transparencia se respeta: la pestana del navegador y el
+    icono del manifest. En el `apple-touch-icon` NO, porque iOS rellena de
+    blanco lo transparente antes de aplicar su propia mascara y vuelve el halo.
+    """
+    im = Image.open(ORIGEN).convert('RGBA')
+
+    caja = im.getbbox()
+    if caja:
+        im = im.crop(caja)
+
+    # La pastilla no es perfectamente cuadrada (444x427): se centra en un lienzo
+    # cuadrado transparente para no deformarla.
+    n = max(im.size)
+    cuadrado = Image.new('RGBA', (n, n), (0, 0, 0, 0))
+    cuadrado.alpha_composite(im, ((n - im.width) // 2, (n - im.height) // 2))
+    return cuadrado.resize((lado, lado), Image.LANCZOS)
+
+
 def con_zona_segura(lado, escala=0.78):
     """Versión 'maskable' para Android: el dibujo va en el centro.
 
@@ -63,30 +91,35 @@ def con_zona_segura(lado, escala=0.78):
 
 
 def main():
-    # apple-touch-icon: 180x180, cuadrado y opaco. iOS lo redondea solo.
+    # --- Donde el sistema pone SU propia mascara: cuadrado y opaco ---------
+    # iOS rellena de blanco lo transparente y despues redondea. Si le mandamos
+    # el icono ya redondeado, queda un halo blanco alrededor del verde.
     base_cuadrada(180).save(os.path.join(DESTINO, 'apple-touch-icon.png'))
-    base_cuadrada(192).save(os.path.join(DESTINO, 'favicon_192.png'))
-    base_cuadrada(512).save(os.path.join(DESTINO, 'pwa-512.png'))
+    # Android recorta el maskable con la forma del launcher (circulo, gota...).
     con_zona_segura(512).save(os.path.join(DESTINO, 'pwa-512-maskable.png'))
-    base_cuadrada(64).save(os.path.join(DESTINO, 'favicon.png'))
 
-    # El .ico se arma pegando cada tamaño sobre un fondo opaco: si se deja que
-    # PIL genere las variantes solo, mete alfa en algunas y quedan esquinas
-    # transparentes justo en el tamaño que elige el navegador.
-    capas = []
-    for lado in (16, 32, 48, 64):
-        fondo = Image.new('RGB', (lado, lado), VERDE)
-        fondo.paste(base_cuadrada(lado), (0, 0))
-        capas.append(fondo)
+    # --- Donde el icono se muestra tal cual: con las esquinas de la marca ---
+    # La pestana del navegador y el manifest SI respetan la transparencia, asi
+    # que aca va la pastilla redondeada y no un cuadrado verde.
+    con_esquinas_redondeadas(192).save(os.path.join(DESTINO, 'favicon_192.png'))
+    con_esquinas_redondeadas(512).save(os.path.join(DESTINO, 'pwa-512.png'))
+    con_esquinas_redondeadas(64).save(os.path.join(DESTINO, 'favicon.png'))
+
+    # El .ico lleva varios tamanos adentro y el navegador elige uno. Se generan
+    # a mano, uno por uno: dejando que PIL derive las variantes solas, el
+    # remuestreo ensucia el borde justo en 16x16, que es el que se ve.
+    capas = [con_esquinas_redondeadas(lado) for lado in (16, 32, 48, 64)]
     capas[-1].save(os.path.join(DESTINO, 'favicon.ico'), format='ICO',
                    sizes=[(c.width, c.height) for c in capas],
                    append_images=capas[:-1])
 
-    print('Iconos generados (diseño original, cuadrado y opaco):')
-    for f in ('apple-touch-icon.png', 'favicon_192.png', 'pwa-512.png',
-              'pwa-512-maskable.png', 'favicon.png', 'favicon.ico'):
+    print('Iconos generados:')
+    redondeados = {'favicon_192.png', 'pwa-512.png', 'favicon.png', 'favicon.ico'}
+    for f in ('apple-touch-icon.png', 'pwa-512-maskable.png',
+              'favicon_192.png', 'pwa-512.png', 'favicon.png', 'favicon.ico'):
         ruta = os.path.join(DESTINO, f)
-        print(f'  {f:<26} {os.path.getsize(ruta) // 1024} KB')
+        forma = 'redondeado' if f in redondeados else 'cuadrado (lo enmascara el SO)'
+        print(f'  {f:<26} {os.path.getsize(ruta) // 1024:>3} KB   {forma}')
 
 
 if __name__ == '__main__':

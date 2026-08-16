@@ -61,3 +61,6 @@ divisions_debug.txt
 
 # Capturas temporales de verificacion (Playwright)
 scratch_*
+
+# Temporales de trabajo, no van al repo
+_to_delete/
