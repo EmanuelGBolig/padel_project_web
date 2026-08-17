@@ -716,7 +716,12 @@ class SponsorUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class DummyUserCreateView(LoginRequiredMixin, CreateView):
-    """Vista para que un organizador cree un usuario dummy"""
+    """Alta de un jugador por parte del organizador.
+
+    El form avisa si esa persona ya está cargada (ver `DummyUserCreationForm`).
+    Si se cargó un email, se crea una cuenta de verdad y esta vista deja los
+    datos de acceso en la sesión para mostrarlos UNA vez, con el WhatsApp listo.
+    """
     model = CustomUser
     from .forms import DummyUserCreationForm
     form_class = DummyUserCreationForm
@@ -729,16 +734,66 @@ class DummyUserCreateView(LoginRequiredMixin, CreateView):
             return redirect('core:home')
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['organizacion'] = self.request.user.organizacion
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['titulo'] = "Añadir Jugador Sin Registro"
+        context['titulo'] = "Añadir Jugador"
+        # Las fichas parecidas que encontró el form, para que el organizador
+        # elija una en vez de crear una repetida.
+        context['coincidencias'] = getattr(context.get('form'), 'coincidencias', [])
         return context
 
     def form_valid(self, form):
-        # Pasar la organización al método save del form
-        form.save(organizacion=self.request.user.organizacion)
-        messages.success(self.request, f"¡Jugador '{form.instance.full_name}' creado con éxito!")
+        from .identidad import mensaje_credenciales
+
+        usuario = form.save(organizacion=self.request.user.organizacion)
+        password = getattr(form, 'password_generada', None)
+
+        if password:
+            # Credenciales: se muestran una sola vez, por sesión y no por la URL.
+            self.request.session['jugador_creado'] = {
+                'pk': usuario.pk,
+                'nombre': usuario.full_name,
+                'email': usuario.email,
+                'password': password,
+                'telefono': usuario.telefono_numero,
+                'mensaje': mensaje_credenciales(
+                    usuario, password, self.request.user.organizacion),
+            }
+            return redirect('accounts:jugador_creado')
+
+        messages.success(
+            self.request,
+            f"Jugador «{usuario.full_name}» cargado. Como no tiene email, por "
+            f"ahora es una ficha sin acceso: podés completarlo cuando lo tengas."
+        )
         return redirect(self.success_url)
+
+
+class JugadorCreadoView(LoginRequiredMixin, TemplateView):
+    """Los datos de acceso del jugador recién creado, con el WhatsApp listo.
+
+    Se muestran UNA sola vez: la contraseña no queda guardada en ningún lado en
+    texto plano, así que si el organizador recarga ya no está. Como es de un solo
+    uso (`debe_cambiar_password`), dictarla por WhatsApp es aceptable.
+    """
+    template_name = 'accounts/jugador_creado.html'
+
+    def get_context_data(self, **kwargs):
+        from urllib.parse import quote
+
+        ctx = super().get_context_data(**kwargs)
+        datos = self.request.session.pop('jugador_creado', None)
+        ctx['d'] = datos
+        if datos and datos.get('telefono'):
+            ctx['wa_url'] = (
+                f"https://wa.me/{datos['telefono']}?text={quote(datos['mensaje'])}"
+            )
+        return ctx
 
 
 class MergeUserView(LoginRequiredMixin, UserPassesTestMixin, FormView):

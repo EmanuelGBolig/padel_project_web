@@ -1305,6 +1305,41 @@ recomputaba la tabla completa del grupo al pedo.
 
 ---
 
+### Alta de jugador por el organizador
+
+`accounts.DummyUserCreateView` + `DummyUserCreationForm`. El organizador carga
+gente a mano entre partido y partido, y hasta la auditoría el alta **creaba
+siempre** una ficha nueva con mail inventado (`dummy_xxx@padel.local`), sin
+avisar nada si esa persona ya estaba. Así el historial de alguien terminaba
+partido entre dos cuentas, que después hay que fusionar a mano.
+
+**Dos caminos según haya email o no:**
+
+| Con email | Sin email |
+|---|---|
+| Cuenta real: `is_active=True`, `is_dummy=False`, contraseña generada y `debe_cambiar_password=True` | Ficha sin acceso, con mail interno `dummy_…@padel.local` (comportamiento de siempre) |
+| Redirige a `accounts:jugador_creado`, que muestra los datos **una sola vez** con el botón de WhatsApp | Vuelve a ajustes con un aviso |
+
+**Aviso de duplicados.** `identidad.buscar_coincidencias()` corre en el `clean()`
+del form y devuelve candidatos ordenados por confianza:
+
+| Motivo | `seguro` |
+|---|---|
+| Mismo email | 2 |
+| Mismo teléfono normalizado | 2 |
+| Mismo nombre y apellido (sin tildes) | 2 |
+| Nombre parecido (`SequenceMatcher ≥ 0.86`) | 1 |
+
+Si hay candidatos y el organizador no tildó **«es otra persona»**, el form no
+valida: la página muestra las fichas encontradas antes de crear nada. La
+consulta está acotada a propósito (mail exacto, teléfono exacto y apellidos que
+empiezan igual) para no recorrer la base entera en cada alta, que es justamente
+el problema que tiene la pantalla de duplicados.
+
+`identidad.activar_cuenta()` asciende una ficha a cuenta real **conservando el
+id**, así que la persona no pierde ni un partido. A quien ya tenía cuenta propia
+no se le toca la contraseña.
+
 ### Alta sin cuenta (anotarse sin estar registrado)
 
 `torneos/services/alta_sin_cuenta.py` — el camino para quien llega por un flyer o
@@ -1314,7 +1349,7 @@ la fricción que este flujo saca.
 
 | Paso | Qué hace |
 |---|---|
-| `buscar_jugador` | Enganche automático: email exacto, o teléfono normalizado a 10 dígitos. Si hay más de un candidato **no engancha** (ver más abajo) |
+| `buscar_jugador` | Enganche automático: email exacto, o teléfono normalizado a 10 dígitos. Si hay más de un candidato **no engancha** (ver más abajo). Vive en `accounts/identidad.py` |
 | `buscar_companeros` | Busca jugadores para el selector de "mi compañero ya tiene cuenta". Alimenta un endpoint **público** |
 | `obtener_o_crear_jugador` | Si lo encuentra y es **dummy** del organizador, lo asciende a cuenta real **conservando su historial** (mismo id, mismos partidos, mismo ranking). Si no existe, lo crea |
 | `generar_password` | `nombre` + 4 dígitos al azar. **No** `nombre123`: se dicta por WhatsApp y `nombre123` lo adivina cualquiera que sepa quién juega, y esa persona vería teléfono e historial del otro |
@@ -1366,6 +1401,14 @@ obligaría a una extensión y a una migración, y en desarrollo la base es SQLit
 **Nombres con dígitos.** `_parece_telefono()` mira que la consulta **no tenga
 letras**, en vez de que tenga dígitos: un apellido como "Sim1" tiene un dígito y
 con el criterio anterior se iba por la rama de teléfono y no encontraba a nadie.
+
+> **Dónde vive cada cosa.** Identificar personas —normalizar teléfonos,
+> generar contraseñas, buscar a alguien ya cargado, detectar duplicados— es
+> lógica de **cuentas**, no de torneos, y la necesitan también el alta del
+> organizador (`accounts`) y la creación de parejas (`equipos`), que no pueden
+> importar de `torneos` sin invertir la dependencia. Por eso está en
+> **`accounts/identidad.py`**, y `alta_sin_cuenta` la re-exporta para no romper
+> lo que ya la importaba desde ahí.
 
 **Cambio de contraseña obligatorio.** Las cuentas así creadas salen con
 `debe_cambiar_password=True`. `accounts.middleware.CambioDePasswordObligatorio`

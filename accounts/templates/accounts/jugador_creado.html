@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% comment %}
+    Datos de acceso del jugador recién creado. Se ven UNA sola vez: la
+    contraseña no se guarda en texto plano en ningún lado, así que al recargar
+    ya no está. Es de un solo uso —la app le pide cambiarla al entrar—, y por
+    eso se puede dictar por WhatsApp.
+{% endcomment %}
+{% block head_title %}Jugador creado · {% endblock head_title %}
+{% block content %}
+    <div class="max-w-md mx-auto px-4 py-8">
+        {% if not d %}
+            <div class="card bg-base-100 shadow-xl border border-base-300 rounded-3xl">
+                <div class="card-body text-center">
+                    <h1 class="text-xl font-bold">Los datos ya se mostraron</h1>
+                    <p class="text-base-content/70 text-sm">
+                        Por seguridad, la contraseña se muestra una sola vez. Si no
+                        llegaste a copiarla, el jugador puede pedir una nueva desde
+                        «¿Olvidaste tu contraseña?».
+                    </p>
+                    <a href="{% url 'accounts:organizacion_settings' %}" class="btn btn-primary mt-3">
+                        Volver
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <div class="card bg-base-100 shadow-xl border border-base-300 rounded-3xl">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="w-14 h-14 rounded-2xl bg-success/15 grid place-items-center mx-auto mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                 stroke-width="2" stroke="currentColor" class="w-7 h-7 text-success">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                        </div>
+                        <h1 class="text-xl font-bold">{{ d.nombre }} ya tiene cuenta</h1>
+                        <p class="text-base-content/70 text-sm mt-1">
+                            Pasale estos datos para que entre y vea sus partidos.
+                        </p>
+                    </div>
+
+                    <div class="rounded-2xl border border-base-300 bg-base-200/50 p-4 space-y-3">
+                        <div>
+                            <div class="text-xs font-bold uppercase tracking-wider text-base-content/50">Mail</div>
+                            <div class="font-mono text-sm break-all">{{ d.email }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold uppercase tracking-wider text-base-content/50">Contraseña</div>
+                            <div class="font-mono text-lg font-bold">{{ d.password }}</div>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-base-content/60 mt-3">
+                        Se muestra una sola vez. Al entrar, la app le va a pedir que
+                        elija una propia.
+                    </p>
+
+                    <div class="flex flex-col gap-2 mt-5">
+                        {% if wa_url %}
+                            <a href="{{ wa_url }}" target="_blank" rel="noopener"
+                               class="btn btn-success text-white btn-block gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2z" />
+                                </svg>
+                                Mandarle los datos por WhatsApp
+                            </a>
+                        {% else %}
+                            <div class="alert alert-warning text-sm">
+                                <span>No cargaste su WhatsApp, así que hay que pasarle los datos a mano.</span>
+                            </div>
+                        {% endif %}
+                        <a href="{% url 'accounts:crear_dummy_user' %}" class="btn btn-outline btn-block">
+                            Cargar otro jugador
+                        </a>
+                        <a href="{% url 'accounts:organizacion_settings' %}" class="btn btn-ghost btn-sm">
+                            Terminar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock content %}

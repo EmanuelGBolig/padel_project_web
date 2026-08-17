@@ -751,3 +751,157 @@ class MergeRecalculoAcotadoTests(TestCase):
             "Recalculo %d divisiones; solo deberia tocar las afectadas." % len(recalculadas),
         )
         self.assertIn(self.divs[4].id, recalculadas)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AltaJugadorOrganizadorTests(TestCase):
+    """El organizador carga un jugador: no duplicar, y poder darle cuenta.
+
+    Antes el alta creaba SIEMPRE una ficha nueva con mail inventado y no avisaba
+    nada si esa persona ya estaba: asi el historial de alguien terminaba partido
+    entre dos cuentas.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+
+        self.division = Division.objects.create(nombre="Quinta AJ", orden=5)
+        self.club = Organizacion.objects.create(nombre="Club AJ", alias="club-aj")
+        self.org = User.objects.create_user(
+            email="org.aj@test.com", password="x", nombre="Org", apellido="AJ",
+            tipo_usuario="ORGANIZER", organizacion=self.club)
+        self.url = reverse("accounts:crear_dummy_user")
+        self.client.force_login(self.org)
+
+    def _datos(self, **over):
+        d = {"nombre": "Gonzalo", "apellido": "Reina",
+             "genero": "MASCULINO", "division": self.division.pk}
+        d.update(over)
+        return d
+
+    # --- Deteccion de coincidencias ---------------------------------------
+
+    def test_avisa_cuando_ya_hay_alguien_con_ese_nombre(self):
+        User.objects.create_user(
+            email="gonza.existente@test.com", password="x", nombre="Gonzalo",
+            apellido="Reina", division=self.division)
+        antes = User.objects.count()
+
+        resp = self.client.post(self.url, self._datos())
+
+        self.assertEqual(resp.status_code, 200, "Deberia volver al form, no crear")
+        self.assertEqual(User.objects.count(), antes, "Creo el duplicado igual")
+        self.assertContains(resp, "ya esté cargado")
+        self.assertTrue(resp.context["coincidencias"])
+
+    def test_avisa_por_telefono_aunque_el_nombre_este_distinto(self):
+        User.objects.create_user(
+            email="otro.nombre@test.com", password="x", nombre="Gonza",
+            apellido="Reyna", division=self.division,
+            numero_telefono="+54 9 223 555-7788")
+        resp = self.client.post(self.url, self._datos(
+            nombre="Gonzalo", apellido="Zzzz", numero_telefono="2235557788"))
+        self.assertEqual(resp.status_code, 200)
+        motivos = [c["motivo"] for c in resp.context["coincidencias"]]
+        self.assertTrue(any("WhatsApp" in m for m in motivos), motivos)
+
+    def test_un_apellido_distinto_no_dispara_falso_positivo(self):
+        User.objects.create_user(
+            email="lejano@test.com", password="x", nombre="Martin",
+            apellido="Rodriguez", division=self.division)
+        resp = self.client.post(self.url, self._datos())
+        self.assertEqual(resp.status_code, 302, "No deberia frenar por alguien distinto")
+        self.assertTrue(User.objects.filter(nombre="Gonzalo", apellido="Reina").exists())
+
+    def test_confirmando_que_es_otra_persona_lo_crea(self):
+        User.objects.create_user(
+            email="gonza.existente@test.com", password="x", nombre="Gonzalo",
+            apellido="Reina", division=self.division)
+        resp = self.client.post(self.url, self._datos(confirmar_distinto="1"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            User.objects.filter(nombre="Gonzalo", apellido="Reina").count(), 2)
+
+    # --- Cuenta real vs ficha ---------------------------------------------
+
+    def test_el_desplegable_de_genero_tiene_una_sola_opcion_vacia(self):
+        # Se anteponia la opcion propia sin sacar la que agrega Django, asi que
+        # habia dos vacias y la segunda decia "---------".
+        from accounts.forms import DummyUserCreationForm
+
+        vacias = [v for v, _ in DummyUserCreationForm().fields['genero'].choices if not v]
+        self.assertEqual(len(vacias), 1, "El desplegable tiene opciones vacias de mas")
+
+    def test_sin_email_sigue_creando_la_ficha_de_siempre(self):
+        resp = self.client.post(self.url, self._datos())
+        self.assertEqual(resp.status_code, 302)
+        u = User.objects.get(nombre="Gonzalo", apellido="Reina")
+        self.assertTrue(u.is_dummy)
+        self.assertFalse(u.is_active)
+        self.assertTrue(u.email.endswith("@padel.local"))
+
+    def test_con_email_crea_una_cuenta_con_la_que_puede_entrar(self):
+        resp = self.client.post(self.url, self._datos(
+            email="gonzalo.reina@mail.com", numero_telefono="+54 9 223 555-1234"))
+        self.assertEqual(resp.status_code, 302)
+        u = User.objects.get(email="gonzalo.reina@mail.com")
+        self.assertFalse(u.is_dummy)
+        self.assertTrue(u.is_active)
+        self.assertTrue(u.debe_cambiar_password, "Tiene que cambiarla al entrar")
+        self.assertEqual(u.organizacion_id, self.club.pk)
+        self.assertIn("223", u.numero_telefono)
+
+    def test_muestra_las_credenciales_una_sola_vez_con_el_whatsapp(self):
+        self.client.post(self.url, self._datos(
+            email="gonzalo.reina@mail.com", numero_telefono="+54 9 223 555-1234"))
+        resp = self.client.get(reverse("accounts:jugador_creado"))
+        self.assertContains(resp, "gonzalo.reina@mail.com")
+        self.assertContains(resp, "wa.me")
+
+        # Segunda visita: ya no estan.
+        otra = self.client.get(reverse("accounts:jugador_creado"))
+        self.assertNotContains(otra, "gonzalo.reina@mail.com")
+        self.assertContains(otra, "una sola vez")
+
+    def test_la_contrasena_generada_sirve_para_entrar(self):
+        self.client.post(self.url, self._datos(email="gonzalo.reina@mail.com"))
+        datos = self.client.session.get("jugador_creado")
+        self.assertIsNotNone(datos)
+        u = User.objects.get(email="gonzalo.reina@mail.com")
+        self.assertTrue(u.check_password(datos["password"]))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ActivarCuentaTests(TestCase):
+    """Ascender una ficha a cuenta real sin perderle el historial."""
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Sexta AC", orden=6)
+        self.ficha = User.objects.create_user(
+            email="dummy_abc123@padel.local", password="x", nombre="Dante",
+            apellido="Esquivel", division=self.division)
+        self.ficha.is_dummy = True
+        self.ficha.is_active = False
+        self.ficha.save()
+
+    def test_conserva_el_id_para_no_perder_partidos(self):
+        from accounts.identidad import activar_cuenta
+
+        antes = self.ficha.pk
+        activar_cuenta(self.ficha, email="dante@mail.com", telefono="2235551111")
+        self.ficha.refresh_from_db()
+        self.assertEqual(self.ficha.pk, antes)
+        self.assertEqual(self.ficha.email, "dante@mail.com")
+        self.assertFalse(self.ficha.is_dummy)
+        self.assertTrue(self.ficha.is_active)
+
+    def test_no_le_pisa_la_contrasena_a_quien_ya_tenia_cuenta(self):
+        from accounts.identidad import activar_cuenta
+
+        real = User.objects.create_user(
+            email="real.ac@test.com", password="MiClave123", nombre="Ana",
+            apellido="Lopez", division=self.division)
+        password = activar_cuenta(real, telefono="2235552222")
+        self.assertIsNone(password, "No deberia generar clave nueva")
+        real.refresh_from_db()
+        self.assertTrue(real.check_password("MiClave123"))

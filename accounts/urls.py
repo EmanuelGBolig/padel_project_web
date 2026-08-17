@@ -35,6 +35,8 @@ urlpatterns = [
     path('notificaciones/<int:pk>/abrir/', views.NotificacionAbrirView.as_view(), name='notificacion_abrir'),
     path('notificaciones/leer-todas/', views.NotificacionLeerTodasView.as_view(), name='notificaciones_leer_todas'),
     path('organizador/crear-jugador-dummy/', views.DummyUserCreateView.as_view(), name='crear_dummy_user'),
+    # Los datos de acceso del jugador recien creado (se ven una sola vez).
+    path('organizador/jugador-creado/', views.JugadorCreadoView.as_view(), name='jugador_creado'),
     
     # Rutas de recuperación de contraseña (Django Auth)
     # Rutas de recuperación de contraseña (Explícitas para corregir namespace)

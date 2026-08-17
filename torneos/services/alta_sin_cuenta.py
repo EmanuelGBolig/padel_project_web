@@ -16,8 +16,6 @@ del otro. Los 4 dígitos lo evitan sin complicar el mensaje. En todos los casos 
 marca `debe_cambiar_password`: la app le pide cambiarla al entrar.
 """
 import re
-import secrets
-import unicodedata
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -28,101 +26,20 @@ from equipos.models import Equipo
 from ..models import Inscripcion, Torneo
 
 
-class AltaError(Exception):
-    """Algo impide completar el alta. El mensaje va derecho al usuario."""
-
-
-def _solo_digitos(texto):
-    return re.sub(r'\D', '', texto or '')
-
-
-def _sin_acentos(texto):
-    nfkd = unicodedata.normalize('NFKD', texto or '')
-    return ''.join(c for c in nfkd if not unicodedata.combining(c))
-
-
-def generar_password(nombre):
-    """`nombre` + 4 dígitos al azar. Fácil de dictar, no adivinable."""
-    base = _sin_acentos(nombre).strip().lower()
-    base = re.sub(r'[^a-z]', '', base)[:12] or 'padel'
-    return f"{base}{secrets.randbelow(9000) + 1000}"
-
-
-# Cuántos dígitos finales tienen que coincidir para dar dos teléfonos por
-# iguales. En Argentina el número significativo es característica + abonado = 10
-# (223 5937115). Con 8 —como estaba— dos números de ciudades distintas podían
-# coincidir, y entonces se anotaba a un tercero y se le mostraban sus datos a
-# quien estaba cargando el alta.
-DIGITOS_TELEFONO = 10
-
-
-def _cola_telefono(texto):
-    """Número argentino normalizado a característica + abonado (10 dígitos).
-
-    Devuelve None si no se puede llevar a esa forma: preferimos no comparar
-    antes que comparar mal. Cubre las formas en que la gente escribe el mismo
-    número:
-
-        +54 9 223 593-7115   ->  2235937115
-        0223 15 593-7115     ->  2235937115
-        223 5937115          ->  2235937115
-    """
-    d = _solo_digitos(texto)
-    if d.startswith('54'):          # país
-        d = d[2:]
-        if d.startswith('9'):       # marca de celular que va después del país
-            d = d[1:]
-    d = d.lstrip('0')               # 0 de larga distancia
-    # Forma vieja: característica + 15 + abonado. Si sacando el "15" queda un
-    # número de 10 dígitos, era eso.
-    if len(d) == DIGITOS_TELEFONO + 2:
-        for corte in (2, 3, 4):
-            if d[corte:corte + 2] == '15':
-                d = d[:corte] + d[corte + 2:]
-                break
-    if len(d) < DIGITOS_TELEFONO:
-        return None
-    return d[-DIGITOS_TELEFONO:]
-
-
-def buscar_jugador(email=None, telefono=None):
-    """Busca una persona ya cargada, por email o por teléfono.
-
-    Mira también los jugadores que creó el organizador: si el tipo ya está en la
-    base como dummy, queremos ENGANCHAR esa cuenta (con su historial de partidos)
-    y no crear una nueva en paralelo.
-
-    Ante la duda NO engancha y devuelve None: el alta crea una cuenta nueva.
-    Equivocarse para el otro lado es peor — un duplicado se fusiona después con
-    la herramienta que ya existe, pero anotar a la persona equivocada le filtra
-    su teléfono y su mail a un desconocido.
-
-    Se excluyen las cuentas ya fusionadas (`merged_into`): resucitaban un
-    duplicado que un admin había unificado. Los dummies SÍ entran (pueden estar
-    inactivos), que es justamente a quienes se quiere enganchar.
-    """
-    User = get_user_model()
-    vivos = User.objects.filter(merged_into__isnull=True)
-
-    if email:
-        u = vivos.filter(email__iexact=email.strip()).order_by('id').first()
-        if u:
-            return u
-
-    cola = _cola_telefono(telefono)
-    if not cola:
-        return None
-
-    candidatos = [
-        pk for pk, numero in vivos.exclude(numero_telefono='')
-                                  .exclude(numero_telefono__isnull=True)
-                                  .values_list('id', 'numero_telefono')
-        if _cola_telefono(numero) == cola
-    ]
-    # Con más de uno no hay forma de saber cuál es: mejor no adivinar.
-    if len(candidatos) != 1:
-        return None
-    return vivos.filter(pk=candidatos[0]).first()
+# La lógica de identificar personas (normalizar teléfonos, generar claves,
+# enganchar a alguien ya cargado) vive en `accounts.identidad`: no es de
+# torneos, y la necesitan también el alta de jugadores del organizador y la
+# creación de parejas. Se re-exporta acá porque varios módulos y tests ya la
+# importaban desde este archivo.
+from accounts.identidad import (  # noqa: F401
+    AltaError,
+    DIGITOS_TELEFONO,
+    _cola_telefono,
+    _sin_acentos,
+    _solo_digitos,
+    buscar_jugador,
+    generar_password,
+)
 
 
 # Vocales y sus variantes acentuadas, para buscar sin depender de la tilde.

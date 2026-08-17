@@ -334,48 +334,129 @@ class SponsorForm(forms.ModelForm):
 
 
 class DummyUserCreationForm(forms.ModelForm):
-    """
-    Formulario para que los organizadores creen jugadores 'dummy' sin cuenta real
-    pero que se pueden usar para formar parejas y que computen puntos en el ranking.
+    """Alta de un jugador por parte del organizador.
+
+    Antes creaba SIEMPRE un "dummy": una ficha con mail inventado
+    (`dummy_xxx@padel.local`) y sin acceso, y no avisaba nada si esa persona ya
+    estaba cargada. Así se llenaba la base de cuentas repetidas y el historial de
+    un jugador terminaba partido entre dos fichas.
+
+    Ahora hace dos cosas más:
+
+    - **Avisa si ya existe.** Antes de crear busca coincidencias por mail,
+      teléfono y nombre parecido, y no deja seguir sin que el organizador diga
+      explícitamente que es otra persona.
+    - **Puede crear una cuenta de verdad.** Si se carga el mail, en vez de una
+      ficha muerta se crea una cuenta con contraseña, y el organizador se la
+      manda por WhatsApp. Sin mail sigue siendo una ficha, como antes.
     """
     division = forms.ModelChoiceField(
         queryset=Division.objects.all(), required=True, label="División"
     )
+    email = forms.EmailField(
+        required=False, label="Email (opcional)",
+        help_text="Si lo cargás, le creamos una cuenta y le podés mandar los datos por WhatsApp.",
+    )
+    numero_telefono = forms.CharField(
+        max_length=20, required=False, label="WhatsApp (opcional)",
+        help_text="Para avisarle de sus partidos y mandarle el acceso.",
+    )
+    # Lo marca el organizador cuando ya vio las coincidencias y dice que es
+    # otra persona. Va oculto: sólo aparece cuando hay algo que confirmar.
+    confirmar_distinto = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
     class Meta:
         model = CustomUser
         fields = ('nombre', 'apellido', 'genero', 'division')
 
     def __init__(self, *args, **kwargs):
+        self.organizacion = kwargs.pop('organizacion', None)
         super().__init__(*args, **kwargs)
+        self.coincidencias = []
         estilo_input = 'input input-bordered w-full bg-base-100 text-base-content'
         estilo_select = 'select select-bordered w-full bg-base-100 text-base-content'
 
         self.fields['genero'].label = 'Género'
         self.fields['genero'].required = True
-        # Agregar opción vacía al inicio para forzar que el organizador elija explícitamente
-        genero_choices = [('', 'Seleccioná el género')] + list(self.fields['genero'].choices)
-        self.fields['genero'].choices = genero_choices
+        # Una sola opción vacía, para forzar que el organizador elija.
+        # Antes se anteponía la propia SIN sacar la que agrega Django, así que
+        # el desplegable tenía dos opciones vacías y la segunda decía "---------".
+        reales = [(v, l) for v, l in self.fields['genero'].choices if v]
+        self.fields['genero'].choices = [('', 'Seleccioná el género')] + reales
+
+        self.fields['email'].widget.attrs['placeholder'] = 'juan@mail.com'
+        self.fields['numero_telefono'].widget.attrs.update({
+            'placeholder': '+54 9 223 555-1234', 'inputmode': 'tel'})
 
         for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.HiddenInput):
+                continue
             if isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = estilo_select
             else:
                 field.widget.attrs['class'] = estilo_input
 
+    def clean_email(self):
+        return (self.cleaned_data.get('email') or '').strip().lower()
+
+    def clean(self):
+        from accounts.identidad import buscar_coincidencias
+
+        cleaned = super().clean()
+        nombre = (cleaned.get('nombre') or '').strip()
+        apellido = (cleaned.get('apellido') or '').strip()
+        if not nombre or not apellido:
+            return cleaned
+
+        self.coincidencias = buscar_coincidencias(
+            nombre, apellido,
+            email=cleaned.get('email'),
+            telefono=cleaned.get('numero_telefono'),
+        )
+
+        if self.coincidencias and not cleaned.get('confirmar_distinto'):
+            # No se agrega el error a un campo: es una decisión sobre TODO el
+            # alta, y el template muestra las fichas encontradas para elegir.
+            raise forms.ValidationError(
+                "Puede que este jugador ya esté cargado. Fijate abajo: si es "
+                "alguno de esos, usalo y no crees otra ficha."
+            )
+        return cleaned
+
     def save(self, commit=True, organizacion=None):
+        """Crea el jugador. Deja en `self.password_generada` la clave, si hay.
+
+        Con email -> cuenta real (puede entrar, se le manda el acceso).
+        Sin email -> ficha sin acceso, con un mail interno inventado, como antes.
+        """
         import uuid
+
+        from accounts.identidad import generar_password
+
         user = super().save(commit=False)
-        user.is_dummy = True
         user.tipo_usuario = 'PLAYER'
-        user.is_active = False # No pueden loguear
-        
+        organizacion = organizacion or self.organizacion
         if organizacion:
             user.organizacion = organizacion
 
-        # Autogenerar email único ficticio usando uuid para evadir el constraint
-        unique_id = str(uuid.uuid4())[:8]
-        user.email = f"dummy_{unique_id}@padel.local"
+        email = (self.cleaned_data.get('email') or '').strip()
+        telefono = (self.cleaned_data.get('numero_telefono') or '').strip()
+        if telefono:
+            user.numero_telefono = telefono[:20]
+
+        self.password_generada = None
+        if email:
+            user.email = email
+            user.is_dummy = False
+            user.is_active = True
+            user.debe_cambiar_password = True
+            self.password_generada = generar_password(user.nombre or 'padel')
+            user.set_password(self.password_generada)
+        else:
+            user.is_dummy = True
+            user.is_active = False    # no puede entrar
+            # Mail interno único, para no chocar con el unique del modelo.
+            user.email = f"dummy_{str(uuid.uuid4())[:8]}@padel.local"
 
         if commit:
             user.save()
