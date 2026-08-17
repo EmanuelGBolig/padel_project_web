@@ -233,6 +233,37 @@ class Equipo(models.Model):
         return resultados[:limit]
     
     @property
+    def nombre_completo(self):
+        """Los dos jugadores con nombre y apellido, para las listas de gestión.
+
+        `nombre` es el código corto —sólo apellidos, «Reina/Esquivel»— porque
+        tiene que entrar en una celda del cuadro y en la tabla de posiciones.
+        Pero en la lista de inscriptos el organizador necesita saber QUIÉN es
+        cada uno: con dos hermanos, o con dos apellidos iguales en la misma
+        categoría, el apellido solo no identifica a nadie.
+
+        Si a un jugador le falta el nombre (los que carga el organizador a mano
+        a veces van sólo con apellido), cae al texto que haya.
+        """
+        return ' y '.join(self.nombres_jugadores) or self.nombre
+
+    @property
+    def nombres_jugadores(self):
+        """Los nombres de los dos jugadores, por separado.
+
+        Las listas los muestran uno por renglón: en el ancho de una columna de
+        celular, «Emanuel Gomez y Leandro Buccella» en una sola línea se parte
+        en cinco renglones de una palabra cada uno.
+        """
+        nombres = []
+        for jugador in (self.jugador1, self.jugador2):
+            if jugador is None:
+                continue
+            completo = (jugador.full_name or '').strip()
+            nombres.append(completo or jugador.apellido or jugador.nombre or '—')
+        return nombres
+
+    @property
     def jugadores_con_telefono(self):
         """Jugadores de la pareja que tienen teléfono cargado.
 

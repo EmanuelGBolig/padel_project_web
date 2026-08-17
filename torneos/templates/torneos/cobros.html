@@ -63,8 +63,14 @@
                     <div class="card-body p-4">
                         <div class="flex items-start justify-between gap-3 flex-wrap">
                             <div class="min-w-0">
+                                {% comment %}
+                                    Nombre y apellido de los dos: para reclamar un pago hay que
+                                    saber a quién se le escribe, y el apellido solo no alcanza.
+                                {% endcomment %}
                                 <div class="font-bold flex items-center gap-2 flex-wrap">
-                                    {{ i.equipo.nombre }}
+                                    <span class="flex flex-col leading-snug">
+                                        {% for jugador in i.equipo.nombres_jugadores %}<span>{{ jugador }}</span>{% empty %}<span>{{ i.equipo.nombre }}</span>{% endfor %}
+                                    </span>
                                     <span class="badge badge-sm {{ badge.1 }}">{{ badge.0 }}</span>
                                     {% if i.comprobante %}
                                         <a href="{{ i.comprobante.url }}" target="_blank" rel="noopener"

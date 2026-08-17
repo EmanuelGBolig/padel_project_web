@@ -330,6 +330,20 @@ La **pareja** es la unidad que compite; los jugadores individuales sólo puntúa
   3. Si `division` está vacía, la deriva del jugador con **menor `orden`** (categoría más alta): `d1 if d1.orden <= d2.orden else d2`.
 - **`__str__`** (`:98`): agrega `" [Dummies]"` si ambos jugadores son `is_dummy`, `" [Con Dummy]"` si sólo uno.
 
+**Cómo se nombra a una pareja según dónde se la muestra:**
+
+| Propiedad | Devuelve | Dónde va |
+|---|---|---|
+| `nombre` (campo) | `"Reina/Esquivel"` — sólo apellidos | Cuadro, tabla de posiciones, planilla de horarios: donde tiene que entrar en una celda |
+| `nombres_jugadores` | `["Gonzalo Reina", "Dante Esquivel"]` | Listas de gestión, un jugador por renglón |
+| `nombre_completo` | `"Gonzalo Reina y Dante Esquivel"` | Cuando hace falta una sola cadena (exports, mensajes) |
+
+> Lo pidió un organizador: en la lista de inscriptos veía `Reina/Esquivel` y no
+> podía saber quiénes eran. Con dos hermanos, o dos apellidos iguales en la misma
+> categoría, el apellido solo no identifica a nadie. Se cambió **sólo en las
+> listas de gestión** (inscriptos y cobros); el código corto sigue igual donde el
+> espacio manda.
+
 **Métodos de estadística** (todos hacen import local de `torneos.models` para evitar ciclo):
 
 | Método | Línea | Comportamiento |

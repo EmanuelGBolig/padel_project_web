@@ -221,3 +221,52 @@ class InvitacionSinRecargarTests(TestCase):
         self.assertIn('grid grid-cols-2 gap-2', html)
         self.assertIn('btn btn-sm btn-success w-full', html)
         self.assertIn('btn btn-sm btn-error btn-outline w-full', html)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class NombreCompletoEquipoTests(TestCase):
+    """En las listas de gestion hace falta el nombre y apellido de los dos.
+
+    `Equipo.nombre` es el codigo corto (solo apellidos) porque tiene que entrar
+    en una celda del cuadro; en la lista de inscriptos eso no alcanza para
+    identificar a nadie.
+    """
+
+    def setUp(self):
+        from .models import Equipo
+
+        User = get_user_model()
+        self.division = Division.objects.create(nombre="Quinta NC", orden=5)
+        self.gonzalo = User.objects.create_user(
+            email="gonzalo@t.com", password="x", nombre="Gonzalo",
+            apellido="Reina", division=self.division)
+        self.dante = User.objects.create_user(
+            email="dante@t.com", password="x", nombre="Dante",
+            apellido="Esquivel", division=self.division)
+        self.equipo = Equipo.objects.create(
+            jugador1=self.gonzalo, jugador2=self.dante, division=self.division)
+
+    def test_el_nombre_corto_sigue_siendo_solo_apellidos(self):
+        # No se toca: es lo que entra en el cuadro y en la tabla de posiciones.
+        self.assertEqual(self.equipo.nombre, "Esquivel/Reina")
+
+    def test_nombre_completo_trae_los_dos_nombres_y_apellidos(self):
+        completo = self.equipo.nombre_completo
+        for parte in ("Gonzalo", "Reina", "Dante", "Esquivel"):
+            self.assertIn(parte, completo)
+        self.assertIn(" y ", completo)
+
+    def test_si_falta_el_nombre_no_queda_vacio(self):
+        from .models import Equipo
+
+        User = get_user_model()
+        sin_nombre = User.objects.create_user(
+            email="solo.apellido@t.com", password="x", nombre="",
+            apellido="Perez", division=self.division)
+        otro = User.objects.create_user(
+            email="otro.nc@t.com", password="x", nombre="Ana",
+            apellido="Lopez", division=self.division)
+        equipo = Equipo.objects.create(
+            jugador1=sin_nombre, jugador2=otro, division=self.division)
+        self.assertIn("Perez", equipo.nombre_completo)
+        self.assertIn("Ana Lopez", equipo.nombre_completo)

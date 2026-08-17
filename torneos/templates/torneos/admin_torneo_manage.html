@@ -323,14 +323,25 @@
                                 {% for inscripcion in inscripciones %}
                                     <tr class="hover">
                                         <td>{{ forloop.counter }}</td>
-                                        <td class="font-bold">
+                                        {% comment %}
+                                            Nombre y apellido de los dos, no el código corto: con dos
+                                            hermanos o dos apellidos iguales en la misma categoría, ver
+                                            sólo «Reina/Esquivel» no alcanza para saber quién se anotó.
+                                        {% endcomment %}
+                                        {% comment %}
+                                            `whitespace-nowrap`: la tabla ya está dentro de un
+                                            `overflow-x-auto`, así que es preferible que el nombre
+                                            entre en un renglón y se scrollee, a que «Emanuel Gomez»
+                                            se parta en dos líneas dentro de una columna angosta.
+                                        {% endcomment %}
+                                        <td class="font-bold whitespace-nowrap">
+                                            {% for jugador in inscripcion.equipo.nombres_jugadores %}
+                                                <div class="leading-snug{% if not forloop.first %} text-base-content/70 font-medium{% endif %}">{{ jugador }}</div>
+                                            {% empty %}
+                                                <div>{{ inscripcion.equipo.nombre }}</div>
+                                            {% endfor %}
                                             {% if inscripcion.equipo.es_dummy or inscripcion.equipo.jugador1.is_dummy and inscripcion.equipo.jugador2.is_dummy %}
-                                                <span class="badge badge-warning gap-1">
-                                                    {{ inscripcion.equipo.nombre }}
-                                                    <span class="text-xs opacity-70">(Dummy)</span>
-                                                </span>
-                                            {% else %}
-                                                {{ inscripcion.equipo.nombre }}
+                                                <span class="badge badge-warning badge-sm mt-1">Cargada a mano</span>
                                             {% endif %}
                                         </td>
                                         <td>{{ inscripcion.equipo.get_categoria_display }}</td>
