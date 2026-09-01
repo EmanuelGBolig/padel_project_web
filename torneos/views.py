@@ -2868,11 +2868,18 @@ class InscribirseConCompaneroView(PlayerRequiredMixin, FormView):
             # duplicar a la persona.
             companero = buscar_por_telefono(datos['telefono'])
             if companero is None:
+                # La división de quien todavía no está en la app es la del
+                # TORNEO, no la de quien la anota. Antes se copiaba la del que
+                # se anotaba y eso rebotaba inscripciones válidas: la pareja
+                # quedaba "pura" (las dos en la misma división) y la regla de
+                # pura sólo permite ±1, así que una jugadora de Octava no podía
+                # anotar a nadie en un torneo de Sexta. La única evidencia real
+                # sobre esa persona es el torneo que va a jugar.
                 companero = crear_companero_sin_cuenta(
                     nombre=datos['nombre'],
                     apellido=datos['apellido'],
                     telefono=datos['telefono'],
-                    division=usuario.division,
+                    division=self.torneo.division or usuario.division,
                 )
                 creado_ahora = True
 

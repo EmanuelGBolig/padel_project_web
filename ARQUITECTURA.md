@@ -1006,6 +1006,19 @@ Las vistas de modal responden a HTMX devolviendo `<script>window.location.reload
 | Pareja "pura" (`orden_p1 == orden_p2`) | `min_orden - 1 <= orden_torneo <= max_orden + 1` (su división ±1) |
 | Pareja "mixta" (divisiones distintas) | `min_orden <= orden_torneo <= max_orden` (cualquier división intermedia, inclusive) |
 
+> ⚠️ **De dónde sale la división de un compañero que todavía no está en la app.**
+> Al anotarse con alguien nuevo, esa persona se crea con la división del
+> **TORNEO** (`views.py`, `InscribirseConCompaneroView.form_valid`), no con la de
+> quien la anota.
+>
+> Antes se copiaba la de quien anotaba, y eso rebotaba inscripciones válidas: la
+> pareja quedaba "pura" (las dos en la misma división) y la regla de pura sólo
+> permite ±1, así que una jugadora de Octava no podía anotar a nadie en un torneo
+> de Sexta. La app inventaba un dato y después rechazaba con ese dato inventado.
+> Con la división del torneo la pareja queda "mixta" y el torneo cae siempre
+> dentro del rango. Lo cubre
+> `torneos.tests.InscripcionDirectaTests.test_anota_a_alguien_nuevo_aunque_su_division_este_lejos`.
+
 #### 4.3 Zonas: creación → poblado → partidos
 
 **`iniciar_torneo_logica`** (`views.py:407-452`) — PASO 1:

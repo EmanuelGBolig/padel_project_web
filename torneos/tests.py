@@ -3129,6 +3129,66 @@ class InscripcionDirectaTests(TestCase):
         self.assertFalse(creado.is_active, "No deberia poder loguear todavia")
         self.assertTrue(Inscripcion.objects.filter(torneo=self.torneo).exists())
 
+    def test_anota_a_alguien_nuevo_aunque_su_division_este_lejos(self):
+        """Caso real: una jugadora de Octava quiso anotarse a un torneo de Sexta
+        con una companera que NO estaba en la app, y la app la rechazo por
+        "diferencia de divisiones".
+
+        El motivo era que a la companera nueva se le copiaba la division de
+        quien se anotaba: la pareja quedaba "pura" (las dos en Octava) y la
+        regla de pareja pura solo permite +-1 division. O sea, la app inventaba
+        un dato y despues rechazaba con ese dato inventado.
+
+        Ahora la companera nueva toma la division del TORNEO, que es lo unico
+        que sabemos de ella.
+        """
+        octava = Division.objects.create(nombre="Octava", orden=8)
+        lejana = User.objects.create_user(
+            email="lejana@dir.com", password="x", nombre="Rosana",
+            apellido="Vazquez", division=octava, genero="FEMENINO")
+
+        self.client.force_login(lejana)
+        resp = self.client.post(self._url(), {
+            "modo": "nuevo", "nombre": "Companera", "apellido": "Nueva",
+            "telefono": "+54 9 2235 25-4411"})
+
+        self.assertIn(resp.status_code, (301, 302),
+                      "Rebotó una inscripción que tenía que entrar")
+        creada = User.objects.filter(apellido="Nueva").first()
+        self.assertIsNotNone(creada, "No se creó la compañera")
+        self.assertEqual(
+            creada.division_id, self.division.pk,
+            "La compañera nueva tiene que quedar en la división del torneo, "
+            "no en la de quien la anota")
+        self.assertTrue(
+            Inscripcion.objects.filter(torneo=self.torneo).exists(),
+            "No quedó inscripta la pareja")
+
+    def test_si_las_dos_tienen_cuenta_el_error_dice_las_divisiones(self):
+        # Cuando las dos ya estan en la app y de verdad no pueden jugar juntas,
+        # el mensaje tiene que decir por que y que hacer.
+        #
+        # Ojo con el caso: una pareja MIXTA (una de Tercera + una de Octava) SI
+        # puede jugar Sexta, porque el torneo queda entre las dos divisiones. La
+        # que rebota es la pareja PURA lejos del torneo: dos de Octava en un
+        # torneo de Sexta son dos divisiones de diferencia y la regla permite una.
+        octava = Division.objects.create(nombre="Octava", orden=8)
+        una = User.objects.create_user(
+            email="una@dir.com", password="x", nombre="Una", apellido="Baja",
+            division=octava, genero="FEMENINO")
+        otra = User.objects.create_user(
+            email="dos@dir.com", password="x", nombre="Dos", apellido="Baja",
+            division=octava, genero="FEMENINO")
+
+        self.client.force_login(una)
+        resp = self.client.post(self._url(), {
+            "modo": "existente", "companero": otra.pk}, follow=True)
+        cuerpo = resp.content.decode()
+        # El mensaje nombra el torneo, las divisiones de las dos y que hacer.
+        self.assertIn("Sexta", cuerpo)
+        self.assertIn("Octava", cuerpo)
+        self.assertIn("perfil", cuerpo)
+
     def test_no_duplica_a_alguien_que_ya_esta_por_telefono(self):
         """Si el telefono ya existe, se usa esa cuenta en vez de crear otra."""
         self.otro.numero_telefono = "+5492235557788"

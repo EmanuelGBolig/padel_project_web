@@ -57,6 +57,11 @@ def crear_companero_sin_cuenta(nombre, apellido, telefono, division, genero=''):
 
     Queda como dummy (no puede loguear) hasta que reclame la cuenta con el link
     que se le manda por WhatsApp.
+
+    `division` tiene que ser la del TORNEO, no la de quien lo anota: de esa
+    persona no sabemos nada, y lo único cierto es el torneo que va a jugar.
+    Copiando la del que anota, la pareja quedaba "pura" y la regla de división
+    (±1 para parejas puras) rebotaba inscripciones perfectamente válidas.
     """
     User = get_user_model()
     return User.objects.create(
@@ -124,10 +129,16 @@ def inscribir_con_companero(usuario, torneo, companero, categoria=None):
         equipo.save()   # asigna nombre, división y ordena los FKs
 
         if not es_division_permitida(equipo, torneo):
+            # El mensaje nombra las divisiones y dice qué hacer: el anterior
+            # ("por la diferencia de divisiones entre ustedes") dejaba a la
+            # jugadora sin saber cuál era el problema ni cómo resolverlo.
+            d1 = usuario.division.nombre if usuario.division else "sin división"
+            d2 = companero.division.nombre if companero.division else "sin división"
             raise InscripcionError(
-                f"La pareja no puede jugar un torneo de "
-                f"{torneo.division.nombre if torneo.division else 'esta categoría'} "
-                "por la diferencia de divisiones entre ustedes."
+                f"Este torneo es de {torneo.division.nombre}, y vos figurás en "
+                f"{d1} y tu compañero/a en {d2}. Una pareja puede jugar hasta "
+                f"una división por encima o por debajo. Si tu división está mal "
+                f"cargada, corregila en tu perfil y volvé a intentar."
             )
 
         # Re-chequeo del cupo bajo lock: entre la validación y acá pudo entrar otro.
