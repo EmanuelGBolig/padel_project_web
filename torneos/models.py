@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.conf import settings
 from django.db.models import F
@@ -58,6 +60,12 @@ class ResolucionPartido(models.TextChoices):
     NORMAL = 'N', 'Normal'
     WALKOVER = 'W', 'Walkover (no se presentó)'
     ABANDONO = 'A', 'Abandono (se retiró)'
+
+
+# Para Torneo.premio_detalle: cada medalla abre un grupo de premios y los ítems
+# vienen separados por asteriscos, viñetas, punto y coma o barras.
+_MEDALLA_PREMIO = re.compile(r'(?=[🥇🥈🥉🏅🏆])')
+_SEPARADOR_PREMIO = re.compile(r'[*∗•;|\n]+')
 
 
 # --- NO IMPORTAR .models AQUÍ ---
@@ -171,6 +179,36 @@ class Torneo(models.Model):
     sede_direccion = models.CharField(max_length=255, blank=True)
     premio = models.CharField(max_length=255, blank=True, help_text="Ej: Trofeos + $100.000 + indumentaria.")
     reglamento = models.TextField(blank=True, help_text="Reglas del torneo (texto libre).")
+
+    @property
+    def premio_detalle(self):
+        """El premio partido en grupos, para mostrarlo como lista en la ficha.
+
+        `premio` es un input de una sola línea, así que los organizadores arman la
+        lista con asteriscos y medallas:
+            "PREMIOS 🥇 CAMPEONES * Remera * Trofeo 🥈 SUBCAMPEONES * Remera"
+        Mostrado tal cual salía un párrafo corrido imposible de leer. Esto devuelve
+            [{'titulo': '🥇 CAMPEONES', 'items': ['Remera', 'Trofeo']},
+             {'titulo': '🥈 SUBCAMPEONES', 'items': ['Remera']}]
+        Cada medalla abre un grupo; lo que va antes de la primera medalla es un
+        grupo sin título. Un premio simple ("Trofeos + indumentaria") vuelve como
+        un único grupo sin título con un único ítem.
+        """
+        grupos = []
+        for tramo in _MEDALLA_PREMIO.split(self.premio or ''):
+            partes = [p.strip() for p in _SEPARADOR_PREMIO.split(tramo) if p.strip()]
+            if not partes:
+                continue
+            if _MEDALLA_PREMIO.match(tramo.lstrip()):
+                grupos.append({'titulo': partes[0], 'items': partes[1:]})
+            else:
+                grupos.append({'titulo': '', 'items': partes})
+        # "PREMIOS" suelto antes de la primera medalla es un rótulo, no un premio:
+        # el bloque de la ficha ya tiene su propio título.
+        if (len(grupos) > 1 and not grupos[0]['titulo']
+                and [i.rstrip(':').lower() for i in grupos[0]['items']] in (['premios'], ['premio'])):
+            grupos.pop(0)
+        return grupos
 
     # Si se agregó/editó una zona a mano (torneo ya iniciado), la estructura deja de
     # coincidir con get_format(cupos) -> el bracket debe usar la lógica genérica.

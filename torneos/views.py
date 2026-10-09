@@ -2164,6 +2164,22 @@ class TorneoDetailView(DetailView):
                 context['mi_inscripcion'] = Inscripcion.objects.filter(
                     torneo=torneo, equipo=equipo_usuario
                 ).first()
+        # "Cómo pagar la inscripción" sirve mientras la inscripción está abierta.
+        # Con el torneo ya en juego solo le importa a la pareja que todavía debe
+        # (paga en la sede o lo transfiere ese día), y terminado, a nadie: antes el
+        # cartel quedaba para siempre arriba de las zonas y la llave.
+        mi_inscripcion = context['mi_inscripcion']
+        context['mostrar_datos_pago'] = (
+            torneo.requiere_pago
+            and torneo.organizacion is not None
+            and torneo.organizacion.tiene_datos_de_cobro
+            and (
+                torneo.estado == Torneo.Estado.ABIERTO
+                or (torneo.estado == Torneo.Estado.EN_JUEGO
+                    and mi_inscripcion is not None
+                    and not mi_inscripcion.pago_al_dia)
+            )
+        )
         # Placa de campeones para el botón "Descargar placa" (None si no aplica).
         from .social import placa_campeones_url
         context['placa_url'] = placa_campeones_url(torneo)

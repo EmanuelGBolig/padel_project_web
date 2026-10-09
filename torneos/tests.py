@@ -1796,6 +1796,91 @@ class DatosDePagoTests(TestCase):
         self.assertIn("Cómo pagar la inscripción", html)
         self.assertNotIn("para reservar el lugar", html)
 
+    def _pareja_inscripta(self, estado_pago):
+        j1 = User.objects.create_user(
+            email="paga1@test.com", password="x", nombre="Ana", apellido="Paga",
+            division=self.division)
+        j2 = User.objects.create_user(
+            email="paga2@test.com", password="x", nombre="Bea", apellido="Debe",
+            division=self.division)
+        equipo = Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+        Inscripcion.objects.create(torneo=self.torneo, equipo=equipo, estado_pago=estado_pago)
+        return j1
+
+    def test_en_juego_el_publico_ya_no_ve_el_cartel(self):
+        """Arrancado el torneo, el cartel de pago tapaba zonas y llave sin servirle a nadie."""
+        self.torneo.estado = Torneo.Estado.EN_JUEGO
+        self.torneo.save()
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertNotIn("Cómo pagar la inscripción", resp.content.decode())
+
+    def test_en_juego_lo_sigue_viendo_la_pareja_que_debe(self):
+        jugador = self._pareja_inscripta("PE")
+        self.torneo.estado = Torneo.Estado.EN_JUEGO
+        self.torneo.save()
+        self.client.force_login(jugador)
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertIn("Cómo pagar la inscripción", resp.content.decode())
+
+    def test_en_juego_no_lo_ve_la_pareja_que_ya_pago(self):
+        jugador = self._pareja_inscripta("PA")
+        self.torneo.estado = Torneo.Estado.EN_JUEGO
+        self.torneo.save()
+        self.client.force_login(jugador)
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertNotIn("Cómo pagar la inscripción", resp.content.decode())
+
+    def test_finalizado_no_se_muestra(self):
+        self.torneo.estado = Torneo.Estado.FINALIZADO
+        self.torneo.save()
+        resp = self.client.get(reverse("torneos:detail", kwargs={"pk": self.torneo.pk}))
+        self.assertNotIn("Cómo pagar la inscripción", resp.content.decode())
+
+
+class PremioDetalleTests(TestCase):
+    """El premio se escribe en una línea con asteriscos y medallas; la ficha lo lista."""
+
+    PREMIO_REAL = (
+        "PREMIOS 🥇 CAMPEONES ∗ Remera Snauwaert ∗ Short o pollera Snauwaert ∗ "
+        "Trofeo 3D campeón ∗ Grips 🥈 SUBCAMPEONES ∗ Remera Snauwaert ∗ "
+        "Trofeo 3D subcampeón ∗ Grip"
+    )
+
+    def test_cada_medalla_abre_un_grupo(self):
+        grupos = Torneo(premio=self.PREMIO_REAL).premio_detalle
+        self.assertEqual([g["titulo"] for g in grupos], ["🥇 CAMPEONES", "🥈 SUBCAMPEONES"])
+        self.assertEqual(grupos[0]["items"], [
+            "Remera Snauwaert", "Short o pollera Snauwaert", "Trofeo 3D campeón", "Grips"])
+        self.assertEqual(grupos[1]["items"], ["Remera Snauwaert", "Trofeo 3D subcampeón", "Grip"])
+
+    def test_el_rotulo_premios_suelto_se_descarta(self):
+        grupos = Torneo(premio=self.PREMIO_REAL).premio_detalle
+        self.assertNotIn("PREMIOS", [i for g in grupos for i in g["items"]])
+
+    def test_premio_simple_queda_entero(self):
+        grupos = Torneo(premio="Trofeos + $100.000 + indumentaria").premio_detalle
+        self.assertEqual(grupos, [{"titulo": "", "items": ["Trofeos + $100.000 + indumentaria"]}])
+
+    def test_lista_sin_medallas(self):
+        grupos = Torneo(premio="Trofeo * Remera • Grip").premio_detalle
+        self.assertEqual(grupos, [{"titulo": "", "items": ["Trofeo", "Remera", "Grip"]}])
+
+    def test_sin_premio(self):
+        self.assertEqual(Torneo(premio="").premio_detalle, [])
+
+    @override_settings(STORAGES=TEST_STORAGES)
+    def test_la_ficha_lo_muestra_como_lista(self):
+        torneo = Torneo.objects.create(
+            nombre="Copa Premios", estado=Torneo.Estado.ABIERTO, cupos_totales=8,
+            fecha_inicio=timezone.now().date() + timedelta(days=10),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=5),
+            premio=self.PREMIO_REAL,
+        )
+        html = self.client.get(reverse("torneos:detail", kwargs={"pk": torneo.pk})).content.decode()
+        self.assertIn("🥈 SUBCAMPEONES", html)
+        self.assertIn("<span class=\"min-w-0\">Trofeo 3D subcampeón</span>", html)
+        self.assertNotIn("∗", html)
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class OrganizadorEditaDatosDePagoTests(TestCase):
