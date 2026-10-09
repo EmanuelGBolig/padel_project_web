@@ -33,7 +33,7 @@
                                         </span>
                                     </div>
                                     {% if partido.fecha_hora %}
-                                        <div class="text-xs text-center mt-1 opacity-70 font-mono">{{ partido.fecha_hora|date:"d/m H:i" }}</div>
+                                        <div class="text-xs text-center mt-1 opacity-70 font-mono">{{ partido.fecha_hora|date:"d/m H:i" }}{% if partido.cancha %} · Cancha {{ partido.cancha }}{% endif %}</div>
                                     {% endif %}
                                     {% if partido.ganador %}
                                         <div class="text-xs text-center mt-1 text-primary font-bold">{{ partido.resultado }}</div>

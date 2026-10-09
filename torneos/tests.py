@@ -3532,3 +3532,166 @@ class AltaSinCuentaTests(TestCase):
         self.assertIn("p@m.com", msg)
         self.assertIn("pedro4821", msg)
         self.assertIn(self.torneo.nombre, msg)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PantallaClubTests(TestCase):
+    """Pantalla del club para TV (/tv/<alias>/): canchas, próximos, resultados, llave."""
+
+    contador = 0
+
+    def _pareja(self):
+        PantallaClubTests.contador += 1
+        n = PantallaClubTests.contador
+        j1 = User.objects.create_user(email=f"tv{n}a@test.com", password="x",
+                                      nombre=f"N{n}", apellido=f"Uno{n}", division=self.division)
+        j2 = User.objects.create_user(email=f"tv{n}b@test.com", password="x",
+                                      nombre=f"N{n}", apellido=f"Dos{n}", division=self.division)
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def _torneo(self, nombre, org, estado=Torneo.Estado.EN_JUEGO):
+        return Torneo.objects.create(
+            nombre=nombre, organizacion=org, estado=estado, cupos_totales=8,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() - timedelta(days=1))
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.ahora = timezone.now()
+        self.division = Division.objects.create(nombre="Quinta", orden=5)
+        self.org = Organizacion.objects.create(nombre="Club TV", alias="club-tv")
+        self.torneo = self._torneo("Apertura 5ta", self.org)
+        self.grupo = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        self.e = [self._pareja() for _ in range(3)]
+        for i, e in enumerate(self.e, 1):
+            EquipoGrupo.objects.create(grupo=self.grupo, equipo=e, numero=i)
+        # Cancha 1: uno que empezó hace 20', otro a las +40' y otro a las +100'.
+        self.jugandose = self._zona(0, 1, cancha="1", minutos=-20)
+        self.siguiente = self._zona(1, 2, cancha="1", minutos=40)
+        self.ultimo = self._zona(0, 2, cancha="1", minutos=100)
+
+    def _zona(self, a, b, cancha="", minutos=None):
+        return PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.e[a], equipo2=self.e[b], cancha=cancha,
+            fecha_hora=self.ahora + timedelta(minutes=minutos) if minutos is not None else None)
+
+    def _cargar(self, pg):
+        pg.e1_set1, pg.e2_set1, pg.e1_set2, pg.e2_set2 = 6, 3, 6, 4
+        pg.e1_sets_ganados, pg.e2_sets_ganados = 2, 0
+        pg.ganador = pg.equipo1
+        pg.save()
+
+    def _cancha(self, nombre, **kwargs):
+        from .pantalla import armar_pantalla
+        datos = armar_pantalla(self.org, ahora=kwargs.get("ahora", self.ahora))
+        return next(c for c in datos["canchas"] if c.nombre == nombre)
+
+    def test_responde_sin_login(self):
+        resp = self.client.get(reverse("pantalla_club", kwargs={"alias": "club-tv"}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("Club TV", html)
+        self.assertIn("En cancha ahora", html)
+        self.assertIn("no-store", resp["Cache-Control"])
+
+    def test_alias_inexistente_da_404(self):
+        resp = self.client.get(reverse("pantalla_club", kwargs={"alias": "no-existe"}))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_en_juego_es_el_primer_pendiente_cuya_hora_ya_llego(self):
+        cancha = self._cancha("1")
+        self.assertEqual(cancha.en_juego.pk, self.jugandose.pk)
+        self.assertEqual(cancha.proximo.pk, self.siguiente.pk)
+
+    def test_al_cargar_el_resultado_la_cancha_pasa_al_siguiente(self):
+        self._cargar(self.jugandose)
+        cancha = self._cancha("1")
+        self.assertIsNone(cancha.en_juego)                       # el que sigue es a las +40'
+        self.assertEqual(cancha.recien_terminado.pk, self.jugandose.pk)
+        self.assertEqual(cancha.proximo.pk, self.siguiente.pk)
+        # Llegada la hora del siguiente, pasa a estar en juego.
+        cancha = self._cancha("1", ahora=self.ahora + timedelta(minutes=45))
+        self.assertEqual(cancha.en_juego.pk, self.siguiente.pk)
+
+    def test_un_partido_olvidado_no_tapa_la_cancha_para_siempre(self):
+        self.jugandose.fecha_hora = self.ahora - timedelta(hours=8)
+        self.jugandose.save()
+        cancha = self._cancha("1", ahora=self.ahora + timedelta(minutes=45))
+        self.assertEqual(cancha.en_juego.pk, self.siguiente.pk)
+
+    def test_orden_natural_de_canchas(self):
+        from .pantalla import orden_natural_cancha
+        self.assertEqual(sorted(["10", "Central", "2", "1"], key=orden_natural_cancha),
+                         ["1", "2", "10", "Central"])
+
+    def test_no_muestra_torneos_de_otra_organizacion(self):
+        from accounts.models import Organizacion
+        otra = Organizacion.objects.create(nombre="Otro Club", alias="otro-club")
+        ajeno = self._torneo("Torneo Ajeno", otra)
+        g = Grupo.objects.create(torneo=ajeno, nombre="Zona A")
+        PartidoGrupo.objects.create(grupo=g, equipo1=self._pareja(), equipo2=self._pareja(),
+                                    cancha="9", fecha_hora=self.ahora - timedelta(minutes=5))
+        html = self.client.get(reverse("pantalla_club", kwargs={"alias": "club-tv"})).content.decode()
+        self.assertNotIn("Torneo Ajeno", html)
+        self.assertNotIn("Cancha 9", html)
+
+    def test_parcial_devuelve_solo_las_placas(self):
+        resp = self.client.get(reverse("pantalla_club", kwargs={"alias": "club-tv"}) + "?parcial=1")
+        html = resp.content.decode()
+        self.assertNotIn("<html", html)
+        self.assertIn('data-clave="canchas-1"', html)
+
+    def test_solo_deja_las_placas_pedidas(self):
+        self._cargar(self.jugandose)
+        resp = self.client.get(reverse("pantalla_club", kwargs={"alias": "club-tv"}) + "?solo=canchas")
+        html = resp.content.decode()
+        self.assertIn('data-clave="canchas-1"', html)
+        self.assertNotIn('data-clave="resultados-1"', html)
+
+    def test_finalizado_en_se_sella_al_cargar_y_no_se_mueve_al_corregir(self):
+        self.assertIsNone(self.jugandose.finalizado_en)
+        self._cargar(self.jugandose)
+        sellado = self.jugandose.finalizado_en
+        self.assertIsNotNone(sellado)
+        self.jugandose.ganador = self.jugandose.equipo2       # corrección del resultado
+        self.jugandose.save()
+        self.assertEqual(self.jugandose.finalizado_en, sellado)
+        self.jugandose.ganador = None                         # se borra el resultado
+        self.jugandose.save()
+        self.assertIsNone(self.jugandose.finalizado_en)
+
+    def test_al_ganarse_la_final_aparece_el_campeon(self):
+        torneo = self._torneo("Damas B", self.org)
+        final = Partido.objects.create(torneo=torneo, ronda=1, orden_partido=1,
+                                       equipo1=self.e[0], equipo2=self.e[1])
+        final.ganador = self.e[0]
+        final.save()
+        torneo.refresh_from_db()
+        self.assertEqual(torneo.estado, Torneo.Estado.FINALIZADO)
+        html = self.client.get(reverse("pantalla_club", kwargs={"alias": "club-tv"})).content.decode()
+        self.assertIn("¡Tenemos campeón!", html)
+        self.assertIn(self.e[0].nombre, html)
+
+    def test_programar_guarda_la_cancha_sin_la_palabra_cancha(self):
+        from .forms import PartidoGrupoScheduleForm
+        form = PartidoGrupoScheduleForm(
+            data={"fecha_hora": "2026-10-10T18:30", "cancha": "  Cancha 3 "}, instance=self.ultimo)
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        self.ultimo.refresh_from_db()
+        self.assertEqual(self.ultimo.cancha, "3")
+        # Las canchas ya usadas por el club se sugieren al programar.
+        self.assertEqual(PartidoGrupoScheduleForm(instance=self.ultimo).canchas_usadas, ["1", "3"])
+
+    def test_abrir_y_guardar_el_modal_no_corre_la_hora(self):
+        """El input precargaba la hora en UTC: guardar sin tocar nada sumaba 3 horas."""
+        from .forms import PartidoGrupoScheduleForm
+        self.ultimo.refresh_from_db()                 # como viene de la base: en UTC
+        antes = self.ultimo.fecha_hora.replace(second=0, microsecond=0)
+        inicial = PartidoGrupoScheduleForm(instance=self.ultimo).initial["fecha_hora"]
+        self.assertEqual(inicial, timezone.localtime(antes).strftime("%Y-%m-%dT%H:%M"))
+        form = PartidoGrupoScheduleForm(data={"fecha_hora": inicial, "cancha": "2"}, instance=self.ultimo)
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        self.ultimo.refresh_from_db()
+        self.assertEqual(self.ultimo.fecha_hora, antes)

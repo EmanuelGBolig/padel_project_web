@@ -1,0 +1,456 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>TV · {{ organizacion.nombre }} | TodoPadel</title>
+    <link rel="icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+    {% comment %}
+        Página pensada para la TV del club (ver "Pantalla del club (TV)" en ARQUITECTURA.md).
+        No extiende base.html y no usa Tailwind/DaisyUI a propósito:
+        - DaisyUI define los colores en oklch, que los navegadores de muchas Smart TV
+          (Chromium viejo de Tizen/webOS) no entienden: la pantalla quedaría sin colores.
+          Acá todo va en hex.
+        - Todo se mide en rem y el rem sale de la ALTURA de la pantalla: se ve igual en
+          720p, 1080p o 4K, a 4 metros de distancia.
+        - Nada de flex gap, aspect-ratio, :has ni optional chaining en el JS: no existen
+          en esos navegadores. Las grillas sí (Chromium 57+), con grid-gap y gap.
+    {% endcomment %}
+    <style>
+        :root {
+            --fondo: #0b1116; --panel: #121b23; --panel-2: #182430; --borde: #23323f;
+            --texto: #eef3f7; --tenue: #8fa1b2; --verde: #10b981; --verde-suave: #0f3a2e;
+            --rojo: #ff5861; --oro: #fbbf24;
+        }
+        html { font-size: 1.7vh; }
+        @supports (font-size: min(1vh, 1vw)) { html { font-size: min(1.7vh, 0.95vw); } }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; background: var(--fondo); color: var(--texto); overflow: hidden; }
+        body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-weight: 500; }
+        body.quieto, body.quieto * { cursor: none !important; }
+        .tv { display: flex; flex-direction: column; height: 100vh; padding: 1.4rem 2rem 0; }
+
+        /* --- Cabecera --- */
+        .tv-cabecera { display: flex; align-items: center; flex: 0 0 auto; padding-bottom: 1rem; border-bottom: 1px solid var(--borde); }
+        .tv-logo { height: 3.6rem; width: 3.6rem; object-fit: contain; border-radius: .8rem; background: #fff; padding: .25rem; margin-right: 1.2rem; }
+        .tv-club { flex: 1 1 auto; min-width: 0; }
+        .tv-nombre { font-size: 2rem; font-weight: 900; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tv-torneos { color: var(--tenue); font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .15rem; }
+        .tv-vivo { display: flex; align-items: center; color: var(--rojo); font-weight: 900; letter-spacing: .15em; font-size: 1.1rem; margin: 0 2rem; }
+        .tv-reloj { font-size: 2.6rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+        .punto { display: inline-block; width: .8em; height: .8em; border-radius: 50%; background: var(--rojo); margin-right: .5em; animation: latido 1.4s ease-in-out infinite; }
+        @keyframes latido { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
+
+        /* --- Placas --- */
+        .tv-placas { flex: 1 1 auto; position: relative; min-height: 0; }
+        .placa { display: none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; flex-direction: column; padding-top: 1.2rem; }
+        .placa.activa { display: flex; animation: entrar .6s ease-out; }
+        @keyframes entrar { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: none; } }
+        .placa-cabecera { display: flex; align-items: baseline; flex: 0 0 auto; margin-bottom: 1rem; }
+        .placa-cabecera h2 { margin: 0; font-size: 2.4rem; font-weight: 900; letter-spacing: -.02em; }
+        .placa-sub { margin-left: 1rem; color: var(--tenue); font-size: 1.2rem; }
+        .placa-pie { flex: 0 0 auto; text-align: center; color: var(--tenue); font-size: 1.3rem; margin: 1rem 0 0; }
+        .grilla { flex: 1 1 auto; min-height: 0; display: grid; grid-gap: 1.2rem; gap: 1.2rem; grid-auto-rows: 1fr; padding-bottom: 1.2rem; }
+        .tenue { color: var(--tenue); }
+
+        /* Marcador (parejas + sets), usado en todas las placas */
+        .marcador { position: relative; }
+        .m-fila { display: flex; align-items: center; padding: .25em 0; }
+        .m-fila .pareja { flex: 1 1 auto; min-width: 0; font-weight: 700; line-height: 1.15; overflow-wrap: break-word; }
+        .m-fila .set { flex: 0 0 auto; width: 1.7em; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; background: var(--panel-2); border-radius: .3em; margin-left: .3em; padding: .1em 0; }
+        .m-fila.gano .pareja { color: var(--verde); font-weight: 900; }
+        .m-fila .set.set-ganado { background: var(--verde-suave); color: var(--verde); }
+        .m-fila.perdio { color: var(--tenue); }
+        .m-nota { display: inline-block; margin-top: .3em; font-size: .75em; font-weight: 800; color: #1a1300; background: var(--oro); border-radius: .3em; padding: .1em .5em; }
+
+        /* Canchas */
+        .grilla-canchas.n1 { grid-template-columns: 1fr; }
+        .grilla-canchas.n2, .grilla-canchas.n4 { grid-template-columns: 1fr 1fr; }
+        .grilla-canchas.n3, .grilla-canchas.n5, .grilla-canchas.n6 { grid-template-columns: 1fr 1fr 1fr; }
+        .grilla-canchas.n7, .grilla-canchas.n8 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .cancha { display: flex; flex-direction: column; background: var(--panel); border: 2px solid var(--borde); border-radius: 1.2rem; padding: 1.2rem 1.4rem; font-size: 1.5rem; min-height: 0; overflow: hidden; }
+        .grilla-canchas.n1 .cancha, .grilla-canchas.n2 .cancha { font-size: 2.1rem; }
+        .grilla-canchas.n7 .cancha, .grilla-canchas.n8 .cancha { font-size: 1.2rem; padding: 1rem; }
+        .cancha.en-juego { border-color: #6b2a2e; background: linear-gradient(180deg, #1d1518 0%, var(--panel) 45%); }
+        .cancha.termino { border-color: #1d5a46; }
+        .cancha-cabecera { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5em; }
+        .cancha-nombre { font-size: 1.25em; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
+        .estado { font-size: .65em; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; border-radius: 99em; padding: .35em .8em; white-space: nowrap; display: flex; align-items: center; }
+        .estado-vivo { color: var(--rojo); background: #3a1a1d; }
+        .estado-termino { color: var(--verde); background: var(--verde-suave); }
+        .estado-libre { color: var(--tenue); background: var(--panel-2); }
+        .cancha-fase { color: var(--tenue); font-size: .75em; margin-bottom: .4em; }
+        .cancha-fase b { color: var(--texto); }
+        .cancha-proximo-hora { font-size: .8em; font-weight: 800; color: var(--oro); margin-bottom: .2em; }
+        .cancha .marcador { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+        .cancha.libre .marcador { color: var(--tenue); }
+        .cancha-despues { border-top: 1px solid var(--borde); margin-top: .6em; padding-top: .5em; font-size: .7em; color: var(--tenue); display: flex; flex-direction: column; }
+        .despues-hora { font-weight: 800; color: var(--oro); text-transform: uppercase; letter-spacing: .08em; font-size: .85em; }
+        .despues-parejas { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .despues-parejas i { font-style: normal; opacity: .6; }
+
+        /* Próximos y resultados: 2 columnas x 4 renglones */
+        .grilla-partidos { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); }
+        .tarjeta { display: flex; align-items: center; background: var(--panel); border: 1px solid var(--borde); border-radius: 1rem; padding: .8rem 1.4rem; font-size: 1.7rem; min-height: 0; overflow: hidden; }
+        .tarjeta-hora { flex: 0 0 auto; width: 5.4em; display: flex; flex-direction: column; align-items: flex-start; margin-right: 1em; }
+        .tarjeta-hora .hora { font-size: 1.6em; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+        .tarjeta-hora .dia { font-size: .7em; color: var(--tenue); text-transform: capitalize; margin-top: .2em; }
+        .chip-cancha { margin-top: .35em; font-size: .7em; font-weight: 800; color: var(--verde); background: var(--verde-suave); border-radius: .4em; padding: .15em .5em; white-space: nowrap; }
+        .tarjeta-cuerpo { flex: 1 1 auto; min-width: 0; }
+        .tarjeta-fase { font-size: .72em; color: var(--tenue); margin-bottom: .15em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tarjeta-fase b { color: var(--texto); }
+        .tarjeta .m-fila { padding: .1em 0; }
+
+        /* Zonas */
+        .grilla-zonas.n1, .grilla-zonas.n2, .grilla-zonas.n4 { grid-template-columns: 1fr 1fr; }
+        .grilla-zonas.n3, .grilla-zonas.n5, .grilla-zonas.n6 { grid-template-columns: 1fr 1fr 1fr; }
+        .zona { background: var(--panel); border: 1px solid var(--borde); border-radius: 1rem; padding: 1rem 1.2rem; font-size: 1.35rem; min-height: 0; overflow: hidden; }
+        .grilla-zonas.n1 .zona, .grilla-zonas.n2 .zona { font-size: 1.9rem; }
+        .grilla-zonas.n3 .zona, .grilla-zonas.n4 .zona { font-size: 1.65rem; }
+        .zona h3 { margin: 0 0 .4em; font-size: 1.3em; font-weight: 900; }
+        .zona table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+        .zona th { font-size: .7em; color: var(--tenue); font-weight: 700; text-transform: uppercase; padding: .2em .3em; text-align: center; }
+        .zona td { text-align: center; padding: .4em .3em; border-top: 1px solid var(--borde); }
+        .zona .izq { text-align: left; }
+        .zona td.pareja { font-weight: 700; overflow-wrap: break-word; }
+        .zona td.fuerte { font-weight: 900; }
+        .zona tr.clasifica td { color: var(--verde); }
+        .zona tr.clasifica td:first-child { box-shadow: inset .25em 0 0 var(--verde); }
+
+        /* Llave: se escala con JS para que entre entera */
+        .llave-marco { flex: 1 1 auto; position: relative; min-height: 0; margin-bottom: 1.2rem; overflow: hidden; }
+        .llave { position: absolute; top: 0; left: 0; display: flex; transform-origin: 0 0; }
+        .llave-lineas { position: absolute; top: 0; left: 0; z-index: 0; overflow: visible; }
+        .llave-col { position: static; display: flex; flex-direction: column; width: 19rem; margin-right: 3.2rem; }
+        .llave-col:last-child { margin-right: 0; }
+        .llave-ronda { flex: 0 0 auto; text-align: center; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--tenue); margin-bottom: .6rem; }
+        .llave-partidos { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-around; }
+        .llave-partido { position: relative; z-index: 1; background: var(--panel); border: 1px solid var(--borde); border-radius: .7rem; padding: .35rem .7rem; margin: .35rem 0; font-size: 1.05rem; }
+        .llave-partido.jugado { border-color: #1d5a46; }
+        .llave-partido.jugandose { border-color: #8a3439; background: #1d1518; }
+        .llave-vivo { font-size: .72em; color: var(--rojo); font-weight: 800; margin-top: .15em; text-transform: uppercase; letter-spacing: .08em; display: flex; align-items: center; }
+        .llave-partido .m-fila { padding: .12em 0; }
+        .llave-partido .pareja { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .llave-hora { font-size: .72em; color: var(--oro); font-weight: 700; margin-top: .15em; text-transform: capitalize; }
+
+        /* Campeones */
+        .campeones { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
+        .campeon { text-align: center; margin: 1rem 2rem; max-width: 40rem; }
+        .campeon-copa { font-size: 7rem; line-height: 1; animation: latido 2.4s ease-in-out infinite; }
+        .campeon-torneo { color: var(--tenue); font-size: 1.6rem; margin-top: 1rem; }
+        .campeon-pareja { color: var(--oro); font-size: 3.4rem; font-weight: 900; letter-spacing: -.02em; margin-top: .3rem; }
+        .campeones.n1 .campeon-pareja { font-size: 4.6rem; }
+
+        /* Inscripciones abiertas */
+        .grilla-inscripcion.n1 { grid-template-columns: 1fr; }
+        .grilla-inscripcion.n2, .grilla-inscripcion.n3, .grilla-inscripcion.n4 { grid-template-columns: 1fr 1fr; }
+        .inscripcion { display: flex; align-items: center; background: var(--panel); border: 1px solid var(--borde); border-radius: 1.2rem; padding: 1.4em; font-size: 1rem; min-height: 0; overflow: hidden; }
+        .grilla-inscripcion.n1 .inscripcion { justify-content: center; font-size: 1.7rem; }
+        .grilla-inscripcion.n2 .inscripcion { font-size: 1.3rem; }
+        .inscripcion .qr { flex: 0 0 auto; width: 11em; height: 11em; background: #fff; border-radius: .8em; padding: .6em; margin-right: 1.6em; }
+        .inscripcion h3 { margin: 0 0 .4em; font-size: 2em; font-weight: 900; }
+        .inscripcion p { margin: .2em 0; font-size: 1.3em; color: var(--tenue); }
+        .inscripcion p:first-letter { text-transform: uppercase; }
+        .inscripcion .cupos { color: var(--verde); font-weight: 800; }
+        .qr img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+        /* Sponsors */
+        .grilla-sponsors { grid-template-columns: 1fr 1fr 1fr; }
+        .grilla-sponsors.n1 { grid-template-columns: 1fr; }
+        .grilla-sponsors.n2, .grilla-sponsors.n4 { grid-template-columns: 1fr 1fr; }
+        .grilla-sponsors.n7, .grilla-sponsors.n8 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .sponsor { background: #fff; border-radius: 1.2rem; display: flex; align-items: center; justify-content: center; padding: 1.5rem; min-height: 0; overflow: hidden; }
+        .sponsor img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* Sin nada que mostrar */
+        .vacia { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 2rem; }
+        .vacia p { margin: .3rem 0; }
+        .vacia-logo { height: 10rem; width: 10rem; object-fit: contain; background: #fff; border-radius: 1.5rem; padding: .6rem; margin-bottom: 1.5rem; }
+
+        /* --- Pie --- */
+        .tv-pie { flex: 0 0 auto; display: flex; align-items: center; border-top: 1px solid var(--borde); padding: .8rem 0; }
+        .tv-qr { width: 4.2rem; height: 4.2rem; background: #fff; border-radius: .5rem; padding: .3rem; margin-right: 1rem; flex: 0 0 auto; }
+        .tv-celular { display: flex; flex-direction: column; font-size: 1.05rem; }
+        .tv-celular span { color: var(--tenue); }
+        .tv-indice { flex: 1 1 auto; display: flex; justify-content: center; }
+        .tv-indice span { width: .7rem; height: .7rem; border-radius: 50%; background: var(--borde); margin: 0 .3rem; }
+        .tv-indice span.activo { background: var(--verde); }
+        .tv-sin-conexion { color: var(--oro); font-weight: 700; font-size: 1rem; margin-right: 1rem; }
+        .tv-marca { color: var(--tenue); font-size: 1rem; font-weight: 800; }
+        .tv-marca b { color: var(--verde); }
+        .tv-pantalla-completa { font: inherit; font-size: 1rem; font-weight: 700; color: var(--texto); background: var(--panel-2); border: 1px solid var(--borde); border-radius: .6rem; padding: .5rem 1rem; margin-left: 1rem; cursor: pointer; }
+        .tv-pantalla-completa.tv-mandar { background: var(--verde); color: #04140e; border-color: var(--verde); }
+        .tv-pantalla-completa[hidden], body.quieto .tv-pantalla-completa, body.completa .tv-pantalla-completa { display: none; }
+        .tv-progreso { flex: 0 0 auto; height: .35rem; background: var(--panel); margin: 0 -2rem; }
+        .tv-progreso div { height: 100%; width: 0; background: var(--verde); }
+        @media (prefers-reduced-motion: reduce) {
+            .placa.activa, .punto, .campeon-copa { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="tv">
+        <header class="tv-cabecera">
+            {% if organizacion.logo %}<img class="tv-logo" src="{{ organizacion.logo.url }}" alt="">{% endif %}
+            <div class="tv-club">
+                <div class="tv-nombre">{{ organizacion.nombre }}</div>
+                {% if torneos %}
+                    <div class="tv-torneos">{% for t in torneos %}{{ t.nombre }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+                {% endif %}
+            </div>
+            {% if hay_en_vivo %}<div class="tv-vivo"><i class="punto"></i>EN VIVO</div>{% endif %}
+            <div class="tv-reloj" id="reloj" data-ahora="{{ ahora_ms }}" data-offset="{{ offset_min }}">{{ ahora|time:"H:i" }}</div>
+        </header>
+
+        <main class="tv-placas" id="placas" data-parcial="{{ url_parcial }}">
+            {% include "torneos/pantalla/_placas.html" %}
+        </main>
+
+        <footer class="tv-pie">
+            <div class="tv-qr qr" data-qr="{{ url_celular }}"></div>
+            <div class="tv-celular"><b>Seguilo desde el celu</b><span>Escaneá el código</span></div>
+            <div class="tv-indice" id="indice"></div>
+            <span class="tv-sin-conexion" id="sin-conexion" hidden>Sin conexión · mostrando lo último</span>
+            <span class="tv-marca">Todo<b>Padel</b></span>
+            <button class="tv-pantalla-completa tv-mandar" id="btn-tv" type="button" hidden>Mandar a la TV</button>
+            <button class="tv-pantalla-completa" id="btn-completa" type="button">Pantalla completa</button>
+        </footer>
+        <div class="tv-progreso"><div id="progreso"></div></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script>
+    (function () {
+        'use strict';
+        var placas = document.getElementById('placas');
+        var indice = document.getElementById('indice');
+        var progreso = document.getElementById('progreso');
+        var sinConexion = document.getElementById('sin-conexion');
+        var REFRESCO_MS = 30000;
+        var actual = -1, timer = null, pendiente = null, pausado = false;
+
+        function lista() { return Array.prototype.slice.call(placas.querySelectorAll('.placa')); }
+
+        function pintarQR(raiz) {
+            if (typeof qrcode !== 'function') return;
+            Array.prototype.forEach.call(raiz.querySelectorAll('[data-qr]'), function (el) {
+                if (el.firstChild) return;
+                try {
+                    var qr = qrcode(0, 'M');
+                    qr.addData(el.getAttribute('data-qr'));
+                    qr.make();
+                    el.innerHTML = qr.createImgTag(6, 0);
+                } catch (e) { /* sin QR la pantalla sigue andando */ }
+            });
+        }
+
+        function armarIndice() {
+            var n = lista().length;
+            indice.innerHTML = n > 1 ? new Array(n + 1).join('<span></span>') : '';
+        }
+
+        // --- Llave: escalarla para que entre entera y dibujar las líneas ---
+        function posicion(el, raiz) {
+            var x = 0, y = 0;
+            while (el && el !== raiz) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; }
+            return { x: x, y: y };
+        }
+
+        function dibujarLineas(llave) {
+            var svg = llave.querySelector('.llave-lineas');
+            svg.setAttribute('width', llave.offsetWidth);
+            svg.setAttribute('height', llave.offsetHeight);
+            var d = '';
+            Array.prototype.forEach.call(llave.querySelectorAll('[data-sig]'), function (a) {
+                var b = document.getElementById(a.getAttribute('data-sig'));
+                if (!b || !llave.contains(b)) return;
+                var pa = posicion(a, llave), pb = posicion(b, llave);
+                var x1 = pa.x + a.offsetWidth, y1 = pa.y + a.offsetHeight / 2;
+                var x2 = pb.x, y2 = pb.y + b.offsetHeight / 2, xm = (x1 + x2) / 2;
+                d += 'M' + x1 + ' ' + y1 + 'H' + xm + 'V' + y2 + 'H' + x2;
+            });
+            svg.innerHTML = '<path d="' + d + '" fill="none" stroke="#2f4253" stroke-width="2"/>';
+        }
+
+        function ajustarLlave(placa) {
+            var marco = placa.querySelector('.llave-marco');
+            var llave = placa.querySelector('.llave');
+            if (!marco || !llave) return;
+            llave.style.transform = 'none';
+            llave.style.height = '';
+            var w = llave.offsetWidth, h = llave.offsetHeight;
+            var mw = marco.clientWidth, mh = marco.clientHeight;
+            var esc = Math.min(mw / w, 1.6);
+            if (h * esc > mh) {
+                esc = mh / h;
+            } else {
+                // Sobra alto: estirar la llave para que los partidos se repartan en toda la pantalla.
+                llave.style.height = (mh / esc) + 'px';
+            }
+            llave.style.left = Math.max(0, (mw - w * esc) / 2) + 'px';
+            llave.style.transform = 'scale(' + esc + ')';
+            dibujarLineas(llave);
+        }
+
+        // --- Carrusel ---
+        function mostrar(n) {
+            var ps = lista();
+            if (!ps.length) return;
+            actual = (n + ps.length) % ps.length;
+            ps.forEach(function (p, i) { p.classList.toggle('activa', i === actual); });
+            Array.prototype.forEach.call(indice.children, function (s, i) { s.classList.toggle('activo', i === actual); });
+            var placa = ps[actual];
+            if (placa.querySelector('.llave')) {
+                requestAnimationFrame(function () { ajustarLlave(placa); });
+            }
+            var dur = (parseInt(placa.getAttribute('data-dur'), 10) || 12) * 1000;
+            progreso.style.transition = 'none';
+            progreso.style.width = '0';
+            clearTimeout(timer);
+            if (pausado) return;
+            void progreso.offsetWidth;
+            progreso.style.transition = 'width ' + dur + 'ms linear';
+            progreso.style.width = '100%';
+            timer = setTimeout(avanzar, dur);
+        }
+
+        function avanzar(paso) {
+            var ps = lista();
+            var clave = ps[actual] ? ps[actual].getAttribute('data-clave') : null;
+            if (pendiente !== null) {
+                // Llegaron datos nuevos: se cambian recién al pasar de placa, para no
+                // mover nada mientras alguien está leyendo.
+                placas.innerHTML = pendiente;
+                pendiente = null;
+                pintarQR(placas);
+                armarIndice();
+                actual = -1;
+                ps = lista();
+                for (var i = 0; i < ps.length; i++) {
+                    if (ps[i].getAttribute('data-clave') === clave) { actual = i; break; }
+                }
+            }
+            mostrar(actual + (typeof paso === 'number' ? paso : 1));
+        }
+
+        function refrescar() {
+            fetch(placas.getAttribute('data-parcial'), { cache: 'no-store', credentials: 'same-origin' })
+                .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+                .then(function (html) { pendiente = html; sinConexion.hidden = true; })
+                .catch(function () { sinConexion.hidden = false; });
+        }
+
+        // --- Reloj con la hora del servidor (las TVs suelen tener la hora mal) ---
+        var reloj = document.getElementById('reloj');
+        var delta = parseInt(reloj.getAttribute('data-ahora'), 10) - Date.now();
+        var offset = parseInt(reloj.getAttribute('data-offset'), 10) * 60000;
+        function tic() {
+            var d = new Date(Date.now() + delta + offset);
+            var h = d.getUTCHours(), m = d.getUTCMinutes();
+            reloj.textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+        }
+
+        // --- Que la TV no se apague ni muestre el cursor ---
+        function pedirWakeLock() {
+            if (navigator.wakeLock && navigator.wakeLock.request) {
+                navigator.wakeLock.request('screen').catch(function () {});
+            }
+        }
+        var quietoTimer = null;
+        function movimiento() {
+            document.body.classList.remove('quieto');
+            clearTimeout(quietoTimer);
+            quietoTimer = setTimeout(function () { document.body.classList.add('quieto'); }, 3000);
+        }
+
+        function pantallaCompleta() {
+            var el = document.documentElement;
+            var pedir = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (pedir) { try { pedir.call(el); } catch (e) {} }
+        }
+        document.addEventListener('fullscreenchange', function () {
+            document.body.classList.toggle('completa', !!document.fullscreenElement);
+        });
+        document.getElementById('btn-completa').addEventListener('click', pantallaCompleta);
+
+        // --- Compu conectada a la TV por HDMI (pantalla "extendida") ---
+        // Chrome y Edge de escritorio saben en qué pantalla poner la pantalla completa
+        // (Window Management API). Si la compu tiene una segunda pantalla, aparece
+        // "Mandar a la TV": la ventana queda a pantalla completa en la tele y la compu
+        // sigue libre. La primera vez el navegador pide permiso para ver las pantallas.
+        var btnTv = document.getElementById('btn-tv');
+        var pantallas = null;
+        function laTele(detalles) {
+            var otras = detalles.screens.filter(function (s) { return s !== detalles.currentScreen; });
+            var externas = otras.filter(function (s) { return s.isInternal === false; });
+            return externas[0] || otras[0] || null;
+        }
+        function mandarALaTv() {
+            var el = document.documentElement;
+            var aCompleta = function (detalles) {
+                pantallas = detalles;
+                var tele = laTele(detalles);
+                return el.requestFullscreen(tele ? { screen: tele } : {});
+            };
+            // Con las pantallas ya leídas, el pedido sale en el mismo click: si se
+            // esperara al permiso, el navegador puede negar la pantalla completa.
+            (pantallas ? aCompleta(pantallas) : window.getScreenDetails().then(aCompleta))
+                .catch(function () { btnTv.textContent = 'Tocá de nuevo: Mandar a la TV'; });
+        }
+        function actualizarBtnTv() {
+            btnTv.hidden = !(window.screen.isExtended && window.getScreenDetails);
+        }
+        if (window.getScreenDetails) {
+            btnTv.addEventListener('click', mandarALaTv);
+            actualizarBtnTv();
+            // Si enchufan el HDMI con la pantalla ya abierta, el botón aparece solo.
+            if (window.screen.addEventListener) window.screen.addEventListener('change', actualizarBtnTv);
+            // Con el permiso ya dado, leer las pantallas de antemano (no muestra nada).
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'window-management' }).then(function (p) {
+                    if (p.state === 'granted') window.getScreenDetails().then(function (d) { pantallas = d; });
+                }).catch(function () {});
+            }
+        }
+
+        // Control remoto / teclado: flechas pasan placas a mano, espacio pausa,
+        // OK/Enter pone pantalla completa.
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowRight') avanzar(1);
+            else if (e.key === 'ArrowLeft') avanzar(-1);
+            else if (e.key === ' ') { pausado = !pausado; mostrar(actual); }
+            else if (e.key === 'Enter') pantallaCompleta();
+        });
+
+        window.addEventListener('resize', function () {
+            var p = lista()[actual];
+            if (p && p.querySelector('.llave')) ajustarLlave(p);
+        });
+
+        pintarQR(document);
+        armarIndice();
+        mostrar(0);
+        tic();
+        setInterval(tic, 5000);
+        setInterval(refrescar, REFRESCO_MS);
+        pedirWakeLock();
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') pedirWakeLock();
+        });
+        document.addEventListener('mousemove', movimiento);
+        movimiento();
+
+        // Cada 3 horas, recarga completa (toma deploys nuevos y libera memoria),
+        // pero solo si hay conexión: sin internet, mejor seguir con lo último.
+        setTimeout(function recargar() {
+            fetch(location.href, { method: 'HEAD', cache: 'no-store' })
+                .then(function (r) { if (r.ok) location.reload(); else setTimeout(recargar, 60000); })
+                .catch(function () { setTimeout(recargar, 60000); });
+        }, 3 * 60 * 60 * 1000);
+    })();
+    </script>
+</body>
+</html>

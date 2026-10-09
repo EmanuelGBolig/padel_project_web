@@ -3,6 +3,7 @@ import re
 from django.db import models
 from django.conf import settings
 from django.db.models import F
+from django.utils import timezone
 from equipos.models import Equipo
 from accounts.models import Division
 from core.validators import validar_imagen
@@ -66,6 +67,23 @@ class ResolucionPartido(models.TextChoices):
 # vienen separados por asteriscos, viñetas, punto y coma o barras.
 _MEDALLA_PREMIO = re.compile(r'(?=[🥇🥈🥉🏅🏆])')
 _SEPARADOR_PREMIO = re.compile(r'[*∗•;|\n]+')
+
+
+def _marcar_finalizado(partido, ganador_id_original, save_kwargs):
+    """Sella `finalizado_en` cuando el partido pasa a tener ganador (y lo borra si lo pierde).
+
+    Lo comparten PartidoGrupo y Partido. Corregir un resultado ya cargado (cambiar
+    de ganador) no mueve la hora: el partido terminó cuando se cargó la primera vez.
+    Si el save viene con update_fields, se suma el campo para que no se pierda.
+    """
+    if partido.ganador_id and not ganador_id_original:
+        partido.finalizado_en = timezone.now()
+    elif not partido.ganador_id and partido.finalizado_en is not None:
+        partido.finalizado_en = None
+    else:
+        return
+    if save_kwargs.get('update_fields') is not None:
+        save_kwargs['update_fields'] = set(save_kwargs['update_fields']) | {'finalizado_en'}
 
 
 # --- NO IMPORTAR .models AQUÍ ---
@@ -420,6 +438,9 @@ class PartidoGrupo(models.Model):
 
     # Fecha y Hora del Partido
     fecha_hora = models.DateTimeField(null=True, blank=True)
+    # Cancha (texto corto: "1", "Central"). Con la hora, es lo que usa la pantalla
+    # del club para mostrar quién está jugando en cada cancha.
+    cancha = models.CharField(max_length=20, blank=True, default='')
     # Recordatorios ya enviados para este partido, ej. ['24h', '2h'].
     # Lo usa el comando enviar_recordatorios para ser idempotente: el cron puede
     # correr las veces que quiera sin spamear a los jugadores.
@@ -428,6 +449,9 @@ class PartidoGrupo(models.Model):
     ganador = models.ForeignKey(
         Equipo, on_delete=models.SET_NULL, null=True, blank=True, related_name="partidos_grupo_ganados"
     )
+    # Cuándo se cargó el resultado (lo sella save()). Ordena "Últimos resultados"
+    # en la pantalla del club: fecha_hora es la hora PROGRAMADA y muchos no la tienen.
+    finalizado_en = models.DateTimeField(null=True, blank=True, editable=False)
 
     # TP-18: cómo se resolvió (Normal / Walkover / Abandono).
     resolucion = models.CharField(
@@ -474,6 +498,15 @@ class PartidoGrupo(models.Model):
             # resultado cargado.
             models.Index(fields=['grupo', 'ganador'], name='pgrupo_grupo_ganador_idx'),
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._ganador_id_original = self.ganador_id
+
+    def save(self, *args, **kwargs):
+        _marcar_finalizado(self, self._ganador_id_original, kwargs)
+        super().save(*args, **kwargs)
+        self._ganador_id_original = self.ganador_id
 
     def __str__(self):
         return f"{self.grupo}: {self.equipo1} vs {self.equipo2}"
@@ -524,6 +557,9 @@ class Partido(models.Model):
 
     # Fecha y Hora del Partido
     fecha_hora = models.DateTimeField(null=True, blank=True)
+    # Cancha y momento en que se cargó el resultado: igual que en PartidoGrupo.
+    cancha = models.CharField(max_length=20, blank=True, default='')
+    finalizado_en = models.DateTimeField(null=True, blank=True, editable=False)
     # Recordatorios ya enviados para este partido, ej. ['24h', '2h'].
     # Lo usa el comando enviar_recordatorios para ser idempotente: el cron puede
     # correr las veces que quiera sin spamear a los jugadores.
@@ -689,6 +725,7 @@ class Partido(models.Model):
         if self.ganador_id != self.__original_ganador_id:
             self._propagar_ganador(profundidad=profundidad)
 
+        _marcar_finalizado(self, self.__original_ganador_id, kwargs)
         super().save(*args, **kwargs)
         self.__original_ganador_id = self.ganador_id
 

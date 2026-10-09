@@ -34,6 +34,50 @@
                     </svg>
                     Horarios · PDF
                 </a>
+                {% if torneo.organizacion %}
+                    {% comment %}
+                        Pantalla del club para la TV, con las dos formas de llevarla a la tele:
+                        1) la TV la abre sola (Smart TV / Chromecast): la dirección va grande
+                           porque se tipea con el control remoto;
+                        2) una compu conectada por HDMI: se abre en una ventana aparte y desde
+                           ahí "Mandar a la TV" la pone en pantalla completa en la tele.
+                        Es una sola dirección para todo el club.
+                    {% endcomment %}
+                    <div class="dropdown dropdown-end">
+                        <button type="button" tabindex="0" class="btn btn-outline btn-sm gap-2"
+                                title="Mostrar canchas, resultados y llaves en la TV del club">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.8"
+                                 stroke="currentColor"
+                                 class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125Z" />
+                            </svg>
+                            Pantalla TV
+                        </button>
+                        <div tabindex="0" class="dropdown-content z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] p-4 bg-base-100 rounded-2xl shadow-xl border border-base-300 space-y-3">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide opacity-60">Opción 1 · Smart TV o Chromecast</p>
+                                <p class="text-sm opacity-70 mt-1">En el navegador de la TV, entrá a:</p>
+                                <p class="font-mono font-bold text-lg break-all my-2">{{ request.get_host }}/tv/{{ torneo.organizacion.alias }}/</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <a href="{% url 'pantalla_club' torneo.organizacion.alias %}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Abrir</a>
+                                    <a href="{% url 'pantalla_club' torneo.organizacion.alias %}?solo=canchas" target="_blank" rel="noopener" class="btn btn-outline btn-sm">Solo canchas</a>
+                                </div>
+                            </div>
+                            <div class="border-t border-base-300 pt-3">
+                                <p class="text-xs font-bold uppercase tracking-wide opacity-60">Opción 2 · Compu conectada por HDMI</p>
+                                <p class="text-sm opacity-70 mt-1">Se abre en una ventana aparte. Ahí tocá <b>Mandar a la TV</b> y queda en pantalla completa en la tele, mientras seguís usando la compu.</p>
+                                <a href="{% url 'pantalla_club' torneo.organizacion.alias %}"
+                                   target="_blank" rel="noopener"
+                                   onclick="window.open(this.href, 'tv-club', 'popup,width=1280,height=720'); return false;"
+                                   class="btn btn-outline btn-sm w-full mt-2">Abrir en ventana</a>
+                            </div>
+                            <p class="text-xs opacity-60 border-t border-base-300 pt-3">Muestra todos los torneos en juego del club. Para ver quién juega en cada cancha, cargá la cancha al programar cada partido.</p>
+                        </div>
+                    </div>
+                {% endif %}
                 <a href="{% url 'torneos:admin_editar' torneo.pk %}"
                    class="btn btn-ghost btn-sm gap-2 text-base-content/70 hover:text-primary">
                     <svg xmlns="http://www.w3.org/2000/svg"

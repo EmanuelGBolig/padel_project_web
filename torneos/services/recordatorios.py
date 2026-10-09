@@ -40,7 +40,8 @@ def _texto(partido, prefijo):
     nombre1 = e1.nombre if e1 else 'A definir'
     nombre2 = e2.nombre if e2 else 'A definir'
     hora = timezone.localtime(partido.fecha_hora).strftime('%H:%M')
-    return f"{prefijo} a las {hora}: {nombre1} vs {nombre2}"
+    cancha = f" en la cancha {partido.cancha}" if getattr(partido, 'cancha', '') else ''
+    return f"{prefijo} a las {hora}{cancha}: {nombre1} vs {nombre2}"
 
 
 def partidos_a_recordar(ahora=None):

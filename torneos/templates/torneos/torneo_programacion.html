@@ -67,7 +67,7 @@
                         {% for partido in dia.list %}
                             <tr>
                                 <td class="col-hora">{{ partido.fecha_hora|date:"H:i" }}</td>
-                                <td class="col-fase">{{ partido.fase }}{% if partido.descripcion_partido %} · {{ partido.descripcion_partido }}{% endif %}</td>
+                                <td class="col-fase">{{ partido.fase }}{% if partido.descripcion_partido %} · {{ partido.descripcion_partido }}{% endif %}{% if partido.obj.cancha %}<br><b>Cancha {{ partido.obj.cancha }}</b>{% endif %}</td>
                                 <td>
                                     {% if partido.equipo1 %}
                                         {{ partido.equipo1.jugador1.full_name|default:"—" }}<br />
