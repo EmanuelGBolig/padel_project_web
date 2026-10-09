@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 from dal import autocomplete
 from accounts.models import CustomUser, Division
 from .models import (
@@ -240,7 +241,7 @@ class TorneoAdminForm(forms.ModelForm):
         if self.instance.pk:
             if self.instance.fecha_limite_inscripcion:
                 self.initial['fecha_limite_inscripcion'] = (
-                    self.instance.fecha_limite_inscripcion.strftime('%Y-%m-%dT%H:%M')
+                    timezone.localtime(self.instance.fecha_limite_inscripcion).strftime('%Y-%m-%dT%H:%M')
                 )
             if self.instance.fecha_inicio:
                 self.initial['fecha_inicio'] = self.instance.fecha_inicio.strftime(
@@ -762,7 +763,7 @@ class PartidoGrupoScheduleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.fecha_hora:
-            self.initial['fecha_hora'] = self.instance.fecha_hora.strftime('%Y-%m-%dT%H:%M')
+            self.initial['fecha_hora'] = timezone.localtime(self.instance.fecha_hora).strftime('%Y-%m-%dT%H:%M')
         elif self.instance.grupo.fecha_inicio_default:
             # Si no hay fecha, sugerir la del grupo + 09:00 AM
             default_date = self.instance.grupo.fecha_inicio_default
@@ -799,7 +800,7 @@ class PartidoScheduleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.fecha_hora:
-            self.initial['fecha_hora'] = self.instance.fecha_hora.strftime('%Y-%m-%dT%H:%M')
+            self.initial['fecha_hora'] = timezone.localtime(self.instance.fecha_hora).strftime('%Y-%m-%dT%H:%M')
 
 
 class TorneoReplaceTeamForm(forms.Form):
