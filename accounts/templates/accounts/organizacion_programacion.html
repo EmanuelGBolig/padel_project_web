@@ -124,6 +124,7 @@
                                                 {{ partido.fase }}
                                                 <br>
                                                 {{ partido.descripcion_partido }}
+                                                {% if partido.obj.cancha %}<br><b>Cancha {{ partido.obj.cancha }}</b>{% endif %}
                                             </span>
                                         </div>
                                         <!-- Equipo 2 -->
@@ -204,6 +205,7 @@
                                                 {{ partido.fase }}
                                                 <br>
                                                 {{ partido.descripcion_partido }}
+                                                {% if partido.obj.cancha %}<br><b>Cancha {{ partido.obj.cancha }}</b>{% endif %}
                                             </span>
                                         </div>
                                         <!-- Equipo 2 -->

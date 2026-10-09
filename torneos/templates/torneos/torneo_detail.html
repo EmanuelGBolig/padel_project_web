@@ -115,6 +115,9 @@
             {% endif %}
             {% if user.is_staff or user.tipo_usuario == 'ORGANIZER' and torneo.organizacion and user.organizacion == torneo.organizacion %}
                 <li><a href="{% url 'torneos:admin_editar' torneo.pk %}">⚙️ Editar torneo</a></li>
+                {% if torneo.organizacion %}
+                    <li><a href="{% url 'pantalla_club' torneo.organizacion.alias %}" target="_blank" rel="noopener">📺 Pantalla del club (TV)</a></li>
+                {% endif %}
             {% endif %}
             <li><a href="{% url 'torneos:programacion' torneo.pk %}">🗓️ Horarios · descargar PDF</a></li>
             <li><a href="{% url 'torneos:placa' torneo.pk %}">🖼️ Placa para redes</a></li>
@@ -450,7 +453,7 @@
                                             </div>
                                             {% if partido.obj.fecha_hora %}
                                                 <div class="text-xs font-bold text-center text-primary bg-base-200 rounded py-1">
-                                                    {{ partido.obj.fecha_hora|date:"d/m H:i" }}
+                                                    {{ partido.obj.fecha_hora|date:"d/m H:i" }}{% if partido.obj.cancha %} · Cancha {{ partido.obj.cancha }}{% endif %}
                                                 </div>
                                             {% endif %}
                                             <div class="flex items-center justify-between gap-1 md:gap-2 mt-1">
@@ -675,7 +678,7 @@
                                         {% for partido in grupo.partidos_grupo.all %}
                                             <div class="text-[10px] bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
                                                 {% if partido.fecha_hora %}
-                                                    <span class="text-[10px] font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}</span>
+                                                    <span class="text-[10px] font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}{% if partido.cancha %} · Cancha {{ partido.cancha }}{% endif %}</span>
                                                 {% endif %}
                                                 <div class="flex flex-wrap justify-between items-center gap-x-2">
                                                     <!-- EQUIPOS -->

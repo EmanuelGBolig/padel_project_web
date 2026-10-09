@@ -19,6 +19,7 @@ la llave de la fase final siguiendo los **cuadros oficiales de la Federación Ar
 | Recibe notificaciones push y las revisa después en el panel de la campanita | Programa horarios y descarga la planilla en PDF para imprimir |
 | Comparte placas de resultados para redes | Diseña formatos propios y define los cruces a mano |
 | Instala la app en el celular (PWA) | Ve métricas en el panel del organizador |
+| Mira en la TV del club quién juega en cada cancha | Muestra canchas, resultados y llaves en la TV del club (`/tv/<alias>/`) |
 
 Además: circuitos (rankings multi-torneo), formato **Americano/Mexicano**, perfiles públicos
 compartibles, buscador de compañero, y gestión de jugadores sin cuenta ("dummies") con fusión
@@ -73,7 +74,7 @@ python manage.py create_test_tournament
 python manage.py test
 ```
 
-221 tests, tarda unos **10 minutos**. Para iterar rápido, correr solo la app o la clase que tocaste:
+259 tests, tarda unos **20 minutos**. Para iterar rápido, correr solo la app o la clase que tocaste:
 
 ```bash
 python manage.py test torneos.tests.CrucesManualesTests

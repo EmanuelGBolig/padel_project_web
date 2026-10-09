@@ -15,6 +15,33 @@
             </label>
         {% endif %}
     </div>
+    <div class="form-control w-full mt-3">
+        <label class="label">
+            <span class="label-text">Cancha <span class="opacity-60">(opcional)</span></span>
+        </label>
+        {{ form.cancha }}
+        {% comment %}
+            Las canchas que el club ya usó, para elegirlas en vez de tipearlas. Con hora y
+            cancha cargadas, la pantalla del club (/tv/) muestra el partido en esa cancha.
+        {% endcomment %}
+        <datalist id="canchas-usadas">
+            {% for cancha in form.canchas_usadas %}<option value="{{ cancha }}">{% endfor %}
+        </datalist>
+        {% if form.canchas_usadas %}
+            {# Grilla y no flex: la regla global de mobile apilaría los botones a ancho completo. #}
+            <div class="grid grid-cols-4 gap-2 mt-2">
+                {% for cancha in form.canchas_usadas %}
+                    <button type="button" class="btn btn-sm btn-outline"
+                            onclick="this.form.elements['cancha'].value='{{ cancha|escapejs }}'">{{ cancha }}</button>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if form.cancha.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.cancha.errors.0 }}</span>
+            </label>
+        {% endif %}
+    </div>
     <div class="modal-action">
         <button type="button" class="btn" onclick="schedule_modal.close()">Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>

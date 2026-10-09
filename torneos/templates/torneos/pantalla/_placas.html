@@ -1,0 +1,179 @@
+{% comment %}
+    Las placas del carrusel de la TV. Se renderiza dentro de pantalla.html y también
+    sola (?parcial=1): el JS la pide cada 30 s y reemplaza las placas sin recargar.
+    `data-clave` es estable entre refrescos para seguir en la misma placa.
+{% endcomment %}
+{% for placa in placas %}
+    <section class="placa placa-{{ placa.tipo }}"
+             data-clave="{{ placa.clave }}"
+             data-dur="{{ placa.duracion }}">
+        <div class="placa-cabecera">
+            <h2>{{ placa.titulo }}</h2>
+            {% if placa.subtitulo %}<span class="placa-sub">{{ placa.subtitulo }}</span>{% endif %}
+        </div>
+
+        {% if placa.tipo == 'campeones' %}
+            <div class="campeones n{{ placa.datos.torneos|length }}">
+                {% for torneo, pareja in placa.datos.torneos %}
+                    <article class="campeon">
+                        <div class="campeon-copa">🏆</div>
+                        <div class="campeon-torneo">{{ torneo.nombre }}</div>
+                        <div class="campeon-pareja">{{ pareja }}</div>
+                    </article>
+                {% endfor %}
+            </div>
+
+        {% elif placa.tipo == 'canchas' %}
+            <div class="grilla grilla-canchas n{{ placa.datos.canchas|length }}">
+                {% for c in placa.datos.canchas %}
+                    <article class="cancha {% if c.en_juego %}en-juego{% elif c.recien_terminado %}termino{% else %}libre{% endif %}">
+                        <header class="cancha-cabecera">
+                            <span class="cancha-nombre">Cancha {{ c.nombre }}</span>
+                            {% if c.en_juego %}
+                                <span class="estado estado-vivo"><i class="punto"></i>En juego</span>
+                            {% elif c.recien_terminado %}
+                                <span class="estado estado-termino">Terminó</span>
+                            {% else %}
+                                <span class="estado estado-libre">Libre</span>
+                            {% endif %}
+                        </header>
+                        {% with p=c.en_juego|default:c.recien_terminado %}
+                            {% if p %}
+                                <div class="cancha-fase">
+                                    {% if varios_torneos %}<b>{{ p.torneo.nombre }}</b> · {% endif %}{{ p.fase }}{% if c.en_juego and p.fecha_hora %} · desde las {{ p.fecha_hora|time:"H:i" }}{% endif %}
+                                </div>
+                                {% include "torneos/pantalla/_marcador.html" with p=p %}
+                                {% if c.proximo %}
+                                    <footer class="cancha-despues">
+                                        <span class="despues-hora">Después · {{ c.proximo.fecha_hora|time:"H:i" }}</span>
+                                        <span class="despues-parejas">{{ c.proximo.pareja1 }} <i>vs</i> {{ c.proximo.pareja2 }}</span>
+                                    </footer>
+                                {% endif %}
+                            {% elif c.proximo %}
+                                <div class="cancha-fase">
+                                    {% if varios_torneos %}<b>{{ c.proximo.torneo.nombre }}</b> · {% endif %}{{ c.proximo.fase }}
+                                </div>
+                                <div class="cancha-proximo-hora">Próximo · {{ c.proximo.fecha_hora|time:"H:i" }}</div>
+                                {% include "torneos/pantalla/_marcador.html" with p=c.proximo %}
+                            {% endif %}
+                        {% endwith %}
+                    </article>
+                {% endfor %}
+            </div>
+
+        {% elif placa.tipo == 'proximos' %}
+            <div class="grilla grilla-partidos">
+                {% for p in placa.datos.partidos %}
+                    <article class="tarjeta">
+                        <div class="tarjeta-hora">
+                            <span class="hora">{{ p.fecha_hora|time:"H:i" }}</span>
+                            {% if p.fecha_hora|date:"Ymd" != hoy %}<span class="dia">{{ p.fecha_hora|date:"D j/n" }}</span>{% endif %}
+                            {% if p.cancha %}<span class="chip-cancha">Cancha {{ p.cancha }}</span>{% endif %}
+                        </div>
+                        <div class="tarjeta-cuerpo">
+                            <div class="tarjeta-fase">{% if varios_torneos %}<b>{{ p.torneo.nombre }}</b> · {% endif %}{{ p.fase }}</div>
+                            {% include "torneos/pantalla/_marcador.html" with p=p %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+
+        {% elif placa.tipo == 'resultados' %}
+            <div class="grilla grilla-partidos">
+                {% for p in placa.datos.partidos %}
+                    <article class="tarjeta">
+                        <div class="tarjeta-cuerpo">
+                            <div class="tarjeta-fase">
+                                {% if varios_torneos %}<b>{{ p.torneo.nombre }}</b> · {% endif %}{{ p.fase }}{% if p.cancha %} · Cancha {{ p.cancha }}{% endif %}
+                            </div>
+                            {% include "torneos/pantalla/_marcador.html" with p=p %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+
+        {% elif placa.tipo == 'zonas' %}
+            <div class="grilla grilla-zonas n{{ placa.datos.zonas|length }}">
+                {% for z in placa.datos.zonas %}
+                    <article class="zona">
+                        <h3>{{ z.nombre }}</h3>
+                        <table>
+                            <thead>
+                                <tr><th>#</th><th class="izq">Pareja</th><th>PJ</th><th>PG</th><th>DS</th><th>DG</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for f in z.filas %}
+                                    <tr {% if f.clasifica %}class="clasifica"{% endif %}>
+                                        <td>{{ f.posicion }}</td>
+                                        <td class="izq pareja">{{ f.pareja }}</td>
+                                        <td>{{ f.pj }}</td>
+                                        <td class="fuerte">{{ f.pg }}</td>
+                                        <td>{% if f.ds > 0 %}+{% endif %}{{ f.ds }}</td>
+                                        <td>{% if f.dg > 0 %}+{% endif %}{{ f.dg }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </article>
+                {% endfor %}
+            </div>
+
+        {% elif placa.tipo == 'llave' %}
+            <div class="llave-marco">
+                <div class="llave">
+                    <svg class="llave-lineas" aria-hidden="true"></svg>
+                    {% for ronda in placa.datos.rondas %}
+                        <div class="llave-col">
+                            <div class="llave-ronda">{{ ronda.nombre }}</div>
+                            <div class="llave-partidos">
+                                {% for p in ronda.partidos %}
+                                    <div class="llave-partido{% if p.ganador %} jugado{% elif p.jugandose %} jugandose{% endif %}"
+                                         id="ll-{{ p.pk }}"
+                                         {% if p.siguiente_pk %}data-sig="ll-{{ p.siguiente_pk }}"{% endif %}>
+                                        {% include "torneos/pantalla/_marcador.html" with p=p %}
+                                        {% if p.jugandose %}
+                                            <div class="llave-vivo"><i class="punto"></i>En juego{% if p.cancha %} · Cancha {{ p.cancha }}{% endif %}</div>
+                                        {% elif not p.ganador and p.fecha_hora %}
+                                            <div class="llave-hora">{% if p.fecha_hora|date:"Ymd" != hoy %}{{ p.fecha_hora|date:"D" }} {% endif %}{{ p.fecha_hora|time:"H:i" }}{% if p.cancha %} · Cancha {{ p.cancha }}{% endif %}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        {% elif placa.tipo == 'inscripcion' %}
+            <div class="grilla grilla-inscripcion n{{ placa.datos.torneos|length }}">
+                {% for t in placa.datos.torneos %}
+                    <article class="inscripcion">
+                        <div class="qr" data-qr="{{ base_url }}{% url 'torneos:detail' t.pk %}"></div>
+                        <div class="inscripcion-datos">
+                            <h3>{{ t.nombre }}</h3>
+                            <p>{{ t.fecha_inicio|date:"l j \d\e F" }}{% if t.division %} · {{ t.division.nombre }}{% endif %}</p>
+                            {% with libres=t.cupos_disponibles %}
+                                <p class="cupos">{% if libres %}Quedan {{ libres }} lugar{{ libres|pluralize:"es" }}{% else %}Cupo completo{% endif %}</p>
+                            {% endwith %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+            <p class="placa-pie">Escaneá el código con la cámara del celu para anotarte</p>
+
+        {% elif placa.tipo == 'sponsors' %}
+            <div class="grilla grilla-sponsors n{{ placa.datos.sponsors|length }}">
+                {% for s in placa.datos.sponsors %}
+                    <div class="sponsor"><img src="{{ s.imagen.url }}" alt="{{ s.nombre }}"></div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <div class="vacia">
+                {% if organizacion.logo %}<img class="vacia-logo" src="{{ organizacion.logo.url }}" alt="">{% endif %}
+                <p>Por ahora no hay partidos en juego.</p>
+                <p class="tenue">Cuando arranque un torneo, esta pantalla se actualiza sola.</p>
+            </div>
+        {% endif %}
+    </section>
+{% endfor %}

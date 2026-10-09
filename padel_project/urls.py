@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from django.contrib.sitemaps.views import sitemap
 from django.views.generic.base import TemplateView, RedirectView
 from .sitemaps import StaticViewSitemap, TorneoSitemap, CitySitemap
+from torneos.pantalla import PantallaClubView
 
 sitemaps = {
     'static': StaticViewSitemap,
@@ -22,6 +23,9 @@ urlpatterns = [
     # PWA: servidos en la raíz para que el scope del service worker sea "/"
     path('sw.js', TemplateView.as_view(template_name="pwa/sw.js", content_type="application/javascript")),
     path('manifest.webmanifest', TemplateView.as_view(template_name="pwa/manifest.webmanifest", content_type="application/manifest+json")),
+    # Pantalla del club para la TV. En la raíz y corta a propósito: en una TV la
+    # dirección se tipea con el control remoto.
+    path('tv/<slug:alias>/', PantallaClubView.as_view(), name='pantalla_club'),
     # URLs de Core (Home)
     path('', include('core.urls')),
     # URLs de Accounts (Login, Logout, Registro, Perfil)

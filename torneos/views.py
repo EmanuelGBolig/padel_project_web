@@ -1345,10 +1345,11 @@ def _push_programado(partido, torneo):
         e1 = partido.equipo1.nombre if partido.equipo1 else '—'
         e2 = partido.equipo2.nombre if partido.equipo2 else '—'
         cuando = partido.fecha_hora.strftime('%d/%m %H:%M')
+        cancha = f" · Cancha {partido.cancha}" if partido.cancha else ''
         send_push_to_users(
             jugadores_de_equipos(partido.equipo1, partido.equipo2),
             title="📅 Partido programado",
-            body=f"{e1} vs {e2} — {cuando} hs · {torneo.nombre}",
+            body=f"{e1} vs {e2} — {cuando} hs{cancha} · {torneo.nombre}",
             url=f"/torneos/{torneo.pk}/",
             tag=f"programado-{partido.__class__.__name__}-{partido.pk}",
         )

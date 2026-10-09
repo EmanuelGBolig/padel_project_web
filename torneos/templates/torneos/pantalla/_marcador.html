@@ -1,0 +1,16 @@
+{% comment %}
+    Las dos parejas de un partido, con un casillero por set (estilo tablero).
+    Recibe `p` (un PartidoTV de torneos/pantalla.py). El verde va en el nombre del
+    ganador y en cada set ganado, no en la fila entera.
+{% endcomment %}
+<div class="marcador">
+    <div class="m-fila {% if p.ganador == 1 %}gano{% elif p.ganador == 2 %}perdio{% endif %}">
+        <span class="pareja">{{ p.pareja1 }}</span>
+        {% for games, gano in p.sets_pareja1 %}<span class="set{% if gano %} set-ganado{% endif %}">{{ games }}</span>{% endfor %}
+    </div>
+    <div class="m-fila {% if p.ganador == 2 %}gano{% elif p.ganador == 1 %}perdio{% endif %}">
+        <span class="pareja">{{ p.pareja2 }}</span>
+        {% for games, gano in p.sets_pareja2 %}<span class="set{% if gano %} set-ganado{% endif %}">{{ games }}</span>{% endfor %}
+    </div>
+    {% if p.marcador and not p.es_bye %}<span class="m-nota">{{ p.marcador }}</span>{% endif %}
+</div>

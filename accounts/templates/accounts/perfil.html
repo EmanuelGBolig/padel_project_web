@@ -342,7 +342,7 @@
                                                 </div>
                                                 <div class="text-sm opacity-70 mt-1">
                                                     {% if partido.fecha_hora %}
-                                                        {{ partido.fecha_hora|date:"l d M, H:i" }} hs
+                                                        {{ partido.fecha_hora|date:"l d M, H:i" }} hs{% if partido.cancha %} · Cancha {{ partido.cancha }}{% endif %}
                                                     {% else %}
                                                         Fecha a confirmar
                                                     {% endif %}

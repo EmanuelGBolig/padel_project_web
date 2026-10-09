@@ -11,7 +11,7 @@
 | **Repositorio** | `EmanuelGBolig/padel_project_web`, rama de trabajo `main` |
 | **Stack** | Django 5.2.16 · Python 3.11 · PostgreSQL (prod) / SQLite (local) · Tailwind + DaisyUI 4.7.2 · WhiteNoise · Cloudinary |
 | **Apps** | `core`, `accounts`, `equipos`, `torneos` (+ `theme` para Tailwind) |
-| **Tests** | 221 tests (`python manage.py test`, ~10 min) |
+| **Tests** | 259 tests (`python manage.py test`, ~20 min en Windows) |
 | **Última auditoría completa** | 2026-08-04 |
 
 ## Cómo leer este documento
@@ -82,7 +82,7 @@ Estado de migraciones (en sync — `makemigrations --check --dry-run` → *No ch
 | App | Última migración | Nº archivos |
 |---|---|---|
 | `accounts` | `0018_pushsubscription` | 18 |
-| `torneos` | `0024_formatopersonalizado_cruces_manuales` | 24 |
+| `torneos` | `0030_partido_cancha_finalizado_en` | 30 |
 | `equipos` | `0009_busquedacompanero` | 9 |
 | `core` | `0002_initial` | 2 |
 
@@ -521,6 +521,8 @@ Un segundo receiver, `check_llaves_internas_generacion` (`torneos/signals.py:97-
 | `equipo2` | FK → `Equipo` | no | `CASCADE`, `related_name='partidos_grupo_e2'` |
 | `e1_set1..e1_set3`, `e2_set1..e2_set3` | `PositiveSmallIntegerField` | `null,blank` | games de cada set (hasta 3) |
 | `fecha_hora` | `DateTimeField` | `null,blank` | mig. `0006` |
+| `cancha` | `CharField(20)` | `blank`, default `''` | mig. `0030`. Texto corto ("1", "Central"). Con `fecha_hora`, define qué partido está "en juego" en la pantalla del club (TV) |
+| `finalizado_en` | `DateTimeField` | `null,blank`, `editable=False` | mig. `0030`. Lo sella `save()` cuando el partido pasa a tener ganador (`_marcar_finalizado`); corregir el ganador no lo mueve y borrar el resultado lo vuelve a `None`. Ordena "Últimos resultados" en la TV |
 | `ganador` | FK → `Equipo` | `null,blank` | `SET_NULL`, `related_name='partidos_grupo_ganados'` |
 | `resolucion` | `CharField(1)` | — | choices `ResolucionPartido`, default `N` (mig. `0021`) |
 | `e1_sets_ganados` / `e2_sets_ganados` | `PositiveSmallIntegerField` | — | default 0; "se llenan al guardar" (los llena el form) |
@@ -542,6 +544,7 @@ Un segundo receiver, `check_llaves_internas_generacion` (`torneos/signals.py:97-
 | `resultado` | `CharField(100)` | `null,blank` | texto: `"6-4, 6-2"`, `"W.O."`, `"... (abandono)"`, `"Bye"` |
 | `resolucion` | `CharField(1)` | — | choices `ResolucionPartido`, default `N` |
 | `fecha_hora` | `DateTimeField` | `null,blank` | |
+| `cancha` / `finalizado_en` | `CharField(20)` / `DateTimeField` | `blank` / `null,blank` | mig. `0030`, igual que en `PartidoGrupo` |
 | `sets_local` / `sets_visitante` | `JSONField` | `blank` | `default=list`; games por set (mig. `0002`/`0004`) |
 | `placeholder_e1` / `placeholder_e2` | `CharField(50)` | `null,blank` | etiquetas de cruce `"1A"`, `"2B"`, `"3A"` mostradas antes de que clasifiquen (mig. `0013`) |
 | `siguiente_partido` | FK → `self` | `null,blank` | `SET_NULL`, `related_name='partidos_previos'` |
@@ -673,6 +676,7 @@ Prueba social del home.
 | `post_save` de `Partido` | `torneos/signals.py:87` | Invalida caché de rankings si hay ganador |
 | `post_save`/`post_delete` de `Partido`, `PartidoGrupo`, `Torneo` | `equipos/signals.py:6` | Borra `rankings_jugadores_all` y las claves por división |
 | `Partido.save()` | `torneos/models.py:445` | Avance de ganador, cierre del torneo, desactivación masiva de equipos, push a campeones |
+| `Partido.save()` / `PartidoGrupo.save()` | `torneos/models.py` (`_marcar_finalizado`) | Sella `finalizado_en` al pasar a tener ganador; lo agrega a `update_fields` si el save viene acotado |
 | `Equipo.save()` | `equipos/models.py:56` | Normaliza orden de jugadores, genera nombre único, deriva división |
 | `Americano.save()` | `torneos/models.py:606` | Genera código único de 6 caracteres |
 | `merge_users()` | `accounts/utils.py:768` | Traspasa equipos/inscripciones/EquipoGrupo/partidos y setea `merged_into` (o borra el dummy) |
@@ -878,7 +882,8 @@ Se consume desde `PreviewEstructuraView` (`views.py:1592-1612`) por `GET /torneo
 | `MisTorneosView` (`views.py:2575`) | `mis_torneos` | `/torneos/mis-torneos/` | `TemplateView` + `PlayerRequiredMixin` | Agrupa las inscripciones del usuario en abiertos/en juego/finalizados |
 | `TorneoDetailView` (`views.py:1832`) | `detail` | `/torneos/<pk>/` | `DetailView`, público | Ficha completa: zonas + tablas, cuadro, `puede_inscribirse`, "Mis partidos" (pendientes/jugados), `share_url` y `placa_url` |
 | `TorneoProgramacionView` (`views.py:2610`) | `programacion` | `/torneos/<pk>/programacion/` | `DetailView`, público | Fixture unificado (zonas + bracket) partido en `partidos_con_fecha` (ordenados cronológicamente) y `partidos_sin_fecha`. El template trae **botón «Descargar PDF»** (`window.print()`) y hoja `@media print` propia: fondo blanco, A4 y una fila por partido. En papel la tarjeta **no es flex sino `display: table` con `table-layout: fixed`** (ver la trampa de impresión en 7.7). |
-| `TorneoVivoView` (`views.py:2004`) | `vivo` | `/torneos/<pk>/vivo/` | `DetailView`, público | Scoreboard para TV con auto-refresh (TP-13) |
+| `TorneoVivoView` (`views.py:2004`) | `vivo` | `/torneos/<pk>/vivo/` | `DetailView`, público | Scoreboard de un torneo, página larga con recarga cada 20 s (TP-13). Para la TV del club está `PantallaClubView` |
+| `PantallaClubView` (`torneos/pantalla.py`) | `pantalla_club` (sin namespace) | `/tv/<alias>/` | `TemplateView`, **público, sin login**, `never_cache` | Pantalla del club para TV: carrusel con todos los torneos en juego de la organización. `?parcial=1` devuelve solo las placas; `?t=12,15` acota torneos; `?solo=canchas,proximos` acota placas. Ver "Pantalla del club (TV)" |
 | `PlacaView` (`views.py:1435`) | `placa` / `placa_app` | `/torneos/<pk>/placa/`, `/torneos/placa/` | `TemplateView`, **público, sin login** | Placa 9:16 para redes. `?tipo=anuncio|campeones|vivo|app`; si no se pasa, se deduce del estado (`AB→anuncio`, `EJ→vivo`, `FN→campeones`). `_featured_match` elige el partido destacado |
 | `CircuitoListView` (`views.py:2030`) | `circuito_list` | `/torneos/circuitos/` | `ListView`, público | Circuitos con `activo=True` |
 | `CircuitoDetailView` (`views.py:2040`) | `circuito_detail` | `/torneos/circuito/<pk>/` | `DetailView`, público | Ranking acumulado (`Circuito.tabla_posiciones()`) |
@@ -1308,6 +1313,69 @@ ronda siguiente.
 Antes esto respondía `<script>window.location.reload()</script>`, o sea recargar
 ~300 KB por cada resultado. En un celular al borde de la cancha eso son segundos
 de pantalla muerta, y el organizador carga decenas seguidos.
+
+### Pantalla del club (TV)
+
+`/tv/<alias>/` (`torneos/pantalla.py`, templates en `torneos/templates/torneos/pantalla/`).
+Es una pantalla pública, sin login, para la tele del club. Muestra **todos los torneos
+en juego de la organización** juntos, porque las canchas son del club y las comparten
+varias categorías: una pantalla por torneo vería solo algunas canchas.
+
+**Qué partido está "en juego"** (`armar_canchas`): no hay botón de "arrancó". Para cada
+cancha se toman los partidos pendientes con `cancha` y `fecha_hora`. El primero cuya
+hora ya llegó y que tiene las dos parejas definidas está **en juego**; el siguiente es
+el **próximo**. Al cargar el resultado, la cancha pasa sola al siguiente. Durante
+`RECIEN_TERMINADO` (15 min) la cancha muestra el resultado ("Terminó"). Un pendiente
+con más de `VENTANA_EN_JUEGO` (6 h) se da por olvidado y deja de tapar la cancha. Por
+eso el organizador solo tiene que cargar la cancha al programar: `PartidoGrupoScheduleForm`
+y `PartidoScheduleForm` la piden, con botones de las canchas ya usadas por el club
+(`canchas_usadas`). "Cancha 2" se guarda como "2", y las canchas se ordenan natural
+(1, 2, 10, Central).
+
+**Placas del carrusel** (`armar_pantalla`, en este orden; las vacías no se muestran):
+
+| Placa | Contenido | Dura |
+|---|---|---|
+| `campeones` | Torneos finalizados hace menos de `VENTANA_CAMPEON` (4 h). Al cargarse la final, `Partido.save()` pasa el torneo a FN, y sin esta ventana la TV lo sacaría justo en el momento del campeón | 15 s |
+| `canchas` | Una tarjeta por cancha: en juego / terminó / libre, con el partido que sigue. Hasta 8 por placa | 20 s |
+| `proximos` | Pendientes con hora, sin los que ya están en juego. 8 por placa, hasta 2 placas | 14 s |
+| `resultados` | Con ganador y sin byes, ordenados por `finalizado_en` (o `fecha_hora` para los viejos). 8 por placa, hasta 2 | 14 s |
+| `zonas` | Tablas de posiciones, 6 zonas por placa. Se dejan de mostrar cuando las zonas terminaron y ya hay llave | 15 s |
+| `llave` | El cuadro completo, escalado con JS para que entre entero, con líneas en SVG. Resalta el partido en juego | 20 s |
+| `inscripcion` | Torneos de la organización con inscripción abierta, con QR para anotarse | 12 s |
+| `sponsors` | Los `Sponsor` de la organización | 10 s |
+| `vacia` | Solo si no hay nada: "Por ahora no hay partidos en juego" | 30 s |
+
+**Refresco sin recargar**: cada 30 s el JS pide `?parcial=1` (`_placas.html`) y
+reemplaza las placas recién **al pasar a la siguiente**, para no mover nada mientras
+alguien lee. Sigue en la misma placa gracias a `data-clave`. Sin conexión, sigue con lo
+último y lo avisa en el pie. Cada 3 h hace una recarga completa (si hay conexión) para
+tomar deploys nuevos. El reloj sale de la hora del servidor, porque las TVs suelen
+tener la hora mal.
+
+**Dos formas de llevarla a la tele** (desplegable "Pantalla TV" en la gestión del torneo):
+1. **Smart TV o Chromecast**: la TV abre la dirección corta. Las flechas del control
+   pasan placas, OK pone pantalla completa y la barra espaciadora pausa.
+2. **Compu por HDMI**: "Abrir en ventana" la abre como popup. Si la compu tiene una
+   segunda pantalla (`screen.isExtended`), aparece **Mandar a la TV**, que con la
+   Window Management API (Chrome/Edge de escritorio) pone la pantalla completa en la
+   tele y deja la compu libre. La primera vez el navegador pide permiso para ver las
+   pantallas. Si la compu duplica la imagen, alcanza con "Pantalla completa".
+
+`?solo=canchas` deja una TV fija en ciertas placas (por ejemplo la de la entrada solo
+con canchas), y `?t=12,15` la acota a ciertos torneos.
+
+La cancha cargada también se ve fuera de la TV: en los paneles de gestión, la llave
+pública, "Mis partidos", el perfil, las planillas de horarios (torneo y organización,
+pantalla e impresión) y en los avisos push de "partido programado" y del recordatorio.
+
+**Por qué no usa `base.html` ni Tailwind**: DaisyUI define los colores en **oklch**, que
+el Chromium viejo de muchas Smart TV (Tizen/webOS) no entiende. La pantalla quedaría sin
+colores, así que los estilos van en un `<style>` propio con hex. Todo se mide en `rem` y el
+`rem` sale de la **altura** de la pantalla (`font-size: min(1.7vh, 0.95vw)`): se ve igual en
+720p, 1080p y 4K. Tampoco se usan flex `gap`, `aspect-ratio`, `:has` ni optional chaining en
+el JS, porque esos navegadores no los tienen. Las grillas sí (Chromium 57+), con
+`grid-gap` y `gap`.
 
 ## Subsistema de cuentas, roles y organizaciones
 
@@ -2876,7 +2944,10 @@ Dos convenciones conviven:
 | Archivo | Descripción |
 |---|---|
 | `torneo_detail.html` | Página estrella del torneo: hero, inscripción/cancelación con modales, "Mis Partidos", zonas, y el bracket con líneas SVG (818 líneas). |
-| `torneo_vivo.html` | Vista "en vivo" para pantallas/TV: zonas y llave en formato compacto, auto-refresh cada 20 s. |
+| `torneo_vivo.html` | Vista "en vivo" de un torneo: zonas y llave en formato compacto, auto-refresh cada 20 s. |
+| `pantalla/pantalla.html` | Pantalla del club para TV (standalone, sin `base.html` ni Tailwind: CSS propio en hex y JS del carrusel). Ver "Pantalla del club (TV)". |
+| `pantalla/_placas.html` | Las placas del carrusel (canchas, próximos, resultados, zonas, llave, inscripción, sponsors, campeones). Se sirve también sola con `?parcial=1`. |
+| `pantalla/_marcador.html` | Partial: las dos parejas con un casillero por set; el verde va en el nombre del ganador y en cada set ganado. |
 | `torneo_programacion.html` | Programación del torneo agrupada por fecha/hora, con `data-theme="business"` scoped. Botón «Descargar PDF» + `@media print` propio (fondo blanco, A4, tarjeta como tabla de 3 columnas, sin cortar partidos entre hojas). El bloque `@media print` está comentado en detalle: **leerlo antes de tocar el markup de la tarjeta**, porque en papel mandan esas reglas y no las `md:`. |
 | `accounts/notificaciones.html` | Panel de la campanita: historial de avisos; cada ítem linkea a `notificacion_abrir`, que lo marca leído y redirige a su destino. |
 | `equipos/partials/_invitacion_recibida.html` | Cajita de una invitación de pareja: nombre arriba, Aceptar/Rechazar en dos columnas iguales, ambos con `hx-post`. |
@@ -2896,7 +2967,7 @@ Dos convenciones conviven:
 | `admin_torneo_replace_team.html` | Formulario de reemplazo de una pareja en todo el torneo. |
 | `admin_partido_form.html` | Fragmento HTMX: carga del resultado de un partido de llave (normal / walkover / abandono). |
 | `cargar_resultado_grupo.html` | Fragmento HTMX: carga del resultado de un partido de zona. |
-| `schedule_form.html` | Fragmento HTMX: programar fecha y hora de un partido. |
+| `schedule_form.html` | Fragmento HTMX: programar fecha, hora y cancha de un partido. Las canchas ya usadas van como botones en grilla de 4 (no en `.flex`: la regla global de mobile las apilaría). |
 | `replace_teams_form.html` | Fragmento HTMX: reemplazar equipos de un partido puntual. |
 | `formatos_list.html` | Listado de formatos de torneo personalizados guardados. |
 | `formato_form.html` | Constructor visual de formato: zonas con +/−, preview textual y preview del cuadro final, cruces manuales opcionales (374 líneas, JS propio). |
@@ -3243,6 +3314,7 @@ Sólo Tailwind es local. Desde CDN externo se cargan (`theme/templates/base.html
 | `/sitemap.xml` | 3 sitemaps: `StaticViewSitemap`, `TorneoSitemap`, `CitySitemap` (`urls.py:20`, `padel_project/sitemaps.py`) |
 | `/googleed7ca9e7f31e28a7.html` | Verificación de Google Search Console (`urls.py:19`) |
 | `/favicon.ico`, `/apple-touch-icon*.png` | `RedirectView` permanentes a `STATIC_URL` (`urls.py:21`, `:42-43`) |
+| `/tv/<alias>/` | `PantallaClubView` (`torneos/pantalla.py`), name `pantalla_club`. En la raíz y corta porque en la TV se tipea con el control remoto |
 
 ---
 
@@ -3273,6 +3345,7 @@ Medido con `python manage.py test` sobre el repo: `Ran 213 tests in 607.566s / O
 | `FichaVendedoraTests` | 2 | TP-03: `cupos_disponibles`, sede/ciudad/premio/reglamento y foto de cancha por defecto |
 | `DatosDePagoTests` | 10 | Cartel "Cómo pagar": importes, alias, `wa.me`, sin precio/alias no aparece; en juego solo lo ve la pareja que debe; finalizado, nadie |
 | `PremioDetalleTests` | 6 | `Torneo.premio_detalle`: grupos por medalla, rótulo "PREMIOS" descartado, premio simple entero, y la ficha lo lista |
+| `PantallaClubTests` | 13 | `/tv/<alias>/`: público y sin caché, 404 con alias inexistente, "en juego" = primer pendiente con hora pasada, al cargar el resultado pasa al siguiente, partido olvidado no tapa la cancha, orden natural de canchas, aislamiento por organización, `?parcial` y `?solo`, `finalizado_en`, placa de campeón, cancha al programar, y que abrir y guardar el modal no corra la hora |
 | `TorneosPorCiudadTests` | 2 | TP-14: página `/torneos/ciudad/<x>/` y su entrada en el sitemap |
 | `TorneoVivoTests` | 1 | TP-13: scoreboard público en vivo responde 200 |
 | `CircuitoTests` | 2 | TP-12: listado/detalle de circuitos y acumulación de puntos (15 pts por victoria de zona) |

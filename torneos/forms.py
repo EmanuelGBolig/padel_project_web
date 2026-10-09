@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.utils import timezone
 from dal import autocomplete
@@ -742,20 +744,52 @@ class SwapGroupTeamsForm(forms.Form):
             self.fields['equipo_destino'].queryset = equipos_otros
 
 
-class PartidoGrupoScheduleForm(forms.ModelForm):
+_CANCHA_WIDGET = forms.TextInput(attrs={
+    'class': 'input input-bordered w-full',
+    'list': 'canchas-usadas',
+    'placeholder': 'Ej: 1, 2, Central',
+    'autocomplete': 'off',
+    'inputmode': 'text',
+})
+
+
+class CanchaScheduleMixin:
+    """Campo "Cancha" de los formularios de programar partido.
+
+    `canchas_usadas` alimenta el <datalist> del template: las canchas que la
+    organización ya cargó, para tocar en vez de escribir al borde de la cancha.
+    """
+
+    def _init_cancha(self, torneo):
+        from .pantalla import canchas_usadas
+        self.fields['cancha'].required = False
+        self.fields['cancha'].label = 'Cancha'
+        self.canchas_usadas = canchas_usadas(torneo.organizacion) if torneo.organizacion_id else []
+
+    def clean_cancha(self):
+        # "Cancha 2" -> "2": la pantalla ya antepone "Cancha" al mostrarla.
+        valor = (self.cleaned_data.get('cancha') or '').strip()
+        return re.sub(r'^cancha\s+', '', valor, flags=re.IGNORECASE)
+
+
+class PartidoGrupoScheduleForm(CanchaScheduleMixin, forms.ModelForm):
     class Meta:
         model = PartidoGrupo
-        fields = ['fecha_hora']
+        fields = ['fecha_hora', 'cancha']
         widgets = {
             'fecha_hora': forms.DateTimeInput(
                 attrs={'type': 'datetime-local', 'class': 'input input-bordered w-full'},
                 format='%Y-%m-%dT%H:%M'
             ),
+            'cancha': _CANCHA_WIDGET,
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._init_cancha(self.instance.grupo.torneo)
         if self.instance.fecha_hora:
+            # En hora local: de la base viene en UTC y el input datetime-local no
+            # tiene huso, así que abrir y guardar sin tocar nada corría el partido 3 horas.
             self.initial['fecha_hora'] = timezone.localtime(self.instance.fecha_hora).strftime('%Y-%m-%dT%H:%M')
         elif self.instance.grupo.fecha_inicio_default:
             # Si no hay fecha, sugerir la del grupo + 09:00 AM
@@ -779,19 +813,21 @@ class GrupoDateForm(forms.ModelForm):
         self.fields['fecha_inicio_default'].label = ""
 
 
-class PartidoScheduleForm(forms.ModelForm):
+class PartidoScheduleForm(CanchaScheduleMixin, forms.ModelForm):
     class Meta:
         model = Partido
-        fields = ['fecha_hora']
+        fields = ['fecha_hora', 'cancha']
         widgets = {
             'fecha_hora': forms.DateTimeInput(
                 attrs={'type': 'datetime-local', 'class': 'input input-bordered w-full'},
                 format='%Y-%m-%dT%H:%M'
             ),
+            'cancha': _CANCHA_WIDGET,
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._init_cancha(self.instance.torneo)
         if self.instance.fecha_hora:
             self.initial['fecha_hora'] = timezone.localtime(self.instance.fecha_hora).strftime('%Y-%m-%dT%H:%M')
 
