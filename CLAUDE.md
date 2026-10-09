@@ -140,8 +140,8 @@ python auditoria_modo_claro.py   # contraste real en 27 pantallas, por rol
 ### El caché es `DatabaseCache`
 Sin `python manage.py createcachetable` varias vistas fallan. Va en el setup y en `build.sh`.
 
-### La suite de tests tarda ~20 minutos
-259 tests (la última corrida completa, en Windows, tardó ~20 min). Mientras iterás, corré solo la clase que tocaste
+### La suite de tests tarda ~10 minutos
+332 tests (la última corrida completa tardó ~9 min). Mientras iterás, corré solo la clase que tocaste
 (`python manage.py test torneos.tests.NombreDeLaClase`) y dejá la suite completa para antes de mergear.
 
 ### `requirements.txt` está en UTF-16 LE con BOM

@@ -74,7 +74,7 @@ python manage.py create_test_tournament
 python manage.py test
 ```
 
-259 tests, tarda unos **20 minutos**. Para iterar rápido, correr solo la app o la clase que tocaste:
+332 tests, tarda unos **10 minutos**. Para iterar rápido, correr solo la app o la clase que tocaste:
 
 ```bash
 python manage.py test torneos.tests.CrucesManualesTests

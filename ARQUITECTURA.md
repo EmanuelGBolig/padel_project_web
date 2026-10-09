@@ -11,7 +11,7 @@
 | **Repositorio** | `EmanuelGBolig/padel_project_web`, rama de trabajo `main` |
 | **Stack** | Django 5.2.16 · Python 3.11 · PostgreSQL (prod) / SQLite (local) · Tailwind + DaisyUI 4.7.2 · WhiteNoise · Cloudinary |
 | **Apps** | `core`, `accounts`, `equipos`, `torneos` (+ `theme` para Tailwind) |
-| **Tests** | 259 tests (`python manage.py test`, ~20 min en Windows) |
+| **Tests** | 332 tests (`python manage.py test`, ~10 min) |
 | **Última auditoría completa** | 2026-08-04 |
 
 ## Cómo leer este documento
