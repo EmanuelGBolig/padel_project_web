@@ -221,9 +221,34 @@
                         </div>
                     {% endif %}
                     {% if torneo.premio %}
-                        <div class="mt-3 inline-flex items-center gap-2 bg-warning/10 px-4 py-2 rounded-xl border border-warning/30 text-sm">
-                            <span class="font-bold">🏆 Premio:</span> <span>{{ torneo.premio }}</span>
-                        </div>
+                        {% comment %}
+                            El premio viene en una sola línea ("🥇 CAMPEONES * Remera * Trofeo 🥈 ...").
+                            premio_detalle lo parte en grupos: una columna por medalla y un
+                            ítem por renglón. Antes era una pastilla con el texto corrido.
+                        {% endcomment %}
+                        {% with grupos=torneo.premio_detalle %}
+                            <div class="mt-4 w-full max-w-xl mx-auto text-left bg-warning/10 rounded-2xl border border-warning/30 p-4">
+                                <div class="font-bold mb-2">🏆 Premios</div>
+                                <div class="grid grid-cols-1 {% if grupos|length > 1 %}sm:grid-cols-2{% endif %} gap-x-6 gap-y-3 text-sm">
+                                    {% for grupo in grupos %}
+                                        <div class="min-w-0">
+                                            {% if grupo.titulo %}
+                                                <div class="font-bold mb-1">{{ grupo.titulo }}</div>
+                                            {% endif %}
+                                            {% if grupo.items|length > 1 %}
+                                                <ul class="space-y-1">
+                                                    {% for item in grupo.items %}
+                                                        <li class="flex gap-2"><span class="text-warning shrink-0">•</span><span class="min-w-0">{{ item }}</span></li>
+                                                    {% endfor %}
+                                                </ul>
+                                            {% elif grupo.items %}
+                                                <p>{{ grupo.items.0 }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endwith %}
                     {% endif %}
                     {% if torneo.reglamento %}
                         <details class="mt-4 text-left bg-base-200/40 rounded-xl border border-base-300 w-full max-w-md mx-auto">

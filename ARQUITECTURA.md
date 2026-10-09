@@ -472,6 +472,7 @@ Plantilla de formato guardable y reutilizable por el organizador (modo "semi-aut
 - **`get_absolute_url()`** → `torneos:detail`.
 - **`fecha_fin`** (`:184`): sólo si `estado == FINALIZADO`; toma el `fecha_hora` del último partido con ganador (`order_by('-fecha_hora').first()`), con fallback a `fecha_inicio`.
 - **`cupos_disponibles`** (`:196`): `max(0, cupos_totales - inscripciones.count())`.
+- **`premio_detalle`**: parte `premio` (un input de una línea) en grupos `[{'titulo', 'items'}]` para listarlo en la ficha. Cada medalla (🥇🥈🥉🏅🏆) abre un grupo; los ítems se separan por `*`, `∗`, `•`, `;` o `|`. Un "PREMIOS" suelto antes de la primera medalla se descarta (es un rótulo). Un premio sin separadores vuelve como un grupo sin título con un solo ítem. Las regex son `_MEDALLA_PREMIO` / `_SEPARADOR_PREMIO`, a nivel de módulo.
 - **Evolución destacada**: `0011` agregó `organizador` (FK a user) y `0012` lo reemplazó por `organizacion`; `0018` agregó el bloque de ficha vendedora (`ciudad`, `cover_image`, `premio`, `reglamento`, `sede_*`).
 
 #### `Inscripcion` — `torneos/models.py:202`
@@ -3140,6 +3141,7 @@ Dos convenciones conviven:
 | `americano_manage.html` | Gestión del americano (rondas, resultados, estado). |
 | `partials/torneo_card.html` | Partial: tarjeta de torneo con badge de estado, logo del organizador y cupos. |
 | `partials/bracket_match_content.html` | Partial: contenido de una tarjeta de partido del bracket (equipos, horario, resultado, W.O.). |
+| `partials/_datos_pago.html` | Partial de la ficha: "Cómo pagar la inscripción" (importes, alias, titular, WhatsApps, estado del pago propio). Lo prende `mostrar_datos_pago`, que arma `TorneoDetailView`: precio + alias cargados, **y** inscripción abierta o torneo en juego para la pareja que todavía no pagó (`not pago_al_dia`). Finalizado no se muestra nunca. |
 | `emails/nuevo_torneo.html` | Mail HTML de difusión de torneo nuevo (CSS propio, degradado verde). |
 | `emails/nueva_inscripcion.html` | Mail HTML simple al organizador cuando se inscribe una pareja. |
 
@@ -3499,6 +3501,8 @@ Medido con `python manage.py test` sobre el repo: `Ran 213 tests in 607.566s / O
 | `GenerarBracketZonaIncompletaTests` | 2 | Bugfix: zonas con partidos pendientes no vuelcan equipos al cuadro (quedan placeholders `1A`/`2B`) |
 | `PlacaCampeonesTests` | 3 | TP-01b: overlays de Cloudinary en la placa; `cloudinary_activo()` False en tests; `None` si el torneo no finalizó |
 | `FichaVendedoraTests` | 2 | TP-03: `cupos_disponibles`, sede/ciudad/premio/reglamento y foto de cancha por defecto |
+| `DatosDePagoTests` | 10 | Cartel "Cómo pagar": importes, alias, `wa.me`, sin precio/alias no aparece; en juego solo lo ve la pareja que debe; finalizado, nadie |
+| `PremioDetalleTests` | 6 | `Torneo.premio_detalle`: grupos por medalla, rótulo "PREMIOS" descartado, premio simple entero, y la ficha lo lista |
 | `TorneosPorCiudadTests` | 2 | TP-14: página `/torneos/ciudad/<x>/` y su entrada en el sitemap |
 | `TorneoVivoTests` | 1 | TP-13: scoreboard público en vivo responde 200 |
 | `CircuitoTests` | 2 | TP-12: listado/detalle de circuitos y acumulación de puntos (15 pts por victoria de zona) |

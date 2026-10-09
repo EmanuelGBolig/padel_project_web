@@ -1,9 +1,11 @@
 {% comment %}
     Datos para pagar la inscripción. Se muestra solo si el organizador cargó un
-    precio Y un alias: sin las dos cosas el bloque no aporta nada.
+    precio Y un alias: sin las dos cosas el bloque no aporta nada. Además, solo
+    mientras la inscripción está abierta, o con el torneo en juego para la pareja
+    que todavía no pagó (la cuenta la hace la vista: mostrar_datos_pago).
     Los importes vienen del torneo; el alias, titular y WhatsApps, de la organización.
 {% endcomment %}
-{% if torneo.requiere_pago and torneo.organizacion.tiene_datos_de_cobro %}
+{% if mostrar_datos_pago %}
     <div class="card bg-base-100 border border-primary/30 shadow-sm rounded-3xl">
         <div class="card-body p-5 md:p-6">
             <h2 class="card-title text-lg gap-2">💳 Cómo pagar la inscripción</h2>
