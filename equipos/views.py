@@ -330,6 +330,10 @@ class AceptarInvitacionView(LoginRequiredMixin, View):
                 jugador2=invitation.invited,
                 division=invitation.inviter.division
             )
+            # `CustomUser.equipo` va cacheada por instancia: si alguien la leyó
+            # antes en este mismo request, quedaría con el valor viejo.
+            invitation.inviter.olvidar_equipo()
+            invitation.invited.olvidar_equipo()
             
             # FIX: Borrar invitaciones previas ACEPTADAS entre estos mismos usuarios para evitar error de unicidad
             Invitation.objects.filter(
@@ -474,6 +478,9 @@ class DisolverEquipoView(GestorRequiredMixin, View):
 
         equipo.esta_activo = False
         equipo.save(update_fields=['esta_activo'])
+        for jugador in (equipo.jugador1, equipo.jugador2):
+            if jugador:
+                jugador.olvidar_equipo()
         messages.success(
             request,
             f"Pareja «{equipo.nombre}» disuelta. Esos jugadores ya pueden formar "

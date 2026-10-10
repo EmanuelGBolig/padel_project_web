@@ -148,8 +148,15 @@
                          alt="{{ torneo.nombre }}"
                          class="order-3 md:order-none w-full max-h-40 md:max-h-64 object-cover rounded-2xl mt-6 md:mt-0 md:mb-6 shadow-sm" />
                 {% else %}
-                    <img src="{% static 'img/fondos/padel-court-1.jpg' %}"
-                         alt="" aria-hidden="true"
+                    {% comment %} Foto de relleno cuando el torneo no tiene portada propia.
+                    Va en WebP del tamaño que se usa: el JPG original era de 1920px y
+                    434 KB para una tira de 160px de alto. Es decorativa, así que
+                    lazy y sin entrar en el camino crítico. {% endcomment %}
+                    <img src="{% static 'img/fondos/padel-court-1-828.webp' %}"
+                         srcset="{% static 'img/fondos/padel-court-1-828.webp' %} 828w,
+                                 {% static 'img/fondos/padel-court-1-1600.webp' %} 1600w"
+                         sizes="(max-width: 768px) 100vw, 768px"
+                         alt="" aria-hidden="true" loading="lazy" decoding="async"
                          class="order-3 md:order-none w-full max-h-40 md:max-h-64 object-cover object-center rounded-2xl mt-6 md:mt-0 md:mb-6 shadow-sm" />
                 {% endif %}
                 <h1 class="order-1 md:order-none text-3xl md:text-4xl font-bold text-base-content mb-2">{{ torneo.nombre }}</h1>

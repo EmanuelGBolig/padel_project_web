@@ -1,0 +1,33 @@
+/* ---------------------------------------------------- */
+/* FIX: Asegurar que los componentes DAL/Select2 se ajusten */
+/* INCREMENTAMOS LA ESPECIFICIDAD PARA ANULAR ESTILOS DE LIBRERÍA */
+/* ---------------------------------------------------- */
+
+/* Forzar a que el widget Select2 tome el ancho completo del contenedor Crispy/Tailwind */
+/* Aumentamos la especificidad usando el atributo data-autocomplete-light-function="select2" */
+[data-autocomplete-light-function="select2"].select2-container {
+    width: 100% !important; 
+    box-sizing: border-box;
+}
+
+/* Ajustar el contenedor de búsqueda para que se ajuste al padding de Crispy */
+.select2-container--default .select2-selection--single {
+    border-radius: 0.5rem; /* Usar border-radius de Tailwind (rounded-lg) */
+    border-color: #d1d5db; /* Color de borde de Tailwind (gray-300) */
+    height: 42px; /* Altura estándar para formularios */
+    padding: 6px 12px; /* Padding interno */
+}
+
+/* Asegurar que el input de búsqueda dentro de Select2 se vea bien */
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 28px; /* Ajuste para centrar texto */
+    padding-left: 0;
+    color: #1f2937; /* Color de texto (gray-800) */
+}
+
+/* Ajuste para el foco (cuando el usuario hace clic) */
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #4f46e5 !important; /* Color de foco indigo-600 */
+    box-shadow: 0 0 0 1px #4f46e5;
+}
+

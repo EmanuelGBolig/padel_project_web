@@ -7,6 +7,7 @@ from django.contrib.auth.models import (
 )
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils import timezone
 from core.validators import validar_imagen
 
@@ -216,19 +217,30 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return self.imagen.url
         return None  # El template manejará el fallback
 
-    @property
+    @cached_property
     def equipo(self):
-        """
-        Propiedad para encontrar fácilmente el equipo de un jugador,
-        ya sea como jugador1 o jugador2.
+        """El equipo activo del jugador, sea como jugador1 o jugador2.
+
+        Va cacheada por instancia porque se lee varias veces por request: la
+        usan la ficha del torneo, el perfil, la gestión y varios templates, y
+        cada lectura costaba una o dos consultas. Medido: 4 `SELECT equipos_equipo`
+        idénticos en una sola carga de la ficha.
+
+        El cache vive lo que vive el objeto, o sea el request. Si en el mismo
+        request armás o disolvés la pareja y necesitás releerla, invalidala con
+        `usuario.olvidar_equipo()`.
         """
         # Importación local para evitar importación circular
-        from equipos.models import Equipo
+        from equipos.models import Equipo  # noqa: F401
 
         equipo = self.equipos_como_jugador1.filter(esta_activo=True).first()
         if not equipo:
             equipo = self.equipos_como_jugador2.filter(esta_activo=True).first()
         return equipo
+
+    def olvidar_equipo(self):
+        """Tira el cache de `equipo` (ver arriba). No falla si nunca se leyó."""
+        self.__dict__.pop('equipo', None)
 
 class Organizacion(models.Model):
     nombre = models.CharField(max_length=150, unique=True)

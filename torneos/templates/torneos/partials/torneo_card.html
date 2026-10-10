@@ -37,7 +37,7 @@
         {% if torneo.estado == "AB" %}
             <p class="text-sm text-base-content/80 mb-3">
                 <span class="font-medium mr-1"><i class="fa-solid fa-users text-primary/70 w-4 inline-block text-center mr-1"></i>Cupos:</span>
-                {{ torneo.inscripciones.count }} / {{ torneo.cupos_totales }}
+                {{ torneo.n_inscripciones }} / {{ torneo.cupos_totales }}
             </p>
         {% endif %}
     </div>

@@ -19,7 +19,7 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
 from random import shuffle
 from collections import defaultdict
 import math
@@ -30,6 +30,7 @@ from django.db import transaction
 from .models import (
     Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo, Circuito,
     Americano, JugadorAmericano, RondaAmericano, PartidoAmericano, EstadoPago,
+    nombre_de_ronda,
 )
 from .forms import (
     TorneoAdminForm,
@@ -2421,8 +2422,11 @@ class TorneoAbiertoListView(FiltroTorneosMixin, ListView):
     template_name = 'torneos/torneo_abierto_list.html'
     context_object_name = 'torneos_abiertos'
     estado_listado = Torneo.Estado.ABIERTO
+    # annotate, y no `inscripciones.count` en el template: ese count corre una
+    # consulta POR TARJETA (10 de mas con la pagina llena).
     queryset = Torneo.objects.filter(estado=Torneo.Estado.ABIERTO) \
         .select_related('division', 'organizacion') \
+        .annotate(n_inscripciones=Count('inscripciones')) \
         .order_by('fecha_inicio')
     paginate_by = 10
 
@@ -3357,9 +3361,15 @@ class MisTorneosView(PlayerRequiredMixin, TemplateView):
         user = self.request.user
         
         # Obtenemos todas las inscripciones del usuario (jugador1 o jugador2 de equipos validos)
+        # `torneo__organizacion` estaba faltando y la tarjeta lo muestra: eran
+        # 10 consultas sueltas. El count de inscriptos va anotado por lo mismo.
         mis_inscripciones = Inscripcion.objects.filter(
             Q(equipo__jugador1=user) | Q(equipo__jugador2=user)
-        ).select_related('torneo', 'torneo__division', 'equipo').order_by('-torneo__fecha_inicio')
+        ).select_related(
+            'torneo', 'torneo__division', 'torneo__organizacion', 'equipo'
+        ).annotate(
+            torneo_n_inscripciones=Count('torneo__inscripciones', distinct=True)
+        ).order_by('-torneo__fecha_inicio')
         
         torneos_abiertos = []
         torneos_en_juego = []
@@ -3367,6 +3377,8 @@ class MisTorneosView(PlayerRequiredMixin, TemplateView):
         
         for inc in mis_inscripciones:
             t = inc.torneo
+            # La anotación viaja en la inscripción; la tarjeta la lee del torneo.
+            t.n_inscripciones = inc.torneo_n_inscripciones
             if t.estado == Torneo.Estado.ABIERTO:
                 torneos_abiertos.append(t)
             elif t.estado == Torneo.Estado.EN_JUEGO:
@@ -3404,12 +3416,24 @@ class TorneoProgramacionView(DetailView):
 
         # 2. Obtener partidos eliminatorios (bracket)
         # Excluir los que son puramente estructurales (rondas futuras sin equipos)
-        partidos_bracket = Partido.objects.filter(
+        partidos_bracket = list(Partido.objects.filter(
             torneo=torneo
         ).select_related(
             'equipo1__jugador1', 'equipo1__jugador2',
             'equipo2__jugador1', 'equipo2__jugador2'
-        )
+        ))
+
+        # El total de rondas se calcula UNA vez, sobre los partidos que ya
+        # trajimos: cero consultas.
+        #
+        # No se usa la property `Partido.nombre_ronda` dentro del loop. Su
+        # docstring dice que el cálculo "queda en 1" porque los partidos
+        # comparten el objeto torneo, pero eso no pasa: Django crea una
+        # instancia de Torneo por fila, así que el cache `_max_ronda_cache`
+        # nunca se comparte y cada partido dispara su propio `SELECT torneo` más
+        # su propio `aggregate(Max('ronda'))`. Medido acá: 23 consultas, 18 de
+        # ellas desperdicio. A escala de un club real son 67.
+        total_rondas_bracket = max((pb.ronda for pb in partidos_bracket), default=0)
 
         # 3. Normalizar la data para la vista
         partidos_list = []
@@ -3432,7 +3456,7 @@ class TorneoProgramacionView(DetailView):
             if pb.equipo1 or pb.equipo2 or pb.placeholder_e1 or pb.placeholder_e2:
                 # Sin .upper(): en la planilla impresa la columna es angosta y
                 # "OCTAVOS DE FINAL · PARTIDO 49" se partía en tres renglones.
-                nombre_fase = pb.nombre_ronda
+                nombre_fase = nombre_de_ronda(pb.ronda, total_rondas_bracket)
 
                 partidos_list.append({
                     'tipo': 'bracket',

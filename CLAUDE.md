@@ -82,6 +82,31 @@ python auditoria_ui.py
 python auditoria_inputs.py   # formularios: inputs que se pasan de su tarjeta
 ```
 
+### Un archivo estático nuevo no existe hasta que corrés `collectstatic`
+`staticfiles/` está **versionado** y el storage es `CompressedManifestStaticFilesStorage`,
+que exige que cada `{% static %}` tenga entrada en `staticfiles.json`. Si agregás una
+imagen, un CSS o un JS y lo referenciás desde un template sin recolectar, **cualquier
+página que lo renderice revienta** con `ValueError: Missing staticfiles manifest entry`.
+No lo ves en el navegador con `DEBUG=True`, pero sí en los tests y en producción.
+
+```bash
+python manage.py collectstatic --noinput   # y commiteá staticfiles/
+```
+
+### `manage.py test --parallel` puede ocultar el fallo y devolver exit 0
+Si un test falla con una excepción cuyo traceback no se puede picklear, el runner
+paralelo muere con `TypeError: cannot pickle 'traceback' object` **y sale con código 0**:
+parece que pasó. Ya nos pasó con un `ValueError` de staticfiles. Si la corrida paralela
+termina rara, repetila en serie antes de dar nada por bueno:
+
+```bash
+python manage.py test accounts core equipos torneos --failfast
+```
+
+Y al leer el resultado, buscá la línea `OK` / `FAILED` de verdad: no te fíes del exit code
+ni cortes la salida con `tail`, porque el resumen va por stderr y se mezcla con los prints
+de los tests.
+
 ### `runserver --noreload` no recarga los templates
 Django usa el **cached loader** aunque `DEBUG=True`; lo que normalmente refresca
 un template editado es el autoreloader, no el loader. Con `--noreload` (que es

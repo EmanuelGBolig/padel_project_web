@@ -515,6 +515,25 @@ class PartidoGrupo(models.Model):
 # --- MODELOS FASE ELIMINATORIA (BRACKET) ---
 
 
+def nombre_de_ronda(ronda, total_rondas):
+    """Nombre legible de una ronda a partir de su distancia a la final.
+
+    Función pura: no toca la base. Es lo que usa `Partido.nombre_ronda`, pero
+    expuesta aparte para poder llamarla desde un loop pasándole el total ya
+    calculado, en vez de pagar dos consultas por partido.
+    """
+    if not total_rondas:
+        return f"Ronda {ronda}"
+    diff = total_rondas - ronda
+    return {
+        0: 'Final',
+        1: 'Semifinal',
+        2: 'Cuartos de Final',
+        3: 'Octavos de Final',
+        4: '16vos de Final',
+    }.get(diff, f"Ronda {ronda}")
+
+
 class Partido(models.Model):
     """Partido de Eliminación Directa (Octavos, Cuartos, Final)"""
 
@@ -592,10 +611,16 @@ class Partido(models.Model):
     def nombre_ronda(self):
         """Nombre legible de la ronda ('Cuartos de Final', 'Semifinal'…).
 
-        El total de rondas se cachea en la instancia del torneo: leer esta
-        property dentro de un loop (programación, perfiles) hacía un aggregate
-        por partido. Como todos los partidos de un mismo torneo comparten el
-        objeto `torneo` cuando se usa select_related, el cálculo queda en 1.
+        OJO: leer esta property dentro de un loop cuesta consultas. El docstring
+        anterior decía que el cálculo "queda en 1" porque los partidos comparten
+        el objeto torneo, pero eso NO pasa: Django crea una instancia de Torneo
+        por fila (con o sin `select_related`), así que el cache por-torneo nunca
+        se comparte y cada partido dispara su propio `SELECT torneo` más su
+        propio `aggregate(Max('ronda'))`.
+
+        Si vas a recorrer varios partidos, calculá el máximo una vez sobre los
+        que ya trajiste y usá `nombre_de_ronda(ronda, total)`, que es la misma
+        función sin consultas.
         """
         from django.db.models import Max
 
@@ -605,24 +630,7 @@ class Partido(models.Model):
             max_ronda = torneo.partidos.aggregate(Max('ronda'))['ronda__max']
             torneo._max_ronda_cache = max_ronda
 
-        if not max_ronda:
-            return f"Ronda {self.ronda}"
-
-
-        diff = max_ronda - self.ronda
-        
-        if diff == 0:
-            return 'Final'
-        elif diff == 1:
-            return 'Semifinal'
-        elif diff == 2:
-            return 'Cuartos de Final'
-        elif diff == 3:
-            return 'Octavos de Final'
-        elif diff == 4:
-            return '16vos de Final'
-        else:
-            return f"Ronda {self.ronda}"
+        return nombre_de_ronda(self.ronda, max_ronda)
 
     @property
     def _slot_en_siguiente(self):

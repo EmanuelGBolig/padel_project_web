@@ -65,7 +65,7 @@
                                     <br>
                                     <span class="font-medium">Inicio:</span> {{ torneo.fecha_inicio|date:"d M Y" }}
                                     <br>
-                                    <span class="font-medium">Cupos:</span> {{ torneo.inscripciones.count }} / {{ torneo.cupos_totales }}
+                                    <span class="font-medium">Cupos:</span> {{ torneo.n_inscripciones }} / {{ torneo.cupos_totales }}
                                 </p>
                             </div>
                             <!-- Botón -->
@@ -111,7 +111,7 @@
                             <br>
                             <span class="font-medium">Inicio:</span> {{ torneo.fecha_inicio|date:"d M Y" }}
                             <br>
-                            <span class="font-medium">Cupos:</span> {{ torneo.inscripciones.count }} / {{ torneo.cupos_totales }}
+                            <span class="font-medium">Cupos:</span> {{ torneo.n_inscripciones }} / {{ torneo.cupos_totales }}
                         </p>
                     </div>
                     <!-- Botón -->

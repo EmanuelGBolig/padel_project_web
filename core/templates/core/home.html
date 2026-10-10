@@ -30,9 +30,17 @@
         /* Hero con foto de cancha (stock Pexels, licencia libre comercial).
            Para cambiarla, reemplazá el archivo o apuntá a padel-court-2/3.jpg. */
         .home-hero {
-            background-image: url("{% static 'img/fondos/padel-court-1.jpg' %}");
+            /* El JPG original es de 1920x1440 y pesa 434 KB; en el celular esta
+               caja mide 343px de ancho. Se sirven dos WebP del tamano que de
+               verdad se usa: 80 KB en telefono, 270 KB en escritorio. */
+            background-image: url("{% static 'img/fondos/padel-court-1-1600.webp' %}");
             background-size: cover;
             background-position: center;
+        }
+        @media (max-width: 640px) {
+            .home-hero {
+                background-image: url("{% static 'img/fondos/padel-court-1-828.webp' %}");
+            }
         }
         /* Carrusel vertical del hero: las cards rotan (en vivo o abiertos).
            La activa entra con un rebote tipo pelota de pádel (squash & stretch). */
@@ -91,9 +99,9 @@
                     </div>
                     <!-- Métricas (TP-04) -->
                     <div class="flex justify-center md:justify-start gap-8">
-                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.torneos_jugados }}</div><div class="text-xs opacity-70">Torneos</div></div>
-                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.jugadores }}</div><div class="text-xs opacity-70">Jugadores</div></div>
-                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.partidos_jugados }}</div><div class="text-xs opacity-70">Partidos</div></div>
+                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.torneos_jugados }}</div><div class="text-xs opacity-70">Torneo{{ stats_home.torneos_jugados|pluralize }}</div></div>
+                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.jugadores }}</div><div class="text-xs opacity-70">Jugador{{ stats_home.jugadores|pluralize:"es" }}</div></div>
+                        <div><div class="text-2xl md:text-3xl font-black text-primary">{{ stats_home.partidos_jugados }}</div><div class="text-xs opacity-70">Partido{{ stats_home.partidos_jugados|pluralize }}</div></div>
                     </div>
                 </div>
                 <!-- Derecha: card "en vivo" / teaser.
