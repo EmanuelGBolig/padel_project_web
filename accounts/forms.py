@@ -3,7 +3,59 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm, Authenti
 from .models import CustomUser, Division, Organizacion, Sponsor
 
 
-class CustomUserCreationForm(UserCreationForm):
+class EmailNormalizadoMixin:
+    """Baja el email a minúsculas en el FORMULARIO, no sólo al guardar.
+
+    `CustomUser.save()` ya normaliza, pero eso corre DESPUÉS de
+    `validate_unique()`, que compara el valor tal como se tipeó. Con
+    "juan@mail.com" ya en la base, anotarse como "Juan@Mail.com" pasaba la
+    validación entera y recién reventaba en el INSERT: el jugador veía una
+    pantalla de error del servidor en vez de "ya tenés cuenta". Normalizando
+    acá, la comparación de unicidad mira el mismo valor que se va a grabar.
+
+    El `__iexact` además cubre los duplicados que quedaron en la base de antes
+    de que el modelo normalizara: ahí hay dos filas que difieren en mayúsculas
+    y el `unique` del campo no las ve como iguales.
+
+    Va en un mixin porque el hueco estaba en los TRES formularios que escriben
+    el email (registro, perfil y el admin), no sólo en el de registro.
+    """
+
+    mensaje_email_duplicado = "Ya hay una cuenta con ese mail."
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        campo = self.fields.get('email')
+        if campo is not None:
+            # El teclado del celular pone la primera en mayúscula en varios
+            # contextos, y de ahí sale el mail con otra caja. Es la mitad de
+            # arriba del mismo problema: evitarlo antes de que se tipee.
+            campo.widget.attrs.setdefault('autocapitalize', 'none')
+            campo.widget.attrs.setdefault('autocomplete', 'email')
+            campo.widget.attrs.setdefault('spellcheck', 'false')
+
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        if not email:
+            return email
+
+        otros = CustomUser.objects.filter(email__iexact=email)
+        if getattr(self, 'instance', None) is not None and self.instance.pk:
+            otros = otros.exclude(pk=self.instance.pk)
+        if otros.exists():
+            raise forms.ValidationError(self.mensaje_email_duplicado)
+
+        return email
+
+
+class CustomUserCreationForm(EmailNormalizadoMixin, UserCreationForm):
+    # Es el caso que más importa: alguien que ya tiene cuenta, no se acuerda, y
+    # se vuelve a anotar. El mensaje tiene que decirle qué hacer.
+    mensaje_email_duplicado = (
+        "Ya tenés una cuenta con ese mail. Entrá con tu contraseña, o recuperala "
+        "si no te acordás."
+    )
+
     division = forms.ModelChoiceField(
         queryset=Division.objects.all(), required=True, label="División"
     )
@@ -39,7 +91,7 @@ class CustomUserCreationForm(UserCreationForm):
         return user
 
 
-class CustomUserAdminForm(UserChangeForm):
+class CustomUserAdminForm(EmailNormalizadoMixin, UserChangeForm):
     """Formulario para el Admin de Django (Mantiene el campo password seguro)"""
     division = forms.ModelChoiceField(
         queryset=Division.objects.all(), required=True, label="División"
@@ -71,8 +123,10 @@ class CustomUserAdminForm(UserChangeForm):
         return user
 
 
-class CustomUserProfileForm(UserChangeForm):
+class CustomUserProfileForm(EmailNormalizadoMixin, UserChangeForm):
     """Formulario para editar perfil en el frontend (Oculta password)"""
+
+    mensaje_email_duplicado = "Ese mail ya lo usa otra cuenta."
     division = forms.ModelChoiceField(
         queryset=Division.objects.all(), required=True, label="División"
     )

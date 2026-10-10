@@ -905,3 +905,74 @@ class ActivarCuentaTests(TestCase):
         self.assertIsNone(password, "No deberia generar clave nueva")
         real.refresh_from_db()
         self.assertTrue(real.check_password("MiClave123"))
+
+
+class EmailMayusculasFormTests(TestCase):
+    """El email duplicado por mayusculas tiene que frenarlo el FORMULARIO.
+
+    `CustomUser.save()` normaliza, pero corre despues de `validate_unique()`,
+    asi que sin `clean_email` el form validaba OK y el INSERT reventaba con un
+    IntegrityError: el jugador veia un error 500 en vez de "ya tenes cuenta".
+    """
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Septima", orden=7)
+        User.objects.create_user(
+            email="juan@mail.com", password="MiClave123", nombre="Juan",
+            apellido="Perez", division=self.division)
+
+    def _datos(self, **extra):
+        datos = {
+            'email': 'Juan@Mail.com',
+            'nombre': 'Juan',
+            'apellido': 'Perez',
+            'numero_telefono': '2235550000',
+            'genero': 'MASCULINO',
+            'division': self.division.pk,
+            'password1': 'Clave-Muy-Larga-123',
+            'password2': 'Clave-Muy-Larga-123',
+        }
+        datos.update(extra)
+        return datos
+
+    def test_registro_con_mismo_mail_en_otra_caja_lo_frena_el_form(self):
+        from .forms import CustomUserCreationForm
+
+        form = CustomUserCreationForm(data=self._datos())
+        self.assertFalse(
+            form.is_valid(),
+            "Tiene que frenarlo el form, no explotar en el INSERT")
+        self.assertIn('email', form.errors)
+
+    def test_registro_con_mail_nuevo_en_mayusculas_entra_normalizado(self):
+        from .forms import CustomUserCreationForm
+
+        form = CustomUserCreationForm(
+            data=self._datos(email='Nuevo@Mail.COM', numero_telefono='2235551111'))
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+        self.assertEqual(form.save().email, 'nuevo@mail.com')
+
+    def test_perfil_no_puede_pisar_el_mail_de_otro_cambiando_la_caja(self):
+        from .forms import CustomUserProfileForm
+
+        otro = User.objects.create_user(
+            email="ana@mail.com", password="MiClave123", nombre="Ana",
+            apellido="Gomez", division=self.division)
+        form = CustomUserProfileForm(
+            data={'email': 'JUAN@mail.com', 'nombre': 'Ana', 'apellido': 'Gomez',
+                  'numero_telefono': '2235552222', 'genero': 'FEMENINO',
+                  'division': self.division.pk},
+            instance=otro)
+        self.assertFalse(form.is_valid())
+        self.assertIn('email', form.errors)
+
+    def test_perfil_puede_guardar_su_propio_mail_sin_cambios(self):
+        from .forms import CustomUserProfileForm
+
+        yo = User.objects.get(email="juan@mail.com")
+        form = CustomUserProfileForm(
+            data={'email': 'juan@mail.com', 'nombre': 'Juan', 'apellido': 'Perez',
+                  'numero_telefono': '2235550000', 'genero': 'MASCULINO',
+                  'division': self.division.pk},
+            instance=yo)
+        self.assertTrue(form.is_valid(), form.errors.as_text())

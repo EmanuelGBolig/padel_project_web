@@ -1647,7 +1647,8 @@ App transversal del proyecto. Define el modelo de usuario (`AUTH_USER_MODEL = 'a
 accounts/
 ├── models.py          (368)  CustomUser, Division, Organizacion, Sponsor, PushSubscription, Notificacion, MergeAuditLog
 ├── views.py           (869)  login/registro/perfil/rankings/organización/merge/push
-├── forms.py           (383)  registro, perfil, login, dummy, merge, organización, sponsor
+├── forms.py           (561)  registro, perfil, login, dummy, merge, organización, sponsor
+│                             + `EmailNormalizadoMixin` (ver 5.1.b)
 ├── utils.py           (851)  rankings, stats, logros, completitud, dedupe, merge, mails
 ├── auth_backends.py   (60)   MergedAccountBackend (login multi-mail de cuentas fusionadas)
 ├── pipeline.py        (57)   save_google_profile (social-auth)
@@ -1831,6 +1832,37 @@ Ambos escriben `MergeAuditLog` con un **snapshot del origen tomado ANTES** de fu
 
 ### 5. Autenticación
 
+#### 5.1.b `EmailNormalizadoMixin` — por qué normalizar en el form y no sólo en el modelo
+
+`CustomUser.save()` baja el email a minúsculas, pero eso corre **después** de
+`validate_unique()`, que compara el valor tal como se tipeó. Con `juan@mail.com`
+ya en la base, anotarse como `Juan@Mail.com` pasaba la validación entera y recién
+reventaba en el INSERT: `RegistroView.form_valid` no atrapa el `IntegrityError`,
+así que el jugador veía una pantalla de error del servidor en vez de "ya tenés
+cuenta". Normalizar en el modelo **sin** normalizar en el form cambia un duplicado
+silencioso por un 500.
+
+El mixin (`accounts/forms.py`) hace las dos cosas en `clean_email`: normaliza y
+chequea unicidad con `__iexact`, que además cubre los duplicados que quedaron en
+la base de antes de que el modelo normalizara (dos filas que difieren en
+mayúsculas: el `unique` del campo no las ve como iguales). Su `__init__` le pone
+al widget `autocapitalize="none"`, para que el teclado del celular no genere el
+problema de entrada.
+
+Lo heredan los **tres** formularios que escriben el email, cada uno con su
+`mensaje_email_duplicado`: `CustomUserCreationForm` (registro),
+`CustomUserProfileForm` (perfil) y `CustomUserAdminForm` (admin).
+`DummyUserCreationForm` ya traía su propio `clean_email` que normaliza.
+
+> ⚠️ Lo que **no** cubre: no hay migración que baje a minúsculas los emails ya
+> guardados, ni un `UniqueConstraint(Lower('email'))` en el modelo. Los duplicados
+> previos siguen en la base, y con ellos el `MultipleObjectsReturned` del
+> `email__iexact` del login, que se come un `except` y devuelve "login
+> inválido". También queda afuera `seed_dev_data.py`, que usa `bulk_create` y por
+> lo tanto no pasa por `save()` (sin impacto real: arma mails en minúscula).
+
+Tests: `accounts.tests.EmailMayusculasFormTests` (4).
+
 #### 5.1 Login por email — `CustomLoginForm` (`accounts/forms.py:157-226`)
 
 - Hereda `AuthenticationForm`; `USERNAME_FIELD='email'` hace que el campo `username` sea el mail.
@@ -1843,7 +1875,7 @@ Ambos escriben `MergeAuditLog` con un **snapshot del origen tomado ANTES** de fu
 
 #### 5.2 Registro — `RegistroView` + `CustomUserCreationForm`
 
-- Campos: `email`, `nombre`, `apellido`, `numero_telefono`, `genero`, `division` (obligatoria) (`forms.py:6-20`); `save()` fuerza `tipo_usuario='PLAYER'` (líneas 34-39). Los `help_text` se anulan para no mostrar los requisitos de contraseña (línea 28).
+- Campos: `email`, `nombre`, `apellido`, `numero_telefono`, `genero`, `division` (obligatoria); `save()` fuerza `tipo_usuario='PLAYER'`. Los `help_text` se anulan para no mostrar los requisitos de contraseña. Hereda de `EmailNormalizadoMixin` (ver 5.1.b).
 - `RegistroView.form_valid` (`views.py:90-103`) setea **`is_active=True` e `is_verified=True`**, autologuea con `backend='django.contrib.auth.backends.ModelBackend'` y redirige al home. **No manda mail de verificación.**
 
 #### 5.3 Verificación por código — vestigial
