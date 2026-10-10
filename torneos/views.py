@@ -786,6 +786,23 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         return None
 
     def generar_octavos_logica(self, request, torneo, solo_estructura=False):
+        # Guarda de idempotencia: generar la llave dos veces la DUPLICA entera.
+        #
+        # Ninguna de las ramas de abajo (FAP, cruces manuales, genérica) chequea
+        # si ya hay partidos antes de crearlos. Un doble clic del organizador al
+        # borde de la cancha, o un POST repetido por mala señal, dejaba el cuadro
+        # duplicado y el torneo inservible. `forzar_cuadro_vacio` sí chequeaba;
+        # esta rama no.
+        #
+        # Para rehacer la llave está "Regenerar", que borra antes de crear.
+        if not solo_estructura and torneo.partidos.exists():
+            messages.warning(
+                request,
+                "El cuadro de este torneo ya está generado. Si querés rehacerlo, "
+                "usá «Regenerar Llave»."
+            )
+            return redirect('torneos:admin_manage', pk=torneo.pk)
+
         inscripciones = torneo.inscripciones.all()
         count = inscripciones.count()
 
@@ -2596,26 +2613,29 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
         # Re-chequeo del cupo bajo lock: entre el dispatch y este punto pudo
         # entrar otra pareja. Sin el select_for_update, dos inscripciones
         # simultáneas se pasan del límite.
+        form.instance.torneo = torneo
+        form.instance.equipo = equipo
+
         try:
+            # El INSERT va DENTRO del mismo bloque que toma el lock.
+            #
+            # Antes el `with transaction.atomic()` se cerraba despues de contar y
+            # el alta real ocurria afuera: el lock de fila se soltaba antes de
+            # insertar, asi que dos inscripciones concurrentes se serializaban
+            # solo en el CONTEO, no en conteo+insercion. Las dos leian 15 < 16 y
+            # las dos entraban. Con el INSERT adentro, la segunda espera el lock,
+            # vuelve a contar 16 y se la rechaza.
             with transaction.atomic():
                 bloqueado = Torneo.objects.select_for_update().get(pk=torneo.pk)
-                ocupados = bloqueado.inscripciones.count()
-                if ocupados >= bloqueado.cupos_totales:
+                if bloqueado.inscripciones.count() >= bloqueado.cupos_totales:
                     messages.error(
                         self.request,
                         "Justo se completaron los cupos. Escribile al organizador "
                         "por si se libera un lugar."
                     )
                     return redirect('torneos:detail', pk=torneo.pk)
-        except Torneo.DoesNotExist:
-            messages.error(self.request, "El torneo ya no existe.")
-            return redirect('core:home')
+                response = super().form_valid(form)
 
-        form.instance.torneo = torneo
-        form.instance.equipo = equipo
-
-        try:
-            response = super().form_valid(form)
             messages.success(self.request, "¡Inscripción confirmada!")
             # Invalidar caché del perfil del organizador del torneo
             from django.core.cache import cache as dj_cache
@@ -2634,6 +2654,9 @@ class InscripcionCreateView(LoginRequiredMixin, CreateView):
                 logger.error(f"Error al intentar notificar nueva inscripción: {e}")
                 
             return response
+        except Torneo.DoesNotExist:
+            messages.error(self.request, "El torneo ya no existe.")
+            return redirect('core:home')
         except IntegrityError:
             messages.warning(self.request, "Tu equipo ya está inscrito en este torneo.")
             return redirect('torneos:detail', pk=torneo.pk)
