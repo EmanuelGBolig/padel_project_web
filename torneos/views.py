@@ -32,6 +32,7 @@ from .models import (
     Americano, JugadorAmericano, RondaAmericano, PartidoAmericano, EstadoPago,
     nombre_de_ronda,
     ordenar_con_head_to_head,
+    anotar_tabla_ordenada,
 )
 from .forms import (
     TorneoAdminForm,
@@ -220,10 +221,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         # aplica el mismo desempate por resultado directo que usa el sembrado
         # del cuadro. Va sobre lo ya prefetcheado, así que no cuesta consultas
         # extra salvo la de los partidos, que también está prefetcheada.
-        grupos = list(grupos)
-        for g in grupos:
-            g.tabla_ordenada = ordenar_con_head_to_head(
-                g.tabla.all(), partidos=list(g.partidos_grupo.all()))
+        grupos = anotar_tabla_ordenada(grupos)
         context['grupos'] = grupos
 
         # ¿Los grupos ya tienen partidos generados?
@@ -2057,8 +2055,11 @@ class TorneoDetailView(DetailView):
             'partidos_grupo__equipo2__jugador2',
             'partidos_grupo__ganador',
         )
-        context['grupos'] = grupos
-        
+        # La ficha pública itera `grupo.tabla_ordenada`: sin esto el template
+        # resuelve a vacío en silencio y la tabla sale con el encabezado y
+        # ninguna fila.
+        context['grupos'] = anotar_tabla_ordenada(grupos)
+
         context['inscripciones'] = (
             torneo.inscripciones.all()
             .select_related('equipo', 'equipo__jugador1', 'equipo__jugador2')

@@ -489,6 +489,27 @@ def ordenar_con_head_to_head(filas, partidos=None):
     return resultado
 
 
+def anotar_tabla_ordenada(grupos):
+    """Deja `tabla_ordenada` en cada grupo y devuelve la lista.
+
+    Existe porque el cálculo estaba escrito a mano en UNA vista y el template
+    que lo consume lo renderiza OTRA: la ficha pública iteraba un atributo que
+    nadie le ponía, así que la tabla de posiciones salía con el encabezado y
+    el cuerpo vacío, en silencio y con HTTP 200. Teniendo un solo lugar donde
+    se calcula, las dos mitades no pueden volver a desincronizarse.
+
+    Da por sentado que quien llama ya prefetcheó `tabla` y `partidos_grupo`
+    (las dos vistas lo hacen), así que no agrega consultas. Devuelve una lista
+    y no un queryset justamente para que el atributo sobreviva: en un queryset
+    cada iteración reconstruye las instancias y se pierde lo anotado.
+    """
+    grupos = list(grupos)
+    for g in grupos:
+        g.tabla_ordenada = ordenar_con_head_to_head(
+            g.tabla.all(), partidos=list(g.partidos_grupo.all()))
+    return grupos
+
+
 class PartidoGrupo(models.Model):
     """Partido dentro de la Fase de Grupos"""
 

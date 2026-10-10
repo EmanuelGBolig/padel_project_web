@@ -782,7 +782,7 @@ Todas las URLs están bajo el prefijo `/torneos/` (`padel_project/urls.py:32`), 
 | Archivo | Líneas | Rol |
 |---|---:|---|
 | `torneos/views.py` | 3542 | Vistas + toda la lógica de generación de zonas y llave |
-| `torneos/models.py` | 1020 | `Torneo`, `Inscripcion`, `Grupo`, `EquipoGrupo`, `PartidoGrupo`, `Partido`, `FormatoPersonalizado`, `Circuito`, modelos Americano, `nombre_de_ronda()` y `ordenar_con_head_to_head()` |
+| `torneos/models.py` | 1040 | `Torneo`, `Inscripcion`, `Grupo`, `EquipoGrupo`, `PartidoGrupo`, `Partido`, `FormatoPersonalizado`, `Circuito`, modelos Americano, `nombre_de_ronda()`, `ordenar_con_head_to_head()` y `anotar_tabla_ordenada()` — este último deja `tabla_ordenada` en cada grupo y lo llaman **las dos** vistas que muestran la tabla: tenía el cálculo en una vista y el consumo en el template de otra, y la ficha pública salía con la tabla vacía |
 | `torneos/formats.py` | 718 | Llaves oficiales FAP (6–48 parejas) y cálculo/descripción de estructura |
 | `torneos/forms.py` | 1293 | Alta de torneo, carga de resultados (Normal/W.O./Abandono), reemplazos, formatos, inscripción sin cuenta y `SubirComprobanteForm` |
 | `torneos/signals.py` | 240 | Recálculo de tabla de posiciones, invalidación de caché, llaves internas |
