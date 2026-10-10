@@ -64,3 +64,6 @@ scratch_*
 
 # Temporales de trabajo, no van al repo
 _to_delete/
+
+# Salida generada por los scripts de auditoria (se regenera corriendolos)
+docs/auditoria/ux-2026-10/scripts/contraste_*.json
