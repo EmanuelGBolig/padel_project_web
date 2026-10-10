@@ -67,7 +67,7 @@
         </script>
         <!-- 1. HTMX -->
         <script src="https://unpkg.com/htmx.org@1.9.10"
-                xintegrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+                integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
                 crossorigin="anonymous"></script>
         <!-- Google Fonts: Inter -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,13 +109,15 @@
         }
 
         /* Forzar colores Emerald en botones clave para evitar residuales de temas */
+        /* Tinta OSCURA sobre el verde de marca, en los dos temas.
+           El fondo es #10b981 fijo, asi que la tinta tambien tiene que serlo.
+           Con blanco daba 2.54:1 (falla AA incluso para texto grande); con
+           #1a1a1a da 6.86:1. Antes este arreglo existia pero scopeado a
+           [data-theme="business"]: el tema oscuro estaba bien y el claro
+           --que es el default-- roto. */
         .btn-primary, .btn-success {
             background-color: #10b981 !important;
             border-color: #10b981 !important;
-            color: white !important;
-        }
-        [data-theme="business"] .btn-primary,
-        [data-theme="business"] .btn-success {
             color: #1a1a1a !important;
         }
         .btn-primary:hover, .btn-success:hover {
@@ -126,13 +128,13 @@
         /* === Sistema visual TodoPadel (TP-16): un solo acento verde, "en vivo" en rojo === */
         /* Matar el azul: secundario/acento/info pasan a la familia verde de marca */
         .btn-secondary, .btn-accent, .btn-info {
-            background-color: #10b981 !important; border-color: #10b981 !important; color: #fff !important;
+            background-color: #10b981 !important; border-color: #10b981 !important; color: #1a1a1a !important;
         }
         .btn-outline.btn-secondary, .btn-outline.btn-accent, .btn-outline.btn-info {
             background-color: transparent !important; color: #10b981 !important; border-color: #10b981 !important;
         }
         .btn-outline.btn-secondary:hover, .btn-outline.btn-accent:hover, .btn-outline.btn-info:hover {
-            background-color: #10b981 !important; color: #fff !important;
+            background-color: #10b981 !important; color: #1a1a1a !important;
         }
         .btn-secondary:hover, .btn-accent:hover, .btn-info:hover {
             background-color: #059669 !important; border-color: #059669 !important;
@@ -722,7 +724,7 @@
                                  style="position: fixed; top: 4.5rem; left: 50%; transform: translateX(-50%); width: 90vw; max-width: 28rem; z-index: 90; display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem;">
                                 {% for message in messages %}
                                     <div role="alert"
-                                         class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg border-none text-white animate-in slide-in-from-top-2 fade-in duration-300"
+                                         class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg border-none animate-in slide-in-from-top-2 fade-in duration-300"
                                          style="width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center;">
                                         <span style="font-size: 0.875rem; font-weight: 500; word-break: break-word; overflow-wrap: break-word; flex: 1; min-width: 0;">{{ message }}</span>
                                         <button type="button"
@@ -829,16 +831,21 @@
                             <div id="banner-registro"
                                  class="print:hidden alert bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 shadow-sm flex items-center gap-3 py-3 px-5 rounded-2xl transition-all duration-300 mb-4">
                                 <span class="text-2xl drop-shadow-sm">🎾</span>
-                                <div class="flex-1 text-sm">
+                                <div class="flex-1 min-w-0 text-sm">
                                     <span class="font-bold text-base">¡Sumate a la comunidad TodoPadel!</span>
-                                    <span class="opacity-80 block sm:inline mt-0.5 sm:mt-0"> Crea tu cuenta gratis para jugar torneos y estar en el ranking.</span>
+                                    {% comment %} En celular alcanza con el titular y el botón: la
+                                    explicación hacía que el cartel midiera 180px, casi un cuarto de la
+                                    primera pantalla. {% endcomment %}
+                                    <span class="opacity-80 hidden sm:inline mt-0.5 sm:mt-0"> Crea tu cuenta gratis para jugar torneos y estar en el ranking.</span>
                                 </div>
-                                <div class="flex gap-2">
-                                    <a href="{% url 'accounts:registro' %}"
-                                       class="btn btn-primary btn-sm rounded-xl shrink-0 font-bold shadow-md">Crear Cuenta</a>
-                                    <button onclick="dismissBanner('banner-registro')"
-                                            class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-50 hover:opacity-100 hidden sm:flex">✕</button>
-                                </div>
+                                {% comment %} Los dos botones van como hijos DIRECTOS del .alert, sin
+                                un contenedor flex que los envuelva: ese envoltorio matchea la regla de
+                                barras de acciones de styles.css (un .flex con dos .btn adentro) y los
+                                apilaba en columna, estirando el cartel a 258px en celular. {% endcomment %}
+                                <a href="{% url 'accounts:registro' %}"
+                                   class="btn btn-primary btn-sm rounded-xl shrink-0 font-bold shadow-md">Crear Cuenta</a>
+                                <button onclick="dismissBanner('banner-registro')"
+                                        class="btn btn-ghost btn-sm btn-circle shrink-0 opacity-50 hover:opacity-100">✕</button>
                             </div>
                             <script>
                             (function() {

@@ -1,32 +1,25 @@
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
-from django.core.cache import cache
+"""Sin receivers.
 
+Acá vivía `invalidar_cache_rankings`, enganchado a post_save/post_delete de
+Partido, PartidoGrupo y Torneo. Borraba tres claves de caché:
 
-@receiver(post_save, sender='torneos.Partido')
-@receiver(post_delete, sender='torneos.Partido')
-@receiver(post_save, sender='torneos.PartidoGrupo')
-@receiver(post_delete, sender='torneos.PartidoGrupo')
-@receiver(post_save, sender='torneos.Torneo')
-@receiver(post_delete, sender='torneos.Torneo')
-def invalidar_cache_rankings(sender, instance, **kwargs):
-    """
-    Invalida el cache de rankings cuando se actualiza un partido o torneo.
-    Esto asegura que los rankings siempre muestren datos actualizados.
-    """
-    # Obtener todas las claves de cache que empiezan con 'rankings_'
-    # En producción, considera usar cache.delete_pattern() si usas Redis
-    
-    # Para LocMemCache, debemos eliminar claves específicas
-    # Eliminar cache de todas las divisiones y cache general
-    
-    # Cache de jugadores
-    cache.delete('rankings_jugadores_all')
-    
-    # También eliminar cache de divisiones específicas
-    # Esto requeriría conocer todos los IDs de división, así que
-    # por simplicidad limpiamos todo durante 5 minutos después de un cambio
-    from equipos.models import Division
-    for division in Division.objects.all():
-        cache.delete(f'rankings_div_{division.id}')
-        cache.delete(f'rankings_jugadores_div_{division.id}')
+    rankings_jugadores_all
+    rankings_div_{id}
+    rankings_jugadores_div_{id}
+
+Ninguna de las tres existe. La clave real que se escribe lleva el género en el
+sufijo (`accounts/utils.py`):
+
+    rankings_jugadores_div_{division_id}_gen_{ALL|MASCULINO|FEMENINO}
+
+y ya la invalida bien `torneos/signals.py` (`invalidar_cache_rankings_division`).
+
+O sea que el receiver no invalidaba nada, pero con DatabaseCache cada
+`cache.delete` es un DELETE contra la base: eran `2 + 2 × divisiones` sentencias
+inútiles por cada guardado. Medido con las 8 divisiones de producción, programar
+el horario de un partido costaba 21 sentencias; sin esto, 1. En un torneo de 50
+parejas, cargar los 72 horarios pasa de ~1.512 sentencias a 72.
+
+Si alguna vez hace falta invalidar caché desde esta app, hacerlo con las claves
+reales y verificando que alguien las escriba.
+"""

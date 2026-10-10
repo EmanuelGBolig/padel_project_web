@@ -21,12 +21,12 @@
      .dropdown-content menús: sus items ya son full width
    ========================================================================== */
 @media (max-width: 639px) {
-    .flex:not(.join):not(.dropdown-content):has(> .btn + .btn) {
+    .flex:not(.join):not(.dropdown-content):not(.alert):has(> .btn + .btn) {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .flex:not(.join):not(.dropdown-content):has(> .btn + .btn)
+    .flex:not(.join):not(.dropdown-content):not(.alert):has(> .btn + .btn)
         > .btn:not(.btn-circle):not(.btn-square):not(.btn-xs) {
         width: 100%;
         /* Sin esto, un botón con poco texto queda más bajo que uno con ícono. */
@@ -35,7 +35,7 @@
     }
 
     /* Un ancla usada como botón dentro de la misma barra sigue la misma regla. */
-    .flex:not(.join):not(.dropdown-content):has(> .btn + .btn) > a.btn {
+    .flex:not(.join):not(.dropdown-content):not(.alert):has(> .btn + .btn) > a.btn {
         justify-content: center;
     }
 }
@@ -213,8 +213,19 @@ svg:not(.w-full):not(.h-full):not(.absolute) {
    Los avisos llevan `display: flex` en el atributo `style`, así que la clase
    `print:hidden` de Tailwind no les gana por especificidad: hay que ocultarlos
    desde acá con `!important`.
+
+   `color-scheme: light` tampoco es cosmético: si el celular está en modo oscuro
+   DaisyUI deja el root en `color-scheme: dark` y el navegador pinta de oscuro el
+   *canvas* de la hoja — o sea la franja de margen que queda fuera del área
+   imprimible — y la página sale con un marco negro. Poner `background:#fff` no
+   alcanza. Estaba resuelto sólo en la planilla de horarios; va acá para que
+   valga en toda página que alguien imprima.
    ========================================================================== */
 @media print {
+    html {
+        color-scheme: light !important;
+    }
+
     .toast,
     #incentive-banners,
     #banner-instalar,
