@@ -104,14 +104,14 @@
     </div>
 
     <div id="{{ idp }}-wo" class="hidden mt-3">
-        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5">
+        <label for="{{ form.lado_ganador.id_for_label }}" class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5">
             ¿Quién gana por W.O.?
         </label>
         {{ form.lado_ganador }}
         {% for e in form.lado_ganador.errors %}<span class="text-error text-xs mt-1 block">{{ e }}</span>{% endfor %}
     </div>
     <div id="{{ idp }}-ab" class="hidden mt-3">
-        <label class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5">
+        <label for="{{ form.lado_abandona.id_for_label }}" class="text-xs font-bold uppercase tracking-wider text-base-content/50 block mb-1.5">
             ¿Qué pareja abandonó?
         </label>
         {{ form.lado_abandona }}

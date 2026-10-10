@@ -49,7 +49,7 @@
                                class="input input-bordered w-full bg-base-100 text-base-content"
                                placeholder="********">
                         {% if form.password.errors %}<span class="text-error text-sm">{{ form.password.errors.0 }}</span>{% endif %}
-                        <label class="label">
+                        <label for="{{ form.non_field_errors.0.id_for_label }}" class="label">
                             <a href="{% url 'accounts:password_reset' %}"
                                class="label-text-alt link link-hover">¿Olvidaste tu contraseña?</a>
                         </label>

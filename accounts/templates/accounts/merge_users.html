@@ -38,12 +38,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                 <!-- Dummy User -->
                 <div class="form-control w-full">
-                    <label class="label">
+                    <label for="{{ form.dummy_user.id_for_label }}" class="label">
                         <span class="label-text font-bold">Jugador Dummy (Origen)</span>
                     </label>
                     {{ form.dummy_user }}
                     {% if form.dummy_user.errors %}
-                        <label class="label"><span class="label-text-alt text-error">{{ form.dummy_user.errors.0 }}</span></label>
+                        <div class="label"><span class="label-text-alt text-error">{{ form.dummy_user.errors.0 }}</span></div>
                     {% endif %}
                 </div>
 
@@ -56,12 +56,12 @@
 
                 <!-- Real User -->
                 <div class="form-control w-full">
-                    <label class="label">
+                    <label for="{{ form.real_user.id_for_label }}" class="label">
                         <span class="label-text font-bold">Usuario Real (Destino)</span>
                     </label>
                     {{ form.real_user }}
                     {% if form.real_user.errors %}
-                        <label class="label"><span class="label-text-alt text-error">{{ form.real_user.errors.0 }}</span></label>
+                        <div class="label"><span class="label-text-alt text-error">{{ form.real_user.errors.0 }}</span></div>
                     {% endif %}
                 </div>
             </div>

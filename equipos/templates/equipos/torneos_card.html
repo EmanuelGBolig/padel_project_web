@@ -26,7 +26,7 @@
                     {% for item in torneos_jugados %}
                     <tr class="hover {% if item.gano %}bg-success/5{% endif %}">
                         <td>
-                            <a href="{% url 'torneos:detalle' item.torneo.pk %}"
+                            <a href="{% url 'torneos:detail' item.torneo.pk %}"
                                 class="font-bold text-primary hover:underline">
                                 {{ item.torneo.nombre }}
                             </a>

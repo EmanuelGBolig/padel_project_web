@@ -51,6 +51,7 @@ from .forms import (
     CircuitoForm,
     InscripcionConCompaneroForm,
     InscripcionSinCuentaForm,
+    SubirComprobanteForm,
 )
 from .formats import get_format, calcular_estructura_grupos, describir_estructura
 from .emails import notificar_nuevo_torneo
@@ -3312,13 +3313,21 @@ class SubirComprobanteView(LoginRequiredMixin, View):
         if not equipo or inscripcion.equipo_id != equipo.pk:
             raise PermissionDenied("Esa inscripción no es tuya.")
 
-        archivo = request.FILES.get('comprobante')
-        if not archivo:
+        if not request.FILES.get('comprobante'):
             messages.error(request, "No adjuntaste ningún archivo.")
             return redirect('torneos:detail', pk=inscripcion.torneo_id)
 
-        inscripcion.comprobante = archivo
-        inscripcion.save(update_fields=['comprobante'])
+        # Va por el form para que corran las validaciones: asignar y guardar
+        # directo se saltea `validators=[validar_imagen]` del modelo (los
+        # validadores sólo los dispara un form o un full_clean explícito).
+        form = SubirComprobanteForm(request.POST, request.FILES, instance=inscripcion)
+        if not form.is_valid():
+            messages.error(
+                request,
+                form.errors.get('comprobante', ["No pudimos leer ese archivo."])[0],
+            )
+            return redirect('torneos:detail', pk=inscripcion.torneo_id)
+        form.save()
         messages.success(
             request,
             "¡Listo! Le llegó el comprobante al organizador. Te va a confirmar el lugar."

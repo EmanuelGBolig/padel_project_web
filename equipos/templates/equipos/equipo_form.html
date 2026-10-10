@@ -109,7 +109,7 @@
                 <form method="post" class="w-full">
                     {% csrf_token %}
                     <div class="form-control w-full mb-6">
-                        <label class="label">
+                        <label for="{{ form.jugador2.id_for_label }}" class="label">
                             <span class="label-text font-bold text-base-content">Selecciona tu compañero ({{ user.division.nombre }})</span>
                         </label>
                         <!-- Contenedor con ancho forzado para Select2 -->
@@ -117,7 +117,7 @@
                         {% if form.jugador2.errors %}<div class="text-error text-xs mt-2 pl-1">{{ form.jugador2.errors.0 }}</div>{% endif %}
                     </div>
                     <div class="form-control w-full mb-6">
-                        <label class="label">
+                        <label for="{{ form.categoria.id_for_label }}" class="label">
                             <span class="label-text font-bold text-base-content">{{ form.categoria.label }}</span>
                         </label>
                         <div class="w-full">{{ form.categoria }}</div>

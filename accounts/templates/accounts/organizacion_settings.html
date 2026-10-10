@@ -15,26 +15,26 @@
                         <!-- Nombre y Alias -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="form-control w-full">
-                                <label class="label">
+                                <label for="{{ form.nombre.id_for_label }}" class="label">
                                     <span class="label-text font-medium">Nombre de la Organización</span>
                                 </label>
                                 {{ form.nombre }}
                                 {% if form.nombre.errors %}<span class="text-error text-xs">{{ form.nombre.errors.0 }}</span>{% endif %}
                             </div>
                             <div class="form-control w-full">
-                                <label class="label">
+                                <label for="{{ form.alias.id_for_label }}" class="label">
                                     <span class="label-text font-medium">Alias (URL)</span>
                                 </label>
                                 {{ form.alias }}
                                 {% if form.alias.errors %}<span class="text-error text-xs">{{ form.alias.errors.0 }}</span>{% endif %}
-                                <label class="label">
+                                <div class="label">
                                     <span class="label-text-alt">Ej: mi-club-padel</span>
-                                </label>
+                                </div>
                             </div>
                         </div>
                         <!-- Logo -->
                         <div class="form-control w-full p-4 bg-base-200/50 rounded-2xl border border-base-300 transition-all hover:bg-base-200/80">
-                            <label class="label">
+                            <label for="{{ form.logo.id_for_label }}" class="label">
                                 <span class="label-text font-bold text-lg">Logo de la Organización</span>
                             </label>
                             <div class="flex flex-col sm:flex-row items-center gap-6 mt-2">
@@ -65,7 +65,7 @@
                         </div>
                         <!-- Descripción -->
                         <div class="form-control w-full">
-                            <label class="label">
+                            <label for="{{ form.descripcion.id_for_label }}" class="label">
                                 <span class="label-text font-medium">Descripción</span>
                             </label>
                             {{ form.descripcion }}
@@ -73,25 +73,25 @@
                         </div>
                         <!-- Receptor Notificaciones -->
                         <div class="form-control w-full">
-                            <label class="label">
+                            <label for="{{ form.receptor_notificaciones.id_for_label }}" class="label">
                                 <span class="label-text font-medium text-primary">Receptor de Notificaciones (Inscripciones)</span>
                             </label>
                             {{ form.receptor_notificaciones }}
                             {% if form.receptor_notificaciones.errors %}<span class="text-error text-xs">{{ form.receptor_notificaciones.errors.0 }}</span>{% endif %}
-                            <label class="label">
+                            <div class="label">
                                 <span class="label-text-alt opacity-70">El organizador seleccionado recibirá un correo cada vez que una pareja se inscriba en un torneo.</span>
-                            </label>
+                            </div>
                         </div>
                         <!-- WhatsApp de contacto -->
                         <div class="form-control w-full">
-                            <label class="label">
+                            <label for="{{ form.whatsapp.id_for_label }}" class="label">
                                 <span class="label-text font-medium">WhatsApp de contacto</span>
                             </label>
                             {{ form.whatsapp }}
                             {% if form.whatsapp.errors %}<span class="text-error text-xs">{{ form.whatsapp.errors.0 }}</span>{% endif %}
-                            <label class="label">
+                            <div class="label">
                                 <span class="label-text-alt opacity-70">Formato internacional, ej: +54 9 11 2345-6789. Habilita el botón "Consultá por WhatsApp" en tus torneos.</span>
-                            </label>
+                            </div>
                         </div>
 
                         {% comment %}
@@ -110,7 +110,7 @@
                             </label>
                             {{ form.alias_cobro }}
                             {% if form.alias_cobro.errors %}<span class="text-error text-xs">{{ form.alias_cobro.errors.0 }}</span>{% endif %}
-                            <label class="label">
+                            <label for="{{ form.titular_cobro.id_for_label.id_for_label }}" class="label">
                                 <span class="label-text-alt opacity-70">{{ form.alias_cobro.help_text }}</span>
                             </label>
                         </div>
@@ -121,7 +121,7 @@
                             </label>
                             {{ form.titular_cobro }}
                             {% if form.titular_cobro.errors %}<span class="text-error text-xs">{{ form.titular_cobro.errors.0 }}</span>{% endif %}
-                            <label class="label">
+                            <label for="{{ form.whatsapps_comprobante.id_for_label.id_for_label }}" class="label">
                                 <span class="label-text-alt opacity-70">{{ form.titular_cobro.help_text }}</span>
                             </label>
                         </div>
@@ -132,14 +132,14 @@
                             </label>
                             {{ form.whatsapps_comprobante }}
                             {% if form.whatsapps_comprobante.errors %}<span class="text-error text-xs">{{ form.whatsapps_comprobante.errors.0 }}</span>{% endif %}
-                            <label class="label">
+                            <div class="label">
                                 <span class="label-text-alt opacity-70">{{ form.whatsapps_comprobante.help_text }}</span>
-                            </label>
+                            </div>
                         </div>
 
                         <!-- Ubicación -->
                         <div class="form-control w-full">
-                            <label class="label">
+                            <label for="{{ form.direccion.id_for_label }}" class="label">
                                 <span class="label-text font-medium">Dirección</span>
                             </label>
                             {{ form.direccion }}
@@ -147,14 +147,14 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="form-control w-full">
-                                <label class="label">
+                                <label for="{{ form.latitud.id_for_label }}" class="label">
                                     <span class="label-text font-medium">Latitud</span>
                                 </label>
                                 {{ form.latitud }}
                                 {% if form.latitud.errors %}<span class="text-error text-xs">{{ form.latitud.errors.0 }}</span>{% endif %}
                             </div>
                             <div class="form-control w-full">
-                                <label class="label">
+                                <label for="{{ form.longitud.id_for_label }}" class="label">
                                     <span class="label-text font-medium">Longitud</span>
                                 </label>
                                 {{ form.longitud }}

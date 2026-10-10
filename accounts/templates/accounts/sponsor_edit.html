@@ -24,14 +24,14 @@
                         {% csrf_token %}
                         {% for field in form %}
                             <div class="form-control w-full">
-                                <label class="label">
+                                <label for="{{ field.id_for_label }}" class="label">
                                     <span class="label-text font-medium">{{ field.label }}</span>
                                 </label>
                                 {{ field }}
                                 {% if field.help_text %}
-                                    <label class="label">
+                                    <div class="label">
                                         <span class="label-text-alt opacity-70">{{ field.help_text }}</span>
-                                    </label>
+                                    </div>
                                 {% endif %}
                                 {% if field.errors %}<span class="text-error text-xs">{{ field.errors.0 }}</span>{% endif %}
                             </div>

@@ -1272,3 +1272,22 @@ class InscripcionSinCuentaForm(forms.Form):
                 "Pusiste el mismo teléfono para los dos.")
 
         return cleaned
+
+
+class SubirComprobanteForm(forms.ModelForm):
+    """Sólo el comprobante, para que la subida pase por validación.
+
+    `Inscripcion.comprobante` ya declara `validators=[validar_imagen]`, pero los
+    validadores de un modelo NO corren en un `save()` pelado: sólo los dispara un
+    form o un `full_clean()` explícito. La vista asignaba el archivo y guardaba
+    directo, así que cualquier jugador logueado podía subir cualquier cosa, de
+    cualquier tamaño, al único campo de archivo que no es de staff.
+
+    Pasando por un ModelForm se obtienen las dos capas: la de `ImageField` (que
+    verifica con Pillow que sea una imagen de verdad, no un archivo renombrado)
+    y la de `validar_imagen` (peso y dimensiones máximas).
+    """
+
+    class Meta:
+        model = Inscripcion
+        fields = ['comprobante']

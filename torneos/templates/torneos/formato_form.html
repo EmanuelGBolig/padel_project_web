@@ -12,13 +12,13 @@
                 {% csrf_token %}
 
                 <div class="form-control w-full">
-                    <label class="label py-1"><span class="label-text font-medium">{{ form.nombre.label }}</span></label>
+                    <label for="{{ form.nombre.id_for_label }}" class="label py-1"><span class="label-text font-medium">{{ form.nombre.label }}</span></label>
                     {{ form.nombre }}
                     {% for e in form.nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
                 </div>
 
                 <div class="form-control w-full">
-                    <label class="label py-1"><span class="label-text font-medium">{{ form.clasifican_por_grupo.label }}</span></label>
+                    <label for="{{ form.clasifican_por_grupo.id_for_label }}" class="label py-1"><span class="label-text font-medium">{{ form.clasifican_por_grupo.label }}</span></label>
                     {{ form.clasifican_por_grupo }}
                     <span class="label-text-alt text-base-content/50 text-xs mt-1">{{ form.clasifican_por_grupo.help_text }}</span>
                 </div>

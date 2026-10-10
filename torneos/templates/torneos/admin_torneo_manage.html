@@ -621,8 +621,8 @@
                               onsubmit="return confirm('¿Crear una zona nueva con estas parejas? Se generan sus partidos.')">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="agregar_zona">
-                            <label class="label py-1"><span class="label-text font-medium">Parejas (una por línea)</span></label>
-                            <textarea name="nombres_parejas" rows="3"
+                            <label for="nombres_parejas" class="label py-1"><span class="label-text font-medium">Parejas (una por línea)</span></label>
+                            <textarea name="nombres_parejas" id="nombres_parejas" rows="3"
                                       class="textarea textarea-bordered w-full bg-base-100"
                                       placeholder="Bigoni/Sanchez&#10;Perez/Lopez"></textarea>
                             <p class="text-xs text-base-content/50 mt-1">Mínimo 2. Ej: “Apellido1/Apellido2”. Después se pueden vincular a cuentas reales desde “Posibles duplicados”.</p>

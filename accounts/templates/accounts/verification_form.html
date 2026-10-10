@@ -24,11 +24,11 @@
                 <form method="post" class="space-y-4">
                     {% csrf_token %}
                     <div class="form-control">
-                        <label class="label">
+                        <label for="code" class="label">
                             <span class="label-text font-medium">Código de Verificación</span>
                         </label>
                         <input type="text"
-                               name="code"
+                               name="code" id="code"
                                class="input input-bordered w-full text-center text-2xl tracking-widest uppercase"
                                placeholder="123456"
                                maxlength="6"

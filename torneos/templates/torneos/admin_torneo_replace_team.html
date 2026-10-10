@@ -38,49 +38,49 @@
             <span>Solo puedes reemplazar parejas que <strong>no hayan jugado</strong> ningún partido con resultado en este torneo.</span>
         </div>
         <div class="form-control w-full space-y-1">
-            <label class="label pt-0">
+            <label for="{{ form.equipo_a_reemplazar.id_for_label }}" class="label pt-0">
                 <span class="label-text font-bold">{{ form.equipo_a_reemplazar.label }}</span>
             </label>
             {{ form.equipo_a_reemplazar }}
             {% if form.equipo_a_reemplazar.errors %}
-                <label class="label pb-0">
+                <div class="label pb-0">
                     <span class="label-text-alt text-error font-medium">{{ form.equipo_a_reemplazar.errors.0 }}</span>
-                </label>
+                </div>
             {% endif %}
         </div>
         <div class="divider text-xs font-bold opacity-50 uppercase tracking-widest my-2">Nuevo Equipo</div>
         <div class="form-control w-full space-y-1">
-            <label class="label pt-0">
+            <label for="{{ form.nuevo_equipo.id_for_label }}" class="label pt-0">
                 <span class="label-text font-bold">{{ form.nuevo_equipo.label }}</span>
             </label>
             {{ form.nuevo_equipo }}
             {% if form.nuevo_equipo.errors %}
-                <label class="label pb-0">
+                <div class="label pb-0">
                     <span class="label-text-alt text-error font-medium">{{ form.nuevo_equipo.errors.0 }}</span>
-                </label>
+                </div>
             {% endif %}
-            <label class="label pb-0">
+            <div class="label pb-0">
                 <span class="label-text-alt opacity-70">Elegí un pareja registrado que no esté en el torneo.</span>
-            </label>
+            </div>
         </div>
         <div class="divider text-xs font-bold opacity-50 uppercase tracking-widest my-2">O bien</div>
         <div class="form-control bg-base-200/50 p-4 rounded-xl border border-base-300">
-            <label class="cursor-pointer label justify-start gap-3 w-fit mb-2">
+            <label for="{{ form.nombre_dummy.id_for_label }}" class="cursor-pointer label justify-start gap-3 w-fit mb-2">
                 {{ form.crear_dummy }}
                 <span class="label-text font-bold">{{ form.crear_dummy.label }}</span>
             </label>
             <div class="pl-8 w-full mt-1">
                 {{ form.nombre_dummy }}
                 {% if form.nombre_dummy.errors %}
-                    <label class="label pb-0">
+                    <div class="label pb-0">
                         <span class="label-text-alt text-error font-medium">{{ form.nombre_dummy.errors.0 }}</span>
-                    </label>
+                    </div>
                 {% endif %}
             </div>
             {% if form.crear_dummy.errors %}
-                <label class="label pb-0">
+                <div class="label pb-0">
                     <span class="label-text-alt text-error font-medium">{{ form.crear_dummy.errors.0 }}</span>
-                </label>
+                </div>
             {% endif %}
         </div>
         {% if form.non_field_errors %}

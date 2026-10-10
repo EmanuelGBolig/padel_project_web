@@ -10,7 +10,7 @@
                     {% csrf_token %}
                     {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Tu nombre</span></label>
+                        <label for="{{ form.nombre.id_for_label }}" class="label"><span class="label-text font-medium">Tu nombre</span></label>
                         {{ form.nombre }}
                         {% if form.nombre.errors %}<span class="text-error text-xs">{{ form.nombre.errors.0 }}</span>{% endif %}
                     </div>

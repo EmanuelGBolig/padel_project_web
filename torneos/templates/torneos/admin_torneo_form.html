@@ -36,23 +36,23 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         <div class="form-control w-full sm:col-span-2">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.nombre.label }}</span></label>
+                            <label for="{{ form.nombre.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.nombre.label }}</span></label>
                             {{ form.nombre }}
                             {% for e in form.nombre.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
                         </div>
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.categoria.label }}</span></label>
+                            <label for="{{ form.categoria.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.categoria.label }}</span></label>
                             {{ form.categoria }}
                             {% for e in form.categoria.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
                         </div>
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.division.label }}</span></label>
+                            <label for="{{ form.division.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.division.label }}</span></label>
                             {{ form.division }}
                             <span class="label-text-alt text-base-content/60 text-xs mt-1">Dejala en “Libre” para que entre cualquier división.</span>
                             {% for e in form.division.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
                         </div>
                         <div class="form-control w-full sm:col-span-2">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">Tipo de competencia</span></label>
+                            <label for="{{ form.tipo_torneo.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">Tipo de competencia</span></label>
                             {{ form.tipo_torneo }}
                             <span class="label-text-alt text-base-content/60 text-xs mt-1">Fase de grupos = todos juegan varios partidos. Eliminación directa = el que pierde queda afuera.</span>
                             {% for e in form.tipo_torneo.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
@@ -68,17 +68,17 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">Cierre de inscripción</span></label>
+                            <label for="{{ form.fecha_limite_inscripcion.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">Cierre de inscripción</span></label>
                             {{ form.fecha_limite_inscripcion }}
                             {% for e in form.fecha_limite_inscripcion.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
                         </div>
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">Fecha de inicio</span></label>
+                            <label for="{{ form.fecha_inicio.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">Fecha de inicio</span></label>
                             {{ form.fecha_inicio }}
                             {% for e in form.fecha_inicio.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
                         </div>
                         <div class="form-control w-full sm:col-span-2">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">Cupos (parejas)</span></label>
+                            <label for="{{ form.cupos_totales.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">Cupos (parejas)</span></label>
                             {{ form.cupos_totales }}
                             <span class="label-text-alt text-base-content/60 text-xs mt-1">Cuántas parejas entran. La estructura se arma sola según este número (lo ves abajo).</span>
                             {% for e in form.cupos_totales.errors %}<span class="text-error text-xs mt-1">{{ e }}</span>{% endfor %}
@@ -111,27 +111,27 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.ciudad.label }}</span></label>
+                            <label for="{{ form.ciudad.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.ciudad.label }}</span></label>
                             {{ form.ciudad }}
                         </div>
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.sede_nombre.label }}</span></label>
+                            <label for="{{ form.sede_nombre.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.sede_nombre.label }}</span></label>
                             {{ form.sede_nombre }}
                         </div>
                         <div class="form-control w-full sm:col-span-2">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.sede_direccion.label }}</span></label>
+                            <label for="{{ form.sede_direccion.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.sede_direccion.label }}</span></label>
                             {{ form.sede_direccion }}
                         </div>
                         <div class="form-control w-full sm:col-span-2">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">Portada del torneo</span></label>
+                            <label for="{{ form.cover_image.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">Portada del torneo</span></label>
                             {{ form.cover_image }}
                         </div>
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.premio.label }}</span></label>
+                            <label for="{{ form.premio.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.premio.label }}</span></label>
                             {{ form.premio }}
                         </div>
                         <div class="form-control w-full">
-                            <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.reglamento.label }}</span></label>
+                            <label for="{{ form.reglamento.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.reglamento.label }}</span></label>
                             {{ form.reglamento }}
                         </div>
 
@@ -188,18 +188,18 @@
                         </p>
                         {% if form.formato_personalizado %}
                             <div class="form-control w-full mb-4">
-                                <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.formato_personalizado.label }}</span></label>
+                                <label for="{{ form.formato_personalizado.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.formato_personalizado.label }}</span></label>
                                 {{ form.formato_personalizado }}
                                 <span class="label-text-alt text-base-content/50 text-xs mt-1">{{ form.formato_personalizado.help_text }} <a href="{% url 'torneos:formatos_list' %}" class="link link-primary">Gestionar formatos →</a></span>
                             </div>
                         {% endif %}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                             <div class="form-control w-full">
-                                <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.equipos_por_grupo.label }}</span></label>
+                                <label for="{{ form.equipos_por_grupo.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.equipos_por_grupo.label }}</span></label>
                                 {{ form.equipos_por_grupo }}
                             </div>
                             <div class="form-control w-full">
-                                <label class="label py-1"><span class="label-text font-medium text-sm">{{ form.formato_grupos_4.label }}</span></label>
+                                <label for="{{ form.formato_grupos_4.id_for_label }}" class="label py-1"><span class="label-text font-medium text-sm">{{ form.formato_grupos_4.label }}</span></label>
                                 {{ form.formato_grupos_4 }}
                             </div>
                             <div class="form-control w-full sm:col-span-2">

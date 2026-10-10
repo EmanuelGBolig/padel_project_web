@@ -5,18 +5,18 @@
       hx-target="#schedule_modal_content">
     {% csrf_token %}
     <div class="form-control w-full">
-        <label class="label">
+        <label for="{{ form.fecha_hora.id_for_label }}" class="label">
             <span class="label-text">Fecha y Hora</span>
         </label>
         {{ form.fecha_hora }}
         {% if form.fecha_hora.errors %}
-            <label class="label">
+            <div class="label">
                 <span class="label-text-alt text-error">{{ form.fecha_hora.errors.0 }}</span>
-            </label>
+            </div>
         {% endif %}
     </div>
     <div class="form-control w-full mt-3">
-        <label class="label">
+        <label for="{{ form.cancha.id_for_label }}" class="label">
             <span class="label-text">Cancha <span class="opacity-60">(opcional)</span></span>
         </label>
         {{ form.cancha }}
@@ -42,9 +42,9 @@
             </div>
         {% endif %}
         {% if form.cancha.errors %}
-            <label class="label">
+            <div class="label">
                 <span class="label-text-alt text-error">{{ form.cancha.errors.0 }}</span>
-            </label>
+            </div>
         {% endif %}
     </div>
     <div class="modal-action">

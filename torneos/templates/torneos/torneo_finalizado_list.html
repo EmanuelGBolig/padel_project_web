@@ -25,10 +25,10 @@
                   class="mb-8 flex flex-col sm:flex-row gap-4 justify-center items-end bg-base-200/50 p-4 rounded-xl border border-base-300">
                 {% if years %}
                     <div class="form-control w-full sm:w-auto">
-                        <label class="label py-1">
+                        <label for="filtro-year" class="label py-1">
                             <span class="label-text text-xs opacity-70 font-semibold uppercase tracking-wider">Año</span>
                         </label>
-                        <select name="year"
+                        <select name="year" id="filtro-year"
                                 class="select select-bordered select-sm min-w-[150px]"
                                 onchange="this.form.submit()">
                             <option value="">Todos los años</option>
@@ -43,10 +43,10 @@
                 {% endif %}
                 {% if organizaciones %}
                     <div class="form-control w-full sm:w-auto">
-                        <label class="label py-1">
+                        <label for="filtro-org" class="label py-1">
                             <span class="label-text text-xs opacity-70 font-semibold uppercase tracking-wider">Organización</span>
                         </label>
-                        <select name="organizacion"
+                        <select name="organizacion" id="filtro-org"
                                 class="select select-bordered select-sm min-w-[200px]"
                                 onchange="this.form.submit()">
                             <option value="">Todas las organizaciones</option>

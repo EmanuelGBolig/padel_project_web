@@ -246,7 +246,7 @@
                         {% csrf_token %}
                         {% for field in form %}
                             <div class="form-control w-full">
-                                <label class="label">
+                                <label for="{{ field.id_for_label }}" class="label">
                                     <span class="label-text font-medium">{{ field.label }}</span>
                                 </label>
                                 {{ field }}

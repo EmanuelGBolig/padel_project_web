@@ -81,7 +81,17 @@ torneo y marca al campeón.
 >   vez de contar por tarjeta, y las dos imágenes pesadas se sirven en WebP del tamaño real
 >   (556 KB → 88 KB en la home).
 > - **Seguridad**: `integrity` del script de htmx estaba escrito `xintegrity`, así que el
->   navegador lo ignoraba y htmx se bajaba de unpkg sin verificar.
+>   navegador lo ignoraba y htmx se bajaba de unpkg sin verificar. La subida del comprobante
+>   de pago —el único campo de archivo que no es de staff— asignaba el archivo y hacía
+>   `save()` directo, y los `validators` de un modelo **no corren en un `save()` pelado**:
+>   cualquier jugador logueado podía subir cualquier cosa, de cualquier tamaño. Ahora pasa
+>   por `SubirComprobanteForm`.
+> - **Accesibilidad**: el menú lateral cerrado seguía en el orden de tabulación (347 de 809
+>   paradas de tab caían en un panel invisible) → `inert` sincronizado con el toggle
+>   (ver 2.8). Los 41 `<label>` sin `for` válido quedaron en 0: la mitad no eran labels sino
+>   contenedores de error o de ayuda, y pasaron a `<div>`. Y los 6 `<i class="fa-…">`
+>   huérfanos de `torneo_card.html` y `organizador_equipo_form.html` son SVG: Font Awesome
+>   no se carga en ninguna parte, así que renderizaban vacíos.
 
 ---
 
@@ -106,7 +116,7 @@ Estado de migraciones (en sync — `makemigrations --check --dry-run` → *No ch
 | App | Última migración | Nº archivos |
 |---|---|---|
 | `accounts` | `0018_pushsubscription` | 18 |
-| `torneos` | `0030_partido_cancha_finalizado_en` | 30 |
+| `torneos` | `0031_desempate_estable_tabla` | 31 |
 | `equipos` | `0009_busquedacompanero` | 9 |
 | `core` | `0002_initial` | 2 |
 
@@ -771,17 +781,19 @@ Todas las URLs están bajo el prefijo `/torneos/` (`padel_project/urls.py:32`), 
 
 | Archivo | Líneas | Rol |
 |---|---:|---|
-| `torneos/views.py` | 2692 | Vistas + toda la lógica de generación de zonas y llave |
-| `torneos/models.py` | 689 | `Torneo`, `Inscripcion`, `Grupo`, `EquipoGrupo`, `PartidoGrupo`, `Partido`, `FormatoPersonalizado`, `Circuito`, modelos Americano |
-| `torneos/formats.py` | 715 | Llaves oficiales FAP (6–48 parejas) y cálculo/descripción de estructura |
-| `torneos/forms.py` | 868 | Alta de torneo, carga de resultados (Normal/W.O./Abandono), reemplazos, formatos |
-| `torneos/signals.py` | 143 | Recálculo de tabla de posiciones, invalidación de caché, llaves internas |
-| `torneos/americano.py` | 201 | Vistas y scheduler del formato Americano/Mexicano |
-| `torneos/emails.py` | 219 | Notificaciones a jugadores elegibles y a organizadores |
+| `torneos/views.py` | 3542 | Vistas + toda la lógica de generación de zonas y llave |
+| `torneos/models.py` | 1020 | `Torneo`, `Inscripcion`, `Grupo`, `EquipoGrupo`, `PartidoGrupo`, `Partido`, `FormatoPersonalizado`, `Circuito`, modelos Americano, `nombre_de_ronda()` y `ordenar_con_head_to_head()` |
+| `torneos/formats.py` | 718 | Llaves oficiales FAP (6–48 parejas) y cálculo/descripción de estructura |
+| `torneos/forms.py` | 1293 | Alta de torneo, carga de resultados (Normal/W.O./Abandono), reemplazos, formatos, inscripción sin cuenta y `SubirComprobanteForm` |
+| `torneos/signals.py` | 240 | Recálculo de tabla de posiciones, invalidación de caché, llaves internas |
+| `torneos/pantalla.py` | 573 | Pantalla del club para TV (`/tv/<alias>/`): rotación de placas, paginado de la llave en los dos ejes |
+| `torneos/americano.py` | 223 | Vistas y scheduler del formato Americano/Mexicano |
+| `torneos/emails.py` | 238 | Notificaciones a jugadores elegibles y a organizadores |
 | `torneos/admin.py` | 171 | Django admin |
-| `torneos/templatetags/torneo_extras.py` | 167 | Helpers de template (nombres de ronda, batch, setvar) |
+| `torneos/templatetags/torneo_extras.py` | 188 | Helpers de template (nombres de ronda, batch, setvar) |
 | `torneos/social.py` | 70 | Placa de campeones vía overlays de Cloudinary |
-| `torneos/urls.py` | 124 | Ruteo |
+| `torneos/permisos.py` | 50 | `OrgScopedQuerysetMixin` + `objeto_de_mi_organizacion()`, re-exportados desde `views.py` |
+| `torneos/urls.py` | 176 | Ruteo |
 
 ---
 
@@ -2551,6 +2563,25 @@ a mano quedaba inconsistente.
   tenga al lado, se pasa. Usá `flex-1 min-w-0`.
 - Un `<label>` con `whitespace-nowrap` al lado de un input fuerza el ancho.
 
+**Íconos y labels**
+
+- **El cromo interactivo va en SVG monolínea, no en emoji.** Un emoji dentro
+  de un botón o un badge lo anuncia el lector de pantalla como texto, no
+  hereda `currentColor` y mide distinto en cada plataforma; los `✕` de
+  descarte, además, daban un área táctil de 24px. Quedan a propósito unos
+  160 emoji que son **contenido** y no interfaz (un 🏆 al lado de
+  "Campeones" es una decisión de estilo), y el del `data-share-text`, que es
+  el mensaje que se comparte por WhatsApp. El inventario está en el informe
+  06 de `docs/auditoria/ux-2026-10/`.
+- **Font Awesome no se carga en ninguna parte.** Un `<i class="fa-…">`
+  copiado de otro proyecto renderiza **vacío**, sin error ni hueco visible:
+  así estuvieron "División", "Inicio" y "Cupos" en las tarjetas de torneo.
+- **`<label>` es sólo para etiquetar un control.** Un `<label>` sin `for`
+  válido y sin el input adentro no etiqueta nada. La mitad de los que había
+  eran contenedores de error o de ayuda usados por la clase `label`: esos van
+  en `<div class="label">`. Envolver el input en el `<label>` (asociación
+  implícita) es válido y no necesita `for`.
+
 **Cómo verificar** (necesita el server en el puerto 8010):
 
 ```bash
@@ -2781,18 +2812,22 @@ El CTA de WhatsApp usa `{{ organizador_whatsapp_url }}`, del context processor `
 
 #### 2.5 Mensajes y banners
 
-**Mensajes de Django** (`base.html:682-692`): contenedor `position: fixed` centrado con estilos inline; mapea `message.tags` a `alert-success` / `alert-error` / `alert-warning` / `alert-info`.
+**Mensajes de Django** (`base.html:720-739`): contenedor `position: fixed` centrado con estilos inline; mapea `message.tags` a `alert-success` / `alert-error` / `alert-warning` / `alert-info`. Cada aviso es un **grid** de `minmax(0, 1fr) auto` (texto + botón de cerrar): el `.alert` de DaisyUI ya es grid, así que el `flex: 1; min-width: 0` del span no alcanzaba y todo texto de más de ~45 caracteres se cortaba por los dos costados.
 
-> ⚠️ El contenedor **no** lleva clase `toast`, pero el script de auto-dismiss (`base.html:1229-1242`) y el cálculo del delay del loader (`base.html:1278`) buscan `.toast .alert`. **Los mensajes nunca se auto-ocultan.** Además las clases `animate-in slide-in-from-top-2 fade-in duration-300` (`base.html:686`) son de `tailwindcss-animate`, que no está en `plugins: []` → no existen en el CSS compilado.
+> El contenedor lleva clase `toast` desde octubre de 2026. Es la que buscan el auto-cierre (`base.html:1300-1313`) y, antes, el cálculo del delay del loader; sin ella los avisos quedaban fijos tapando el contenido. El loader ya no mira los avisos: sale en `DOMContentLoaded` (ver 2.7).
 
-Tres banners condicionales, todos descartables:
+> ⚠️ Las clases `animate-in slide-in-from-top-2 fade-in duration-300` (`base.html:727`) son de `tailwindcss-animate`, que no está en `plugins: []` → no existen en el CSS compilado. La animación de entrada que sí corre es el `@keyframes toast-slide-in` de `base.html:267-273`.
+
+Cuatro banners condicionales, todos descartables:
 
 | Banner | Condición | Persistencia | Línea |
 |---|---|---|---|
-| 📲 Instalar app | mobile UA && no standalone && no en `/instalar` | `localStorage['tp_install_dismiss']` | 696-721 |
-| 📸 Agregá tu foto | `user_sin_foto` (context processor) | `sessionStorage['dismissed_banner-foto']` | 725-738 |
-| 🤝 Formá tu pareja | `user_sin_equipo` | `sessionStorage['dismissed_banner-equipo']` | 739-752 |
-| 🎾 Sumate a la comunidad | `not user.is_authenticated` | `sessionStorage['dismissed_banner-registro']` | 777-812 |
+| Instalar app | mobile UA && no standalone && no en `/instalar` | `localStorage['tp_install_dismiss']` | 742-767 |
+| Agregá tu foto | `user_sin_foto` (context processor) | `sessionStorage['dismissed_banner-foto']` | 772-783 |
+| Formá tu pareja | `user_sin_equipo` | `sessionStorage['dismissed_banner-equipo']` | 786-797 |
+| Sumate a la comunidad | `not user.is_authenticated` | `sessionStorage['dismissed_banner-registro']` | 831-869 |
+
+Los íconos de los cuatro son SVG monolínea, no emoji (ver *Íconos y labels* en las convenciones de UI en mobile, más arriba), y los `✕` de descarte son botones de 40px con `aria-label="Cerrar aviso"`.
 
 #### 2.5.b Páginas de error
 
@@ -2833,9 +2868,9 @@ original**, que ya trae la silueta exacta del logo.
 
 #### 2.6 Footer
 
-`base.html:1152-1189`, `footer-center`, `print:hidden`, con clase `.app-footer` que en ≥1536px se desplaza `margin-left: 20rem` para no quedar bajo el sidebar fijo (`base.html:500-503`). Contiene:
+`base.html:1224-1261`, `footer-center`, `print:hidden`, con clase `.app-footer` que en ≥1536px se desplaza `margin-left: 20rem` para no quedar bajo el sidebar fijo (`base.html:500-503`). Contiene:
 - Copyright con `{% now "Y" %}`
-- Botón "📲 Instalar la app" → `core:instalar`
+- Botón "Instalar la app" (SVG de celular) → `core:instalar`
 - Dropdown **Compartir** (`data-share` + `data-share-url/title/text`) con: Compartir nativo (oculto hasta que `share.js` detecte `navigator.share`), WhatsApp (anchor puro), Copiar link, y "🎨 Crear placa para redes" → `torneos:placa_app`
 - Crédito del desarrollador
 
@@ -2843,13 +2878,14 @@ original**, que ya trae la silueta exacta del logo.
 
 | Script | Línea | Función |
 |---|---|---|
-| `js/share.js` (defer) | 1191 | Web Share API + copiar link |
-| Theme controller | 1195-1226 | Sincroniza todos los `.theme-controller`, persiste en `localStorage`, actualiza el texto "Modo Claro/Oscuro" |
-| Auto-dismiss alerts | 1229-1242 | *(código muerto, ver 2.5)* |
-| Loading global de forms | 1247-1255 | Agrega `.loading` al `button[type=submit]` salvo que tenga `.no-loader` |
-| Loading HTMX | 1258-1272 | `htmx:beforeRequest` / `htmx:afterOnLoad` |
-| Loader logic | 1276-1288 | Quita `#global-loader` a los 800 ms |
-| PWA | 1291-1308 | Registra `/sw.js`; captura `beforeinstallprompt` en `window.deferredPWAPrompt`, agrega `.pwa-installable` al `<html>` y dispara un evento custom `pwa-installable`; limpia en `appinstalled` |
+| `js/share.js` (defer) | 1263 | Web Share API + copiar link |
+| Theme controller | 1267-1299 | Sincroniza todos los `.theme-controller`, persiste en `localStorage`, actualiza el texto "Modo Claro/Oscuro" |
+| Auto-cierre de avisos | 1300-1313 | Oculta los `.toast .alert`; `alert-error` y `alert-warning` duran más porque suelen traer instrucciones que hay que llegar a leer |
+| Loading global de forms | 1315-1326 | Agrega `.loading` al `button[type=submit]` salvo que tenga `.no-loader` |
+| Loading HTMX | 1327-1343 | `htmx:beforeRequest` / `htmx:afterOnLoad` |
+| Loader logic | 1345-1355 | Quita `#global-loader` en `DOMContentLoaded`. Antes esperaba 800 ms fijos, que era retardo puro en CADA navegación |
+| PWA | 1357-1374 | Registra `/sw.js`; captura `beforeinstallprompt` en `window.deferredPWAPrompt`, agrega `.pwa-installable` al `<html>` y dispara un evento custom `pwa-installable`; limpia en `appinstalled` |
+| `inert` del drawer | 1375-1391 | Saca el menú lateral del tabulado mientras está cerrado (ver 2.8) |
 
 #### 2.8 Hacks de layout del drawer
 
@@ -2857,6 +2893,8 @@ original**, que ya trae la silueta exacta del logo.
 
 - **1024px – 1535.98px**: se anula `lg:drawer-open` forzando el `.drawer-side` a `position:fixed; visibility:hidden` salvo con el toggle checkeado (comportamiento de overlay en tablet).
 - **≥1536px**: `grid-template-columns: 20rem 1fr`, y el `.drawer-side` pasa a `position:fixed; top:4rem; width:20rem; height:calc(100vh - 4rem); overflow-y:auto` — "barra lateral FIJA estilo YouTube".
+
+**`inert` mientras está cerrado** (`base.html:1375-1391`). El menú cerrado se esconde moviéndolo fuera de pantalla, así que seguía en el orden de tabulación: tabulando desde el navbar el foco se iba a un panel invisible y había que pasar por todos sus links para volver (medido: 347 de 809 paradas de tab caían ahí; en mobile, 44 de 44 dentro del panel). El script sincroniza `panel.inert` con el toggle **y** con `matchMedia('(min-width: 1024px)')`, porque desde 1024px el panel está siempre abierto por `lg:drawer-open` y ahí NO va inerte.
 
 ---
 

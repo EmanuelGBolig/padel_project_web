@@ -9,18 +9,18 @@
                     {% csrf_token %}
                     {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Nombre</span></label>
+                        <label for="{{ form.nombre.id_for_label }}" class="label"><span class="label-text font-medium">Nombre</span></label>
                         {{ form.nombre }}
                         {% if form.nombre.errors %}<span class="text-error text-xs">{{ form.nombre.errors.0 }}</span>{% endif %}
                     </div>
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Formato</span></label>
+                        <label for="{{ form.tipo.id_for_label }}" class="label"><span class="label-text font-medium">Formato</span></label>
                         {{ form.tipo }}
                     </div>
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Cantidad de canchas</span></label>
+                        <label for="{{ form.num_canchas.id_for_label }}" class="label"><span class="label-text font-medium">Cantidad de canchas</span></label>
                         {{ form.num_canchas }}
-                        <label class="label"><span class="label-text-alt opacity-70">Cada cancha juega con 4 jugadores.</span></label>
+                        <div class="label"><span class="label-text-alt opacity-70">Cada cancha juega con 4 jugadores.</span></div>
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
                         <a href="{% url 'torneos:americano_list' %}" class="btn btn-ghost">Cancelar</a>

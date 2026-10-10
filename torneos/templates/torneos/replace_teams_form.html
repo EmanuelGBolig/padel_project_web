@@ -6,19 +6,19 @@
         {% csrf_token %}
         {% for field in form %}
             <div class="form-control w-full mb-4">
-                <label class="label">
+                <label for="{{ field.id_for_label }}" class="label">
                     <span class="label-text">{{ field.label }}</span>
                 </label>
                 {{ field }}
                 {% if field.errors %}
-                    <label class="label">
+                    <div class="label">
                         <span class="label-text-alt text-error">{{ field.errors.0 }}</span>
-                    </label>
+                    </div>
                 {% endif %}
                 {% if field.help_text %}
-                    <label class="label">
+                    <div class="label">
                         <span class="label-text-alt text-info">{{ field.help_text }}</span>
-                    </label>
+                    </div>
                 {% endif %}
             </div>
         {% endfor %}

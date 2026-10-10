@@ -87,7 +87,7 @@
                     {% endfor %}
 
                     {% if coincidencias %}
-                        <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 p-3">
+                        <label for="{{ form.confirmar_distinto.id_for_label }}" class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 p-3">
                             <input type="checkbox" name="confirmar_distinto" value="1"
                                    class="checkbox checkbox-warning" />
                             <span class="label-text">

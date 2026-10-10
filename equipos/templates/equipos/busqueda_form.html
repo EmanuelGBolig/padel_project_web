@@ -11,22 +11,22 @@
                     {% csrf_token %}
                     {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">División</span></label>
+                        <label for="{{ form.division.id_for_label }}" class="label"><span class="label-text font-medium">División</span></label>
                         {{ form.division }}
                         {% if form.division.errors %}<span class="text-error text-xs">{{ form.division.errors.0 }}</span>{% endif %}
                     </div>
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Ciudad</span></label>
+                        <label for="{{ form.ciudad.id_for_label }}" class="label"><span class="label-text font-medium">Ciudad</span></label>
                         {{ form.ciudad }}
                         {% if form.ciudad.errors %}<span class="text-error text-xs">{{ form.ciudad.errors.0 }}</span>{% endif %}
                     </div>
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Torneo (opcional)</span></label>
+                        <label for="{{ form.torneo.id_for_label }}" class="label"><span class="label-text font-medium">Torneo (opcional)</span></label>
                         {{ form.torneo }}
                         {% if form.torneo.errors %}<span class="text-error text-xs">{{ form.torneo.errors.0 }}</span>{% endif %}
                     </div>
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-medium">Nota</span></label>
+                        <label for="{{ form.nota.id_for_label }}" class="label"><span class="label-text font-medium">Nota</span></label>
                         {{ form.nota }}
                         {% if form.nota.errors %}<span class="text-error text-xs">{{ form.nota.errors.0 }}</span>{% endif %}
                     </div>
