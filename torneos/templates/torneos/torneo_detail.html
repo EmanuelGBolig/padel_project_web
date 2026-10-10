@@ -119,7 +119,7 @@
                     <li><a href="{% url 'pantalla_club' torneo.organizacion.alias %}" target="_blank" rel="noopener">📺 Pantalla del club (TV)</a></li>
                 {% endif %}
             {% endif %}
-            <li><a href="{% url 'torneos:programacion' torneo.pk %}">🗓️ Horarios · descargar PDF</a></li>
+            <li><a href="{% url 'torneos:programacion' torneo.pk %}">Ver horarios de los partidos</a></li>
             <li><a href="{% url 'torneos:placa' torneo.pk %}">🖼️ Placa para redes</a></li>
             {% if torneo.organizacion.whatsapp %}
                 <li>
@@ -178,15 +178,26 @@
                             {{ torneo.get_categoria_display }}
                         </div>
                     </div>
-                    {# --- Info "vendedora" (TP-03) --- #}
-                    {% if torneo.estado == 'AB' %}
-                        <div class="flex flex-wrap justify-center items-center gap-2 mt-3">
+                    {% comment %} La fecha va SIEMPRE, y en formato absoluto.
+                    Antes sólo se mostraba "Arranca en 2 semanas" y sólo en los torneos
+                    abiertos: un torneo finalizado no decía ni una fecha. El dato estaba
+                    en el JSON-LD y en el Open Graph, o sea que Google sabía el día y el
+                    jugador no. {% endcomment %}
+                    <div class="flex flex-wrap justify-center items-center gap-2 mt-3">
+                        <span class="text-sm font-medium">
+                            {% if torneo.estado == 'FN' %}Se jugó el{% elif torneo.estado == 'EJ' %}Empezó el{% else %}Arranca el{% endif %}
+                            {{ torneo.fecha_inicio|date:"j \d\e F" }}
+                        </span>
+                        {% if torneo.estado == 'AB' %}
+                            <span class="text-sm opacity-70">· en {{ torneo.fecha_inicio|timeuntil }}</span>
+                            {% if torneo.fecha_limite_inscripcion %}
+                                <span class="text-sm opacity-70">· anotate hasta el {{ torneo.fecha_limite_inscripcion|date:"j/n" }}</span>
+                            {% endif %}
                             {% if torneo.cupos_disponibles > 0 and torneo.cupos_disponibles <= 5 %}
                                 <span class="badge badge-warning badge-lg">¡Últimos {{ torneo.cupos_disponibles }} cupos!</span>
                             {% endif %}
-                            <span class="text-sm opacity-70">Arranca en {{ torneo.fecha_inicio|timeuntil }}</span>
-                        </div>
-                    {% endif %}
+                        {% endif %}
+                    </div>
 
                     {% comment %}
                         El botón de anotarse va ACÁ, apenas debajo del título: es lo

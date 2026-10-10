@@ -127,7 +127,17 @@
         </div>
     {% endif %}
 
-    <div class="mt-5 flex flex-col gap-2">
+    {% comment %} La botonera va pegada abajo (sticky), no al final del scroll.
+
+    Con el teclado numérico abierto el alto útil cae de 812 a ~380px: el modal
+    queda con scroll interno y "Guardar resultado" terminaba fuera de pantalla,
+    en top: 596. El organizador carga el 3-0, va a guardar y no encuentra el
+    botón — parado al borde de la cancha, con una mano y gente esperando.
+
+    El `-mx-*` compensa el padding del modal para que la barra ocupe todo el
+    ancho, y el fondo opaco evita que los casilleros se vean por debajo. {% endcomment %}
+    <div class="sticky bottom-0 z-10 mt-5 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2
+                bg-base-100 border-t border-base-content/10 flex flex-col gap-2">
         <button type="submit" class="btn btn-primary btn-block">Guardar resultado</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="resultado_modal.close()">
             Cancelar

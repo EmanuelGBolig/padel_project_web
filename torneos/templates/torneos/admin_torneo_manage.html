@@ -149,7 +149,7 @@
                         <button type="submit"
                                 name="action"
                                 value="reset_bracket"
-                                class="btn btn-warning text-white gap-2"
+                                class="btn btn-warning gap-2"
                                 onclick="return confirm('¿Estás seguro de que quieres eliminar la llave actual y volver a generarla? Se perderán todos los resultados ya cargados en esta fase.')">
                             <svg xmlns="http://www.w3.org/2000/svg"
                                  fill="none"
@@ -173,7 +173,7 @@
                         </div>
                     {% endif %}
                     <button type="button"
-                            class="btn btn-warning text-white ml-auto"
+                            class="btn btn-warning ml-auto"
                             hx-get="{% url 'torneos:torneo_reemplazar_equipo' torneo.pk %}"
                             hx-target="#schedule_modal_content"
                             onclick="schedule_modal.showModal()">
@@ -190,7 +190,7 @@
                     <button type="submit"
                             name="action"
                             value="finalizar_torneo"
-                            class="btn btn-error text-white {% if not fase_eliminatoria_existente %}ml-2{% else %}ml-auto{% endif %}">
+                            class="btn btn-error {% if not fase_eliminatoria_existente %}ml-2{% else %}ml-auto{% endif %}">
                         Finalizar Torneo
                     </button>
                 {% endif %}
@@ -840,21 +840,49 @@
             // que arranque limpio.
             if (!estado.ts || Date.now() - estado.ts > 30 * 60 * 1000) return;
 
-            (estado.abiertos || []).forEach(function (id) {
-                var cb = document.querySelector('[data-panel-id="' + id + '"]');
-                if (cb) cb.checked = true;
-            });
+            abrirSegunEstado(document);
             if (estado.scroll) {
                 window.scrollTo({ top: estado.scroll, behavior: 'instant' });
             }
         } catch (e) { /* estado corrupto: ignorar */ }
     }
 
+    function abrirSegunEstado(raiz) {
+        try {
+            var crudo = sessionStorage.getItem(CLAVE);
+            if (!crudo) return;
+            var estado = JSON.parse(crudo);
+            (estado.abiertos || []).forEach(function (id) {
+                var cb = raiz.querySelector('[data-panel-id="' + id + '"]');
+                if (cb) cb.checked = true;
+            });
+        } catch (e) { /* estado corrupto: ignorar */ }
+    }
+
+    function engancharCambios(raiz) {
+        raiz.querySelectorAll('[data-panel-id]').forEach(function (cb) {
+            if (cb.dataset.engancahdo) return;
+            cb.dataset.engancahdo = '1';
+            cb.addEventListener('change', guardar);
+        });
+    }
+
     // Guardamos antes de cualquier recarga o navegación.
     window.addEventListener('beforeunload', guardar);
     document.body.addEventListener('htmx:beforeRequest', guardar);
-    document.querySelectorAll('[data-panel-id]').forEach(function (cb) {
-        cb.addEventListener('change', guardar);
+    engancharCambios(document);
+
+    {% comment %} Guardar un resultado NO recarga la página: el server devuelve
+    sólo el panel de la zona y htmx lo reemplaza entero (HX-Reswap: outerHTML).
+    El checkbox que llega viene sin `checked`, así que la zona se cerraba sola y
+    el organizador perdía el lugar — justo lo que este bloque venía a evitar para
+    las recargas. Como no hay recarga, DOMContentLoaded no vuelve a correr: hay
+    que reaplicar el estado (y reenganchar los listeners) sobre lo que acaba de
+    entrar. No se toca el scroll acá: la página no se movió. {% endcomment %}
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        var raiz = (e.target && e.target.querySelector) ? e.target : document;
+        abrirSegunEstado(raiz);
+        engancharCambios(raiz);
     });
 
     if (document.readyState === 'loading') {

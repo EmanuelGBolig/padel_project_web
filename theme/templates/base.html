@@ -725,13 +725,13 @@
                                 {% for message in messages %}
                                     <div role="alert"
                                          class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} shadow-lg border-none animate-in slide-in-from-top-2 fade-in duration-300"
-                                         style="width: 100%; box-sizing: border-box; flex-wrap: wrap; align-items: center;">
+                                         style="width: 100%; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.5rem;">
                                         <span style="font-size: 0.875rem; font-weight: 500; word-break: break-word; overflow-wrap: break-word; flex: 1; min-width: 0;">{{ message }}</span>
                                         <button type="button"
                                                 onclick="this.closest('.alert').remove()"
                                                 aria-label="Cerrar aviso"
-                                                class="btn btn-ghost btn-sm btn-circle text-white shrink-0"
-                                                style="min-height: 2.5rem; height: 2.5rem; width: 2.5rem;" aria-label="Cerrar aviso"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
+                                                class="btn btn-ghost btn-sm btn-circle shrink-0"
+                                                style="min-height: 2.5rem; height: 2.5rem; width: 2.5rem;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
                                     </div>
                                 {% endfor %}
                             </div>
