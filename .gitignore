@@ -71,3 +71,7 @@ docs/auditoria/ux-2026-10/scripts/contraste_*.json
 # Estaticos recolectados: los regenera build.sh con collectstatic en cada deploy.
 # Los tests no los necesitan (settings.py usa storage sin manifiesto al testear).
 staticfiles/
+
+# Config que entró de colado y no la usa nada (ver commit de esta línea).
+render.yaml
+theme/static_src/postcss.config.js
