@@ -82,15 +82,20 @@ python auditoria_ui.py
 python auditoria_inputs.py   # formularios: inputs que se pasan de su tarjeta
 ```
 
-### Un archivo estático nuevo no existe hasta que corrés `collectstatic`
-`staticfiles/` está **versionado** y el storage es `CompressedManifestStaticFilesStorage`,
-que exige que cada `{% static %}` tenga entrada en `staticfiles.json`. Si agregás una
-imagen, un CSS o un JS y lo referenciás desde un template sin recolectar, **cualquier
-página que lo renderice revienta** con `ValueError: Missing staticfiles manifest entry`.
-No lo ves en el navegador con `DEBUG=True`, pero sí en los tests y en producción.
+### `staticfiles/` ya NO se versiona
+Lo regenera `build.sh` con `collectstatic` en cada deploy, así que tenerlo en git eran
+~600 archivos generados por commit a cambio de nada. Está en `.gitignore`.
+
+El storage de producción es `CompressedManifestStaticFilesStorage`, que exige que cada
+`{% static %}` tenga entrada en `staticfiles.json`. Para que eso no obligue a recolectar
+antes de testear, `settings.py` usa el storage simple cuando detecta `test` en `sys.argv`.
+Verificado: la suite pasa con la carpeta `staticfiles/` borrada.
+
+Lo que sí sigue valiendo: si agregás un estático nuevo y querés verlo **con `DEBUG=False`**
+o en producción, hay que recolectar.
 
 ```bash
-python manage.py collectstatic --noinput   # y commiteá staticfiles/
+python manage.py collectstatic --noinput
 ```
 
 ### `manage.py test --parallel` puede ocultar el fallo y devolver exit 0

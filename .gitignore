@@ -67,3 +67,7 @@ _to_delete/
 
 # Salida generada por los scripts de auditoria (se regenera corriendolos)
 docs/auditoria/ux-2026-10/scripts/contraste_*.json
+
+# Estaticos recolectados: los regenera build.sh con collectstatic en cada deploy.
+# Los tests no los necesitan (settings.py usa storage sin manifiesto al testear).
+staticfiles/

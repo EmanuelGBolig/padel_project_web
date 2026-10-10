@@ -3,6 +3,7 @@ Django settings for padel_project project.
 """
 
 import os
+import sys
 from pathlib import Path
 import dj_database_url
 
@@ -257,6 +258,22 @@ else:
         },
     }
     print(f"USING LOCAL STORAGE (MEDIA_ROOT: {MEDIA_ROOT})")
+
+
+# Durante los tests no se usa el storage con manifiesto.
+#
+# `CompressedManifestStaticFilesStorage` exige que cada {% static %} tenga
+# entrada en staticfiles.json, que lo genera `collectstatic` — un paso del
+# BUILD, no del checkout. Sin esto, cualquier test que renderice un template
+# con {% static %} falla en un clon limpio con "Missing staticfiles manifest
+# entry", que no es un error del código sino de que falta correr collectstatic.
+#
+# Con el storage simple los tests resuelven las URLs sin manifiesto, y
+# producción sigue usando el de siempre (lo setea el if/else de arriba).
+if 'test' in sys.argv:
+    STORAGES['staticfiles'] = {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    }
 
 
 # --- Cache Configuration ---
