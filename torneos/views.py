@@ -31,6 +31,7 @@ from .models import (
     Torneo, Inscripcion, Partido, Grupo, EquipoGrupo, PartidoGrupo, Circuito,
     Americano, JugadorAmericano, RondaAmericano, PartidoAmericano, EstadoPago,
     nombre_de_ronda,
+    ordenar_con_head_to_head,
 )
 from .forms import (
     TorneoAdminForm,
@@ -214,6 +215,14 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             )
             .order_by('nombre')
         )
+        # La tabla que se MUESTRA tiene que coincidir con la que clasifica: se
+        # aplica el mismo desempate por resultado directo que usa el sembrado
+        # del cuadro. Va sobre lo ya prefetcheado, así que no cuesta consultas
+        # extra salvo la de los partidos, que también está prefetcheada.
+        grupos = list(grupos)
+        for g in grupos:
+            g.tabla_ordenada = ordenar_con_head_to_head(
+                g.tabla.all(), partidos=list(g.partidos_grupo.all()))
         context['grupos'] = grupos
 
         # ¿Los grupos ya tienen partidos generados?
@@ -223,7 +232,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         ).count()
 
         # Fase de asignación: grupos creados pero sin partidos todavía
-        context['fase_asignacion_grupos'] = grupos.exists() and partidos_grupo_total == 0
+        context['fase_asignacion_grupos'] = bool(grupos) and partidos_grupo_total == 0
 
         # Equipos inscritos que no están en ningún grupo de este torneo todavía
         equipos_en_grupos = EquipoGrupo.objects.filter(
@@ -234,7 +243,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             if i.equipo_id not in equipos_en_grupos
         ]
         context['todos_equipos_asignados'] = (
-            grupos.exists() and len(context['equipos_sin_grupo']) == 0
+            bool(grupos) and len(context['equipos_sin_grupo']) == 0
         )
 
         equipos_inscriptos = context['inscripciones'].values_list('equipo_id', flat=True)
@@ -309,7 +318,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
         context['todos_grupos_cargados'] = (
             partidos_grupo_total > 0
             and context['partidos_grupo_pendientes'] == 0
-            and grupos.exists()
+            and bool(grupos)
         )
 
         # Fase Eliminatoria
@@ -1018,7 +1027,12 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             grupos = torneo.grupos.all().order_by('nombre')
             niveles = [[] for _ in range(clasif)]
             for grupo in grupos:
-                tabla = list(grupo.tabla.all())  # ordenada por mérito (PG, DS, DG)
+                # El orden de la base es PG > dif. sets > dif. games, y cierra
+                # con `numero` para ser estable. Pero el desempate del pádel
+                # cuando dos parejas quedan iguales es el RESULTADO DIRECTO, y
+                # de acá salen los clasificados que siembran el cuadro: no puede
+                # decidirlo un criterio arbitrario.
+                tabla = ordenar_con_head_to_head(grupo.tabla.all())
                 for k in range(clasif):
                     if len(tabla) > k:
                         niveles[k].append(tabla[k].equipo)

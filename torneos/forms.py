@@ -277,6 +277,21 @@ class TorneoAdminForm(forms.ModelForm):
                 "Para fase de grupos necesitás al menos 4 parejas.",
             )
 
+        # Al EDITAR, los cupos no pueden quedar por debajo de los ya anotados.
+        #
+        # Sin esto, bajar el cupo dejaba `cupos_disponibles` en negativo: la
+        # ficha mostraba el torneo lleno con parejas de más adentro, y no hay
+        # forma de que el organizador sepa a cuál "sacar". Se bloquea y se le
+        # dice cuántas hay, que es lo accionable.
+        if self.instance.pk and cupos is not None:
+            inscriptos = self.instance.inscripciones.count()
+            if cupos < inscriptos:
+                self.add_error(
+                    'cupos_totales',
+                    f"Ya hay {inscriptos} parejas inscriptas: no podés dejar menos "
+                    f"cupos que eso. Sacá primero las que no van.",
+                )
+
         return cleaned
 
 

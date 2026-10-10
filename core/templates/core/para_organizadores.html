@@ -24,7 +24,14 @@
 <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'core/landing/og-todopadel.jpg' %}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+{% comment %}
+  Marca que el JS esta vivo ANTES del primer pintado. Todo el CSS de revelaciones
+  cuelga de html.js: si este script no corre (JS apagado, navegador in-app raro,
+  bloqueador, o una excepcion mas abajo), las 95 cajas con .rv quedan visibles en
+  vez de dejar la pagina en blanco.
+{% endcomment %}
+<script>document.documentElement.className+=' js'</script>
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -47,7 +54,11 @@ body{
   font-size:17px; line-height:1.62; letter-spacing:-.011em;
   overflow-x:hidden; -webkit-font-smoothing:antialiased;
 }
-img{max-width:100%; display:block}
+/* height:auto es obligatorio ahora que cada <img> declara width/height reales:
+   con los atributos puestos el navegador reserva el lugar antes de bajar la imagen
+   (no hay salto de layout al entrar las capturas con loading="lazy"), y con
+   height:auto sigue escalando por aspecto en vez de quedar con el alto fijo. */
+img{max-width:100%; height:auto; display:block}
 a{color:inherit; text-decoration:none}
 h1,h2,h3,h4{line-height:1.08; letter-spacing:-.035em; margin:0; font-weight:800}
 p{margin:0}
@@ -105,13 +116,25 @@ footer .brand .mark{width:32px; height:30px}
   .brand{gap:16px; font-size:18px}
   .brand .mark{width:32px; height:30px}
 }
-@media(max-width:430px){ nav .brand b{display:none} }
+/* El nombre del producto NO se esconde: es lo primero que ve alguien que nunca
+   oyo hablar de TodoPadel. En pantalla angosta se achica, no desaparece. */
+@media(max-width:430px){
+  nav{gap:12px}
+  nav .brand{gap:10px; font-size:16.5px}
+  nav .brand .mark{width:28px; height:26px}
+  nav .btn-sm{padding:10px 14px}
+}
 .navlinks{display:flex; gap:26px; margin-left:auto; font-size:14.5px; color:var(--txt-2); font-weight:500}
 .navlinks a{position:relative; transition:color .2s}
 .navlinks a:hover{color:var(--txt)}
 .navlinks a::after{content:''; position:absolute; left:0; right:100%; bottom:-6px; height:2px; background:var(--green); transition:right .28s}
 .navlinks a:hover::after{right:0}
-@media(max-width:900px){.navlinks{display:none}}
+/* el margin-left:auto que empuja el CTA a la derecha vivia en .navlinks, que aca
+   esta display:none: el boton quedaba pegado al logo con un tercio de barra vacio */
+@media(max-width:900px){
+  .navlinks{display:none}
+  header nav>.btn{margin-left:auto}
+}
 
 /* ============ BUTTONS ============ */
 .btn{
@@ -145,7 +168,16 @@ footer .brand .mark{width:32px; height:30px}
   animation:float 7s ease-in-out infinite;
 }
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
-@media(max-width:760px){.phone-float{display:none}}
+/* En el celular la captura de escritorio entra a ~x4.2: el texto de 14px del
+   screenshot cae a 3.3px y es una mancha gris. Se muestra el mockup de celular,
+   que es una captura de celular y a este ancho si se lee. */
+@media(max-width:760px){
+  .showcase .browser{display:none}
+  .showcase .phone.phone-float{
+    position:static; display:block; width:min(268px,74%);
+    margin:0 auto; right:auto; bottom:auto; animation:none;
+  }
+}
 
 /* ============ DEVICE FRAMES ============ */
 .browser{
@@ -156,7 +188,9 @@ footer .brand .mark{width:32px; height:30px}
 .browser .dot{width:11px;height:11px;border-radius:50%}
 .browser .url{
   flex:1; margin-left:10px; text-align:center; font-size:12px; color:var(--txt-3);
-  background:#0F151C; border-radius:999px; padding:5px 12px; font-family:'JetBrains Mono',monospace;
+  /* monoespaciada del sistema: bajar JetBrains Mono (30 KB) para este unico string no se paga */
+  background:#0F151C; border-radius:999px; padding:5px 12px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 .browser img{border-radius:0}
 .phone{
@@ -190,6 +224,12 @@ footer .brand .mark{width:32px; height:30px}
 .card.bad{border-color:rgba(255,88,97,.2)}
 .card.good{border-color:rgba(16,185,129,.32); box-shadow:var(--glow)}
 .card h3{font-size:22px; display:flex; align-items:center; gap:11px; margin-bottom:8px}
+/* icono del sprite de la casa dentro del titulo de una tarjeta (antes era un emoji,
+   que renderiza en colores de plataforma que no estan en la paleta) */
+.card h3 .ic{
+  flex:none; width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+  background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.24);
+}
 .tag{font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; padding:5px 11px; border-radius:999px}
 .tag.bad{background:rgba(255,88,97,.14); color:var(--live)}
 .tag.good{background:rgba(16,185,129,.14); color:var(--green)}
@@ -234,7 +274,14 @@ footer .brand .mark{width:32px; height:30px}
 .frow{display:grid; grid-template-columns:0.85fr 1.15fr; gap:clamp(30px,5vw,70px); align-items:center; margin-top:clamp(56px,8vw,96px)}
 .frow.rev{grid-template-columns:1.15fr 0.85fr}
 .frow.rev .ftext{order:2}
-@media(max-width:900px){.frow,.frow.rev{grid-template-columns:1fr} .frow.rev .ftext{order:0}}
+/* Apiladas, las filas .rev arrancaban por la imagen (el order:0 dejaba mandar al
+   orden del DOM): dos de las cinco empezaban con una captura recortada y sin rotulo,
+   y el "ANTES" que dice que estas mirando aparecia despues. Primero el texto, siempre. */
+@media(max-width:900px){
+  .frow,.frow.rev{grid-template-columns:1fr}
+  .frow.rev .ftext{order:0}
+  .frow.rev .shot{order:1}
+}
 .ftext h3{font-size:clamp(24px,3.2vw,34px); margin-bottom:14px}
 .ftext p{color:var(--txt-2); font-size:16.5px}
 .chips{display:flex; flex-wrap:wrap; gap:9px; margin-top:22px}
@@ -308,6 +355,9 @@ footer .brand .mark{width:32px; height:30px}
 .phones figure{margin:0}
 .phones figcaption{margin-top:14px; text-align:center; font-size:14px; color:var(--txt-2); font-weight:600}
 .phones figcaption small{display:block; color:var(--txt-3); font-weight:400; font-size:13px; margin-top:2px}
+
+/* el ancho de la placa estaba inline (y por eso le ganaba a la regla de mobile) */
+#placas .phone{max-width:290px}
 
 /* ============ COMPARISON ============ */
 .tablewrap{margin-top:48px; overflow-x:auto; border:1px solid var(--line); border-radius:var(--r-l); background:var(--panel)}
@@ -385,10 +435,18 @@ details p{padding:0 26px 24px; color:var(--txt-2); font-size:15.5px}
 footer{border-top:1px solid var(--line); padding:44px 0 56px; color:var(--txt-3); font-size:14px}
 .fgrid{display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; align-items:center}
 footer a:hover{color:var(--green)}
+/* los links del pie median 23px de alto: imposible pegarles con el pulgar */
+.flinks{display:flex; gap:20px; flex-wrap:wrap; margin:-10px 0}
+.flinks a{display:inline-block; padding:11px 0}
 
 /* ============ REVEAL ============ */
-.rv{opacity:0; transform:translateY(28px); transition:opacity .75s cubic-bezier(.2,.7,.3,1), transform .75s cubic-bezier(.2,.7,.3,1)}
-.rv.in{opacity:1; transform:none}
+/* Red de contencion: el estado VISIBLE es el default. El estado inicial invisible
+   cuelga de html.js, que solo existe si el script del <head> corrio. Asi, si el JS
+   no corre o explota antes del io.observe(), la pagina se ve entera igual. */
+.rv{transition:opacity .75s cubic-bezier(.2,.7,.3,1), transform .75s cubic-bezier(.2,.7,.3,1)}
+.rv,.rv-l,.rv-r{opacity:1; transform:none}
+html.js .rv{opacity:0; transform:translateY(28px)}
+html.js .rv.in{opacity:1; transform:none}
 /* ============ MOBILE POLISH ============ */
 @media(max-width:620px){
   .wrap{width:calc(100% - 32px)}
@@ -399,13 +457,15 @@ footer a:hover{color:var(--green)}
   .hero-cta .btn{width:100%; justify-content:center}
   .card,.step,.b,.plan{padding:26px 22px}
   .tablewrap{position:relative}
-  .swipe-hint{display:block}
   .frow{margin-top:52px}
   .hero h1 br, h2.title br, .cta h2 br, .ftext h3 br{display:none}
   summary{padding:18px 20px; font-size:15.5px}
   details p{padding:0 20px 20px}
 }
 .swipe-hint{display:none; text-align:center; font-size:12.5px; color:var(--txt-3); margin-top:12px; letter-spacing:.06em}
+/* el display:block vivia ARRIBA de esta linea, dentro del bloque de 620px, asi que
+   lo pisaba el display:none de aca: el aviso de deslizar no se veia en ningun ancho */
+@media(max-width:620px){.swipe-hint{display:block}}
 .swipe-cue{display:none}
 
 /* ============ MOBILE: MENOS SCROLL ============ */
@@ -502,7 +562,7 @@ footer a:hover{color:var(--green)}
     letter-spacing:.1em; text-transform:uppercase; font-weight:700; margin-top:2px;
   }
 }
-@media(prefers-reduced-motion:reduce){.rv{opacity:1; transform:none} .ticker-track,.phone-float{animation:none}}
+@media(prefers-reduced-motion:reduce){html.js .rv{opacity:1; transform:none} .ticker-track,.phone-float{animation:none}}
 
 /* ============ MOVIMIENTO ============ */
 /* barra de progreso de lectura */
@@ -519,10 +579,10 @@ header.stuck nav{height:60px}
 
 /* las filas de producto entran desde el lado donde esta su imagen */
 .rv-l,.rv-r{transition:opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1)}
-.rv-l{opacity:0; transform:translateX(-38px)}
-.rv-r{opacity:0; transform:translateX(38px)}
-.rv-l.in,.rv-r.in{opacity:1; transform:none}
-@media(max-width:900px){.rv-l,.rv-r{transform:translateY(28px)}}
+html.js .rv-l{opacity:0; transform:translateX(-38px)}
+html.js .rv-r{opacity:0; transform:translateX(38px)}
+html.js .rv-l.in,html.js .rv-r.in{opacity:1; transform:none}
+@media(max-width:900px){html.js .rv-l,html.js .rv-r{transform:translateY(28px)}}
 
 /* brillo que cruza el boton principal */
 .btn-primary{position:relative; overflow:hidden}
@@ -551,32 +611,49 @@ details:hover{transform:translateY(-2px)}
 .bgfx{transition:transform .1s linear}
 
 @media(prefers-reduced-motion:reduce){
-  .rv-l,.rv-r{opacity:1; transform:none}
+  html.js .rv-l,html.js .rv-r{opacity:1; transform:none}
   .bgfx .orb{animation:none}
   .btn-primary:hover::after{animation:none}
   .plan:hover,.card:hover,.pstep:hover,details:hover,.chip:hover{transform:none}
   header.stuck nav{height:70px}
 }
 
-/* ============ CELULAR: VERSION CORTA ============ */
-/* En el telefono la pagina tiene que invitar, no agotar. Se muestran el gancho,
-   como funciona, tres pruebas, el precio y el WhatsApp. Lo demas queda para el
-   escritorio; el que tiene dudas pregunta por WhatsApp. */
+/* ============ CELULAR: CONDENSAR, NO APAGAR ============ */
+/* El que lee esto desde el celular esta por cambiar como organiza sus torneos y
+   pagar $70.000 por mes: ese tipo SI lee. Lo que no hace es levantarse a buscar
+   una computadora para ver una tabla comparativa.
+   Antes, abajo de 620px se apagaban la tabla de 9x5, las 4 capturas de celular,
+   los 4 numeros del "como esta hecho", 2 de las 5 filas de producto y 6 de las 9
+   preguntas -justo "cuanto sale", "me atan con un contrato" y "puedo traer lo de
+   Excel"-, y los titulos sobrevivian a su evidencia. Y no ahorraba scroll que
+   valiera la pena.
+   Ahora se CONDENSA: lo que ocupa ancho se desliza de costado (la tabla ya tiene
+   overflow-x), lo que ocupa alto se achica, y nada que sea prueba u objecion de
+   compra se esconde. */
 @media(max-width:620px){
-  #roles, #envivo, #mobile, #placas, #tech .tech, #diferencia .tablewrap, #diferencia .swipe-hint{display:none}
-  .solo-desk{display:none}
+  /* #roles es lo unico que queda apagado: sus 13 fichas repiten lo que ya probaron
+     #pasos, #producto, #mobile y la tabla comparativa. Es una seccion entera, asi
+     que se va con su propio titulo y no deja ningun h2 sin evidencia debajo. */
+  #roles{display:none}
+
+  /* de #tech se van los 5 chips genericos ("Conexion segura", "Tus datos
+     respaldados"); los 4 numeros, que son los que sostienen el titulo, se quedan */
+  #tech .stack{display:none}
 
   /* del problema, tres golpes por columna alcanzan */
   #problema .tick li:nth-child(n+4){display:none}
 
-  /* del producto quedan las tres pantallas que mas duelen: cuadro, seña y horarios */
-  /* (el .center del encabezado tambien es div: las filas van del 2 al 6) */
-  #producto .frow:nth-of-type(2), #producto .frow:nth-of-type(6){display:none}
   #producto .chips{display:none}
   #producto .ftext p{font-size:15px}
 
-  /* preguntas: las tres primeras */
-  #faq details:nth-of-type(n+4){display:none}
+  /* la tabla comparativa se desliza de costado, como .steps / .plans / .path
+     (el min-width:720px y el overflow-x:auto ya estaban: solo faltaba no apagarla
+     y avisar que se desliza, con el .swipe-hint de abajo de la tabla) */
+  #diferencia .tablewrap{-webkit-overflow-scrolling:touch}
+
+  /* la placa es 9:16: a 280px de ancho se comia 500px de alto para mostrar lo
+     mismo que se entiende a 190 */
+  #placas .phone{max-width:200px}
 }
 
 /* ============ IMAGENES AMPLIABLES ============ */
@@ -594,8 +671,16 @@ details:hover{transform:translateY(-2px)}
 }
 .zoom-hint svg{width:14px;height:14px;fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .zoom:hover .zoom-hint,.zoom:focus-visible .zoom-hint{opacity:1; transform:none}
+.zoom-hint i{font-style:normal}
 .phone .zoom-hint{right:12px; top:26px; padding:6px 10px; font-size:11.5px}
 @media(hover:none){.zoom-hint{opacity:.92; transform:none}}
+/* En tactil el cartel esta siempre puesto. Sobre los mockups chicos (las 4 pantallas
+   de #mobile y la placa) tapaba justo la captura que invita a mirar: ahi queda el
+   icono solo, que ya se entiende. */
+@media(max-width:620px){
+  .phones .zoom-hint,#placas .zoom-hint{padding:6px; gap:0; right:7px; top:14px}
+  .phones .zoom-hint i,#placas .zoom-hint i{display:none}
+}
 
 .lbox{
   position:fixed; inset:0; z-index:200; display:none; place-items:center;
@@ -656,13 +741,44 @@ details:hover{transform:translateY(-2px)}
   .lbox.on,.lb-stage img{animation:none}
 }
 
-/* ============ FLOATING WHATSAPP ============ */
+/* ============ WHATSAPP: burbuja en escritorio, barra en el celular ============ */
 .fab{
   position:fixed; right:22px; bottom:22px; z-index:90; width:56px; height:56px; border-radius:50%;
   background:#25D366; display:grid; place-items:center; box-shadow:0 14px 34px -10px rgba(37,211,102,.7);
   transition:transform .25s;
 }
 .fab:hover{transform:scale(1.08)}
+.fab-txt{display:none}
+
+/* En el celular la burbuja de 56px se sentaba ENCIMA del contenido: chocaba con 48
+   elementos, entre ellos los tres CTA de WhatsApp (que abren el mismo chat con el
+   mismo texto), el h2 de precios y las tres preguntas del FAQ. Y con 22px de aire
+   abajo, el choque era lateral: no se arreglaba con padding.
+   Pasa a ser una barra al borde inferior: deja de ser una isla sobre la copia, se
+   lee como cromo, se le reserva el alto con body{padding-bottom} para que nada del
+   documento termine debajo, y gana un rotulo en vez de ser un icono mudo. */
+@media(max-width:620px){
+  body{padding-bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+  .fab{
+    left:0; right:0; bottom:0; width:auto; height:auto; border-radius:0;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:17px 16px; padding-bottom:calc(17px + env(safe-area-inset-bottom,0px));
+    min-height:62px; color:#04120C; font-size:15.5px; font-weight:800; letter-spacing:-.012em;
+    box-shadow:0 -14px 34px -14px rgba(0,0,0,.65);
+    transition:transform .32s cubic-bezier(.2,.7,.3,1), opacity .24s;
+  }
+  .fab:hover{transform:none}
+  .fab svg{width:22px; height:22px; flex:none}
+  .fab-txt{display:block}
+
+  /* ...y cuando hay un CTA de WhatsApp de verdad en pantalla, la barra se retira:
+     deja de competir con el boton y de pisarle el borde al pulgar. La clase la pone
+     el JS; sin JS la barra se queda quieta y visible, que ya es mejor que la burbuja. */
+  body.cta-a-la-vista .fab{transform:translateY(105%); opacity:0; pointer-events:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .fab{transition:opacity .2s}
+}
 </style>
 </head>
 <body>
@@ -682,6 +798,7 @@ details:hover{transform:translateY(-2px)}
 <g id="i-medal"><circle cx="12" cy="15" r="5.2"/><path d="m8.4 10.4-2-7.4h11.2l-2 7.4"/></g>
 <g id="i-bell"><path d="M18 8.4a6 6 0 1 0-12 0c0 5.6-3 7-3 7h18s-3-1.4-3-7"/><path d="M13.7 20.6a2 2 0 0 1-3.4 0"/></g>
 <g id="i-phone"><rect x="6" y="2" width="12" height="20" rx="3.2"/><path d="M10.8 18.6h2.4"/></g>
+<g id="i-pin"><path d="M12 21.2s6.6-5.6 6.6-10.6a6.6 6.6 0 1 0-13.2 0c0 5 6.6 10.6 6.6 10.6Z"/><circle cx="12" cy="10.3" r="2.5"/></g>
 </defs></svg>
 <div class="bgfx"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
 <div class="grid-bg"></div>
@@ -707,16 +824,23 @@ details:hover{transform:translateY(-2px)}
     <div style="max-width:930px">
       <span class="eyebrow rv">Torneos de pádel · Argentina</span>
       <h1 class="rv">Publicá el torneo y <br>las parejas <span class="grad">se anotan solas</span>.</h1>
-      <p class="lead rv">Vos mandás un link por WhatsApp. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo.<span class="solo-desk"> Ni Excel, ni perseguir señas, ni contestar cien veces «¿a qué hora juego?».</span></p>
+      <p class="lead rv">Vos mandás un link por WhatsApp. TodoPadel arma las zonas, dibuja el cuadro, ordena los horarios y publica los resultados en vivo. Ni Excel, ni perseguir señas, ni contestar cien veces «¿a qué hora juego?».</p>
       <div class="hero-cta rv">
         <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Publicar mi primer torneo gratis →</a>
         <a class="btn btn-ghost" href="#planes">Ver precios</a>
       </div>
       <p class="hero-note rv">El primer torneo va sin costo · Después, desde $70.000 · Cero comisión sobre las inscripciones</p>
       <div class="stats rv">
-        <div class="stat"><b data-count="27">0</b><span>Torneos gestionados</span></div>
-        <div class="stat"><b data-count="380">0</b><span>Jugadores</span></div>
-        <div class="stat"><b data-count="532">0</b><span>Partidos cargados</span></div>
+        {% comment %}
+          PENDIENTE: estos tres numeros estan a mano y divergen de los que la home
+          calcula contra la base (core/views.py). El CTA "Ver la plataforma en vivo"
+          de mas abajo lleva justo a esa pagina, asi que la landing invita a
+          comparar dos fuentes de verdad. Se arregla dandole contexto a
+          ParaOrganizadoresView, que hoy es un TemplateView pelado.
+        {% endcomment %}
+        <div class="stat"><b data-count="27">27</b><span>Torneos gestionados</span></div>
+        <div class="stat"><b data-count="380">380</b><span>Jugadores</span></div>
+        <div class="stat"><b data-count="532">532</b><span>Partidos cargados</span></div>
       </div>
     </div>
 
@@ -728,9 +852,9 @@ details:hover{transform:translateY(-2px)}
           <span class="dot" style="background:#28C840"></span>
           <span class="url">todopadel.club</span>
         </div>
-        <img src="{% static 'core/landing/02-inicio-de-todopadel-en-escritorio-torneos-abierto.webp' %}" alt="Inicio de TodoPadel en escritorio: torneos abiertos, en juego y organizadores">
+        <img width="1440" height="900" loading="lazy" decoding="async" src="{% static 'core/landing/02-inicio-de-todopadel-en-escritorio-torneos-abierto.webp' %}" alt="Inicio de TodoPadel en escritorio: torneos abiertos, en juego y organizadores">
       </div>
-      <div class="phone phone-float"><img src="{% static 'core/landing/03-todopadel-en-el-celular.webp' %}" alt="TodoPadel en el celular"></div>
+      <div class="phone phone-float"><img width="620" height="1341" decoding="async" src="{% static 'core/landing/03-todopadel-en-el-celular.webp' %}" alt="TodoPadel en el celular"></div>
     </div>
   </div>
 </section>
@@ -751,7 +875,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">El día del torneo</span>
       <h2 class="title rv">Organizar un torneo no debería <br>ser un trabajo de oficina</h2>
-      <p class="lead rv solo-desk">Entre el grupo de WhatsApp, la planilla, los audios preguntando a qué hora juegan y el papel pegado en la pared, se va más tiempo en administrar que en jugar.</p>
+      <p class="lead rv">Entre el grupo de WhatsApp, la planilla, los audios preguntando a qué hora juegan y el papel pegado en la pared, se va más tiempo en administrar que en jugar.</p>
     </div>
     <div class="split">
       <div class="card bad rv">
@@ -811,7 +935,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">El producto por dentro</span>
       <h2 class="title rv">Cada pantalla te saca de encima <br>un problema del domingo</h2>
-      <p class="lead rv solo-desk">Capturas reales de todopadel.club funcionando con torneos de verdad. Arriba de cada una, el problema que elimina.</p>
+      <p class="lead rv">Capturas reales de todopadel.club funcionando con torneos de verdad. Arriba de cada una, el problema que elimina.</p>
     </div>
 
     <div class="frow">
@@ -824,11 +948,11 @@ details:hover{transform:translateY(-2px)}
           <span class="chip">Walkover y abandono</span><span class="chip">Clasificados automáticos</span>
         </div>
       </div>
-      <div class="shot cap rv"><img src="{% static 'core/landing/04-pantalla-de-zonas-con-cinco-grupos-tablas-de-posi.webp' %}" alt="Pantalla de zonas con cinco grupos, tablas de posiciones y resultados cargados"></div>
+      <div class="shot cap rv"><img width="1500" height="1401" loading="lazy" decoding="async" src="{% static 'core/landing/04-pantalla-de-zonas-con-cinco-grupos-tablas-de-posi.webp' %}" alt="Pantalla de zonas con cinco grupos, tablas de posiciones y resultados cargados"></div>
     </div>
 
     <div class="frow rev">
-      <div class="shot rv"><img src="{% static 'core/landing/05-cuadro-final-del-torneo-con-octavos-cuartos-semif.webp' %}" alt="Cuadro final del torneo con octavos, cuartos, semifinal y final"></div>
+      <div class="shot rv"><img width="1500" height="529" loading="lazy" decoding="async" src="{% static 'core/landing/05-cuadro-final-del-torneo-con-octavos-cuartos-semif.webp' %}" alt="Cuadro final del torneo con octavos, cuartos, semifinal y final"></div>
       <div class="ftext rv">
         <p class="prob"><b>Antes</b><span>El cuadro dibujado en un papel y una foto borrosa dando vueltas por el grupo.</span></p>
         <h3>El cuadro sale en un click, sin Excel</h3>
@@ -850,11 +974,11 @@ details:hover{transform:translateY(-2px)}
           <span class="chip">WhatsApp directo</span><span class="chip">Control de cupos</span>
         </div>
       </div>
-      <div class="shot rv"><img src="{% static 'core/landing/06-bloque-de-como-pagar-la-inscripcion-con-sena-alia.webp' %}" alt="Bloque de cómo pagar la inscripción con seña, alias y contacto de WhatsApp"></div>
+      <div class="shot rv"><img width="1400" height="461" loading="lazy" decoding="async" src="{% static 'core/landing/06-bloque-de-como-pagar-la-inscripcion-con-sena-alia.webp' %}" alt="Bloque de cómo pagar la inscripción con seña, alias y contacto de WhatsApp"></div>
     </div>
 
     <div class="frow rev">
-      <div class="shot rv tall"><img src="{% static 'core/landing/07-programacion-del-torneo-por-horario-con-zona-fase.webp' %}" alt="Programación del torneo por horario con zona, fase y parejas"></div>
+      <div class="shot rv tall"><img width="1400" height="1185" loading="lazy" decoding="async" src="{% static 'core/landing/07-programacion-del-torneo-por-horario-con-zona-fase.webp' %}" alt="Programación del torneo por horario con zona, fase y parejas"></div>
       <div class="ftext rv">
         <p class="prob"><b>Antes</b><span>Sesenta mensajes preguntando «¿a qué hora juego?», uno por uno.</span></p>
         <h3>Cada pareja ve su horario sin preguntarte</h3>
@@ -876,7 +1000,7 @@ details:hover{transform:translateY(-2px)}
           <span class="chip">Historial del jugador</span><span class="chip">Puntaje público</span>
         </div>
       </div>
-      <div class="shot rv"><img src="{% static 'core/landing/08-ranking-de-jugadores-con-posiciones-puntos-victor.webp' %}" alt="Ranking de jugadores con posiciones, puntos, victorias y win rate"></div>
+      <div class="shot rv"><img width="1500" height="692" loading="lazy" decoding="async" src="{% static 'core/landing/08-ranking-de-jugadores-con-posiciones-puntos-victor.webp' %}" alt="Ranking de jugadores con posiciones, puntos, victorias y win rate"></div>
     </div>
   </div>
 </section>
@@ -891,7 +1015,7 @@ details:hover{transform:translateY(-2px)}
     </div>
     <div class="live-wrap rv">
       <span class="live-badge">En vivo</span>
-      <img src="{% static 'core/landing/09-pantalla-en-vivo-con-las-tablas-de-zona-a-y-b-y-l.webp' %}" alt="Pantalla en vivo con las tablas de zona A y B y la llave final">
+      <img width="1500" height="1269" loading="lazy" decoding="async" src="{% static 'core/landing/09-pantalla-en-vivo-con-las-tablas-de-zona-a-y-b-y-l.webp' %}" alt="Pantalla en vivo con las tablas de zona A y B y la llave final">
     </div>
   </div>
 </section>
@@ -943,7 +1067,7 @@ details:hover{transform:translateY(-2px)}
             <h3>Tu club, con tu marca</h3>
             <p>Perfil público con logo, dirección, WhatsApp, tu equipo, tus sponsors, los torneos en juego y todo el historial. Un link para poner en la bio de Instagram.</p>
           </div>
-          <div class="shot"><img src="{% static 'core/landing/10-perfil-publico-del-organizador-con-logo-datos-equ.webp' %}" alt="Perfil público del organizador con logo, datos, equipo y torneos"></div>
+          <div class="shot"><img width="560" height="773" loading="lazy" decoding="async" src="{% static 'core/landing/10-perfil-publico-del-organizador-con-logo-datos-equ.webp' %}" alt="Perfil público del organizador con logo, datos, equipo y torneos"></div>
         </div>
         <div class="b b-2 rv">
           <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-cash"/></svg></div>
@@ -958,11 +1082,11 @@ details:hover{transform:translateY(-2px)}
         <div class="b b-2 rv">
           <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-bolt"/></svg></div>
           <h3>Se anota sin cuenta</h3>
-          <p>Entra por el link, pone los datos de la pareja y listo: la cuenta se crea sola.</p>
+          <p>El jugador entra por el link, pone los datos de la pareja y listo: la cuenta se crea sola.</p>
         </div>
         <div class="b b-2 rv">
           <div class="ic"><svg viewBox="0 0 24 24"><use href="#i-tv"/></svg></div>
-          <h3>Sigue todo en vivo</h3>
+          <h3>Lo ve todo en vivo</h3>
           <p>Posiciones y llave actualizadas mientras se juega, desde cualquier celular.</p>
         </div>
         <div class="b b-2 rv">
@@ -994,10 +1118,10 @@ details:hover{transform:translateY(-2px)}
       <p class="lead rv">Todo el producto está pensado primero para el celular, que es donde realmente se mira un torneo. Estas son capturas reales, sin retocar.</p>
     </div>
     <div class="phones">
-      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/11-listado-de-torneos-abiertos-en-el-celular.webp' %}" alt="Listado de torneos abiertos en el celular"></div><figcaption>Torneos abiertos<small>Filtrados por categoría</small></figcaption></figure>
-      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/12-detalle-del-torneo-con-boton-de-anotarse.webp' %}" alt="Detalle del torneo con botón de anotarse"></div><figcaption>Anotarse<small>Sin crear cuenta antes</small></figcaption></figure>
-      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/13-resultados-en-vivo-en-el-celular.webp' %}" alt="Resultados en vivo en el celular"></div><figcaption>En vivo<small>Zonas y llave al toque</small></figcaption></figure>
-      <figure class="rv"><div class="phone"><img src="{% static 'core/landing/14-pantalla-para-instalar-la-app.webp' %}" alt="Pantalla para instalar la app"></div><figcaption>Instalar la app<small>PWA, sin tiendas</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img width="620" height="1341" loading="lazy" decoding="async" src="{% static 'core/landing/11-listado-de-torneos-abiertos-en-el-celular.webp' %}" alt="Listado de torneos abiertos en el celular"></div><figcaption>Torneos abiertos<small>Filtrados por categoría</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img width="620" height="1341" loading="lazy" decoding="async" src="{% static 'core/landing/12-detalle-del-torneo-con-boton-de-anotarse.webp' %}" alt="Detalle del torneo con botón de anotarse"></div><figcaption>Anotarse<small>Sin crear cuenta antes</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img width="620" height="1341" loading="lazy" decoding="async" src="{% static 'core/landing/13-resultados-en-vivo-en-el-celular.webp' %}" alt="Resultados en vivo en el celular"></div><figcaption>En vivo<small>Zonas y llave al toque</small></figcaption></figure>
+      <figure class="rv"><div class="phone"><img width="620" height="1341" loading="lazy" decoding="async" src="{% static 'core/landing/14-pantalla-para-instalar-la-app.webp' %}" alt="Pantalla para instalar la app"></div><figcaption>Instalar la app<small>PWA, sin tiendas</small></figcaption></figure>
     </div>
   </div>
 </section>
@@ -1017,7 +1141,7 @@ details:hover{transform:translateY(-2px)}
         </div>
       </div>
       <div class="rv" style="display:grid; place-items:center">
-        <div class="phone" style="max-width:290px"><img src="{% static 'core/landing/15-placa-para-historias-con-el-partido-en-vivo-y-el.webp' %}" alt="Placa para historias con el partido en vivo y el link al torneo"></div>
+        <div class="phone"><img width="560" height="997" loading="lazy" decoding="async" src="{% static 'core/landing/15-placa-para-historias-con-el-partido-en-vivo-y-el.webp' %}" alt="Placa para historias con el partido en vivo y el link al torneo"></div>
       </div>
     </div>
   </div>
@@ -1029,7 +1153,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">Por qué no es lo mismo</span>
       <h2 class="title rv">No competimos con las apps <br>de reservar cancha</h2>
-      <p class="lead rv solo-desk">Las apps grandes resuelven alquilar una cancha. TodoPadel resuelve la competencia: categorías, zonas, cuadros y ranking, como se juega realmente en Argentina.</p>
+      <p class="lead rv">Las apps grandes resuelven alquilar una cancha. TodoPadel resuelve la competencia: categorías, zonas, cuadros y ranking, como se juega realmente en Argentina.</p>
     </div>
     <div class="tablewrap rv">
       <table>
@@ -1055,13 +1179,14 @@ details:hover{transform:translateY(-2px)}
         </tbody>
       </table>
     </div>
+    <p class="swipe-hint">deslizá la tabla para comparar las cuatro opciones →</p>
     <div class="split" style="margin-top:22px">
       <div class="card rv">
-        <h3>🔗 El canal es el link, no la tienda de apps</h3>
+        <h3><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-link"/></svg></span> El canal es el link, no la tienda de apps</h3>
         <p style="color:var(--txt-2); margin-top:10px">Un torneo de barrio se difunde en un grupo de WhatsApp. Si para ver el cuadro hay que bajar una app y registrarse, la mitad de la gente se cae en el camino. Acá el link abre el torneo, y recién si querés te instalás la app.</p>
       </div>
       <div class="card rv">
-        <h3>📍 Hecho acá, para cómo se juega acá</h3>
+        <h3><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></span> Hecho acá, para cómo se juega acá</h3>
         <p style="color:var(--txt-2); margin-top:10px">Séptima damas, quinta caballeros, mixto, seña por transferencia, alias, comprobante por WhatsApp. Nada de traducir el producto a una realidad que no es la nuestra.</p>
       </div>
     </div>
@@ -1073,7 +1198,7 @@ details:hover{transform:translateY(-2px)}
   <div class="wrap center">
     <span class="eyebrow rv">Cómo está hecho</span>
     <h2 class="title rv">No es una demo: <br>es un sistema que ya está andando</h2>
-    <p class="lead rv solo-desk">Está hecho a medida para los torneos de pádel de acá, no es una plantilla comprada. Todo lo que cargás queda guardado y respaldado, y las mejoras entran solas sin que tengas que actualizar nada ni frenar un torneo.</p>
+    <p class="lead rv">Está hecho a medida para los torneos de pádel de acá, no es una plantilla comprada. Todo lo que cargás queda guardado y respaldado, y las mejoras entran solas sin que tengas que actualizar nada ni frenar un torneo.</p>
     <div class="tech">
       <div class="rv"><b>23</b><span>tipos de información que guarda: torneos, parejas, partidos, pagos</span></div>
       <div class="rv"><b>+200</b><span>controles automáticos que se corren antes de cada mejora</span></div>
@@ -1094,7 +1219,7 @@ details:hover{transform:translateY(-2px)}
     <div class="center">
       <span class="eyebrow rv">Cómo empezamos</span>
       <h2 class="title rv">El primer torneo lo hacemos juntos <br>y no te cuesta nada</h2>
-      <p class="lead rv">Cargamos tu próximo torneo con vos y lo seguimos el día del evento.<span class="solo-desk"> Recién después decidís si seguís. Esto es lo que pasa desde que escribís:</span></p>
+      <p class="lead rv">Cargamos tu próximo torneo con vos y lo seguimos el día del evento. Recién después decidís si seguís. Esto es lo que pasa desde que escribís:</p>
     </div>
 
     <div class="path">
@@ -1187,7 +1312,7 @@ details:hover{transform:translateY(-2px)}
     <div class="cta rv">
       <span class="cta-mark" role="img" aria-label="TodoPadel"></span>
       <h2>Tu próximo torneo, <br><span class="grad">sin Excel y sin costo.</span></h2>
-      <p class="lead center" style="margin-top:20px">Escribinos hoy y el torneo queda cargado en 24 horas.<span class="solo-desk"> Lo corremos juntos el fin de semana y recién ahí decidís si seguís. Si no te sirve, no perdiste nada.</span></p>
+      <p class="lead center" style="margin-top:20px">Escribinos hoy y el torneo queda cargado en 24 horas. Lo corremos juntos el fin de semana y recién ahí decidís si seguís. Si no te sirve, no perdiste nada.</p>
       <div class="hero-cta">
         <a class="btn btn-primary" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener">Escribir por WhatsApp</a>
         <a class="btn btn-ghost" href="{% url 'core:home' %}">Ver la plataforma en vivo</a>
@@ -1203,7 +1328,7 @@ details:hover{transform:translateY(-2px)}
       <a class="brand" href="#top" aria-label="TodoPadel"><span class="mark" role="img" aria-label="Isotipo de TodoPadel"></span><b><span class="lite">Todo</span>Padel</b></a>
       <p style="margin-top:10px">Plataforma de gestión de torneos de pádel · Argentina</p>
     </div>
-    <div style="display:flex; gap:24px; flex-wrap:wrap">
+    <div class="flinks">
       <a href="{% url 'core:home' %}">todopadel.club</a>
       <a href="https://www.instagram.com/todo_padel_club/" target="_blank" rel="noopener">Instagram</a>
       <a href="https://wa.me/{{ organizador_whatsapp }}" target="_blank" rel="noopener">WhatsApp</a>
@@ -1211,70 +1336,136 @@ details:hover{transform:translateY(-2px)}
   </div>
 </footer>
 
-<a class="fab" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="#04120C"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.8-.78.97-.14.16-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.16 0-.43.06-.65.31-.23.25-.85.83-.85 2.03s.87 2.35.99 2.51c.12.16 1.71 2.61 4.15 3.66.58.25 1.03.4 1.39.51.58.19 1.11.16 1.53.1.47-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>
+<a class="fab" href="https://wa.me/{{ organizador_whatsapp }}?text=Hola!%20Quiero%20publicar%20mi%20pr%C3%B3ximo%20torneo%20en%20TodoPadel." target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="#04120C" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.8-.78.97-.14.16-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.16 0-.43.06-.65.31-.23.25-.85.83-.85 2.03s.87 2.35.99 2.51c.12.16 1.71 2.61 4.15 3.66.58.25 1.03.4 1.39.51.58.19 1.11.16 1.53.1.47-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29Z"/></svg>
+  <span class="fab-txt">Escribinos por WhatsApp</span>
 </a>
 
 <script>
-// nav shadow
-const hdr=document.querySelector('header');
-addEventListener('scroll',()=>hdr.classList.toggle('stuck',scrollY>12),{passive:true});
+// Toda la pagina colgaba de este unico <script>: una excepcion en cualquier linea
+// anterior al io.observe() dejaba las 95 cajas con .rv invisibles para siempre, o
+// sea una pantalla verde vacia. Ahora cada bloque va en su propio try: el que falle
+// se cae solo. Y el reveal va PRIMERO, que es el que no se puede perder.
+// (La red de contencion de verdad esta en el CSS: sin html.js todo se ve.)
 
-// reveal
-const io=new IntersectionObserver((es)=>{
-  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
-},{threshold:.12, rootMargin:'0px 0px -40px 0px'});
-// cada fila de producto entra desde el lado en el que esta su captura
-document.querySelectorAll('.frow').forEach(row=>{
-  const rev=row.classList.contains('rev');
-  const txt=row.querySelector('.ftext');
-  const pic=row.querySelector('.shot, .rv:not(.ftext)');
-  if(txt) txt.classList.add(rev?'rv-r':'rv-l');
-  if(pic&&pic!==txt) pic.classList.add(rev?'rv-l':'rv-r');
-});
-// el escalonado se cuenta por seccion, no por toda la pagina
-document.querySelectorAll('.hero, section, footer').forEach(sec=>{
-  [...sec.querySelectorAll('.rv,.rv-l,.rv-r')].forEach((el,i)=>{
-    el.style.transitionDelay=Math.min(i,6)*80+'ms';
+// ---- reveal
+try{
+  const io=new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.12, rootMargin:'0px 0px -40px 0px'});
+  // cada fila de producto entra desde el lado en el que esta su captura
+  document.querySelectorAll('.frow').forEach(row=>{
+    const rev=row.classList.contains('rev');
+    const txt=row.querySelector('.ftext');
+    const pic=row.querySelector('.shot, .rv:not(.ftext)');
+    if(txt) txt.classList.add(rev?'rv-r':'rv-l');
+    if(pic&&pic!==txt) pic.classList.add(rev?'rv-l':'rv-r');
   });
-});
-document.querySelectorAll('.rv,.rv-l,.rv-r').forEach(el=>io.observe(el));
-
-// aviso de "deslizá" debajo de los grupos que en el celular se recorren de costado
-document.querySelectorAll('.steps,.plans,.path,.bento').forEach(g=>{
-  const cue=document.createElement('span');
-  cue.className='swipe-cue';
-  cue.textContent='deslizá para ver las ' + g.children.length;
-  g.after(cue);
-});
-
-// barra de progreso de lectura + parallax suave del fondo
-const prog=document.createElement('div'); prog.className='prog'; document.body.appendChild(prog);
-const bgfx=document.querySelector('.bgfx');
-let ticking=false;
-const onScroll=()=>{
-  const h=document.documentElement.scrollHeight-innerHeight;
-  prog.style.width=(h>0?Math.min(scrollY/h,1)*100:0)+'%';
-  if(bgfx) bgfx.style.transform='translate3d(0,'+(scrollY*-0.045)+'px,0)';
-  ticking=false;
-};
-addEventListener('scroll',()=>{ if(!ticking){ ticking=true; requestAnimationFrame(onScroll); } },{passive:true});
-onScroll();
-
-// counters
-const cio=new IntersectionObserver((es)=>{
-  es.forEach(e=>{
-    if(!e.isIntersecting) return;
-    const el=e.target, end=+el.dataset.count, t0=performance.now(), dur=1400;
-    const tick=(t)=>{ const p=Math.min((t-t0)/dur,1); el.textContent=Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(tick); };
-    requestAnimationFrame(tick); cio.unobserve(el);
+  // el escalonado se cuenta por seccion, no por toda la pagina
+  document.querySelectorAll('.hero, section, footer').forEach(sec=>{
+    [...sec.querySelectorAll('.rv,.rv-l,.rv-r')].forEach((el,i)=>{
+      el.style.transitionDelay=Math.min(i,6)*80+'ms';
+    });
   });
-},{threshold:.5});
-document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
+  document.querySelectorAll('.rv,.rv-l,.rv-r').forEach(el=>io.observe(el));
+}catch(e){
+  // si el observer no existe o algo explota, mostramos todo y seguimos
+  document.documentElement.classList.remove('js');
+}
+
+// ---- nav shadow
+try{
+  const hdr=document.querySelector('header');
+  addEventListener('scroll',()=>hdr.classList.toggle('stuck',scrollY>12),{passive:true});
+}catch(e){}
+
+// ---- aviso de "deslizá" debajo de los grupos que en el celular se recorren de costado
+// Decia siempre "las N": los cuatro grupos que lo reciben son masculinos. Cada uno
+// trae su propio sustantivo.
+try{
+  const ROTULO={steps:'los 3 pasos', plans:'los 3 planes', path:'los 3 pasos', bento:'las fichas'};
+  document.querySelectorAll('.steps,.plans,.path,.bento').forEach(g=>{
+    const clave=['steps','plans','path','bento'].find(k=>g.classList.contains(k));
+    const cue=document.createElement('span');
+    cue.className='swipe-cue';
+    cue.textContent='deslizá para ver '+(ROTULO[clave]||'el resto');
+    g.after(cue);
+  });
+}catch(e){}
+
+// ---- el carrusel de precios arranca en el plan recomendado
+// Al cargar, "Club" ($70.000, unico btn-primary) quedaba en x=309 de 375: 77% afuera.
+// Lo primero que veia el prospecto era "Piloto · Gratis" con un boton ghost.
+try{
+  const pl=document.querySelector('.plans'), feat=pl&&pl.querySelector('.plan.feat');
+  const centrar=()=>{
+    if(!feat || getComputedStyle(pl).overflowX!=='auto') return;   // en escritorio es grid
+    // en delta, no en absoluto: no depende de donde caiga el offsetParent
+    pl.scrollLeft += feat.getBoundingClientRect().left - pl.getBoundingClientRect().left
+                     - (pl.clientWidth - feat.offsetWidth)/2;
+  };
+  if(pl){
+    centrar();
+    addEventListener('load',centrar);          // por si las capturas mueven el layout
+    addEventListener('resize',centrar);
+  }
+}catch(e){}
+
+// ---- la barra de WhatsApp del celular se retira cuando hay un CTA de WhatsApp a la vista
+try{
+  const ctas=[...document.querySelectorAll('a[href*="wa.me"]')].filter(a=>!a.classList.contains('fab'));
+  if(ctas.length){
+    // un Set, no un contador: en la primera tanda el observer reporta TODOS los
+    // CTAs de una, y los que estan fuera de pantalla restarian antes de haber
+    // sumado nunca (la cuenta arrancaba en negativo y la barra se mostraba igual)
+    const aLaVista=new Set();
+    const cio2=new IntersectionObserver(es=>{
+      es.forEach(e=>{ e.isIntersecting ? aLaVista.add(e.target) : aLaVista.delete(e.target); });
+      document.body.classList.toggle('cta-a-la-vista', aLaVista.size>0);
+    // 150px de margen abajo: el CTA aparece subiendo desde el borde inferior, que es
+    // justo donde esta la barra. Sin margen, la barra arranca a salir recien cuando el
+    // boton ya entro y le pisa el borde los 320ms que dura la transicion.
+    },{threshold:0, rootMargin:'0px 0px 150px 0px'});
+    ctas.forEach(a=>cio2.observe(a));
+  }
+}catch(e){}
+
+// ---- barra de progreso de lectura + parallax suave del fondo
+try{
+  const prog=document.createElement('div'); prog.className='prog'; document.body.appendChild(prog);
+  const bgfx=document.querySelector('.bgfx');
+  let ticking=false;
+  const onScroll=()=>{
+    const h=document.documentElement.scrollHeight-innerHeight;
+    prog.style.width=(h>0?Math.min(scrollY/h,1)*100:0)+'%';
+    if(bgfx) bgfx.style.transform='translate3d(0,'+(scrollY*-0.045)+'px,0)';
+    ticking=false;
+  };
+  addEventListener('scroll',()=>{ if(!ticking){ ticking=true; requestAnimationFrame(onScroll); } },{passive:true});
+  onScroll();
+}catch(e){}
+
+// ---- counters
+try{
+  const cio=new IntersectionObserver((es)=>{
+    es.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const el=e.target, end=+el.dataset.count, t0=performance.now(), dur=1400;
+      const tick=(t)=>{ const p=Math.min((t-t0)/dur,1); el.textContent=Math.round(end*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(tick); };
+      requestAnimationFrame(tick); cio.unobserve(el);
+    });
+  },{threshold:.5});
+  // el numero de verdad vive en el HTML (sin JS se lee "27", no "0"); el arranque
+  // en cero lo pone el JS, que es el unico que despues lo va a animar
+  document.querySelectorAll('[data-count]').forEach(el=>{ el.textContent='0'; cio.observe(el); });
+}catch(e){}
 
 // lightbox: cualquier captura se amplia, y adentro se puede acercar con un click
-(function(){
-  const imgs=[...document.querySelectorAll('.browser img,.phone img,.shot img,.live-wrap img')];
+try{(function(){
+  // solo las capturas que la pagina realmente muestra en este ancho: si no, el pie
+  // decia "4 de 14" y deslizando se llegaba a secciones apagadas
+  const imgs=[...document.querySelectorAll('.browser img,.phone img,.shot img,.live-wrap img')]
+    .filter(i=>i.offsetParent!==null);
   if(!imgs.length) return;
   const box=document.createElement('div');
   box.className='lbox';
@@ -1337,7 +1528,7 @@ document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
     w.setAttribute('aria-label','Ampliar: '+(im.alt||'captura de TodoPadel'));
     const hint=document.createElement('span');
     hint.className='zoom-hint';
-    hint.innerHTML='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8.4v5.2M8.4 11h5.2"/></svg>Ampliar';
+    hint.innerHTML='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8.4v5.2M8.4 11h5.2"/></svg><i>Ampliar</i>';
     w.appendChild(hint);
     w.addEventListener('click',e=>{ e.preventDefault(); open(n); });
     w.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(n); } });
@@ -1388,19 +1579,21 @@ document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
     if(zoomed) return;                    // acercada: el dedo recorre la imagen
     if(Math.abs(d)>48) show(idx+(d<0?1:-1));
   },{passive:true});
-})();
+})();}catch(e){}
 
 // tabs
-document.querySelectorAll('.tab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
-    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
-    btn.classList.add('on');
-    const pane=document.getElementById('pane-'+btn.dataset.pane);
-    pane.classList.add('on');
-    pane.querySelectorAll('.rv').forEach(el=>el.classList.add('in'));
+try{
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+      document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+      btn.classList.add('on');
+      const pane=document.getElementById('pane-'+btn.dataset.pane);
+      pane.classList.add('on');
+      pane.querySelectorAll('.rv').forEach(el=>el.classList.add('in'));
+    });
   });
-});
+}catch(e){}
 </script>
 </body>
 </html>

@@ -674,7 +674,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for item in grupo.tabla.all %}
+                                            {% for item in grupo.tabla_ordenada %}
                                                 <tr class="{% if item.equipo == equipo %}bg-primary/20 border-l-4 border-primary{% elif forloop.counter <= 2 %}text-success font-bold bg-success/5{% else %}text-base-content/70{% endif %}">
                                                     <td class="pl-4 font-medium">
                                                         <div class="flex items-start gap-0.5">

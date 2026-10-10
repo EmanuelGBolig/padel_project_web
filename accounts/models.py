@@ -208,7 +208,21 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ]
 
     def save(self, *args, **kwargs):
-        # Simplemente guardar - Cloudinary se encarga de la optimización
+        # El email se normaliza ACÁ, no en cada formulario.
+        #
+        # `email` es unique, y en PostgreSQL el unique distingue mayúsculas en la
+        # parte local: "Juan@mail.com" y "juan@mail.com" entraban como dos
+        # cuentas distintas. El alta normal usaba `user.save()` directo, o sea
+        # que ni siquiera pasaba por `normalize_email` del manager (que además
+        # sólo baja el dominio, no la parte local).
+        #
+        # Son duplicados que después hay que fusionar a mano con merge_users, y
+        # mientras tanto el jugador pierde historial y ranking. Poniéndolo en
+        # save() queda cubierto todo camino de escritura: formularios, admin,
+        # alta por el organizador, Google y los management commands.
+        if self.email:
+            self.email = self.email.strip().lower()
+        # Cloudinary se encarga de la optimización de la imagen.
         super().save(*args, **kwargs)
 
     @property

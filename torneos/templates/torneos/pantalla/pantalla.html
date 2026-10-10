@@ -108,8 +108,15 @@
         .grilla-zonas.n1, .grilla-zonas.n2, .grilla-zonas.n4 { grid-template-columns: 1fr 1fr; }
         .grilla-zonas.n3, .grilla-zonas.n5, .grilla-zonas.n6 { grid-template-columns: 1fr 1fr 1fr; }
         .zona { background: var(--panel); border: 1px solid var(--borde); border-radius: 1rem; padding: 1rem 1.2rem; font-size: 1.35rem; min-height: 0; overflow: hidden; }
-        .grilla-zonas.n1 .zona, .grilla-zonas.n2 .zona { font-size: 1.9rem; }
-        .grilla-zonas.n3 .zona, .grilla-zonas.n4 .zona { font-size: 1.65rem; }
+        /* Estos tamaños son el MÁXIMO de cada forma de grilla, no el definitivo: el
+           ancho de la tarjeta lo decide la cantidad de columnas, pero el alto lo
+           deciden las FILAS de la grilla (n4 son 2x2: el mismo alto que n5/n6) y lo
+           que hay que meter adentro, la cantidad de parejas de la zona. Eso último
+           el CSS no lo sabe: con 4 zonas de 4 parejas a 1.65rem se cortaba media
+           fila. Lo ajusta ajustarZonas() midiendo el recorte real. */
+        .grilla-zonas.n1 .zona, .grilla-zonas.n2 .zona { font-size: 1.9rem; }   /* 1 fila, 2 columnas */
+        .grilla-zonas.n3 .zona, .grilla-zonas.n4 .zona,
+        .grilla-zonas.n5 .zona, .grilla-zonas.n6 .zona { font-size: 1.65rem; }  /* 3 columnas, o 2 filas */
         .zona h3 { margin: 0 0 .4em; font-size: 1.3em; font-weight: 900; }
         .zona table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
         .zona th { font-size: .7em; color: var(--tenue); font-weight: 700; text-transform: uppercase; padding: .2em .3em; text-align: center; }
@@ -230,6 +237,8 @@
         var progreso = document.getElementById('progreso');
         var sinConexion = document.getElementById('sin-conexion');
         var REFRESCO_MS = 30000;
+        var PISO_LLAVE = 0.85;   // ver ajustarLlave
+        var PISO_ZONA = 0.7;     // ver ajustarZonas
         var actual = -1, timer = null, pendiente = null, pausado = false;
 
         function lista() { return Array.prototype.slice.call(placas.querySelectorAll('.placa')); }
@@ -285,7 +294,11 @@
             var mw = marco.clientWidth, mh = marco.clientHeight;
             var esc = Math.min(mw / w, 1.6);
             if (h * esc > mh) {
-                esc = mh / h;
+                // Piso de escala: por debajo de esto la letra no se lee desde el
+                // otro lado del salón (a 0.49 el nombre de la pareja queda en 9px).
+                // Que no entre es señal de que la llave hay que PARTIRLA, y de eso
+                // se encarga _paginar_llave en pantalla.py; acá no se encoge más.
+                esc = Math.max(mh / h, PISO_LLAVE);
             } else {
                 // Sobra alto: estirar la llave para que los partidos se repartan en toda la pantalla.
                 llave.style.height = (mh / esc) + 'px';
@@ -293,6 +306,41 @@
             llave.style.left = Math.max(0, (mw - w * esc) / 2) + 'px';
             llave.style.transform = 'scale(' + esc + ')';
             dibujarLineas(llave);
+        }
+
+        // --- Zonas: si la tabla no entra en su tarjeta, bajar la letra ---
+        // El CSS fija el tamaño por cantidad de columnas y filas de la grilla, que es
+        // lo que decide el ALTO de cada tarjeta; lo que no sabe es cuántas parejas
+        // tiene la zona. Con 4 zonas de 4 parejas se cortaba media fila y con 5
+        // parejas, fila y media. Se mide el recorte real en el navegador y se baja
+        // por igual en todas las zonas de la placa, para que no queden dos tamaños
+        // distintos uno al lado del otro. El padding va en rem y no se encoge, así
+        // que una sola pasada se queda corta: se repite hasta que entre.
+        function ajustarZonas(placa) {
+            var zonas = Array.prototype.slice.call(placa.querySelectorAll('.zona'));
+            if (!zonas.length) return;
+            zonas.forEach(function (z) { z.style.fontSize = ''; });
+            var base = parseFloat(getComputedStyle(zonas[0]).fontSize);
+            var factor = 1;
+            for (var vuelta = 0; vuelta < 6; vuelta++) {
+                var falta = 1;
+                zonas.forEach(function (z) {
+                    if (z.scrollHeight > z.clientHeight + 1) {
+                        falta = Math.min(falta, z.clientHeight / z.scrollHeight);
+                    }
+                });
+                if (falta > 0.995) return;
+                // Piso: si ni al 70% entra, hay que mostrar menos zonas por placa
+                // (ZONAS_POR_PLACA en pantalla.py), no seguir bajando la letra.
+                factor = Math.max(factor * falta, PISO_ZONA);
+                zonas.forEach(function (z) { z.style.fontSize = (base * factor) + 'px'; });
+            }
+        }
+
+        function ajustar(placa) {
+            if (!placa) return;
+            ajustarLlave(placa);
+            ajustarZonas(placa);
         }
 
         // --- Carrusel ---
@@ -303,9 +351,7 @@
             ps.forEach(function (p, i) { p.classList.toggle('activa', i === actual); });
             Array.prototype.forEach.call(indice.children, function (s, i) { s.classList.toggle('activo', i === actual); });
             var placa = ps[actual];
-            if (placa.querySelector('.llave')) {
-                requestAnimationFrame(function () { ajustarLlave(placa); });
-            }
+            requestAnimationFrame(function () { ajustar(placa); });
             var dur = (parseInt(placa.getAttribute('data-dur'), 10) || 12) * 1000;
             progreso.style.transition = 'none';
             progreso.style.width = '0';
@@ -426,8 +472,7 @@
         });
 
         window.addEventListener('resize', function () {
-            var p = lista()[actual];
-            if (p && p.querySelector('.llave')) ajustarLlave(p);
+            ajustar(lista()[actual]);
         });
 
         pintarQR(document);

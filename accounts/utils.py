@@ -3,6 +3,18 @@ from django.db.models.functions import Coalesce
 from django.core.cache import cache
 from .models import CustomUser
 
+# Un bye NO es un partido jugado.
+#
+# `_resolver_byes` (torneos/views.py) crea un Partido REAL, con ganador y
+# `resultado = "Bye"`, para la pareja que pasa libre: el otro lado queda vacío.
+# Si las agregaciones cuentan cualquier Partido con ganador, esa pareja suma una
+# victoria fantasma y un partido que nunca jugó — y eso infla victorias,
+# partidos_jugados y win_rate en el perfil y en el ranking.
+#
+# Un partido de verdad tiene las DOS parejas cargadas.
+SIN_BYES = {'equipo1__isnull': False, 'equipo2__isnull': False}
+
+
 def get_division_rankings(division, genero=None, force_recalc=False):
     if not division:
         return []
@@ -122,7 +134,8 @@ def get_division_rankings(division, genero=None, force_recalc=False):
     )
 
     # 2. Partidos totales para estadisticas (jugados)
-    partidos_bracket = Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False).values(
+    partidos_bracket = Partido.objects.filter(
+        torneo_id__in=torneo_ids, ganador__isnull=False, **SIN_BYES).values(
         'equipo1__jugador1', 'equipo1__jugador2', 'equipo2__jugador1', 'equipo2__jugador2', 'ganador__jugador1', 'ganador__jugador2'
     )
     partidos_grupo = PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False).values(
@@ -315,7 +328,7 @@ def calcular_puntos_por_jugador(torneo_ids):
     # Partidos jugados (zona + llave)
     for qs in (
         PartidoGrupo.objects.filter(grupo__torneo_id__in=torneo_ids, ganador__isnull=False),
-        Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False),
+        Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False, **SIN_BYES),
     ):
         for p in qs.values('equipo1__jugador1', 'equipo1__jugador2',
                            'equipo2__jugador1', 'equipo2__jugador2'):
@@ -325,7 +338,7 @@ def calcular_puntos_por_jugador(torneo_ids):
                     ensure(p[key])['partidos'] += 1
 
     # Victorias en la llave
-    for p in (Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False)
+    for p in (Partido.objects.filter(torneo_id__in=torneo_ids, ganador__isnull=False, **SIN_BYES)
               .values('ganador__jugador1', 'ganador__jugador2')):
         for key in ('ganador__jugador1', 'ganador__jugador2'):
             if p[key]:
@@ -412,7 +425,7 @@ def get_player_stats(jugador):
 
     # 1. Victorias (consultas directas, sin loops)
     victorias_elim = Partido.objects.filter(
-        ganador_id__in=todos_equipo_ids, ganador__isnull=False
+        ganador_id__in=todos_equipo_ids, ganador__isnull=False, **SIN_BYES
     ).count()
     victorias_grupo = PartidoGrupo.objects.filter(
         ganador_id__in=todos_equipo_ids, ganador__isnull=False
@@ -422,7 +435,7 @@ def get_player_stats(jugador):
     # 2. Partidos jugados (consultas directas)
     partidos_elim = Partido.objects.filter(
         Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
-        ganador__isnull=False
+        ganador__isnull=False, **SIN_BYES
     ).count()
     partidos_grupo = PartidoGrupo.objects.filter(
         Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
@@ -470,7 +483,7 @@ def get_player_stats(jugador):
         raw.append((ts, 'g', p))
     pe_qs = Partido.objects.filter(
         Q(equipo1_id__in=todos_equipo_ids) | Q(equipo2_id__in=todos_equipo_ids),
-        ganador__isnull=False,
+        ganador__isnull=False, **SIN_BYES,
     ).select_related('torneo', 'equipo1', 'equipo2')
     for p in pe_qs:
         ts = p.fecha_hora.timestamp() if p.fecha_hora else 0

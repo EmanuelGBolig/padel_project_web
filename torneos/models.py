@@ -407,12 +407,86 @@ class EquipoGrupo(models.Model):
         return f"{self.equipo} en {self.grupo}"
 
     class Meta:
-        # Ordenamos la tabla según reglas de desempate de Padel
+        # Ordenamos la tabla según reglas de desempate de Padel.
+        #
+        # La última clave NO es un criterio deportivo: es un desempate estable.
+        # Sin ella, dos parejas con los mismos PG, diferencia de sets y de games
+        # quedaban en el orden que devolviera la base, que puede cambiar entre
+        # dos cargas de la misma página. Y como de esta tabla salen los
+        # clasificados que siembran el cuadro, el desempate no puede ser al azar.
+        #
+        # Para el desempate deportivo de verdad (resultado directo entre las
+        # parejas empatadas) está `ordenar_con_head_to_head()` más abajo.
         ordering = [
             '-partidos_ganados',  # 1. Más partidos ganados
             '-diferencia_sets',   # 2. Mejor diferencia de sets
             '-diferencia_games',  # 3. Mejor diferencia de games
+            'numero',             # 4. Desempate estable (no deportivo)
         ]
+
+
+def ordenar_con_head_to_head(filas, partidos=None):
+    """Ordena una tabla de zona aplicando el resultado directo entre empatados.
+
+    El `Meta.ordering` de EquipoGrupo ordena por partidos ganados, diferencia de
+    sets y diferencia de games, y cierra con `numero` para que el orden sea
+    estable. Pero el desempate estándar del pádel cuando dos parejas quedan
+    iguales es el ENFRENTAMIENTO DIRECTO, y eso no se puede expresar en un
+    `ordering` de base: hace falta mirar los partidos.
+
+    Acá se toman los bloques de filas que quedaron empatadas en los tres
+    criterios y, dentro de cada bloque, se las reordena por lo que pasó entre
+    ellas: primero partidos ganados en el mini-torneo entre empatadas, después
+    diferencia de games en esos mismos partidos. Lo que no se puede desempatar
+    así (triple empate circular, o parejas que todavía no se enfrentaron) queda
+    como estaba, que es el orden estable.
+
+    `filas` es un iterable de EquipoGrupo YA ordenado por Meta.ordering.
+    `partidos` es opcional: si no viene, se consulta una sola vez.
+    """
+    filas = list(filas)
+    if len(filas) < 2:
+        return filas
+
+    if partidos is None:
+        grupo_ids = {f.grupo_id for f in filas}
+        partidos = list(
+            PartidoGrupo.objects.filter(grupo_id__in=grupo_ids, ganador__isnull=False)
+        )
+
+    # Mini-tabla del enfrentamiento directo, sólo entre los equipos empatados.
+    def mini(ids):
+        pg = {i: 0 for i in ids}
+        dg = {i: 0 for i in ids}
+        for p in partidos:
+            if p.equipo1_id in ids and p.equipo2_id in ids:
+                if p.ganador_id in pg:
+                    pg[p.ganador_id] += 1
+                dg[p.equipo1_id] += (p.e1_games_ganados or 0) - (p.e2_games_ganados or 0)
+                dg[p.equipo2_id] += (p.e2_games_ganados or 0) - (p.e1_games_ganados or 0)
+        return pg, dg
+
+    def clave_general(f):
+        return (f.partidos_ganados, f.diferencia_sets, f.diferencia_games)
+
+    resultado = []
+    i = 0
+    while i < len(filas):
+        j = i + 1
+        while j < len(filas) and clave_general(filas[j]) == clave_general(filas[i]):
+            j += 1
+        bloque = filas[i:j]
+        if len(bloque) > 1:
+            ids = {f.equipo_id for f in bloque}
+            pg, dg = mini(ids)
+            # `numero` al final conserva el orden estable entre lo que no se
+            # pudo desempatar por resultado directo.
+            bloque.sort(key=lambda f: (-pg.get(f.equipo_id, 0),
+                                       -dg.get(f.equipo_id, 0),
+                                       f.numero))
+        resultado.extend(bloque)
+        i = j
+    return resultado
 
 
 class PartidoGrupo(models.Model):

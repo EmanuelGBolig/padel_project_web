@@ -20,10 +20,15 @@
             <span class="label-text">Cancha <span class="opacity-60">(opcional)</span></span>
         </label>
         {{ form.cancha }}
-        {% comment %}
-            Las canchas que el club ya usó, para elegirlas en vez de tipearlas. Con hora y
-            cancha cargadas, la pantalla del club (/tv/) muestra el partido en esa cancha.
-        {% endcomment %}
+        {% comment %} El <datalist> de abajo trae las canchas que el club ya usó, para
+        elegirlas en vez de tipearlas. {% endcomment %}
+        {% comment %} Esta ayuda estaba escrita acá adentro, o sea invisible: el
+        organizador leía "Cancha (opcional)" y no tenía forma de saber que de ese
+        campo depende que la pantalla del club muestre qué se juega en cada cancha.
+        Por eso la placa aparecía vacía en los clubes que nunca la cargaron. {% endcomment %}
+        <span class="label-text-alt opacity-70 mt-1">
+            Si la cargás, la pantalla del club muestra qué se está jugando en cada cancha.
+        </span>
         <datalist id="canchas-usadas">
             {% for cancha in form.canchas_usadas %}<option value="{{ cancha }}">{% endfor %}
         </datalist>

@@ -43,13 +43,33 @@ CANCHAS_POR_PLACA = 8
 PARTIDOS_POR_PLACA = 8      # próximos y resultados: 2 columnas x 4 renglones
 PLACAS_POR_LISTA = 2        # como mucho 2 placas de próximos y 2 de resultados
 ZONAS_POR_PLACA = 6
+# Con 4 a 6 zonas la grilla es de 2 filas, o sea media pantalla de alto por tarjeta.
+# Ahí una tabla de 5 parejas entra recién bajando la letra a 2,2 % del alto (1,9 m
+# de lectura en una tele de 50") y una de 6 no entra ni en el piso. Con 3 zonas la
+# grilla es de una sola fila y las mismas tablas quedan en 2,8 % (2,5 m), enteras.
+# Medido en 72 combinaciones: 1 a 6 zonas x 3 a 6 parejas x 3 largos de nombre.
+ZONAS_POR_PLACA_ANCHA = 3
+PAREJAS_ZONA_ANCHA = 5
 INSCRIPCIONES_MAX = 4
+
+# La llave se parte en varias placas. Los dos topes salen de medir la placa real a
+# 1080p (y dan lo mismo a 720p, porque todo está en rem y el rem sale del alto):
+# - a lo ancho, una columna mide 19rem + 3.2rem de separación: con 3 columnas la
+#   llave entra al tope de escala (1.6) y con 4 ya hay que encogerla a 1.18;
+# - a lo alto, la altura crece lineal con los partidos de la columna más larga:
+#   4 partidos entran a escala 1.6, 8 bajan a 0.96 y 16 a 0.49 (letra de 9px).
+# Encoger no es opción: es una tele que se mira de lejos. Se parte la placa.
+RONDAS_POR_PLACA = 3
+PARTIDOS_POR_COLUMNA = 5
 
 # Segundos que se queda cada placa en pantalla.
 DURACION = {
     'campeones': 15, 'canchas': 20, 'proximos': 14, 'resultados': 14, 'zonas': 15,
     'llave': 20, 'inscripcion': 12, 'sponsors': 10, 'vacia': 30,
 }
+# Una llave partida en N placas: 20 s cada una serían más de un minuto de llave.
+# Cada placa muestra menos, así que con menos tiempo alcanza y el ciclo no se dispara.
+DURACION_LLAVE_PARTIDA = 14
 
 _EPOCA = datetime(1970, 1, 1, tzinfo=dt_timezone.utc)
 _PLACEHOLDER_ZONA = re.compile(r'^(\d+)([A-Za-z])$')
@@ -109,10 +129,13 @@ class Placa:
     titulo: str
     subtitulo: str = ''
     datos: dict = field(default_factory=dict)
+    # Segundos a medida, cuando el tipo de placa no alcanza para decidirlos (una
+    # llave partida en varias placas no se queda lo mismo que una llave entera).
+    duracion_s: Optional[int] = None
 
     @property
     def duracion(self):
-        return DURACION.get(self.tipo, 12)
+        return self.duracion_s or DURACION.get(self.tipo, 12)
 
 
 # --- Helpers ---------------------------------------------------------------------
@@ -200,6 +223,32 @@ def _desde_llave(p, torneo, total_rondas):
 def _paginar(lista, tamano, maximo=None):
     paginas = [lista[i:i + tamano] for i in range(0, len(lista), tamano)]
     return paginas[:maximo] if maximo else paginas
+
+
+def _reparto(cantidad, maximo):
+    """Cuántas cosas van en cada placa: la menor cantidad de placas posible, pero
+    repartidas parejo. Con maximo=3, 4 cosas dan [2, 2] y no [3, 1]: una placa con
+    una sola tabla al lado de media pantalla vacía se ve peor que dos de a dos."""
+    placas = max(1, -(-cantidad // maximo))
+    base, resto = divmod(cantidad, placas)
+    return [base + (1 if i < resto else 0) for i in range(placas)]
+
+
+def _en_tramos(lista, tamanos):
+    tramos, desde = [], 0
+    for n in tamanos:
+        tramos.append(lista[desde:desde + n])
+        desde += n
+    return tramos
+
+
+def _paginar_zonas(zonas):
+    """Cuántas tablas de posiciones entran por placa. No es un número fijo: lo que
+    manda es cuántas PAREJAS tiene la zona más grande, porque eso es lo que tiene
+    que entrar en el alto de la tarjeta."""
+    grandes = any(len(z['filas']) >= PAREJAS_ZONA_ANCHA for z in zonas)
+    maximo = ZONAS_POR_PLACA_ANCHA if grandes else ZONAS_POR_PLACA
+    return _en_tramos(zonas, _reparto(len(zonas), maximo))
 
 
 # --- Armado de la pantalla -------------------------------------------------------
@@ -302,6 +351,15 @@ def armar_pantalla(organizacion, torneo_ids=None, ahora=None):
             f'{i} de {len(paginas)}' if len(paginas) > 1 else '',
             {'canchas': pagina},
         ))
+    if not canchas and any(not p.ganador for p in partidos):
+        # La placa estrella sale del campo `cancha`, que es opcional: si nadie lo
+        # carga, "En cancha ahora" simplemente no existía y nada lo explicaba.
+        # Con partidos por jugar y cero canchas, la placa aparece diciendo qué
+        # hacer: el organizador pasa por delante de la tele todo el día.
+        placas.append(Placa(
+            'canchas', 'canchas-sin', 'En cancha ahora', '',
+            {'canchas': [], 'sin_cancha': True}, duracion_s=DURACION['inscripcion'],
+        ))
 
     paginas = _paginar(proximos, PARTIDOS_POR_PLACA, PLACAS_POR_LISTA)
     for i, pagina in enumerate(paginas, 1):
@@ -313,7 +371,7 @@ def armar_pantalla(organizacion, torneo_ids=None, ahora=None):
 
     placas.extend(_placas_zonas(torneos, partidos, llaves))
     placas.extend(_placas_llave(torneos, partidos_llave))
-    placas.extend(_placas_inscripcion(organizacion))
+    placas.extend(_placas_inscripcion(organizacion, torneo_ids))
 
     sponsors = list(organizacion.sponsors.all())
     if sponsors:
@@ -386,7 +444,7 @@ def _placas_zonas(torneos, partidos, llaves):
                 'clasifica': _clasifica(g.nombre, i) and eg.partidos_jugados > 0,
             } for i, eg in enumerate(g.tabla.all(), 1)],
         } for g in grupos[torneo.pk]]
-        paginas = _paginar(zonas, ZONAS_POR_PLACA)
+        paginas = _paginar_zonas(zonas)
         for i, pagina in enumerate(paginas, 1):
             placas.append(Placa(
                 'zonas', f'zonas-{torneo.pk}-{i}', f'Zonas · {torneo.nombre}',
@@ -394,6 +452,33 @@ def _placas_zonas(torneos, partidos, llaves):
                 {'zonas': pagina, 'torneo': torneo},
             ))
     return placas
+
+
+def _paginar_llave(columnas):
+    """Parte la llave en placas que entren enteras y legibles.
+
+    Primero a lo ancho (bloques de rondas consecutivas: 5 rondas dan [3, 2] y 4 dan
+    [2, 2], porque la final sola no es una placa) y después a lo alto: si la columna
+    más larga del bloque pasa PARTIDOS_POR_COLUMNA, el bloque se corta en tramos
+    verticales, llevándose de cada ronda el tramo equivalente del cuadro.
+    Los partidos vienen ordenados por `orden_partido`, o sea en el orden del cuadro,
+    así que el tramo k de cada ronda es la misma zona de la llave: arriba con
+    arriba. Las líneas que cruzan de una placa a otra las saltea `dibujarLineas`.
+    """
+    paginas = []
+    for bloque in _en_tramos(columnas, _reparto(len(columnas), RONDAS_POR_PLACA)):
+        mas_largo = max(len(c['partidos']) for c in bloque)
+        tramos = max(1, -(-mas_largo // PARTIDOS_POR_COLUMNA))
+        for k in range(tramos):
+            pagina = []
+            for col in bloque:
+                n = len(col['partidos'])
+                tramo = col['partidos'][n * k // tramos:n * (k + 1) // tramos]
+                if tramo:
+                    pagina.append({'nombre': col['nombre'], 'partidos': tramo})
+            if pagina:
+                paginas.append(pagina)
+    return paginas
 
 
 def _placas_llave(torneos, partidos_llave):
@@ -406,18 +491,26 @@ def _placas_llave(torneos, partidos_llave):
         for p in lista:
             rondas[p.ronda].append(p)
         columnas = [{'nombre': ps[0].fase, 'partidos': ps} for _, ps in sorted(rondas.items())]
-        placas.append(Placa(
-            'llave', f'llave-{torneo.pk}', f'Llave · {torneo.nombre}', '',
-            {'rondas': columnas, 'torneo': torneo},
-        ))
+        paginas = _paginar_llave(columnas)
+        for i, pagina in enumerate(paginas, 1):
+            placas.append(Placa(
+                'llave', f'llave-{torneo.pk}-{i}', f'Llave · {torneo.nombre}',
+                f'{i} de {len(paginas)}' if len(paginas) > 1 else '',
+                {'rondas': pagina, 'torneo': torneo},
+                duracion_s=DURACION_LLAVE_PARTIDA if len(paginas) > 1 else None,
+            ))
     return placas
 
 
-def _placas_inscripcion(organizacion):
-    abiertos = list(
-        Torneo.objects.filter(organizacion=organizacion, estado=Torneo.Estado.ABIERTO)
-        .select_related('division').order_by('fecha_inicio')[:INSCRIPCIONES_MAX]
-    )
+def _placas_inscripcion(organizacion, torneo_ids=None):
+    """`?t=` también manda acá: una TV dedicada a una categoría no puede ofrecer la
+    inscripción de otra. Y si el filtro deja la placa sin torneos, la placa no se
+    agrega: así `placas` puede quedar vacío y aparecer la placa `vacia`, que antes
+    nunca llegaba a verse porque esta siempre se colaba."""
+    abiertos = Torneo.objects.filter(organizacion=organizacion, estado=Torneo.Estado.ABIERTO)
+    if torneo_ids:
+        abiertos = abiertos.filter(pk__in=torneo_ids)
+    abiertos = list(abiertos.select_related('division').order_by('fecha_inicio')[:INSCRIPCIONES_MAX])
     if not abiertos:
         return []
     return [Placa('inscripcion', 'inscripcion', 'Inscripciones abiertas', '', {'torneos': abiertos})]

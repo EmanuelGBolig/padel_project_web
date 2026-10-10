@@ -745,6 +745,15 @@ Prueba social del home.
 
 ### Observaciones sobre el estado del esquema
 
+> **Octubre 2026 — desempate de la tabla de zona.** El `ordering` cierra con `numero`
+> para ser **estable**: sin esa clave, dos parejas iguales en PG, diferencia de sets y de
+> games quedaban en el orden que devolviera la base, que puede cambiar entre dos cargas —
+> y de esa tabla salen los clasificados que siembran el cuadro. El desempate **deportivo**
+> (resultado directo entre las empatadas) no se puede expresar en un `ordering` porque hay
+> que mirar los partidos: lo resuelve `ordenar_con_head_to_head()` (`torneos/models.py`),
+> que usan el sembrado del cuadro y la tabla que se muestra en la ficha, para que coincidan.
+> Un triple empate circular queda como está, que es lo correcto: nadie le ganó a nadie.
+
 - **Sin índices explícitos**: no hay ni un `db_index=True` ni un `Meta.indexes` en los cuatro `models.py`. Todo índice existente es implícito (PKs, FKs, `unique=True`, `UniqueConstraint`). Consultas frecuentes como `Partido.filter(torneo=..., placeholder_e1=...)` o los agregados de ranking corren sin índice de apoyo sobre esas columnas.
 - **Constraints declaradas** (sólo 4 en todo el proyecto): `unique_active_team` (equipos), `unique_ranking_jugador_division` (equipos), `Invitation.unique_together` (equipos), `inscripcion_unica` (torneos).
 - **Modelos/campos eliminados que quedaron en el historial**: `RankingEquipo` (equipos `0007`→`0008`), `OrganizadorProfile` (accounts `0007`→`0008`), `Torneo.organizador` (torneos `0011`→`0012`), `EquipoGrupo.prioridad_llave` (torneos `0016`→`0017`).
@@ -1556,6 +1565,22 @@ y `PartidoScheduleForm` la piden, con botones de las canchas ya usadas por el cl
 (`canchas_usadas`). "Cancha 2" se guarda como "2", y las canchas se ordenan natural
 (1, 2, 10, Central).
 
+> **Octubre 2026.** La llave se escalaba con JS hasta que entrara, sin piso: con 32
+> parejas el nombre quedaba en 9,3px (legible a 80cm de una tele de 50") y con 48 en
+> 4,7px. Ahora se **pagina en los dos ejes** — por rondas y por partidos dentro de la
+> columna —, porque el alto lo fija la columna más larga y no la cantidad de columnas:
+> paginar sólo por columnas no alcanzaba. Medido sobre los 43 cuadros FAP reales: 119
+> placas, el peor texto queda en 26,7px (2,2 m). `Placa` tiene ahora `duracion_s` propio,
+> porque cada placa muestra menos y con 20 s el ciclo se estiraba.
+>
+> Las tablas de zona se recortaban en 26 de 72 combinaciones (lo peor, 4 zonas × 5
+> parejas cortaba 1,4 filas): el tamaño de letra dependía de la cantidad de ZONAS y no de
+> las filas de la grilla. Ahora el CSS fija un máximo y `ajustarZonas()` mide el recorte
+> real y baja la letra por igual en todas las zonas de la placa.
+>
+> Y `?t=` no filtraba las inscripciones, así que una TV apuntada a una categoría sin
+> datos mostraba el torneo de otra en vez de "todavía no arrancó".
+
 **Placas del carrusel** (`armar_pantalla`, en este orden; las vacías no se muestran):
 
 | Placa | Contenido | Dura |
@@ -1564,8 +1589,9 @@ y `PartidoScheduleForm` la piden, con botones de las canchas ya usadas por el cl
 | `canchas` | Una tarjeta por cancha: en juego / terminó / libre, con el partido que sigue. Hasta 8 por placa | 20 s |
 | `proximos` | Pendientes con hora, sin los que ya están en juego. 8 por placa, hasta 2 placas | 14 s |
 | `resultados` | Con ganador y sin byes, ordenados por `finalizado_en` (o `fecha_hora` para los viejos). 8 por placa, hasta 2 | 14 s |
-| `zonas` | Tablas de posiciones, 6 zonas por placa. Se dejan de mostrar cuando las zonas terminaron y ya hay llave | 15 s |
-| `llave` | El cuadro completo, escalado con JS para que entre entero, con líneas en SVG. Resalta el partido en juego | 20 s |
+| `zonas` | Tablas de posiciones. 6 zonas por placa, o 3 si las zonas son de 5+ parejas (`ZONAS_POR_PLACA_ANCHA` / `PAREJAS_ZONA_ANCHA`), repartidas parejo entre placas. Se dejan de mostrar cuando las zonas terminaron y ya hay llave | 15 s |
+| `llave` | El cuadro, **paginado**: hasta `RONDAS_POR_PLACA` (3) rondas y `PARTIDOS_POR_COLUMNA` (5) partidos por columna. Clave `llave-{pk}-{i}`. Resalta el partido en juego | 20 s, o `DURACION_LLAVE_PARTIDA` (14 s) si está partida |
+| `canchas-sin` | Cuando hay partidos por jugar y el club no cargó NINGUNA cancha: explica que cargándola se ve qué se juega en cada una | 12 s |
 | `inscripcion` | Torneos de la organización con inscripción abierta, con QR para anotarse | 12 s |
 | `sponsors` | Los `Sponsor` de la organización | 10 s |
 | `vacia` | Solo si no hay nada: "Por ahora no hay partidos en juego" | 30 s |
@@ -2348,7 +2374,28 @@ La extensión `unaccent` se habilita en `core/migrations/0001_unaccent_extension
 
 #### 2.5 Página para organizadores (`core/views.py:60-62`)
 
-`TemplateView` puro sobre `core/para_organizadores.html` (81 líneas). Estructura: hero con badge + dos CTA (WhatsApp y `accounts:organizador_list`), grid de 3 beneficios ("Adiós al Excel", "Difusión que vuela", "Ranking por categorías") y CTA final a WhatsApp. Ambos CTA usan `{{ organizador_whatsapp_url }}` del context processor.
+`TemplateView` puro sobre `core/para_organizadores.html`, que ya no son 81 líneas: es la
+landing comercial completa (hero con captura, comparación con Excel+WhatsApp, recorrido de
+producto, planes con precios, FAQ y varios CTA a WhatsApp, todos con
+`{{ organizador_whatsapp_url }}` del context processor).
+
+> **Octubre 2026.** Tres cosas que la rompían en celular, que es desde donde la lee el dueño
+> de club que está por pagar:
+>
+> - El `@media (max-width: 620px)` **apagaba las pruebas y dejaba los títulos que las
+>   anuncian**: se iban la tabla comparativa, las capturas de celular, los números y 6 de las
+>   9 preguntas del FAQ — justo *¿cuánto sale?*, *¿me atan con un contrato?* y *¿puedo traer
+>   lo de Excel?*. Ahora sólo se apaga `#roles`, que repite lo que ya prueban otras secciones.
+> - El FAB de WhatsApp tapaba CTAs. Abajo de 620px es una **barra inferior fija** que se
+>   retira sola cuando hay un CTA de WhatsApp en pantalla; en escritorio sigue siendo la
+>   burbuja. CTAs tapados: 2 → 0.
+> - **Sin JS la página era una pantalla vacía**: 95 elementos esperaban un
+>   `IntersectionObserver`. Lo invisible ahora cuelga de `html.js`, así que el estado por
+>   defecto es visible.
+>
+> Los números del hero (`data-count="27/380/532"`) siguen **hardcodeados** y divergen de los
+> que la home calcula contra la base: para arreglarlo hay que darle contexto a
+> `ParaOrganizadoresView`, que hoy es un `TemplateView` pelado.
 
 Define `meta_description`, `og_title` y `og_description` propios (`:4-6`) — es la página del proyecto con mejor SEO on-page. Cubierta por `core/tests.py:14-17`.
 

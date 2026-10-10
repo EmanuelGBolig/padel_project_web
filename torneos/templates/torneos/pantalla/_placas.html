@@ -23,6 +23,17 @@
                 {% endfor %}
             </div>
 
+        {% elif placa.tipo == 'canchas' and placa.datos.sin_cancha %}
+            {% comment %}
+                Sin ninguna cancha cargada esta placa no existía y nada lo explicaba.
+                El campo "Cancha" del modal de programar dice "(opcional)" y no cuenta
+                que de ahí sale esta pantalla.
+            {% endcomment %}
+            <div class="vacia">
+                <p>Todavía no hay canchas cargadas.</p>
+                <p class="tenue">Cargá la cancha al programar los partidos y acá vas a ver qué se juega en cada una.</p>
+            </div>
+
         {% elif placa.tipo == 'canchas' %}
             <div class="grilla grilla-canchas n{{ placa.datos.canchas|length }}">
                 {% for c in placa.datos.canchas %}
