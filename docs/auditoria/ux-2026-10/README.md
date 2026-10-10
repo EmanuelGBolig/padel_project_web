@@ -120,7 +120,9 @@ otra vista lo tiene y paga los aggregates igual); hay que sacar la property del 
 **Frontend.** La home pesa 795 KB en celular y **556 KB son dos imágenes**: un fondo de
 1920×1440 para una caja de 343px, y un logo de 519×480 que se muestra a 32×32 (8× más
 grande de lo necesario, en todas las páginas). Convertidas a WebP del tamaño correcto:
-**700 KB → 98 KB (−86%)**. Hay además 1,1 MB de fondos que no referencia ningún template.
+**700 KB → 98 KB (−86%)**. Hay además 1,1 MB de fondos sin referenciar, pero NO son basura: el comentario de
+`home.html:31` los deja a propósito como alternativas para cambiar la foto. No los
+baja ningún usuario; sólo pesan en el repo y en el deploy.
 
 El CSS **no** es el problema: en producción viaja en 20 KB con brotli y está bien
 resuelto. No tocarlo.

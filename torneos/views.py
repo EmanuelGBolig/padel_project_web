@@ -1826,11 +1826,17 @@ class OrganizadorDashboardView(AdminRequiredMixin, TemplateView):
         ocupacion_pct = round(100 * cupos_ocup / cupos_tot) if cupos_tot else 0
 
         # Partidos: jugados vs pendientes.
-        partidos = Partido.objects.filter(torneo__in=torneos)
-        partidos_agg = partidos.aggregate(
+        #
+        # Cuentan los DOS tipos. Antes sólo se miraba `Partido` (la llave) y se
+        # ignoraba `PartidoGrupo` (las zonas), que es donde se juega la mayoría
+        # del torneo: con 13 de 22 partidos cargados el panel decía "0 de 9".
+        # Es la única métrica de avance que ve el organizador.
+        llave_agg = Partido.objects.filter(torneo__in=torneos).aggregate(
             total=Count('id'), jugados=Count('id', filter=Q(ganador__isnull=False)))
-        partidos_total = partidos_agg['total'] or 0
-        partidos_jugados = partidos_agg['jugados'] or 0
+        zonas_agg = PartidoGrupo.objects.filter(grupo__torneo__in=torneos).aggregate(
+            total=Count('id'), jugados=Count('id', filter=Q(ganador__isnull=False)))
+        partidos_total = (llave_agg['total'] or 0) + (zonas_agg['total'] or 0)
+        partidos_jugados = (llave_agg['jugados'] or 0) + (zonas_agg['jugados'] or 0)
 
         # Próximos torneos (los que aún no terminaron, por fecha).
         proximos = list(

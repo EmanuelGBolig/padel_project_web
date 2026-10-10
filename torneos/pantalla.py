@@ -350,6 +350,32 @@ def _placas_zonas(torneos, partidos, llaves):
             continue
         fp = torneo.formato_personalizado
         clasifican = fp.clasifican_por_grupo if fp else 2
+
+        # Quiénes clasifican sale del CUADRO, no de un número fijo.
+        #
+        # Antes era `2` para todo torneo sin formato personalizado, o sea para
+        # los que usan las llaves oficiales FAP. Pero 28 de los 43 tamaños de
+        # llave llevan un tercero al play-in: con 16 parejas la Zona A clasifica
+        # 1°, 2° y 3°. En el 65% de los tamaños posibles la tele mostraba
+        # "afuera" a una pareja que sí entraba — y la placa siguiente del mismo
+        # carrusel mostraba "3° Zona A" como cruce, contradiciéndose sola.
+        #
+        # Los placeholders de la llave ("1A", "2B", "3C") ya dicen exactamente
+        # qué posición de qué zona entra, y están cargados en `llaves`: no hace
+        # falta ninguna consulta extra.
+        posiciones_al_cuadro = defaultdict(set)
+        for pb in llaves.get(torneo.pk, ()):
+            for etiqueta in (pb.placeholder_e1, pb.placeholder_e2):
+                m = _PLACEHOLDER_ZONA.match((etiqueta or '').strip())
+                if m:
+                    posiciones_al_cuadro[m.group(2).upper()].add(int(m.group(1)))
+
+        def _clasifica(nombre_zona, posicion):
+            # Si el cuadro todavía no está generado no hay placeholders que leer:
+            # ahí sí vale el tope del formato.
+            reales = posiciones_al_cuadro.get(nombre_zona.strip()[-1:].upper())
+            return posicion in reales if reales else posicion <= clasifican
+
         zonas = [{
             'nombre': g.nombre,
             'filas': [{
@@ -357,7 +383,7 @@ def _placas_zonas(torneos, partidos, llaves):
                 'pareja': _nombre_pareja(eg.equipo),
                 'pj': eg.partidos_jugados, 'pg': eg.partidos_ganados,
                 'ds': eg.diferencia_sets, 'dg': eg.diferencia_games,
-                'clasifica': i <= clasifican and eg.partidos_jugados > 0,
+                'clasifica': _clasifica(g.nombre, i) and eg.partidos_jugados > 0,
             } for i, eg in enumerate(g.tabla.all(), 1)],
         } for g in grupos[torneo.pk]]
         paginas = _paginar(zonas, ZONAS_POR_PLACA)

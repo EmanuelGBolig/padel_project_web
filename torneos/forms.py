@@ -323,7 +323,13 @@ class CargarResultadoGrupoForm(forms.ModelForm):
                 'class': estilo_input,
                 'placeholder': '-',
                 'min': '0',
-                'max': '7',
+                # Un set normal termina 6 o 7 (7-6, 7-5). El TERCERO puede ser un
+                # super tie-break a 10 con diferencia de 2, asi que 10-8 o 12-10 son
+                # resultados validos: con el tope en 7 el navegador no dejaba
+                # enviar el popup y, al estar el error en un campo, el organizador
+                # tocaba Guardar y no pasaba nada. El popup de la llave no tiene
+                # tope, asi que los dos se comportaban distinto.
+                'max': '7' if nro_set in ('1', '2') else '20',
                 'type': 'number',
                 # Sin esto un lector de pantalla anuncia seis campos idénticos.
                 'aria-label': f'Games de {equipo} en el set {nro_set}',
@@ -397,17 +403,37 @@ class CargarResultadoGrupoForm(forms.ModelForm):
                 elif s2 > s1:
                     e2_sets += 1
 
+        if e1_sets > e2_sets:
+            ganador = self.instance.equipo1
+        elif e2_sets > e1_sets:
+            ganador = self.instance.equipo2
+        else:
+            # Un resultado que no define ganador no es un resultado.
+            #
+            # Antes esto guardaba `ganador = None` y la app avisaba "Guardado".
+            # Como es un ModelForm, además PISABA el resultado que ya estuviera
+            # cargado: tocar Guardar con el popup en blanco borraba el partido.
+            # Y la zona quedaba trabada para siempre, porque "Avanzar
+            # Clasificados" exige ganador en todos los partidos y el tooltip
+            # sólo dice "Faltan resultados", sin decir cuál.
+            #
+            # Se corta ANTES de tocar self.instance: si el partido ya tenía
+            # resultado, tiene que quedar como estaba.
+            if e1_sets == 0 and e2_sets == 0:
+                self.add_error(None, 'Cargá el resultado: no hay ningún set completo.')
+            else:
+                self.add_error(
+                    None,
+                    'Así no queda definido quién ganó: van {}-{} en sets. '
+                    'Completá el set que falta.'.format(e1_sets, e2_sets),
+                )
+            return cleaned_data
+
         self.instance.e1_sets_ganados = e1_sets
         self.instance.e2_sets_ganados = e2_sets
         self.instance.e1_games_ganados = e1_games
         self.instance.e2_games_ganados = e2_games
-
-        if e1_sets > e2_sets:
-            self.instance.ganador = self.instance.equipo1
-        elif e2_sets > e1_sets:
-            self.instance.ganador = self.instance.equipo2
-        else:
-            self.instance.ganador = None
+        self.instance.ganador = ganador
 
         return cleaned_data
 

@@ -48,11 +48,54 @@ class CompleteGoogleProfileView(LoginRequiredMixin, UpdateView):
 
 
 class CustomLoginView(LoginView):
+    """Login con freno anti fuerza-bruta.
+
+    El alta que hace el organizador genera contraseñas de `nombre` + 4 dígitos
+    (`accounts/identidad.py`), o sea 9.000 combinaciones, y el nombre viaja en
+    el mismo WhatsApp donde se manda la clave. Sin límite de intentos, probar
+    las 9.000 es cuestión de minutos. Además `debe_cambiar_password` sólo cierra
+    esa ventana cuando la persona entra, y muchas de esas cuentas se crean para
+    gente que nunca entra.
+
+    Mismo patrón que ya usa el código de verificación por mail (ver
+    `VerificarEmailView`): un contador en caché con ventana móvil.
+    """
+
     template_name = 'accounts/login.html'
     authentication_form = CustomLoginForm
     redirect_authenticated_user = True
 
+    MAX_INTENTOS = 10
+    VENTANA_SEGUNDOS = 900  # 15 minutos
+
+    @staticmethod
+    def _clave_intentos(request):
+        """Por mail tipeado + IP: frena el ataque a UNA cuenta sin dejar que
+        alguien bloquee a otro usuario sólo con fallar desde afuera."""
+        import hashlib
+        tipeado = (request.POST.get('username') or '').strip().lower()
+        ip = (request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+              or request.META.get('REMOTE_ADDR', ''))
+        huella = hashlib.sha256(f'{tipeado}|{ip}'.encode()).hexdigest()[:32]
+        return f'login_intentos_{huella}'
+
+    def post(self, request, *args, **kwargs):
+        from django.core.cache import cache
+        clave = self._clave_intentos(request)
+        if cache.get(clave, 0) >= self.MAX_INTENTOS:
+            form = self.get_form()
+            form.full_clean()
+            form.add_error(
+                None,
+                'Demasiados intentos fallidos. Esperá unos minutos y volvé a '
+                'probar, o entrá con "Olvidé mi contraseña".',
+            )
+            return self.form_invalid(form)
+        return super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
+        from django.core.cache import cache
+        cache.delete(self._clave_intentos(self.request))
         response = super().form_valid(form)
         # TP-20: si entró con el mail de una cuenta fusionada, avisarle que se
         # unificaron sus cuentas (entró a la principal, con historial/ranking completo).
@@ -74,7 +117,12 @@ class CustomLoginView(LoginView):
         if form.errors.get('__all__'):
             for error in form.errors.as_data().get('__all__', []):
                 if getattr(error, 'code', None) == 'unverified':
+                    # La cuenta existe y la clave era buena: no cuenta como intento.
                     return redirect('accounts:verificar_email')
+        if self.request.method == 'POST':
+            from django.core.cache import cache
+            clave = self._clave_intentos(self.request)
+            cache.set(clave, cache.get(clave, 0) + 1, self.VENTANA_SEGUNDOS)
         return super().form_invalid(form)
 
 
