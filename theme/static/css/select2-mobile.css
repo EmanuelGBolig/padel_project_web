@@ -1,0 +1,70 @@
+/* --- Select2 Responsive Mobile Fix --- */
+.select2-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.select2-dropdown {
+    box-sizing: border-box;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+.select2-results {
+    max-height: 250px !important;
+    overflow-y: auto !important;
+}
+
+.select2-search--dropdown .select2-search__field {
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: 0.75rem 1rem;
+}
+
+/* Dark mode styling for Select2 main input */
+[data-theme="dark"] .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #a6adbb !important;
+}
+
+[data-theme="dark"] .select2-container--default .select2-search--inline .select2-search__field {
+    color: #a6adbb !important;
+}
+
+/* Dark mode styling for Select2 dropdown */
+[data-theme="dark"] .select2-dropdown {
+    background-color: #1d232a !important;
+    border-color: #383f47 !important;
+}
+
+[data-theme="dark"] .select2-results__option {
+    background-color: #1d232a !important;
+    color: #a6adbb !important;
+}
+
+[data-theme="dark"] .select2-results__option--highlighted {
+    background-color: #383f47 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .select2-search--dropdown .select2-search__field {
+    background-color: #191e24 !important;
+    border-color: #383f47 !important;
+    color: #a6adbb !important;
+}
+
+/* Asegurar que el dropdown sea responsive */
+@media (max-width: 640px) {
+
+    .select2-container--default .select2-selection--single,
+    .select2-container--default .select2-selection--multiple {
+        min-height: 3rem;
+    }
+
+    .select2-dropdown {
+        max-height: 250px !important;
+    }
+
+    .select2-results {
+        max-height: 200px !important;
+    }
+}

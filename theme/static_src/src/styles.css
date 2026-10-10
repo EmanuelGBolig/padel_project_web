@@ -238,3 +238,26 @@ svg:not(.w-full):not(.h-full):not(.absolute) {
         background: #fff !important;
     }
 }
+
+/* ==========================================================================
+   Piso de legibilidad del texto secundario
+   --------------------------------------------------------------------------
+   La app usa 20 valores distintos de "texto más apagado" repartidos en 83 de
+   los 108 templates (`opacity-NN` y `text-base-content/NN`). Medido con
+   contraste WCAG real en los dos temas, el piso que todavía pasa AA es 78%:
+   a 70% el tema oscuro ya baja de 4.5:1, a 60% da 4.21 en claro y 3.46 en
+   oscuro, y a 50% queda en 3.18.
+
+   Se corrigen acá los tres niveles más usados (50, 60 y 70: 140 usos) porque
+   son color de TEXTO y nada más — subirlos no mueve ningún layout. Los niveles
+   más bajos (20-40) se dejan: suelen ser separadores y estados deshabilitados,
+   donde la opacidad sí es intencional.
+
+   La jerarquía entre títulos y texto secundario se sostiene con tamaño y peso,
+   no bajando el contraste por debajo de lo legible.
+   ========================================================================== */
+.text-base-content\/50,
+.text-base-content\/60,
+.text-base-content\/70 {
+    color: oklch(var(--bc) / 0.78);
+}

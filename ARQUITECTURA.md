@@ -61,6 +61,30 @@ torneo y marca al campeón.
 
 ---
 
+> **Nota de mantenimiento (2026-10-10).** Auditoría de UX/UI y performance completa en
+> [`docs/auditoria/ux-2026-10/`](docs/auditoria/ux-2026-10/README.md) (siete informes por área,
+> todo medido). Lo aplicado hasta ahora:
+>
+> - **Color**: la tinta sobre el verde de marca pasó a ser oscura en los DOS temas. El arreglo
+>   existía pero scopeado a `[data-theme="business"]`, así que el tema claro —el default— tenía
+>   los botones primarios en 2.54:1. Ahora 6.86:1. Se sacó `text-white` de los avisos del sistema
+>   (el `warning` pasó de 1.66 a 12.62:1) y se fijó un piso de 78% para el texto secundario
+>   (`text-base-content/50,60,70`). Nodos de texto bajo AA: 516 → 337 en claro, 482 → 367 en oscuro.
+> - **Layout**: la regla de barras de acciones de `styles.css` excluye `.alert`; apilaba los dos
+>   banners de la cabecera y entre ambos se comían el 56% de la primera pantalla (ahora 23%).
+> - **Correctitud**: el popup de resultado de zona ya valida que haya ganador (guardar en blanco
+>   borraba el resultado cargado); el tercer set acepta super tie-break; el panel del organizador
+>   cuenta zonas + llave; la pantalla de TV deriva quién clasifica de los placeholders del cuadro
+>   (antes fijaba 2, y 28 de los 43 tamaños FAP llevan un tercero); el login tiene throttle.
+> - **Performance**: `/programacion/` de 23 consultas a 5 (ver `nombre_de_ronda` más abajo),
+>   `CustomUser.equipo` pasó a `cached_property`, los listados anotan el conteo de inscriptos en
+>   vez de contar por tarjeta, y las dos imágenes pesadas se sirven en WebP del tamaño real
+>   (556 KB → 88 KB en la home).
+> - **Seguridad**: `integrity` del script de htmx estaba escrito `xintegrity`, así que el
+>   navegador lo ignoraba y htmx se bajaba de unpkg sin verificar.
+
+---
+
 ## Índice
 
 - [Modelo de datos](#modelo-de-datos)
@@ -703,12 +727,17 @@ Prueba social del home.
 | `post_save` de `PartidoGrupo` | `torneos/signals.py:27` | Recalcula la tabla completa del grupo; invalida caché de rankings de la división y de los jugadores |
 | `post_save` de `PartidoGrupo` | `torneos/signals.py:97` | En formato Llaves de zona de 4, crea automáticamente Ronda 2 (G-vs-G y P-vs-P) |
 | `post_save` de `Partido` | `torneos/signals.py:87` | Invalida caché de rankings si hay ganador |
-| `post_save`/`post_delete` de `Partido`, `PartidoGrupo`, `Torneo` | `equipos/signals.py:6` | Borra `rankings_jugadores_all` y las claves por división |
 | `Partido.save()` | `torneos/models.py:445` | Avance de ganador, cierre del torneo, desactivación masiva de equipos, push a campeones |
 | `Partido.save()` / `PartidoGrupo.save()` | `torneos/models.py` (`_marcar_finalizado`) | Sella `finalizado_en` al pasar a tener ganador; lo agrega a `update_fields` si el save viene acotado |
 | `Equipo.save()` | `equipos/models.py:56` | Normaliza orden de jugadores, genera nombre único, deriva división |
 | `Americano.save()` | `torneos/models.py:606` | Genera código único de 6 caracteres |
 | `merge_users()` | `accounts/utils.py:768` | Traspasa equipos/inscripciones/EquipoGrupo/partidos y setea `merged_into` (o borra el dummy) |
+
+> **Octubre 2026.** Se eliminó el receiver de `equipos/signals.py`: borraba tres claves de
+> caché que nadie escribe nunca (la real lleva sufijo `_gen_{género}` y ya la invalida
+> `torneos/signals.py`). Con `DatabaseCache` cada borrado era un DELETE real contra la base:
+> programar el horario de un partido costaba 21 sentencias y ahora cuesta 1 + las 2 del save.
+> El módulo quedó como stub documentado porque `equipos/apps.py` lo importa.
 
 `_mover_historial_equipo()` (`accounts/utils.py:737-765`) es la pieza que reapunta el historial entre equipos al fusionar: reasigna `Inscripcion` y `EquipoGrupo` evitando duplicados por torneo/grupo, y hace `update()` masivo sobre `PartidoGrupo.equipo1/equipo2/ganador`, `Partido.equipo1/equipo2/ganador` y `Torneo.ganador_del_torneo`.
 
@@ -1304,6 +1333,12 @@ recomputaba la tabla completa del grupo al pedo.
 | `get_team_info(equipo, torneo)` | `simple_tag` | `{'code','name'}`; limpia nombres legacy que contienen emails |
 | `get_team_display(equipo, torneo)` | `simple_tag` | Nombre, o `"Esperando resultados"` si no hay equipo |
 | `nombre_ronda_dinamico(ronda, total_rondas)` | `simple_tag` | Final/Semifinal/Cuartos/Octavos/16vos por distancia a la final |
+
+> **Ojo con los nombres de ronda.** Hay DOS funciones y **no devuelven lo mismo**: el tag
+> `nombre_ronda_dinamico` dice "Octavos" y `torneos.models.nombre_de_ronda(ronda, total)` dice
+> "Octavos de Final". La segunda es la que usa la property `Partido.nombre_ronda`, y es la que hay
+> que llamar si querés el mismo texto sin pagar las dos consultas por partido que cuesta la
+> property dentro de un loop (su cache por-torneo NO se comparte entre filas, ni con select_related).
 | `split(value, delim)` | filtro | Separa un string |
 | `batch(value, n)` | filtro | Parte una lista en sublistas de tamaño `n` |
 | `short_name(value, max_length=20)` | filtro | Trunca con `"..."` |
