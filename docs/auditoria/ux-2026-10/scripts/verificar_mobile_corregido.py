@@ -90,12 +90,18 @@ MEDIR = r"""() => {
     // (3) con menos de dos botones visibles no hay barra que alinear
     if (btns.length < 2) return;
     if (btns.every(b => ['btn-circle','btn-square','btn-xs'].some(c => b.classList.contains(c)))) return;
+    // (4) los botones de SOLO ICONO no forman parte de la barra: una X de
+    //     descartar al lado de un CTA tiene que medir distinto a propósito.
+    //     Compararlos daba un falso positivo en todas las páginas con banner.
+    const deBarra = btns.filter(b =>
+      !['btn-circle','btn-square'].some(c => b.classList.contains(c)));
+    if (deBarra.length < 2) return;
     barras++;
-    const anchos = [...new Set(btns.map(b => Math.round(b.getBoundingClientRect().width)))];
+    const anchos = [...new Set(deBarra.map(b => Math.round(b.getBoundingClientRect().width)))];
     if (anchos.length > 1) {
       desalineadas++;
       detalle.push(anchos.join('/') + 'px :: ' +
-                   btns.map(b => (b.textContent || '').trim().slice(0, 14) || '(icono)').join(' | '));
+                   deBarra.map(b => (b.textContent || '').trim().slice(0, 14) || '(icono)').join(' | '));
     }
   });
 

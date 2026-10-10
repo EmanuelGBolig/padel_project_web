@@ -276,7 +276,7 @@
                                     </div>
                                     <div class="min-w-0">
                                         <div class="font-bold truncate" title="{{ dummy.full_name }}">{{ dummy.full_name }}</div>
-                                        <div class="text-[10px] opacity-50 uppercase tracking-tighter">{{ dummy.division.nombre|default:"Sin División" }}</div>
+                                        <div class="text-xs opacity-50 uppercase tracking-tighter">{{ dummy.division.nombre|default:"Sin División" }}</div>
                                     </div>
                                 </div>
                                 <a href="{% url 'accounts:merge_usuarios' %}?dummy_id={{ dummy.id }}" 

@@ -478,7 +478,7 @@
                                                                     <div class="flex flex-col gap-1 min-w-[100px]">
                                                                         <div class="badge badge-sm badge-outline">{{ ins.equipo.division.nombre|default:"Sin Div" }}</div>
                                                                         {% if ins.alerta_division == 'SUPERIOR' %}
-                                                                            <div class="badge badge-error badge-xs gap-1 py-2 h-auto text-[10px] leading-tight text-center">
+                                                                            <div class="badge badge-error badge-xs gap-1 py-2 h-auto text-xs leading-tight text-center">
                                                                                 <svg xmlns="http://www.w3.org/2000/svg"
                                                                                      viewBox="0 0 16 16"
                                                                                      fill="currentColor"
@@ -488,7 +488,7 @@
                                                                                 <span>División Mayor</span>
                                                                             </div>
                                                                         {% elif ins.alerta_division == 'INFERIOR' %}
-                                                                            <div class="badge badge-warning badge-xs gap-1 py-2 h-auto text-[10px] leading-tight text-center">
+                                                                            <div class="badge badge-warning badge-xs gap-1 py-2 h-auto text-xs leading-tight text-center">
                                                                                 <svg xmlns="http://www.w3.org/2000/svg"
                                                                                      viewBox="0 0 16 16"
                                                                                      fill="currentColor"

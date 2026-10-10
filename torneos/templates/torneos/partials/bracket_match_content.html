@@ -37,7 +37,7 @@
         {% if partido.etiqueta_resolucion %}
             <span class="badge badge-xs badge-warning font-bold">{{ partido.etiqueta_resolucion }}</span>
         {% endif %}
-        <span class="text-[10px] font-mono opacity-70 bg-base-200 px-1 rounded shadow-sm whitespace-nowrap">{{ partido.resultado }}</span>
+        <span class="text-xs font-mono opacity-70 bg-base-200 px-1 rounded shadow-sm whitespace-nowrap">{{ partido.resultado }}</span>
     </div>
 {% endif %}
 {% comment %}
@@ -46,7 +46,7 @@
 {% endcomment %}
 {% if partido.ganador %}
     <a href="{% url 'torneos:placa_resultado' 'llave' partido.pk %}"
-       class="absolute -bottom-2 right-1 text-[10px] opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity"
+       class="absolute -bottom-2 right-1 text-xs opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity"
        title="Placa de este resultado para redes"
        onclick="event.stopPropagation()">🖼️</a>
 {% endif %}

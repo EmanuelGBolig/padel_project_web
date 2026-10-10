@@ -472,7 +472,7 @@
                                                         {{ my_team.name }}
                                                     </span>
                                                 </div>
-                                                <div class="font-black text-base-content/30 text-[10px] md:text-xs px-1 md:px-2 shrink-0">VS</div>
+                                                <div class="font-black text-base-content/30 text-xs md:text-xs px-1 md:px-2 shrink-0">VS</div>
                                                 <!-- Rival -->
                                                 <div class="flex-1 text-center min-w-0">
                                                     <span class="font-bold text-base-content leading-tight block text-xs md:text-sm line-clamp-2 break-all md:break-normal"
@@ -683,22 +683,22 @@
                                     <!-- PARTIDOS DEL GRUPO -->
                                     <div class="px-2 pb-2 mt-2 space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
                                         {% for partido in grupo.partidos_grupo.all %}
-                                            <div class="text-[10px] bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
+                                            <div class="text-xs bg-base-200/50 rounded px-2 py-1 flex flex-col gap-0.5">
                                                 {% if partido.fecha_hora %}
-                                                    <span class="text-[10px] font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}{% if partido.cancha %} · Cancha {{ partido.cancha }}{% endif %}</span>
+                                                    <span class="text-xs font-bold text-center mb-1 text-primary">{{ partido.fecha_hora|date:"d/m H:i" }}{% if partido.cancha %} · Cancha {{ partido.cancha }}{% endif %}</span>
                                                 {% endif %}
                                                 <div class="flex flex-wrap justify-between items-center gap-x-2">
                                                     <!-- EQUIPOS -->
                                                     <div class="flex items-center gap-1 text-center min-w-0 flex-1 justify-center w-full">
-                                                        <span class="break-words leading-tight text-[10px] sm:text-xs flex-1 w-0 text-right {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="break-words leading-tight text-xs sm:text-xs flex-1 w-0 text-right {% if partido.equipo1 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo1 %}
                                                                 {{ partido.equipo1.nombre }}
                                                             {% else %}
                                                                 -
                                                             {% endif %}
                                                         </span>
-                                                        <span class="mx-0.5 opacity-50 text-[9px] shrink-0">vs</span>
-                                                        <span class="break-words leading-tight text-[10px] sm:text-xs flex-1 w-0 text-left {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
+                                                        <span class="mx-0.5 opacity-50 text-xs shrink-0">vs</span>
+                                                        <span class="break-words leading-tight text-xs sm:text-xs flex-1 w-0 text-left {% if partido.equipo2 == equipo %}text-primary font-bold{% endif %}">
                                                             {% if partido.equipo2 %}
                                                                 {{ partido.equipo2.nombre }}
                                                             {% else %}
@@ -708,11 +708,11 @@
                                                     </div>
                                                     <!-- RESULTADO -->
                                                     <div class="flex items-center gap-1 shrink-0">
-                                                        <span class="mx-0.5 opacity-50 text-[9px]">=</span>
+                                                        <span class="mx-0.5 opacity-50 text-xs">=</span>
                                                         {% if partido.resultado %}
                                                             <span class="font-mono font-bold text-success">{{ partido.resultado }}</span>
                                                         {% else %}
-                                                            <span class="opacity-40 italic text-[9px]">Pendiente</span>
+                                                            <span class="opacity-40 italic text-xs">Pendiente</span>
                                                         {% endif %}
                                                     </div>
                                                 </div>
