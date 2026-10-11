@@ -277,20 +277,48 @@ class TorneoAdminForm(forms.ModelForm):
                 "Para fase de grupos necesitás al menos 4 parejas.",
             )
 
-        # Al EDITAR, los cupos no pueden quedar por debajo de los ya anotados.
+        # Al EDITAR, los cupos sólo se frenan si EMPEORAN.
         #
-        # Sin esto, bajar el cupo dejaba `cupos_disponibles` en negativo: la
-        # ficha mostraba el torneo lleno con parejas de más adentro, y no hay
-        # forma de que el organizador sepa a cuál "sacar". Se bloquea y se le
-        # dice cuántas hay, que es lo accionable.
+        # Lo que había que impedir era que BAJEN el cupo por debajo de los
+        # inscriptos: ahí `cupos_disponibles` queda en negativo y la ficha
+        # muestra el torneo lleno con parejas de más adentro.
+        #
+        # Pero comparar el valor enviado contra los inscriptos a secas trababa
+        # TODA la edición de un torneo que ya venía pasado de cupo —y ese estado
+        # lo genera la app misma: `agregar_dummy` y `agregar_zona_logica`
+        # inscriben sin mirar el cupo, y agregar parejas libres es el flujo
+        # normal para cerrar una zona de 3—. El organizador no podía corregir ni
+        # el precio ni la sede, y el consejo "sacá primero las que no van" no se
+        # puede seguir una vez que el torneo salió de ABIERTO.
+        #
+        # El piso es el MENOR entre los inscriptos y los cupos ya guardados:
+        # reenviar el valor tal cual pasa, subirlo pasa (aunque no alcance a
+        # cubrir a todos: mejora), y bajarlo por debajo del piso no.
         if self.instance.pk and cupos is not None:
+            # El valor GUARDADO, leído de la base: `_post_clean()` pisa
+            # `self.instance` con lo que vino del POST, así que la instancia no
+            # sirve de referencia.
+            anterior = (
+                Torneo.objects
+                .filter(pk=self.instance.pk)
+                .values_list('cupos_totales', flat=True)
+                .first() or 0
+            )
             inscriptos = self.instance.inscripciones.count()
-            if cupos < inscriptos:
-                self.add_error(
-                    'cupos_totales',
-                    f"Ya hay {inscriptos} parejas inscriptas: no podés dejar menos "
-                    f"cupos que eso. Sacá primero las que no van.",
-                )
+            if cupos < min(inscriptos, anterior):
+                if anterior >= inscriptos:
+                    self.add_error(
+                        'cupos_totales',
+                        f"Ya hay {inscriptos} parejas inscriptas: no podés dejar "
+                        f"menos cupos que eso. Poné {inscriptos} o más.",
+                    )
+                else:
+                    self.add_error(
+                        'cupos_totales',
+                        f"Este torneo tiene {inscriptos} parejas anotadas y "
+                        f"{anterior} cupos. Los cupos los podés subir, pero no "
+                        f"bajar: dejá {anterior} o más.",
+                    )
 
         return cleaned
 

@@ -1040,7 +1040,9 @@ Las vistas de modal responden a HTMX devolviendo `<script>window.location.reload
 - El queryset de `formato_personalizado` se restringe a la organización del usuario (`forms.py:173-177`).
 - `foto_campeones` se elimina del formulario al CREAR (`forms.py:181-182`, TP-17.1).
 - Al crear se prefijan `sede_nombre`, `sede_direccion` y `ciudad` desde la organización (`forms.py:186-191`, TP-17.4).
-- `clean()` (`forms.py:244-271`) **bloquea**: cierre de inscripción posterior al inicio, y `cupos_totales < 4` cuando `tipo_torneo == 'G'`. No bloquea cupos "sin formato optimizado" (eso es solo un aviso en la preview).
+- `clean()` **bloquea**: cierre de inscripción posterior al inicio, `cupos_totales < 4` cuando `tipo_torneo == 'G'`, y —sólo al editar— bajar `cupos_totales` por debajo de `min(inscriptos, cupos_guardados)`. No bloquea cupos "sin formato optimizado" (eso es solo un aviso en la preview).
+
+  > El piso usa el **menor** entre los inscriptos y el valor guardado, no los inscriptos a secas: un torneo con más inscriptos que cupos es un estado legítimo que crea la app misma (`agregar_dummy` y `agregar_zona_logica` inscriben sin mirar el cupo, y agregar parejas libres es el flujo normal para cerrar una zona de 3). Comparar contra los inscriptos trababa **toda** la edición de esos torneos: el organizador no podía corregir ni el precio ni la sede. El valor guardado se lee de la base porque `_post_clean()` pisa `self.instance` con lo que vino del POST. Tests: `torneos.tests.TorneoAdminFormTests`.
 
 #### 4.2 Inscripción — `InscripcionCreateView` (`views.py:2182-2294`)
 
@@ -2041,7 +2043,13 @@ mismo lugar.
 
 ---
 
-### 9. `accounts/utils.py` — función por función (851 líneas)
+### 9. `accounts/utils.py` — función por función (913 líneas)
+
+> **`NO_ES_BYE`** — las 8 agregaciones **de resultados** sobre `Partido` de este módulo filtran con `~Q(resultado__iexact='Bye')`. Un bye es un `Partido` real con ganador y el otro lado vacío (`_resolver_byes`), así que sin filtro suma una victoria y un partido que nadie jugó.
+>
+> Lo que lo identifica es el `resultado = "Bye"`, **no** el lado en NULL. `Partido.equipo1/equipo2` son `on_delete=SET_NULL`: cuando al rival le borran el equipo —y para armar pareja nueva **tiene** que disolver la actual— el partido JUGADO queda con un lado en `None` y el `ganador` intacto, idéntico a un bye. Filtrar por "las dos parejas cargadas" escondía esas victorias reales: al ganador le desaparecían partidos, racha, win_rate y puntos sin haber tocado nada.
+>
+> El texto del resultado sobrevive al borrado del rival, y un partido de verdad nunca dice "Bye" (`PartidoResultadoForm.save` escribe los games, `"W.O."` o `"… (abandono)"`), así que alcanza sin migración. Las otras consultas de `Partido` del archivo no llevan el filtro a propósito: `torneos_ganados` (rama muerta) y los `update()` de `merge_users`. Tests: `accounts.tests.ByeVsRivalBorradoTests`.
 
 | Función | Líneas | Qué hace |
 |---|---|---|

@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Division, Organizacion
 from .forms import OrganizacionForm
@@ -907,6 +910,98 @@ class ActivarCuentaTests(TestCase):
         self.assertTrue(real.check_password("MiClave123"))
 
 
+@override_settings(STORAGES=TEST_STORAGES)
+class ByeVsRivalBorradoTests(TestCase):
+    """Un bye no cuenta, pero un partido JUGADO cuyo rival se borró sí.
+
+    `Partido.equipo1/equipo2` son `on_delete=SET_NULL`, así que al borrarse el
+    equipo rival el partido queda con un lado en None y el ganador intacto:
+    idéntico a un bye. Filtrando por "las dos parejas cargadas" se escondían
+    victorias reales y al ganador le desaparecían partidos y win_rate.
+    Lo que distingue al bye es su `resultado = "Bye"`.
+    """
+
+    def setUp(self):
+        from django.core.cache import cache
+        from equipos.models import Equipo
+        from torneos.models import Partido, Torneo
+
+        cache.clear()
+        self.division = Division.objects.create(nombre="Octava", orden=8)
+        self.torneo = Torneo.objects.create(
+            nombre="Con bye", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=4, estado=Torneo.Estado.EN_JUEGO)
+
+        def pareja(pref):
+            j1 = User.objects.create_user(
+                email=f"{pref}1@by.com", password="x", nombre="N", apellido=pref,
+                division=self.division)
+            j2 = User.objects.create_user(
+                email=f"{pref}2@by.com", password="x", nombre="M", apellido=pref,
+                division=self.division)
+            return Equipo.objects.create(
+                jugador1=j1, jugador2=j2, division=self.division)
+
+        self.eq_a, self.eq_b = pareja("aa"), pareja("bb")
+
+        # OJO: un partido con ganador y `siguiente_partido=None` lo trata
+        # `Partido.save()` como la FINAL y corona campeón al ganador, lo que
+        # disuelve las parejas y cambia los puntos. Por eso hay ronda siguiente.
+        self.final = Partido.objects.create(
+            torneo=self.torneo, ronda=2, orden_partido=90)
+        self.partido = Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=80,
+            equipo1=self.eq_a, equipo2=self.eq_b,
+            siguiente_partido=self.final,
+            resultado="6-4, 6-2", ganador=self.eq_a)
+
+    def _stats(self, equipo):
+        from django.core.cache import cache
+        from .utils import get_player_stats
+        cache.clear()
+        return get_player_stats(equipo.jugador1)
+
+    def test_la_victoria_sigue_contando_si_le_borran_el_equipo_al_rival(self):
+        from torneos.models import Partido
+
+        antes = self._stats(self.eq_a)
+        self.assertEqual(antes['victorias'], 1)
+        self.assertEqual(antes['partidos_jugados'], 1)
+
+        # El rival arma pareja nueva: para eso tiene que borrar la actual.
+        self.eq_b.delete()
+        self.partido.refresh_from_db()
+        self.assertIsNone(
+            self.partido.equipo2, "SET_NULL deberia dejar el lado vacio")
+        self.assertEqual(self.partido.ganador_id, self.eq_a.pk)
+
+        despues = self._stats(self.eq_a)
+        self.assertEqual(
+            despues['victorias'], 1,
+            "Le desaparecio una victoria REAL porque al rival le borraron el equipo")
+        self.assertEqual(despues['partidos_jugados'], 1)
+
+    def test_el_bye_no_cuenta_como_partido_ni_como_victoria(self):
+        from torneos.models import Partido
+
+        otra_final = Partido.objects.create(
+            torneo=self.torneo, ronda=2, orden_partido=91)
+        Partido.objects.create(
+            torneo=self.torneo, ronda=1, orden_partido=81,
+            equipo1=self.eq_a, equipo2=None,
+            siguiente_partido=otra_final,
+            resultado="Bye", ganador=self.eq_a)
+
+        stats = self._stats(self.eq_a)
+        self.assertEqual(
+            stats['victorias'], 1,
+            "El bye se conto como victoria: infla el win_rate y el ranking")
+        self.assertEqual(stats['partidos_jugados'], 1)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class EmailMayusculasFormTests(TestCase):
     """El email duplicado por mayusculas tiene que frenarlo el FORMULARIO.
 

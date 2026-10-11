@@ -1292,6 +1292,67 @@ class TorneoAdminFormTests(TestCase):
         form = TorneoAdminForm()
         self.assertNotIn('foto_campeones', form.fields)
 
+    def _torneo_con_inscriptos(self, cupos, cuantos):
+        """Torneo con MÁS inscriptos que cupos, que es un estado que la app crea
+        sola: `agregar_dummy` y `agregar_zona_logica` inscriben sin mirar el cupo."""
+        from equipos.models import Equipo
+        division = Division.objects.create(nombre=f"Div{cupos}{cuantos}", orden=1)
+        torneo = Torneo.objects.create(
+            nombre="Pasado de cupo", division=division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=10),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=2),
+            cupos_totales=cupos, tipo_torneo='G')
+        for i in range(cuantos):
+            j1 = User.objects.create_user(
+                email=f"cu{cupos}{cuantos}{i}a@t.com", password="x", nombre="N",
+                apellido=f"A{i}", division=division)
+            j2 = User.objects.create_user(
+                email=f"cu{cupos}{cuantos}{i}b@t.com", password="x", nombre="M",
+                apellido=f"B{i}", division=division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2, division=division)
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+        return torneo
+
+    def test_un_torneo_pasado_de_cupo_se_puede_seguir_editando(self):
+        """La regresión: con 6 anotados y 4 cupos no se podía guardar NADA."""
+        from .forms import TorneoAdminForm
+        torneo = self._torneo_con_inscriptos(cupos=4, cuantos=6)
+        form = TorneoAdminForm(
+            data=self._data(cupos_totales=4, nombre="Nombre corregido"),
+            instance=torneo, user=self.organizador)
+        self.assertTrue(
+            form.is_valid(),
+            "Un torneo pasado de cupo no se puede editar en ningun campo: "
+            + form.errors.as_text())
+
+    def test_subir_los_cupos_sin_cubrir_a_todos_igual_pasa(self):
+        """Subir de 4 a 5 con 6 anotados MEJORA, no tiene por qué frenarse."""
+        from .forms import TorneoAdminForm
+        torneo = self._torneo_con_inscriptos(cupos=4, cuantos=6)
+        form = TorneoAdminForm(
+            data=self._data(cupos_totales=5), instance=torneo,
+            user=self.organizador)
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+
+    def test_bajar_los_cupos_por_debajo_del_piso_sigue_bloqueado(self):
+        from .forms import TorneoAdminForm
+        torneo = self._torneo_con_inscriptos(cupos=4, cuantos=6)
+        form = TorneoAdminForm(
+            data=self._data(cupos_totales=4 - 1), instance=torneo,
+            user=self.organizador)
+        self.assertFalse(form.is_valid())
+        self.assertIn('cupos_totales', form.errors)
+
+    def test_bajar_por_debajo_de_los_inscriptos_sigue_bloqueado(self):
+        """El caso original: 8 cupos, 6 anotados, querer dejar 4."""
+        from .forms import TorneoAdminForm
+        torneo = self._torneo_con_inscriptos(cupos=8, cuantos=6)
+        form = TorneoAdminForm(
+            data=self._data(cupos_totales=4), instance=torneo,
+            user=self.organizador)
+        self.assertFalse(form.is_valid())
+        self.assertIn('cupos_totales', form.errors)
+
     def test_foto_campeones_presente_al_editar(self):
         from .forms import TorneoAdminForm
         t = Torneo.objects.create(
