@@ -1,6 +1,11 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /accounts/
+# El ranking de jugadores vive bajo /accounts/ pero es contenido PÚBLICO, y de
+# los que mejor rankean ("ranking de pádel <ciudad>"). Está en el sitemap a
+# propósito; sin este Allow le pedíamos a Google que lo indexara y al mismo
+# tiempo le prohibíamos entrar. Un Allow más específico le gana al Disallow.
+Allow: /accounts/rankings/
 Allow: /
 
 Sitemap: https://todopadel.club/sitemap.xml

@@ -2547,7 +2547,7 @@ Sitemap: https://todopadel.club/sitemap.xml
 > **Huecos que quedan:**
 >
 > - El sitemap no incluye `core:instalar` ni `equipos:buscar_companero`, aunque la primera tiene meta description propia.
-> - ⚠️ **El sitemap se contradice con `robots.txt`**: declara `Disallow: /accounts/` y el sitemap lista `accounts:login` y `accounts:registro`, que caen justo ahí abajo. O se saca el Disallow, o salen del sitemap — y lo segundo es lo más probable, porque un login no es una página de entrada desde Google.
+> - **El sitemap y `robots.txt` ya no se contradicen**, y hay un test que lo mantiene así: `test_ninguna_url_del_sitemap_esta_bloqueada_por_robots` compara cada `<loc>` contra las reglas aplicando el criterio de Google (gana la coincidencia más LARGA entre `Allow` y `Disallow`). Se resolvió en los dos sentidos: `accounts:login` y `accounts:registro` **salieron del sitemap** (un login no es una página de entrada desde una búsqueda), y `accounts:rankings_jugadores` **se quedó**, con un `Allow: /accounts/rankings/` en `templates/robots.txt` que le gana al `Disallow` por ser más específico: es contenido público y de los que mejor rankean.
 >
 > `TorneoSitemap.items()` ordena por `-fecha_inicio, pk`: `Torneo` no tiene `Meta.ordering` y un sitemap pagina de a 50.000 URLs, así que sin orden un torneo puede repetirse o faltar entre página y página. Django lo avisaba con `UnorderedObjectListWarning` en cada pedido. Tests: `core.tests.SitemapTests`.
 

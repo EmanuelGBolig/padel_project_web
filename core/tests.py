@@ -399,9 +399,62 @@ class SitemapTests(TestCase):
     def test_los_demas_estaticos_no_cambiaron(self):
         """Agregar la landing no tenia que tocar los valores de los otros."""
         html = self.client.get('/sitemap.xml').content.decode()
-        i = html.find(reverse('accounts:login'))
+        i = html.find(reverse('torneos:abierto_list'))
+        self.assertGreater(i, 0)
         self.assertIn('<changefreq>daily</changefreq>', html[i:i + 200])
         self.assertIn('<priority>0.5</priority>', html[i:i + 200])
+
+    def test_el_login_y_el_registro_no_se_indexan(self):
+        """robots.txt declara Disallow: /accounts/, asi que listarlos era pedirle
+        a Google que indexara URLs a las que le prohibimos entrar. Y un login no
+        es una pagina de entrada desde una busqueda."""
+        html = self.client.get('/sitemap.xml').content.decode()
+        for nombre in ('accounts:login', 'accounts:registro'):
+            self.assertNotIn(
+                '<loc>http://testserver%s</loc>' % reverse(nombre), html,
+                '%s sigue en el sitemap y robots.txt lo bloquea' % nombre)
+
+    def test_el_ranking_si_se_indexa_y_robots_lo_permite(self):
+        """Cae bajo el mismo Disallow pero es contenido publico y de los que
+        mejor rankean: la contradiccion se resuelve del lado de robots.txt."""
+        html = self.client.get('/sitemap.xml').content.decode()
+        self.assertIn(reverse('accounts:rankings_jugadores'), html)
+
+        robots = self.client.get('/robots.txt').content.decode()
+        self.assertIn(
+            'Allow: %s' % reverse('accounts:rankings_jugadores'), robots,
+            'El sitemap lo ofrece y robots.txt lo bloquea')
+
+    def test_ninguna_url_del_sitemap_esta_bloqueada_por_robots(self):
+        """La invariante que importa: el sitemap y robots.txt no se contradicen.
+
+        Compara cada <loc> contra las reglas, aplicando la de Google: gana la
+        coincidencia mas LARGA entre Allow y Disallow.
+        """
+        import re
+
+        robots = self.client.get('/robots.txt').content.decode()
+        disallow = re.findall(r'(?m)^Disallow:\s*(\S+)', robots)
+        allow = re.findall(r'(?m)^Allow:\s*(\S+)', robots)
+        # urlparse y no una regex: con `(/[^<]*)` el grupo empezaba en la
+        # primera barra de "//testserver", asi que comparaba
+        # "//testserver/accounts/login/" contra las reglas, no matcheaba
+        # ninguna, y el test pasaba en vacio con el login adentro del sitemap.
+        from urllib.parse import urlparse
+        locs = [urlparse(u).path for u in re.findall(
+            r'<loc>([^<]+)</loc>',
+            self.client.get('/sitemap.xml').content.decode())]
+        self.assertTrue(locs, 'El sitemap salio vacio')
+        self.assertTrue(
+            all(r.startswith('/') for r in locs),
+            'Alguna ruta no se parseo bien: %r' % locs[:3])
+
+        for ruta in locs:
+            d = max((r for r in disallow if ruta.startswith(r)), key=len, default='')
+            a = max((r for r in allow if ruta.startswith(r)), key=len, default='')
+            self.assertGreaterEqual(
+                len(a), len(d),
+                'El sitemap ofrece %s y robots.txt lo bloquea con %r' % (ruta, d))
 
     def test_el_robots_apunta_al_sitemap(self):
         resp = self.client.get('/robots.txt')

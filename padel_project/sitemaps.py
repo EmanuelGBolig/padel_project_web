@@ -20,11 +20,19 @@ class StaticViewSitemap(Sitemap):
     }
 
     def items(self):
+        # `accounts:login` y `accounts:registro` NO van: `robots.txt` declara
+        # `Disallow: /accounts/`, así que listarlos era pedirle a Google que
+        # indexara URLs a las que le prohibimos entrar. Y además un login no es
+        # una página de entrada desde una búsqueda: el que llega de Google
+        # quiere ver torneos, no un formulario.
+        #
+        # `accounts:rankings_jugadores` SÍ va, aunque también cae bajo ese
+        # `Disallow`: es contenido público y de los que mejor rankean ("ranking
+        # de pádel <ciudad>"). Esa contradicción se resolvió del otro lado, con
+        # un `Allow` más específico en `templates/robots.txt`.
         return [
             'core:home',
             'core:para_organizadores',
-            'accounts:login',
-            'accounts:registro',
             'accounts:rankings_jugadores',
             'torneos:circuito_list',
             'torneos:abierto_list',
