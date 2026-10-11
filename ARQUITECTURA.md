@@ -2087,7 +2087,7 @@ El context processor `notifications` (`padel_project/context_processors.py:19-75
 | 2 | Alta | `accounts/urls.py:27` + `views.py:458-465` | La ruta `organizacion/detalle/<slug:slug>/` apunta a `OrganizacionDetailView`, pero `Organizacion` no tiene campo `slug` (usa `alias`, `models.py:215`) y la vista no define `slug_field` → `FieldError` al resolver. |
 | 3 | Alta | `accounts/views.py:700-704` | `DummyUserCreateView.dispatch` lee `request.user.tipo_usuario` **antes** de `super().dispatch()`, así que `LoginRequiredMixin` nunca corre primero: un anónimo produce `AttributeError` (500) en lugar del redirect a login. |
 | 4 | Media | `accounts/views.py:623, 643, 667, 678` | Las 4 vistas de gestión de organización/sponsors usan **solo `LoginRequiredMixin`**, sin chequeo de rol. Un `PLAYER` con `organizacion` asignada puede editar la organización y sus sponsors. |
-| 5 | Media | `accounts/views.py:676, 688-689` + `models.py:256-261` | `Sponsor.organizacion` es nullable y las vistas filtran por `organizacion=request.user.organizacion`; un usuario **sin** organización (`None`) matchea los sponsors huérfanos y puede editarlos o borrarlos. |
+| 5 | ~~Media~~ **resuelto** | `accounts/views.py` | `Sponsor.organizacion` es nullable y las vistas filtraban por `organizacion=request.user.organizacion`; un usuario **sin** organización (`None`) matcheaba los sponsors huérfanos y podía editarlos o borrarlos. Los dos `get_queryset` cortan con `.none()` cuando el usuario no tiene club. **Ojo que la fila 4 sigue viva**: un `PLAYER` **con** organización asignada todavía puede editar los sponsors de ese club, porque las vistas siguen siendo sólo `LoginRequiredMixin`. |
 | 6 | Media | `accounts/views.py:779-781` | El `unsubscribe` de push borra por endpoint **sin filtrar por `user`**: cualquier logueado que conozca un endpoint ajeno lo desuscribe. |
 | 7 | Media | `accounts/utils.py:11` vs `torneos/signals.py:14`, `equipos/signals.py:32` | Las claves de ranking se escriben con sufijo `_gen_<X>` pero se invalidan sin él → los rankings filtrados por género quedan hasta 300 s desactualizados tras cargar un resultado. |
 | 8 | ~~Media~~ **resuelto** | `accounts/utils.py` | Cada fusión disparaba `actualizar_rankings_en_bd` para **todas** las divisiones, síncrono y dentro del atomic. Ahora agenda con debounce sólo las afectadas. |
@@ -2289,7 +2289,8 @@ Tests: `equipos/tests.py:17-49` (`MatchmakingTests`) cubren listado público 200
 | `buscar-companero/` | `buscar_companero` | `BusquedaCompaneroListView` (`:483`) | `ListView` | **Público** (anónimos incluidos) |
 | `buscar-companero/publicar/` | `publicar_busqueda` | `BusquedaCompaneroCreateView` (`:510`) | `PlayerRequiredMixin` + `CreateView` | PLAYER/ADMIN |
 | `buscar-companero/<pk>/eliminar/` | `eliminar_busqueda` | `BusquedaCompaneroDeleteView` (`:529`) | `LoginRequiredMixin` + `DeleteView` | Solo el dueño (queryset filtrado); GET redirige, borra por POST |
-| `admin/listado/` | `admin_list` | `AdminEquipoListView` (`:382`) | `AdminRequiredMixin` + `ListView` | ADMIN — **ver §1.8, está rota** |
+| `admin/listado/` | `admin_list` | `AdminEquipoListView` (`:451`) | `GestorRequiredMixin` + `ListView` | ADMIN/ORGANIZER; el ORGANIZER ve sólo las parejas de SU club (`equipos_de_mi_organizacion`) |
+| `admin/<pk>/disolver/` | `disolver_equipo` | `DisolverEquipoView` (`:490`) | `GestorRequiredMixin` + `View` (POST) | ADMIN/ORGANIZER, acotado a las parejas del propio club. Marca `esta_activo=False` (no borra) y bloquea si la pareja está en un torneo `!= FN` |
 | `invitacion/<pk>/aceptar/` | `aceptar_invitacion` | `AceptarInvitacionView` (`:278`) | `LoginRequiredMixin` + `View` (POST) | Solo el `invited` de una PENDING |
 | `invitacion/<pk>/rechazar/` | `rechazar_invitacion` | `RechazarInvitacionView` (`:338`) | `LoginRequiredMixin` + `View` (POST) | `inviter` o `invited` |
 | `organizador/crear-pareja/` | `crear_pareja` | `OrganizadorEquipoCreateView` (`:449`) | `LoginRequiredMixin` + `UserPassesTestMixin` + `CreateView` | `tipo_usuario in ['ADMIN','ORGANIZER']` |
@@ -4103,14 +4104,17 @@ Distinta de la placa 9:16 con `html2canvas`. Genera una URL de Cloudinary con **
 
 ### A.9 Endpoints "escotilla" (operativos, peligrosos)
 
-Dos vistas permiten disparar operaciones destructivas desde el navegador, **ambas por GET, sin CSRF ni confirmación**:
+**Ya no queda ninguna.** Hubo dos vistas que disparaban operaciones destructivas
+desde el navegador, las dos por GET y sin CSRF ni confirmación. Se quitaron, y los
+comentarios que quedan en su lugar explican por qué (`core/urls.py`,
+`torneos/urls.py:169`):
 
-| Ruta | Vista | Guardia | Qué hace |
-| :--- | :--- | :--- | :--- |
-| `/trigger-migration/` | `core/views.py:146` | `request.user.is_superuser` (si no, 401 texto plano) | Ejecuta `call_command('migrar_rankings_historicos')` contra la base de producción y devuelve el resultado como HTML. |
-| `/torneos/admin/crear-torneo-prueba/` | `torneos/views.py:2332` | `tipo_usuario == 'ADMIN'` | **Borra** todos los `Torneo` cuyo nombre empieza con `"Torneo 24 Equipos"` y **todos los usuarios con email que contenga `@ejemplo.com`**, y crea un torneo de prueba de 24 equipos. |
+| Ruta (ya no existe) | Qué hacía | Cómo se hace ahora |
+| :--- | :--- | :--- |
+| `/trigger-migration/` | `call_command('migrar_rankings_historicos')` sincrónico adentro del request: recalculaba las 8 divisiones escaneando todos los partidos de todos los torneos, colgaba el pedido hasta el timeout del worker y parcheaba el caché **a nivel proceso** mientras corría, con lo cual los otros threads de ese worker atendían sin caché. Siendo GET, un refresh o un prefetch lo re-disparaba. | `python manage.py migrar_rankings_historicos` desde el shell de Render, que es lo que ya indica `build.sh` |
+| `/torneos/admin/crear-torneo-prueba/` | Borraba todos los `Torneo` cuyo nombre empezaba con `"Torneo 24 Equipos"` y **todos los usuarios con email que contuviera `@ejemplo.com`** | No se repuso: para datos de prueba hay `equipos/management/commands/seed_dev_data.py` |
 
-Existen porque el free tier de Render hace incómodo el shell. Deberían moverse a POST con confirmación, o quedar detrás de un flag de entorno.
+Existían porque el free tier de Render hace incómodo el shell. La regla que queda: **un management command no se corre adentro de un request web.** Lo cubre el test `core.tests.EscotillasOperativasTests`, que falla si vuelve a aparecer un `call_command` en `core/views.py`.
 
 **Quirk relacionado:** `torneos/urls.py` termina con `from django.shortcuts import redirect` **después** de `urlpatterns`, y la ruta base `/torneos/` es un lambda inline (`path('', lambda r: redirect('torneos:abierto_list'), name='base_redirect')`). Funciona sólo porque el lambda se evalúa en runtime, no al importar el módulo.
 

@@ -16,5 +16,7 @@ urlpatterns = [
     ),
     path('instalar/', views.InstalarAppView.as_view(), name='instalar'),
     path('search/', views.GlobalSearchView.as_view(), name='search'),
-    path('trigger-migration/', views.trigger_migration, name='trigger_migration'),
+    # Acá estaba 'trigger-migration/': un GET sin CSRF, en la raíz del sitio, que
+    # corría un recálculo global de rankings adentro del request. El equivalente
+    # seguro es `python manage.py migrar_rankings_historicos` (ver `build.sh`).
 ]

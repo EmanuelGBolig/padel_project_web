@@ -101,8 +101,12 @@ class GestionParejasOrganizadorTests(TestCase):
             genero="OTRO", tipo_usuario="ORGANIZER")
         self.organizador.organizacion = self.org
         self.organizador.save()
-        self.j1 = User.objects.create_user(email="pa@t.com", password="x", nombre="Pa", apellido="Uno", division=self.division)
-        self.j2 = User.objects.create_user(email="pb@t.com", password="x", nombre="Pb", apellido="Dos", division=self.division)
+        # Jugadores cargados por el propio organizador: por eso son de su club.
+        # Sin esto la pareja no tiene NINGÚN vínculo con la organización, y el
+        # test pasaba a consagrar el agujero que arregla `DisolverEquipoView`
+        # (un organizador disolviendo la pareja de dos jugadores ajenos).
+        self.j1 = User.objects.create_user(email="pa@t.com", password="x", nombre="Pa", apellido="Uno", division=self.division, organizacion=self.org)
+        self.j2 = User.objects.create_user(email="pb@t.com", password="x", nombre="Pb", apellido="Dos", division=self.division, organizacion=self.org)
         self.equipo = Equipo.objects.create(jugador1=self.j1, jugador2=self.j2, division=self.division)
 
     def test_organizador_entra_al_listado_de_parejas(self):
@@ -270,3 +274,144 @@ class NombreCompletoEquipoTests(TestCase):
             jugador1=sin_nombre, jugador2=otro, division=self.division)
         self.assertIn("Perez", equipo.nombre_completo)
         self.assertIn("Ana Lopez", equipo.nombre_completo)
+
+@override_settings(STORAGES=TEST_STORAGES)
+class DisolverParejaAjenaTests(TestCase):
+    """Un ORGANIZER sólo puede disolver parejas de SU club.
+
+    `Equipo` no tiene FK a organización: la pertenencia se deduce de haber jugado
+    un torneo del club, o de que alguno de los dos jugadores sea miembro del club
+    (los que carga el propio organizador). Antes alcanzaba con el pk.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        from .models import Equipo
+
+        self.division = Division.objects.create(nombre="Cuarta", orden=4)
+        self.org_a = Organizacion.objects.create(nombre="Club A", alias="club-a")
+        self.org_b = Organizacion.objects.create(nombre="Club B", alias="club-b")
+
+        self.org_user_a = User.objects.create_user(
+            email="oa@eq.com", password="x", nombre="Or", apellido="A",
+            genero="OTRO", tipo_usuario="ORGANIZER", organizacion=self.org_a)
+        self.sin_club = User.objects.create_user(
+            email="sc@eq.com", password="x", nombre="Sin", apellido="Club",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.admin = User.objects.create_user(
+            email="ad@eq.com", password="x", nombre="Ad", apellido="Min",
+            genero="OTRO", tipo_usuario="ADMIN")
+
+        def par(pref, org=None):
+            j1 = User.objects.create_user(
+                email=f"{pref}1@eq.com", password="x", nombre="N", apellido=pref,
+                division=self.division, organizacion=org)
+            j2 = User.objects.create_user(
+                email=f"{pref}2@eq.com", password="x", nombre="M", apellido=pref,
+                division=self.division, organizacion=org)
+            return Equipo.objects.create(
+                jugador1=j1, jugador2=j2, division=self.division)
+
+        # Dos jugadores que se registraron solos: no son de ningún club.
+        self.pareja_ajena = par("aj")
+        # Jugadores cargados por el organizador del club A.
+        self.pareja_de_a = par("mj", self.org_a)
+        # Jugadores del club B.
+        self.pareja_de_b = par("db", self.org_b)
+        # Sin club, pero con historial en un torneo ya finalizado del club A.
+        self.pareja_historica = par("ja")
+
+    def _torneo(self, nombre, org, estado):
+        from torneos.models import Torneo
+        return Torneo.objects.create(
+            nombre=nombre, division=self.division, organizacion=org,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=estado)
+
+    def _disolver(self, equipo):
+        return self.client.post(
+            reverse("equipos:disolver_equipo", kwargs={"pk": equipo.pk}))
+
+    def test_no_disuelve_la_pareja_de_otro_club(self):
+        self.client.force_login(self.org_user_a)
+        resp = self._disolver(self.pareja_de_b)
+        self.assertEqual(resp.status_code, 404)
+        self.pareja_de_b.refresh_from_db()
+        self.assertTrue(
+            self.pareja_de_b.esta_activo,
+            "Un organizador disolvio la pareja de otro club")
+
+    def test_no_disuelve_una_pareja_sin_ningun_vinculo(self):
+        """Dos jugadores que se anotaron solos no son de ningun organizador."""
+        self.client.force_login(self.org_user_a)
+        resp = self._disolver(self.pareja_ajena)
+        self.assertEqual(resp.status_code, 404)
+        self.pareja_ajena.refresh_from_db()
+        self.assertTrue(self.pareja_ajena.esta_activo)
+
+    def test_organizador_sin_club_no_disuelve_nada(self):
+        self.client.force_login(self.sin_club)
+        resp = self._disolver(self.pareja_ajena)
+        self.assertEqual(resp.status_code, 404)
+        self.pareja_ajena.refresh_from_db()
+        self.assertTrue(self.pareja_ajena.esta_activo)
+
+    def test_si_disuelve_la_pareja_de_sus_jugadores(self):
+        """Control: el caso que el organizador necesita (cargo mal una pareja)."""
+        self.client.force_login(self.org_user_a)
+        resp = self._disolver(self.pareja_de_a)
+        self.assertIn(resp.status_code, (301, 302))
+        self.pareja_de_a.refresh_from_db()
+        self.assertFalse(self.pareja_de_a.esta_activo)
+
+    def test_si_disuelve_la_pareja_que_jugo_su_torneo(self):
+        """Control: sin club, pero con historial en un torneo del club A."""
+        from torneos.models import Inscripcion, Torneo
+        torneo = self._torneo("A viejo", self.org_a, Torneo.Estado.FINALIZADO)
+        Inscripcion.objects.create(torneo=torneo, equipo=self.pareja_historica)
+        self.client.force_login(self.org_user_a)
+        resp = self._disolver(self.pareja_historica)
+        self.assertIn(resp.status_code, (301, 302))
+        self.pareja_historica.refresh_from_db()
+        self.assertFalse(self.pareja_historica.esta_activo)
+
+    def test_dos_inscripciones_del_club_no_duplican_la_pareja(self):
+        """El OR entra por un join: sin .distinct() hay fila repetida y 500."""
+        from torneos.models import Inscripcion, Torneo
+        for i in range(2):
+            t = self._torneo(f"A viejo {i}", self.org_a, Torneo.Estado.FINALIZADO)
+            Inscripcion.objects.create(torneo=t, equipo=self.pareja_historica)
+
+        self.client.force_login(self.org_user_a)
+        resp = self.client.get(reverse("equipos:admin_list"))
+        self.assertEqual(resp.status_code, 200)
+        equipos = list(resp.context["equipos"])
+        self.assertEqual(
+            equipos.count(self.pareja_historica), 1,
+            "La pareja sale repetida en el listado: falta el .distinct()")
+
+        resp = self._disolver(self.pareja_historica)
+        self.assertIn(
+            resp.status_code, (301, 302),
+            "get_object_or_404 revento con MultipleObjectsReturned")
+        self.pareja_historica.refresh_from_db()
+        self.assertFalse(self.pareja_historica.esta_activo)
+
+    def test_el_listado_no_muestra_parejas_de_otro_club(self):
+        self.client.force_login(self.org_user_a)
+        resp = self.client.get(reverse("equipos:admin_list"))
+        self.assertEqual(resp.status_code, 200)
+        equipos = list(resp.context["equipos"])
+        self.assertIn(self.pareja_de_a, equipos)
+        self.assertNotIn(self.pareja_de_b, equipos)
+        self.assertNotIn(self.pareja_ajena, equipos)
+
+    def test_admin_sigue_viendo_y_disolviendo_todo(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get(reverse("equipos:admin_list"))
+        self.assertIn(self.pareja_de_b, list(resp.context["equipos"]))
+        resp = self._disolver(self.pareja_de_b)
+        self.assertIn(resp.status_code, (301, 302))
+        self.pareja_de_b.refresh_from_db()
+        self.assertFalse(self.pareja_de_b.esta_activo)

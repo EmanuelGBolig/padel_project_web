@@ -144,15 +144,14 @@ class GlobalSearchView(TemplateView):
 
         return context
 
-from django.core.management import call_command
-from django.http import HttpResponse
-
-def trigger_migration(request):
-    if not request.user.is_superuser:
-        return HttpResponse("No autorizado (Solo Superusuarios)", status=401)
-    
-    try:
-        call_command('migrar_rankings_historicos')
-        return HttpResponse("<h1>¡Migración Completada con Éxito!</h1><p>Todos los puntos han sido recalculados y guardados en la BD de producción.</p><a href='/'>Volver al Inicio</a>")
-    except Exception as e:
-        return HttpResponse(f"<h1>Error</h1><p>{str(e)}</p>", status=500)
+# Acá vivía `trigger_migration`: un GET sin CSRF, montado en la RAÍZ del sitio,
+# que corría `migrar_rankings_historicos` de forma sincrónica adentro del
+# request. Ese comando recalcula las 8 divisiones escaneando todos los partidos
+# de todos los torneos, así que el pedido colgaba hasta el timeout del worker; y
+# además parchea el caché A NIVEL PROCESO mientras corre, con lo cual los otros
+# threads de ese worker atendían con el caché muerto. Siendo GET, un refresh o
+# un prefetch del navegador lo volvía a disparar.
+#
+# La vía segura es la que ya indica `build.sh`: correrlo a mano desde el shell de
+# Render con `python manage.py migrar_rankings_historicos`. Mismo criterio con el
+# que se quitó `admin/crear-torneo-prueba/`.

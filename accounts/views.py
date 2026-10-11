@@ -747,7 +747,12 @@ class SponsorDeleteView(LoginRequiredMixin, DeleteView):
     def get_queryset(self):
         # Asegurar que solo pueda borrar sponsors de su organización
         from .models import Sponsor
-        return Sponsor.objects.filter(organizacion=self.request.user.organizacion)
+        if not self.request.user.organizacion_id:
+            # Sin club, organizacion=None traducía a IS NULL y matcheaba los
+            # sponsors HUÉRFANOS: cualquiera sin club podía borrarlos.
+            return Sponsor.objects.none()
+        return Sponsor.objects.filter(
+            organizacion_id=self.request.user.organizacion_id)
 
 class SponsorUpdateView(LoginRequiredMixin, UpdateView):
     model = Sponsor
@@ -760,7 +765,12 @@ class SponsorUpdateView(LoginRequiredMixin, UpdateView):
     def get_queryset(self):
         # Asegurar que solo pueda editar sponsors de su organización
         from .models import Sponsor
-        return Sponsor.objects.filter(organizacion=self.request.user.organizacion)
+        if not self.request.user.organizacion_id:
+            # Mismo IS NULL que en el borrado: los sponsors huérfanos quedaban
+            # editables por cualquier usuario sin club.
+            return Sponsor.objects.none()
+        return Sponsor.objects.filter(
+            organizacion_id=self.request.user.organizacion_id)
 
 
 class DummyUserCreateView(LoginRequiredMixin, CreateView):

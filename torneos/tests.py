@@ -3759,3 +3759,116 @@ class TablaZonaEnFichaPublicaTests(TestCase):
                 "El template consume grupo.tabla_ordenada: si la vista no lo "
                 "anota, la tabla sale vacia sin que nada falle.")
             self.assertEqual(len(g.tabla_ordenada), 3)
+
+@override_settings(STORAGES=TEST_STORAGES)
+class OrganizadorSinClubTests(TestCase):
+    """Un ORGANIZER sin club no puede tocar los torneos HUERFANOS.
+
+    `Torneo.organizacion` y `CustomUser.organizacion` son nullable, asi que
+    `filter(organizacion=user.organizacion)` con organizacion=None traduce a
+    IS NULL y devolvia justamente los torneos sin club (los que crea el staff).
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+
+        self.division = Division.objects.create(nombre="Novena", orden=9)
+        self.org = Organizacion.objects.create(nombre="Club A", alias="club-a")
+
+        # Organizador SIN club (estado alcanzable: accounts/models.py usa
+        # SET_NULL, borrar la Organizacion le deja organizacion=None).
+        self.sin_club = User.objects.create_user(
+            email="sinclub@t.com", password="x", nombre="Sin", apellido="Club",
+            genero="OTRO", tipo_usuario="ORGANIZER")
+        self.assertIsNone(self.sin_club.organizacion)
+
+        self.huerfano, self.pg_huerfano, self.partido_huerfano = self._armar(
+            "Huerfano", None, "hf")
+        self.propio, self.pg_propio, self.partido_propio = self._armar(
+            "Del club A", self.org, "ca")
+
+    def _armar(self, nombre, organizacion, pref):
+        torneo = Torneo.objects.create(
+            nombre=nombre, division=self.division, organizacion=organizacion,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=8, estado=Torneo.Estado.EN_JUEGO)
+        grupo = Grupo.objects.create(torneo=torneo, nombre="Zona A")
+        equipos = []
+        for i in range(2):
+            j1 = User.objects.create_user(
+                email=f"{pref}{i}a@t.com", password="x", nombre=f"J{i}",
+                apellido=f"{pref}X", division=self.division)
+            j2 = User.objects.create_user(
+                email=f"{pref}{i}b@t.com", password="x", nombre=f"K{i}",
+                apellido=f"{pref}Y", division=self.division)
+            eq = Equipo.objects.create(
+                jugador1=j1, jugador2=j2, division=self.division)
+            Inscripcion.objects.create(torneo=torneo, equipo=eq)
+            EquipoGrupo.objects.create(grupo=grupo, equipo=eq)
+            equipos.append(eq)
+        pg = PartidoGrupo.objects.create(
+            grupo=grupo, equipo1=equipos[0], equipo2=equipos[1])
+        partido = Partido.objects.create(torneo=torneo, ronda=1, orden_partido=1)
+        return torneo, pg, partido
+
+    def _assert_404(self, url):
+        resp = self.client.get(url)
+        self.assertEqual(
+            resp.status_code, 404,
+            f"{url} devolvio {resp.status_code}: un organizador sin club llego "
+            "a un torneo huerfano")
+
+    def test_no_carga_resultado_de_zona_huerfana(self):
+        self.client.force_login(self.sin_club)
+        self._assert_404(reverse(
+            "torneos:cargar_resultado_grupo", kwargs={"pk": self.pg_huerfano.pk}))
+
+    def test_no_carga_resultado_de_llave_huerfana(self):
+        self.client.force_login(self.sin_club)
+        self._assert_404(reverse(
+            "torneos:admin_partido_resultado",
+            kwargs={"pk": self.partido_huerfano.pk}))
+
+    def test_no_programa_partido_de_zona_huerfano(self):
+        self.client.force_login(self.sin_club)
+        self._assert_404(reverse(
+            "torneos:schedule_partido_grupo", kwargs={"pk": self.pg_huerfano.pk}))
+
+    def test_no_programa_partido_de_llave_huerfano(self):
+        self.client.force_login(self.sin_club)
+        self._assert_404(reverse(
+            "torneos:schedule_partido", kwargs={"pk": self.partido_huerfano.pk}))
+
+    def test_el_organizador_con_club_si_entra_a_lo_suyo(self):
+        """Control: no rompimos la carga de resultados de siempre."""
+        con_club = User.objects.create_user(
+            email="conclub@t.com", password="x", nombre="Con", apellido="Club",
+            genero="OTRO", tipo_usuario="ORGANIZER", organizacion=self.org)
+        self.client.force_login(con_club)
+        for url in (
+            reverse("torneos:cargar_resultado_grupo", kwargs={"pk": self.pg_propio.pk}),
+            reverse("torneos:admin_partido_resultado", kwargs={"pk": self.partido_propio.pk}),
+            reverse("torneos:schedule_partido_grupo", kwargs={"pk": self.pg_propio.pk}),
+            reverse("torneos:schedule_partido", kwargs={"pk": self.partido_propio.pk}),
+        ):
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        # Y el torneo huerfano sigue fuera de su alcance.
+        self.assertEqual(
+            self.client.get(reverse(
+                "torneos:cargar_resultado_grupo",
+                kwargs={"pk": self.pg_huerfano.pk})).status_code, 404)
+
+    def test_admin_entra_al_torneo_huerfano(self):
+        """Control: el staff/ADMIN es el que tiene que poder arreglar huerfanos."""
+        admin = User.objects.create_user(
+            email="admhf@t.com", password="x", nombre="Ad", apellido="Min",
+            genero="OTRO", tipo_usuario="ADMIN")
+        self.client.force_login(admin)
+        for url in (
+            reverse("torneos:cargar_resultado_grupo", kwargs={"pk": self.pg_huerfano.pk}),
+            reverse("torneos:admin_partido_resultado", kwargs={"pk": self.partido_huerfano.pk}),
+            reverse("torneos:schedule_partido_grupo", kwargs={"pk": self.pg_huerfano.pk}),
+            reverse("torneos:schedule_partido", kwargs={"pk": self.partido_huerfano.pk}),
+        ):
+            self.assertEqual(self.client.get(url).status_code, 200, url)

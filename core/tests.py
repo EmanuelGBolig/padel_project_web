@@ -216,3 +216,33 @@ class PaginasDeErrorTests(TestCase):
         for plantilla in ('403.html', '400.html'):
             html = render_to_string(plantilla)
             self.assertIn('TodoPadel', html, f'{plantilla} no renderizo la base')
+
+@override_settings(STORAGES=TEST_STORAGES)
+class EscotillasOperativasTests(TestCase):
+    """No hay endpoints que corran management commands adentro de un request.
+
+    `/trigger-migration/` era un GET sin CSRF montado en la RAIZ que corria
+    `migrar_rankings_historicos` sincronico: recalcula las 8 divisiones y cuelga
+    el worker hasta el timeout, y mientras corre parchea el cache a nivel
+    proceso, asi que los otros threads del worker atienden sin cache.
+    """
+
+    def test_trigger_migration_ya_no_existe(self):
+        from django.urls import NoReverseMatch
+
+        resp = self.client.get("/trigger-migration/")
+        self.assertEqual(
+            resp.status_code, 404,
+            "La escotilla /trigger-migration/ sigue montada en la raiz")
+        with self.assertRaises(NoReverseMatch):
+            reverse("core:trigger_migration")
+
+    def test_core_views_no_llama_call_command(self):
+        """Un management command no se corre adentro de un request web."""
+        from core import views as core_views
+
+        self.assertFalse(
+            hasattr(core_views, "call_command"),
+            "core.views volvio a importar call_command: un comando sincronico "
+            "adentro de un request cuelga el worker de gunicorn")
+        self.assertFalse(hasattr(core_views, "trigger_migration"))

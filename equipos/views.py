@@ -417,6 +417,37 @@ class EquipoDeleteView(PlayerOwnsTeamMixin, DeleteView):
 # --- Vistas de Admin ---
 
 
+def equipos_de_mi_organizacion(qs, user):
+    """Acota un queryset de `Equipo` a las parejas del club del usuario.
+
+    `Equipo` NO tiene FK a `Organizacion` (ver `equipos/models.py`), así que la
+    pertenencia se deduce de los dos únicos vínculos que existen en el modelo:
+
+    1. la pareja jugó algún torneo del club (`Inscripcion` -> `Torneo.organizacion`);
+    2. alguno de los dos jugadores es miembro del club (`CustomUser.organizacion`),
+       que es lo que pasa con los jugadores que el propio organizador carga con
+       "Añadir jugador" o con el alta sin cuenta.
+
+    ADMIN y staff no se filtran. Un organizador todavía sin club no ve ninguna,
+    igual que en `AdminTorneoListView` (`torneos/views.py:1596-1598`).
+
+    El `.distinct()` no es decorativo: el OR entra por el join de
+    `inscripciones`, así que una pareja con dos inscripciones del club saldría
+    repetida en el listado y haría explotar a `get_object_or_404` con
+    `MultipleObjectsReturned` (500).
+    """
+    if user.is_staff or user.tipo_usuario == 'ADMIN':
+        return qs
+    if not user.organizacion_id:
+        return qs.none()
+    org_id = user.organizacion_id
+    return qs.filter(
+        Q(inscripciones__torneo__organizacion_id=org_id)
+        | Q(jugador1__organizacion_id=org_id)
+        | Q(jugador2__organizacion_id=org_id)
+    ).distinct()
+
+
 class AdminEquipoListView(GestorRequiredMixin, ListView):
     model = Equipo
     template_name = 'equipos/admin_equipo_list.html'
@@ -427,6 +458,12 @@ class AdminEquipoListView(GestorRequiredMixin, ListView):
         queryset = Equipo.objects.all().select_related(
             'jugador1', 'jugador2', 'division'
         )
+
+        # Sólo las parejas del propio club: el organizador no tiene por qué ver
+        # —ni poder disolver— las parejas de otro club. Cada fila del listado
+        # trae el botón "Disolver" (admin_equipo_list.html:50), así que el
+        # scoping del botón y el del POST tienen que ser el MISMO.
+        queryset = equipos_de_mi_organizacion(queryset, self.request.user)
 
         # Filtro por división. `division_id` nunca se definía: la vista tiraba
         # NameError (500) en cada visita. El template manda el parámetro `division`.
@@ -457,10 +494,22 @@ class DisolverEquipoView(GestorRequiredMixin, View):
     dejaría huecos en el historial. Al quedar inactiva, la UniqueConstraint
     'unique_active_team' libera a esos dos jugadores para formar pareja de nuevo,
     que es lo que el organizador necesita cuando cargó mal una pareja.
+
+    Sólo parejas del propio club: `equipos_de_mi_organizacion`. Antes alcanzaba
+    con el pk para desactivar la pareja de dos jugadores de otro club y liberar
+    la UniqueConstraint que los mantenía juntos.
     """
 
     def post(self, request, pk, *args, **kwargs):
-        equipo = get_object_or_404(Equipo, pk=pk, esta_activo=True)
+        # La pertenencia se resuelve en el queryset: una pareja de otro club
+        # simplemente no existe para este organizador (404).
+        equipo = get_object_or_404(
+            equipos_de_mi_organizacion(
+                Equipo.objects.select_related('jugador1', 'jugador2'), request.user
+            ),
+            pk=pk,
+            esta_activo=True,
+        )
 
         from torneos.models import Inscripcion
         torneos_activos = Inscripcion.objects.filter(

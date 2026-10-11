@@ -1470,17 +1470,11 @@ def refrescar_bracket(request, torneo):
     return resp
 
 
-class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
+class CargarResultadoGrupoView(AdminRequiredMixin, OrgScopedQuerysetMixin, UpdateView):
     model = PartidoGrupo
     form_class = CargarResultadoGrupoForm
     template_name = 'torneos/cargar_resultado_grupo.html'
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        user = self.request.user
-        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
-            return qs.filter(grupo__torneo__organizacion=user.organizacion)
-        return qs
+    org_lookup = 'grupo__torneo__organizacion'
 
     def get_success_url(self):
         return reverse_lazy(
@@ -1495,18 +1489,12 @@ class CargarResultadoGrupoView(AdminRequiredMixin, UpdateView):
         return response
 
 
-class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
+class AdminPartidoUpdateView(AdminRequiredMixin, OrgScopedQuerysetMixin, UpdateView):
     model = Partido
     form_class = PartidoResultadoForm
     template_name = 'torneos/admin_partido_form.html'
     context_object_name = 'partido'
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        user = self.request.user
-        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
-            return qs.filter(torneo__organizacion=user.organizacion)
-        return qs
+    org_lookup = 'torneo__organizacion'
 
     def get_success_url(self):
         return reverse_lazy(
@@ -1522,17 +1510,11 @@ class AdminPartidoUpdateView(AdminRequiredMixin, UpdateView):
 
 
 
-class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
+class SchedulePartidoGrupoView(AdminRequiredMixin, OrgScopedQuerysetMixin, UpdateView):
     model = PartidoGrupo
     form_class = PartidoGrupoScheduleForm
     template_name = 'torneos/schedule_form.html'
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        user = self.request.user
-        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
-            return qs.filter(grupo__torneo__organizacion=user.organizacion)
-        return qs
+    org_lookup = 'grupo__torneo__organizacion'
 
     def get_success_url(self):
         return reverse_lazy(
@@ -1547,17 +1529,11 @@ class SchedulePartidoGrupoView(AdminRequiredMixin, UpdateView):
         return response
 
 
-class SchedulePartidoView(AdminRequiredMixin, UpdateView):
+class SchedulePartidoView(AdminRequiredMixin, OrgScopedQuerysetMixin, UpdateView):
     model = Partido
     form_class = PartidoScheduleForm
     template_name = 'torneos/schedule_form.html'
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        user = self.request.user
-        if not user.is_staff and user.tipo_usuario == 'ORGANIZER':
-            return qs.filter(torneo__organizacion=user.organizacion)
-        return qs
+    org_lookup = 'torneo__organizacion'
 
     def get_success_url(self):
         return reverse_lazy(
@@ -1741,7 +1717,12 @@ class FormatoPersonalizadoListView(AdminRequiredMixin, ListView):
         user = self.request.user
         if user.tipo_usuario == 'ADMIN' or user.is_staff:
             return FormatoPersonalizado.objects.all()
-        return FormatoPersonalizado.objects.filter(organizacion=user.organizacion)
+        if not user.organizacion_id:
+            # Sin club no hay formatos propios: con organizacion=None el filtro
+            # traducía a IS NULL y devolvía los formatos HUÉRFANOS de cualquiera.
+            return FormatoPersonalizado.objects.none()
+        return FormatoPersonalizado.objects.filter(
+            organizacion_id=user.organizacion_id)
 
 
 class FormatoPersonalizadoCreateView(AdminRequiredMixin, CreateView):
@@ -1750,8 +1731,21 @@ class FormatoPersonalizadoCreateView(AdminRequiredMixin, CreateView):
     success_url = reverse_lazy('torneos:formatos_list')
 
     def form_valid(self, form):
-        form.instance.creado_por = self.request.user
-        form.instance.organizacion = self.request.user.organizacion
+        user = self.request.user
+        if not (user.organizacion_id or user.is_staff
+                or user.tipo_usuario == 'ADMIN'):
+            # Sin club el formato queda HUÉRFANO y lo ve —y lo edita— cualquier
+            # otro organizador sin club. Mejor avisar que guardar algo que va a
+            # terminar compartido con desconocidos. El guard replica el de
+            # lectura: un ADMIN o un staff sin club sí pueden.
+            messages.error(
+                self.request,
+                "Todavía no tenés un club asignado: pedinos que te lo asignemos "
+                "y después guardás tus formatos."
+            )
+            return redirect('torneos:formatos_list')
+        form.instance.creado_por = user
+        form.instance.organizacion = user.organizacion
         messages.success(self.request, f"Formato “{form.instance.nombre}” guardado.")
         return super().form_valid(form)
 
@@ -1771,7 +1765,12 @@ class FormatoPersonalizadoUpdateView(AdminRequiredMixin, UpdateView):
         user = self.request.user
         if user.tipo_usuario == 'ADMIN' or user.is_staff:
             return FormatoPersonalizado.objects.all()
-        return FormatoPersonalizado.objects.filter(organizacion=user.organizacion)
+        if not user.organizacion_id:
+            # Sin club no hay formatos propios: con organizacion=None el filtro
+            # traducía a IS NULL y devolvía los formatos HUÉRFANOS de cualquiera.
+            return FormatoPersonalizado.objects.none()
+        return FormatoPersonalizado.objects.filter(
+            organizacion_id=user.organizacion_id)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1788,7 +1787,12 @@ class FormatoPersonalizadoDeleteView(AdminRequiredMixin, DeleteView):
         user = self.request.user
         if user.tipo_usuario == 'ADMIN' or user.is_staff:
             return FormatoPersonalizado.objects.all()
-        return FormatoPersonalizado.objects.filter(organizacion=user.organizacion)
+        if not user.organizacion_id:
+            # Sin club no hay formatos propios: con organizacion=None el filtro
+            # traducía a IS NULL y devolvía los formatos HUÉRFANOS de cualquiera.
+            return FormatoPersonalizado.objects.none()
+        return FormatoPersonalizado.objects.filter(
+            organizacion_id=user.organizacion_id)
 
 
 class PreviewEstructuraView(AdminRequiredMixin, View):
@@ -1828,8 +1832,15 @@ class OrganizadorDashboardView(AdminRequiredMixin, TemplateView):
         user = self.request.user
         es_admin = user.tipo_usuario == 'ADMIN' or user.is_staff
 
-        torneos = Torneo.objects.all() if es_admin else \
-            Torneo.objects.filter(organizacion=user.organizacion)
+        if es_admin:
+            torneos = Torneo.objects.all()
+        elif user.organizacion_id:
+            torneos = Torneo.objects.filter(
+                organizacion_id=user.organizacion_id)
+        else:
+            # Sin club: organizacion=None traducía a IS NULL, así que el panel
+            # agregaba los torneos HUÉRFANOS de toda la plataforma.
+            torneos = Torneo.objects.none()
 
         hoy = timezone.now().date()
         E = Torneo.Estado
@@ -1883,8 +1894,14 @@ class OrganizadorDashboardView(AdminRequiredMixin, TemplateView):
                    .select_related('ganador_del_torneo__jugador1', 'ganador_del_torneo__jugador2')
                    .order_by('-fecha_inicio')[:5])
 
-        formatos_n = (FormatoPersonalizado.objects.all() if es_admin else
-                      FormatoPersonalizado.objects.filter(organizacion=user.organizacion)).count()
+        if es_admin:
+            formatos_n = FormatoPersonalizado.objects.count()
+        elif user.organizacion_id:
+            formatos_n = FormatoPersonalizado.objects.filter(
+                organizacion_id=user.organizacion_id).count()
+        else:
+            # Mismo IS NULL que arriba: contaba los formatos huérfanos.
+            formatos_n = 0
 
         ctx.update({
             'total_torneos': total_torneos,
