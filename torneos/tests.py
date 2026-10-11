@@ -3695,3 +3695,67 @@ class PantallaClubTests(TestCase):
         form.save()
         self.ultimo.refresh_from_db()
         self.assertEqual(self.ultimo.fecha_hora, antes)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class TablaZonaEnFichaPublicaTests(TestCase):
+    """La ficha publica tiene que MOSTRAR las filas de la tabla de cada zona.
+
+    Regresion real: el template paso a iterar `grupo.tabla_ordenada`, que se
+    calculaba en otra vista, asi que el `{% for %}` resolvia a vacio en
+    silencio. La pagina devolvia 200 con el encabezado y ninguna fila, y
+    ningun test miraba las filas, por eso los 332 no lo vieron.
+    """
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre="Septima", orden=1)
+        self.torneo = Torneo.objects.create(
+            nombre="Con Zonas", division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=1),
+            cupos_totales=4, estado=Torneo.Estado.EN_JUEGO,
+        )
+        self.zona = Grupo.objects.create(torneo=self.torneo, nombre="Zona A")
+        self.equipos = []
+        for n in range(1, 4):
+            j1 = User.objects.create_user(
+                email=f"tz{n}a@test.com", password="x", nombre=f"Zona{n}",
+                apellido="Uno", division=self.division)
+            j2 = User.objects.create_user(
+                email=f"tz{n}b@test.com", password="x", nombre=f"Zona{n}",
+                apellido="Dos", division=self.division)
+            eq = Equipo.objects.create(jugador1=j1, jugador2=j2,
+                                       division=self.division)
+            Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+            EquipoGrupo.objects.create(grupo=self.zona, equipo=eq, numero=n)
+            self.equipos.append(eq)
+
+    def test_la_tabla_de_la_zona_trae_una_fila_por_pareja(self):
+        resp = self.client.get(
+            reverse('torneos:detail', kwargs={'pk': self.torneo.pk}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+
+        # Mirar el HTML entero no sirve: los apellidos tambien figuran en la
+        # lista de inscriptos, asi que el test pasaba igual con la tabla vacia.
+        # Hay que contar las filas DENTRO del tbody de la tabla de la zona.
+        encabezado = html.find('>PG<')
+        self.assertGreater(encabezado, 0, "No se encontro la tabla de la zona")
+        tramo = html[encabezado:]
+        cuerpo = tramo[tramo.find('<tbody'):tramo.find('</tbody>')]
+        self.assertEqual(
+            cuerpo.count('<tr'), len(self.equipos),
+            "La tabla de la zona salio con el encabezado y el cuerpo vacio: el "
+            "template itera un atributo que la vista no setea.")
+
+    def test_la_vista_anota_tabla_ordenada_en_cada_grupo(self):
+        resp = self.client.get(
+            reverse('torneos:detail', kwargs={'pk': self.torneo.pk}))
+        grupos = resp.context['grupos']
+        self.assertTrue(grupos, "Deberia haber al menos una zona en el contexto")
+        for g in grupos:
+            self.assertTrue(
+                hasattr(g, 'tabla_ordenada'),
+                "El template consume grupo.tabla_ordenada: si la vista no lo "
+                "anota, la tabla sale vacia sin que nada falle.")
+            self.assertEqual(len(g.tabla_ordenada), 3)
