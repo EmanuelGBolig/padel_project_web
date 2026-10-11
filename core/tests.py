@@ -369,3 +369,51 @@ class LandingLinkeadaDesdeLaAppTests(TestCase):
 
     def test_el_organizador_conserva_el_camino_a_soporte(self):
         self.assertIn('wa.me', self._html(self.organizador))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SitemapTests(TestCase):
+    """El sitemap incluye la landing comercial.
+
+    Estaba alcanzable para alguien navegando la app pero no para Google, y una
+    pagina de venta que no se indexa no se encuentra sola.
+    """
+
+    def test_la_landing_esta_en_el_sitemap(self):
+        resp = self.client.get('/sitemap.xml')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(
+            reverse('core:para_organizadores'), resp.content.decode(),
+            'La landing comercial no se indexa')
+
+    def test_la_landing_no_dice_que_cambia_a_diario(self):
+        """Es contenido fijo de venta: pedirle a Google que la recorra todos los
+        dias es pedirle que la recorra al vacio."""
+        import re
+        html = self.client.get('/sitemap.xml').content.decode()
+        i = html.find(reverse('core:para_organizadores'))
+        bloque = html[i:i + 200]
+        self.assertIn('<changefreq>monthly</changefreq>', bloque)
+        self.assertIn('<priority>0.9</priority>', bloque)
+
+    def test_los_demas_estaticos_no_cambiaron(self):
+        """Agregar la landing no tenia que tocar los valores de los otros."""
+        html = self.client.get('/sitemap.xml').content.decode()
+        i = html.find(reverse('accounts:login'))
+        self.assertIn('<changefreq>daily</changefreq>', html[i:i + 200])
+        self.assertIn('<priority>0.5</priority>', html[i:i + 200])
+
+    def test_el_robots_apunta_al_sitemap(self):
+        resp = self.client.get('/robots.txt')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('sitemap.xml', resp.content.decode().lower())
+
+    def test_los_torneos_vienen_ordenados(self):
+        """Un sitemap pagina de a 50.000: sin orden, entre pagina y pagina un
+        torneo puede repetirse o faltar. Django lo avisa con un warning."""
+        import warnings
+        from django.core.paginator import UnorderedObjectListWarning
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', UnorderedObjectListWarning)
+            resp = self.client.get('/sitemap.xml')
+        self.assertEqual(resp.status_code, 200)

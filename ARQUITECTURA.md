@@ -2542,7 +2542,14 @@ Sitemap: https://todopadel.club/sitemap.xml
 
 > **Conflicto:** el sitemap publica `accounts:login`, `accounts:registro` y `accounts:rankings_jugadores`, que resuelven a `/accounts/login/`, `/accounts/registro/` y `/accounts/rankings/` (`accounts/urls.py:9,11,17`) — las tres bloqueadas por `Disallow: /accounts/`. La más grave es la de rankings, que es contenido indexable de valor.
 >
-> **Huecos:** el sitemap no incluye `core:para_organizadores`, `core:instalar` ni `equipos:buscar_companero`, aunque las dos primeras tienen meta description propia.
+> `core:para_organizadores` ya figura, con `priority 0.9` y `changefreq monthly` — es la página por la que queremos que nos encuentre un organizador de club, y es contenido fijo de venta, no un listado que cambia a diario. El resto de las estáticas queda en 0.5 / daily. `StaticViewSitemap` define `priority` y `changefreq` como **métodos** (Django los llama con el item si son invocables), con los valores especiales en un dict.
+>
+> **Huecos que quedan:**
+>
+> - El sitemap no incluye `core:instalar` ni `equipos:buscar_companero`, aunque la primera tiene meta description propia.
+> - ⚠️ **El sitemap se contradice con `robots.txt`**: declara `Disallow: /accounts/` y el sitemap lista `accounts:login` y `accounts:registro`, que caen justo ahí abajo. O se saca el Disallow, o salen del sitemap — y lo segundo es lo más probable, porque un login no es una página de entrada desde Google.
+>
+> `TorneoSitemap.items()` ordena por `-fecha_inicio, pk`: `Torneo` no tiene `Meta.ordering` y un sitemap pagina de a 50.000 URLs, así que sin orden un torneo puede repetirse o faltar entre página y página. Django lo avisaba con `UnorderedObjectListWarning` en cada pedido. Tests: `core.tests.SitemapTests`.
 
 #### 3.3 Meta tags (`theme/templates/base.html:24-58`)
 

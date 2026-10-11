@@ -3,12 +3,26 @@ from django.urls import reverse
 from torneos.models import Torneo
 
 class StaticViewSitemap(Sitemap):
-    priority = 0.5
-    changefreq = 'daily'
+    # `priority` y `changefreq` son métodos más abajo, no atributos: Django los
+    # llama con el item si son invocables. Por eso acá no hay valores fijos.
+
+    # La landing comercial es la página por la que queremos que nos encuentre un
+    # organizador de club buscando cómo armar un torneo, así que va con la
+    # prioridad más alta de las estáticas. Y no cambia a diario como los
+    # listados: es contenido fijo de venta, y decirle a Google que cambia todos
+    # los días es pedirle que la recorra al vacío.
+    #
+    # El resto queda EXACTAMENTE con los valores de antes (0.5 / daily), aunque
+    # para `accounts:login` tampoco tengan mucho sentido: cambiarlos es otro
+    # tema y no se mezcla acá.
+    ESPECIALES = {
+        'core:para_organizadores': {'priority': 0.9, 'changefreq': 'monthly'},
+    }
 
     def items(self):
         return [
             'core:home',
+            'core:para_organizadores',
             'accounts:login',
             'accounts:registro',
             'accounts:rankings_jugadores',
@@ -21,12 +35,24 @@ class StaticViewSitemap(Sitemap):
     def location(self, item):
         return reverse(item)
 
+    def priority(self, item):
+        return self.ESPECIALES.get(item, {}).get('priority', 0.5)
+
+    def changefreq(self, item):
+        return self.ESPECIALES.get(item, {}).get('changefreq', 'daily')
+
 class TorneoSitemap(Sitemap):
     changefreq = 'weekly'
     priority = 0.8
 
     def items(self):
-        return Torneo.objects.all()
+        # Ordenado a propósito: `Torneo` no tiene `Meta.ordering`, y un sitemap
+        # pagina de a 50.000 URLs. Con un queryset sin orden, cada página se
+        # arma con un `LIMIT/OFFSET` sobre un orden que la base no garantiza, y
+        # entre página y página un torneo puede repetirse o faltar. Hoy no pasa
+        # porque hay pocos, pero Django lo avisa con `UnorderedObjectListWarning`
+        # en CADA pedido al sitemap.
+        return Torneo.objects.order_by('-fecha_inicio', 'pk')
 
     def lastmod(self, obj):
         # Asumiendo que Torneo tiene un campo de fecha de actualización o creación
