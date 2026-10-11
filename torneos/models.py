@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 from django.db.models import F
 from django.utils import timezone
+from django.utils.functional import cached_property
 from equipos.models import Equipo
 from accounts.models import Division
 from core.validators import validar_imagen
@@ -377,6 +378,37 @@ class Grupo(models.Model):
     def __str__(self):
         return f"{self.torneo.nombre} - {self.nombre}"
 
+    @cached_property
+    def tabla_ordenada(self):
+        """La tabla de posiciones de la zona, con el desempate por resultado directo.
+
+        Es una property del MODELO y no algo que cada vista anota, por dos motivos
+        que ya nos costaron un bug cada uno:
+
+        1. Un template que itera un atributo que la vista no puso NO falla: Django
+           se come el `VariableDoesNotExist` y recorre vacío. Así salió la tabla de
+           posiciones de la ficha pública, con el encabezado y ninguna fila, HTTP 200
+           y en silencio. Siendo property, no hay vista que pueda olvidarse.
+        2. El orden que se MUESTRA tiene que ser el mismo que SIEMBRA el cuadro y el
+           que manda "Avanzar Clasificados". Con el cálculo repartido por las vistas,
+           cada camino podía quedar con un orden distinto, y en un empate eso
+           clasifica a parejas distintas según por dónde se entre.
+
+        `cached_property` y no `property` a propósito: guarda en `__dict__`, así que
+        se puede asignar encima (hay código que lo pre-calcula) sin el
+        `AttributeError: property ... has no setter`.
+
+        No cuesta consultas si quien llama prefetcheó `tabla__equipo` y
+        `partidos_grupo`; sin prefetch son 2 por zona. Si la tabla se reescribe
+        dentro del mismo request, hay que llamar a `olvidar_tabla_ordenada()`.
+        """
+        return ordenar_con_head_to_head(
+            self.tabla.all(), partidos=list(self.partidos_grupo.all()))
+
+    def olvidar_tabla_ordenada(self):
+        """Tira el cache de `tabla_ordenada` (la tabla se reescribió)."""
+        self.__dict__.pop('tabla_ordenada', None)
+
 
 class EquipoGrupo(models.Model):
     """Tabla de Posiciones del Grupo"""
@@ -487,27 +519,6 @@ def ordenar_con_head_to_head(filas, partidos=None):
         resultado.extend(bloque)
         i = j
     return resultado
-
-
-def anotar_tabla_ordenada(grupos):
-    """Deja `tabla_ordenada` en cada grupo y devuelve la lista.
-
-    Existe porque el cálculo estaba escrito a mano en UNA vista y el template
-    que lo consume lo renderiza OTRA: la ficha pública iteraba un atributo que
-    nadie le ponía, así que la tabla de posiciones salía con el encabezado y
-    el cuerpo vacío, en silencio y con HTTP 200. Teniendo un solo lugar donde
-    se calcula, las dos mitades no pueden volver a desincronizarse.
-
-    Da por sentado que quien llama ya prefetcheó `tabla` y `partidos_grupo`
-    (las dos vistas lo hacen), así que no agrega consultas. Devuelve una lista
-    y no un queryset justamente para que el atributo sobreviva: en un queryset
-    cada iteración reconstruye las instancias y se pierde lo anotado.
-    """
-    grupos = list(grupos)
-    for g in grupos:
-        g.tabla_ordenada = ordenar_con_head_to_head(
-            g.tabla.all(), partidos=list(g.partidos_grupo.all()))
-    return grupos
 
 
 class PartidoGrupo(models.Model):

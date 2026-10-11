@@ -782,7 +782,16 @@ Todas las URLs están bajo el prefijo `/torneos/` (`padel_project/urls.py:32`), 
 | Archivo | Líneas | Rol |
 |---|---:|---|
 | `torneos/views.py` | 3542 | Vistas + toda la lógica de generación de zonas y llave |
-| `torneos/models.py` | 1040 | `Torneo`, `Inscripcion`, `Grupo`, `EquipoGrupo`, `PartidoGrupo`, `Partido`, `FormatoPersonalizado`, `Circuito`, modelos Americano, `nombre_de_ronda()`, `ordenar_con_head_to_head()` y `anotar_tabla_ordenada()` — este último deja `tabla_ordenada` en cada grupo y lo llaman **las dos** vistas que muestran la tabla: tenía el cálculo en una vista y el consumo en el template de otra, y la ficha pública salía con la tabla vacía |
+| `torneos/models.py` | 1052 | `Torneo`, `Inscripcion`, `Grupo`, `EquipoGrupo`, `PartidoGrupo`, `Partido`, `FormatoPersonalizado`, `Circuito`, modelos Americano, `nombre_de_ronda()`, `ordenar_con_head_to_head()` y la `cached_property` `Grupo.tabla_ordenada` (ver abajo) |
+
+> **`Grupo.tabla_ordenada` es la ÚNICA fuente del orden de una zona.** Es una `cached_property` del modelo, no algo que cada vista anota, por dos bugs que ya pagó el proyecto:
+>
+> 1. Un template que itera un atributo que la vista no puso **no falla**: Django se come el `VariableDoesNotExist` y recorre vacío. Así salió la tabla de la ficha pública, con encabezado y ninguna fila, HTTP 200 y en silencio. Siendo property, no hay vista que pueda olvidarse.
+> 2. El orden que se MUESTRA tiene que ser el que SIEMBRA el cuadro y el que manda “Avanzar Clasificados”. Con el cálculo repartido, el desempate por resultado directo estaba sólo en una rama de `generar_octavos_logica`: en un empate el panel pintaba a una pareja como clasificada y el botón mandaba a otra.
+>
+> La leen los 7 sitios que deciden quién pasa (“Avanzar Clasificados”, los cuadros FAP, los dos cruces manuales, la rama genérica y el placeholder) y las 3 plantillas que la muestran (`_grupo_panel.html`, `admin_torneo_manage.html`, `torneo_vivo.html`).
+>
+> `cached_property` y no `property` a propósito: guarda en `__dict__`, así que se le puede asignar encima sin el `AttributeError: property … has no setter`. No cuesta consultas si quien llama prefetcheó `tabla__equipo` y `partidos_grupo` (medido: 20 consultas en la ficha pública con 5 zonas, iguales que antes); sin prefetch son 2 por zona. Si la tabla se reescribe en el mismo request hay que llamar a `olvidar_tabla_ordenada()`, como hace `avanzar_grupo_logica`. Tests: `torneos.tests.OrdenDeClasificadosCoherenteTests`. |
 | `torneos/formats.py` | 718 | Llaves oficiales FAP (6–48 parejas) y cálculo/descripción de estructura |
 | `torneos/forms.py` | 1293 | Alta de torneo, carga de resultados (Normal/W.O./Abandono), reemplazos, formatos, inscripción sin cuenta y `SubirComprobanteForm` |
 | `torneos/signals.py` | 240 | Recálculo de tabla de posiciones, invalidación de caché, llaves internas |

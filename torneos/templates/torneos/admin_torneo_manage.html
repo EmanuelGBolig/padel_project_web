@@ -541,7 +541,7 @@
                                 <h3 class="card-title text-base font-bold">{{ grupo.nombre }}</h3>
                                 <!-- Equipos ya en este grupo -->
                                 <ul class="space-y-1 min-h-[3rem]">
-                                    {% for eq_grupo in grupo.tabla.all %}
+                                    {% for eq_grupo in grupo.tabla_ordenada %}
                                         <li class="flex justify-between items-center bg-base-200 rounded px-3 py-1.5 text-sm">
                                             <span class="font-medium">{{ eq_grupo.equipo.nombre }}</span>
                                             <form method="post" class="inline">

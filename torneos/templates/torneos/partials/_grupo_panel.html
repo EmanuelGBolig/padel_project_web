@@ -134,7 +134,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in grupo.tabla.all %}
+                    {% for item in grupo.tabla_ordenada %}
                         <tr class="{% if forloop.counter <= torneo.equipos_por_grupo %}font-bold text-success{% endif %}">
                             <td class="text-left filter-text">
                                 <span class="opacity-50 mr-1">{{ forloop.counter }}.</span>

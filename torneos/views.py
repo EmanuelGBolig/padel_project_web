@@ -32,7 +32,6 @@ from .models import (
     Americano, JugadorAmericano, RondaAmericano, PartidoAmericano, EstadoPago,
     nombre_de_ronda,
     ordenar_con_head_to_head,
-    anotar_tabla_ordenada,
 )
 from .forms import (
     TorneoAdminForm,
@@ -217,12 +216,9 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             )
             .order_by('nombre')
         )
-        # La tabla que se MUESTRA tiene que coincidir con la que clasifica: se
-        # aplica el mismo desempate por resultado directo que usa el sembrado
-        # del cuadro. Va sobre lo ya prefetcheado, así que no cuesta consultas
-        # extra salvo la de los partidos, que también está prefetcheada.
-        grupos = anotar_tabla_ordenada(grupos)
-        context['grupos'] = grupos
+        # `list()` para que el cache de `Grupo.tabla_ordenada` sobreviva: en un
+        # queryset cada iteración reconstruye las instancias y lo recalcularía.
+        context['grupos'] = list(grupos)
 
         # ¿Los grupos ya tienen partidos generados?
         partidos_grupo_total = PartidoGrupo.objects.filter(grupo__torneo=torneo).count()
@@ -714,7 +710,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             return None, label
         g = grupos_map.get(letra)
         if g and self._zona_completa(g):
-            tabla = list(g.tabla.all())
+            tabla = g.tabla_ordenada
             if len(tabla) >= pos:
                 return tabla[pos - 1].equipo, label
         return None, label
@@ -864,7 +860,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                             if not solo_estructura and g_letra in grupos_map:
                                 grupo_obj = grupos_map[g_letra]
                                 if self._zona_completa(grupo_obj):
-                                    tabla = grupo_obj.tabla.all()
+                                    tabla = grupo_obj.tabla_ordenada
                                     if len(tabla) >= g_pos:
                                         e1 = tabla[g_pos-1].equipo
 
@@ -879,7 +875,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                             if not solo_estructura and g_letra in grupos_map:
                                 grupo_obj = grupos_map[g_letra]
                                 if self._zona_completa(grupo_obj):
-                                    tabla = grupo_obj.tabla.all()
+                                    tabla = grupo_obj.tabla_ordenada
                                     if len(tabla) >= g_pos:
                                         e2 = tabla[g_pos-1].equipo
 
@@ -944,7 +940,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 if not solo_estructura and g1_letra in grupos_map:
                     grupo_obj = grupos_map[g1_letra]
                     if self._zona_completa(grupo_obj):
-                        tabla = grupo_obj.tabla.all()
+                        tabla = grupo_obj.tabla_ordenada
                         if len(tabla) >= g1_pos:
                             e1 = tabla[g1_pos-1].equipo
 
@@ -952,7 +948,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 if not solo_estructura and g2_letra in grupos_map:
                     grupo_obj = grupos_map[g2_letra]
                     if self._zona_completa(grupo_obj):
-                        tabla = grupo_obj.tabla.all()
+                        tabla = grupo_obj.tabla_ordenada
                         if len(tabla) >= g2_pos:
                             e2 = tabla[g2_pos-1].equipo
 
@@ -1031,7 +1027,7 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 # cuando dos parejas quedan iguales es el RESULTADO DIRECTO, y
                 # de acá salen los clasificados que siembran el cuadro: no puede
                 # decidirlo un criterio arbitrario.
-                tabla = ordenar_con_head_to_head(grupo.tabla.all())
+                tabla = grupo.tabla_ordenada
                 for k in range(clasif):
                     if len(tabla) > k:
                         niveles[k].append(tabla[k].equipo)
@@ -1155,7 +1151,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
             messages.error(request, f"No se pueden avanzar los clasificados del {grupo.nombre} porque aún hay partidos pendientes de resultado.")
             return redirect('torneos:admin_manage', pk=torneo.pk)
 
-        tabla = list(grupo.tabla.all()) # Evaluar queryset a lista
+        # El MISMO orden que siembra el cuadro: si acá se usa el ordering crudo,
+        # en un empate el panel pinta a una pareja como clasificada y este botón
+        # manda a otra como 1A.
+        tabla = grupo.tabla_ordenada
 
         # Si no hay filas en la tabla de posiciones, reconstruirla desde los resultados de PartidoGrupo
         if len(tabla) == 0:
@@ -1183,8 +1182,10 @@ class AdminTorneoManageView(AdminRequiredMixin, DetailView):
                 from torneos.signals import actualizar_tabla_de_posiciones
                 actualizar_tabla_de_posiciones(sender=PartidoGrupo, instance=partidos_grupo.first())
 
-            # Re-leer la tabla actualizada
-            tabla = list(grupo.tabla.all())
+            # Re-leer la tabla actualizada. El olvido no es opcional: la property
+            # cachea por instancia y acá la tabla se acaba de reescribir.
+            grupo.olvidar_tabla_ordenada()
+            tabla = grupo.tabla_ordenada
 
         if len(tabla) == 0:
             messages.error(request, f"No se pudo reconstruir la tabla de posiciones del {grupo.nombre}.")
@@ -2074,8 +2075,8 @@ class TorneoDetailView(DetailView):
         )
         # La ficha pública itera `grupo.tabla_ordenada`: sin esto el template
         # resuelve a vacío en silencio y la tabla sale con el encabezado y
-        # ninguna fila.
-        context['grupos'] = anotar_tabla_ordenada(grupos)
+        # ninguna fila. `list()` para que el cache de la property sobreviva.
+        context['grupos'] = list(grupos)
 
         context['inscripciones'] = (
             torneo.inscripciones.all()

@@ -4060,3 +4060,88 @@ class PaginacionLlaveTVTests(SimpleTestCase):
                 self.assertLessEqual(
                     len(col['partidos']), PARTIDOS_POR_TRAMO,
                     'Una columna quedo mas larga que el tramo comodo')
+
+
+class OrdenDeClasificadosCoherenteTests(TestCase):
+    """Lo que el panel PINTA como clasificado tiene que ser lo que el boton MANDA.
+
+    El desempate por resultado directo se habia cableado solo en una rama de
+    generar_octavos_logica. "Avanzar Clasificados", los cuadros FAP, los cruces
+    manuales y las tres plantillas seguian leyendo el Meta.ordering crudo, asi
+    que en un empate cada camino podia clasificar a una pareja distinta.
+
+    Ahora el orden sale de una sola fuente: Grupo.tabla_ordenada.
+    """
+
+    def _pareja(self, pref):
+        j1 = User.objects.create_user(
+            email=pref + '1@oc.com', password='x', nombre='N', apellido=pref,
+            division=self.division)
+        j2 = User.objects.create_user(
+            email=pref + '2@oc.com', password='x', nombre='M', apellido=pref,
+            division=self.division)
+        return Equipo.objects.create(jugador1=j1, jugador2=j2, division=self.division)
+
+    def setUp(self):
+        self.division = Division.objects.create(nombre='Tercera', orden=3)
+        self.torneo = Torneo.objects.create(
+            nombre='Empate', division=self.division,
+            fecha_inicio=timezone.now().date(),
+            fecha_limite_inscripcion=timezone.now() - timedelta(days=1),
+            cupos_totales=4, estado=Torneo.Estado.EN_JUEGO)
+        self.grupo = Grupo.objects.create(torneo=self.torneo, nombre='Zona A')
+        self.a = self._pareja('aa')
+        self.b = self._pareja('bb')
+        for n, eq in enumerate((self.a, self.b), 1):
+            Inscripcion.objects.create(torneo=self.torneo, equipo=eq)
+            EquipoGrupo.objects.create(grupo=self.grupo, equipo=eq, numero=n)
+        # A le gana a B: empatan en todo lo demas, asi que el unico desempate
+        # posible es el resultado directo.
+        PartidoGrupo.objects.create(
+            grupo=self.grupo, equipo1=self.a, equipo2=self.b,
+            e1_set1=6, e2_set1=4, e1_set2=6, e2_set2=4,
+            e1_sets_ganados=2, e2_sets_ganados=0, ganador=self.a)
+
+    def test_el_desempate_por_resultado_directo_pone_primero_al_que_gano(self):
+        g = Grupo.objects.get(pk=self.grupo.pk)
+        self.assertEqual(
+            g.tabla_ordenada[0].equipo_id, self.a.pk,
+            'El que gano el mano a mano tiene que ir primero')
+
+    def test_la_property_no_depende_de_que_la_vista_la_anote(self):
+        """El bug que ya se fue a produccion: el template iteraba un atributo que
+        la vista no seteaba y Django recorria vacio, con HTTP 200."""
+        g = Grupo.objects.get(pk=self.grupo.pk)
+        self.assertEqual(len(g.tabla_ordenada), 2)
+
+    def test_olvidar_tabla_ordenada_tira_el_cache(self):
+        """Avanzar Clasificados reescribe la tabla y la vuelve a leer."""
+        g = Grupo.objects.get(pk=self.grupo.pk)
+        primero = g.tabla_ordenada[0].equipo_id
+        EquipoGrupo.objects.filter(grupo=g, equipo=self.b).update(partidos_ganados=5)
+        self.assertEqual(
+            g.tabla_ordenada[0].equipo_id, primero, 'Todavia tiene que estar cacheada')
+        g.olvidar_tabla_ordenada()
+        self.assertEqual(
+            g.tabla_ordenada[0].equipo_id, self.b.pk,
+            'Despues de olvidar tiene que releer la tabla')
+
+    def test_el_panel_del_organizador_y_la_ficha_publica_muestran_el_mismo_orden(self):
+        admin = User.objects.create_user(
+            email='adm@oc.com', password='x', nombre='Ad', apellido='Min',
+            tipo_usuario='ADMIN', is_staff=True)
+        self.client.force_login(admin)
+        panel = self.client.get(
+            reverse('torneos:admin_manage', kwargs={'pk': self.torneo.pk}))
+        self.assertEqual(panel.status_code, 200)
+        orden_panel = [
+            eg.equipo_id for g in panel.context['grupos'] for eg in g.tabla_ordenada]
+
+        self.client.logout()
+        ficha = self.client.get(
+            reverse('torneos:detail', kwargs={'pk': self.torneo.pk}))
+        orden_ficha = [
+            eg.equipo_id for g in ficha.context['grupos'] for eg in g.tabla_ordenada]
+
+        self.assertEqual(orden_panel, orden_ficha)
+        self.assertEqual(orden_panel[0], self.a.pk)

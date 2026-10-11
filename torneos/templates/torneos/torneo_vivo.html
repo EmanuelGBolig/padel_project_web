@@ -44,7 +44,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for eg in grupo.tabla.all %}
+                                        {% for eg in grupo.tabla_ordenada %}
                                             <tr class="{% if forloop.counter <= 2 %}font-bold text-primary{% endif %}">
                                                 <td class="px-1">{{ forloop.counter }}</td>
                                                 <td class="px-1 break-words leading-tight">{% get_team_display eg.equipo torneo %}</td>
