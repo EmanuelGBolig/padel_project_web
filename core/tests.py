@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
@@ -5,6 +6,8 @@ TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+User = get_user_model()
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -322,3 +325,47 @@ class ComprimirComprobanteTests(SimpleTestCase):
 
         f = SimpleUploadedFile('c.jpg', b'no soy una imagen', 'image/jpeg')
         self.assertIs(comprimir_para_subida(f), f)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class LandingLinkeadaDesdeLaAppTests(TestCase):
+    """La landing se alcanza desde CUALQUIER pagina, no solo desde la home.
+
+    El punto de entrada mas comun de este producto no es la home: es la ficha de
+    un torneo que alguien compartio por WhatsApp. El que llegaba ahi y resultaba
+    ser organizador de un club no tenia ningun camino a la pagina que le explica
+    el producto, porque los dos links vivian en home.html.
+    """
+
+    def setUp(self):
+        from accounts.models import Division, Organizacion
+        self.division = Division.objects.create(nombre='Quinta', orden=5)
+        self.org = Organizacion.objects.create(nombre='Club L', alias='cl-l')
+        self.jugador = User.objects.create_user(
+            email='jug@ll.com', password='x', nombre='Ju', apellido='Gador',
+            tipo_usuario='PLAYER', division=self.division)
+        self.organizador = User.objects.create_user(
+            email='org@ll.com', password='x', nombre='Or', apellido='Ga',
+            tipo_usuario='ORGANIZER', organizacion=self.org)
+
+    def _html(self, user=None):
+        if user:
+            self.client.force_login(user)
+        resp = self.client.get(reverse('torneos:abierto_list'))
+        self.assertEqual(resp.status_code, 200)
+        return resp.content.decode()
+
+    def test_un_anonimo_la_alcanza_desde_una_pagina_que_no_es_la_home(self):
+        self.assertIn(reverse('core:para_organizadores'), self._html())
+
+    def test_un_jugador_tambien(self):
+        self.assertIn(reverse('core:para_organizadores'), self._html(self.jugador))
+
+    def test_al_organizador_no_se_le_vende_el_producto(self):
+        """Ya es usuario: la landing es ruido y tiene Crear Torneo en su menu."""
+        html = self._html(self.organizador)
+        self.assertNotIn(reverse('core:para_organizadores'), html)
+        self.assertIn('Crear Torneo', html)
+
+    def test_el_organizador_conserva_el_camino_a_soporte(self):
+        self.assertIn('wa.me', self._html(self.organizador))

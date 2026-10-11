@@ -2482,7 +2482,13 @@ producto, planes con precios, FAQ y varios CTA a WhatsApp, todos con
 
 Define `meta_description`, `og_title` y `og_description` propios (`:4-6`) — es la página del proyecto con mejor SEO on-page. Cubierta por `core/tests.py:14-17`.
 
-> **No está enlazada desde ningún template.** El único match de `para_organizadores` en todo el repo son `core/urls.py:8`, `core/views.py:62` y el test. El CTA del home va directo a WhatsApp. Tampoco figura en el sitemap.
+> **Dónde está enlazada.** Desde la home (dos CTA: “Soy organizador” en el hero, sólo anónimos, y la tarjeta “¿Organizás torneos?” para anónimos y `PLAYER`) y desde `base.html`, o sea **todas** las páginas: un link en el pie y el CTA “Creá tu torneo” del menú lateral.
+>
+> El de `base.html` se agregó porque estar sólo en la home no alcanza: el punto de entrada más común del producto es la ficha de un torneo compartida por WhatsApp, y el que llegaba ahí y era organizador de un club no tenía ningún camino hasta acá. El CTA del menú además iba **directo a WhatsApp**, salteándose la página que contesta “¿cuánto sale?” antes de que la persona tenga que hablar con alguien.
+>
+> La condición es una sola en los tres lugares — `not user.is_authenticated or user.tipo_usuario == 'PLAYER'` — porque a un organizador que ya usa la app no le sirve que le vendan el producto; a él el botón del menú le dice “Escribinos” y lo lleva a soporte. Tests: `core.tests.LandingLinkeadaDesdeLaAppTests`.
+>
+> ⚠️ **Sigue sin figurar en el sitemap** (ver los huecos de SEO más abajo): está alcanzable para una persona que navega la app, no para Google.
 
 #### 2.6 Instalar / PWA (`InstalarAppView`, `core/views.py:65-73`)
 
@@ -2946,6 +2952,7 @@ original**, que ya trae la silueta exacta del logo.
 `base.html:1224-1261`, `footer-center`, `print:hidden`, con clase `.app-footer` que en ≥1536px se desplaza `margin-left: 20rem` para no quedar bajo el sidebar fijo (`base.html:500-503`). Contiene:
 - Copyright con `{% now "Y" %}`
 - Botón "Instalar la app" (SVG de celular) → `core:instalar`
+- Link "¿Organizás torneos? Mirá cómo funciona" → `core:para_organizadores`, sólo para anónimos y `PLAYER`
 - Dropdown **Compartir** (`data-share` + `data-share-url/title/text`) con: Compartir nativo (oculto hasta que `share.js` detecte `navigator.share`), WhatsApp (anchor puro), Copiar link, y "🎨 Crear placa para redes" → `torneos:placa_app`
 - Crédito del desarrollador
 
