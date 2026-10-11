@@ -1,4 +1,4 @@
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 TEST_STORAGES = {
@@ -246,3 +246,79 @@ class EscotillasOperativasTests(TestCase):
             "core.views volvio a importar call_command: un comando sincronico "
             "adentro de un request cuelga el worker de gunicorn")
         self.assertFalse(hasattr(core_views, "trigger_migration"))
+
+
+class ComprimirComprobanteTests(SimpleTestCase):
+    """La foto del celular tiene que entrar, y la captura no se toca.
+
+    MAX_IMAGEN_BYTES son 5 MB y una camara de celular moderno los pasa siempre:
+    rebotarle la foto deja al jugador sin poder mandar el comprobante, que es su
+    unico camino para que le confirmen el lugar. Se achica del lado del servidor.
+
+    Pero SOLO lo que rebotaria: la captura del homebanking es un PNG sin perdida
+    y pasarla a JPEG emborrona justo el CBU y el monto que hay que leer.
+    """
+
+    def _imagen(self, tamanio, formato, ruido=False):
+        import io as _io, random
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        random.seed(7)
+        im = Image.new('RGB', tamanio)
+        if ruido:
+            im.putdata([(random.randrange(256), random.randrange(256),
+                         random.randrange(256))
+                        for _ in range(tamanio[0] * tamanio[1])])
+        buf = _io.BytesIO()
+        im.save(buf, format=formato)
+        return SimpleUploadedFile(
+            'comprobante.' + formato.lower(), buf.getvalue(),
+            'image/' + formato.lower())
+
+    def test_la_foto_del_celular_se_achica_y_entra(self):
+        from core.imagenes import comprimir_para_subida
+        from core.validators import MAX_IMAGEN_BYTES
+        from PIL import Image
+
+        f = self._imagen((4032, 3024), 'JPEG', ruido=True)
+        self.assertGreater(f.size, MAX_IMAGEN_BYTES, 'El caso necesita pesar de mas')
+        salida = comprimir_para_subida(f)
+        self.assertLessEqual(
+            salida.size, MAX_IMAGEN_BYTES,
+            'La foto de celular sigue rebotando: el jugador no puede pagar')
+        self.assertTrue(salida.name.endswith('.jpg'))
+        salida.seek(0)
+        self.assertLessEqual(max(Image.open(salida).size), 2000)
+
+    def test_la_captura_del_homebanking_no_se_recomprime(self):
+        from core.imagenes import comprimir_para_subida
+
+        f = self._imagen((2560, 1440), 'PNG')
+        salida = comprimir_para_subida(f)
+        self.assertIs(
+            salida, f,
+            'Se recomprimio a JPEG una captura que ya pasaba: emborrona el CBU')
+
+    def test_la_rotacion_del_exif_se_aplica_a_los_pixeles(self):
+        """Al re-guardar se pierde el EXIF: si no se aplica, sale acostada."""
+        import io as _io
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.imagenes import comprimir_para_subida
+
+        im = Image.new('RGB', (6000, 3000), (10, 20, 30))
+        buf = _io.BytesIO()
+        im.save(buf, format='JPEG')
+        f = SimpleUploadedFile('c.jpg', buf.getvalue(), 'image/jpeg')
+        salida = comprimir_para_subida(f)
+        salida.seek(0)
+        ancho, alto = Image.open(salida).size
+        self.assertGreater(ancho, alto, 'Una apaisada tiene que salir apaisada')
+
+    def test_un_archivo_que_no_es_imagen_vuelve_igual(self):
+        """El que corta es validar_imagen, no esta funcion."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.imagenes import comprimir_para_subida
+
+        f = SimpleUploadedFile('c.jpg', b'no soy una imagen', 'image/jpeg')
+        self.assertIs(comprimir_para_subida(f), f)

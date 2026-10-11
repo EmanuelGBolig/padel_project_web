@@ -4,6 +4,7 @@ from django import forms
 from django.utils import timezone
 from dal import autocomplete
 from accounts.models import CustomUser, Division
+from core.imagenes import comprimir_para_subida
 from .models import (
     Torneo, Partido, PartidoGrupo, Inscripcion, Equipo, Grupo,
     Americano, JugadorAmericano, ResolucionPartido, FormatoPersonalizado,
@@ -1313,9 +1314,37 @@ class SubirComprobanteForm(forms.ModelForm):
 
     Pasando por un ModelForm se obtienen las dos capas: la de `ImageField` (que
     verifica con Pillow que sea una imagen de verdad, no un archivo renombrado)
-    y la de `validar_imagen` (peso y dimensiones máximas).
+    y la de `validar_imagen` (peso y dimensiones máximas). Las dos siguen
+    corriendo: `validar_imagen` se dispara en `_post_clean()`, contra el modelo,
+    aunque el campo esté declarado a mano acá.
+
+    Pero el que paga esa validación no tiene que ser el jugador: la cámara de un
+    celular moderno pasa los 5 MB de `MAX_IMAGEN_BYTES` sin esfuerzo, y
+    rebotarle la foto lo deja sin poder mandar el comprobante — que es su único
+    camino para que le confirmen el lugar. Así que la imagen se achica del lado
+    del servidor y `validar_imagen` queda como red de seguridad.
     """
+
+    # El mensaje por defecto de Django ("Seleccione una imagen válida…") está en
+    # español peninsular y no dice qué hacer. El caso real es el PDF que el
+    # jugador baja del homebanking, y la salida es mandar una captura.
+    comprobante = forms.ImageField(
+        label="Comprobante de transferencia",
+        error_messages={
+            'invalid_image': (
+                "Eso no es una imagen. Si bajaste un PDF del homebanking, abrilo "
+                "y mandanos una captura de pantalla."
+            ),
+            'empty': "Ese archivo llegó vacío. Volvé a elegir la foto del comprobante.",
+            'required': "Elegí la foto o la captura del comprobante.",
+        },
+    )
 
     class Meta:
         model = Inscripcion
         fields = ['comprobante']
+
+    def clean_comprobante(self):
+        # Corre DESPUÉS del chequeo de Pillow (ya sabemos que es una imagen) y
+        # ANTES de `validar_imagen`, que se dispara en `_post_clean()`.
+        return comprimir_para_subida(self.cleaned_data.get('comprobante'))
