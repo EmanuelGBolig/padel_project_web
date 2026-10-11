@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -3655,6 +3655,70 @@ class PantallaClubTests(TestCase):
         self.assertIn("En cancha ahora", html)
         self.assertIn("no-store", resp["Cache-Control"])
 
+    def _claves(self, **kwargs):
+        from .pantalla import armar_pantalla
+        datos = armar_pantalla(self.org, ahora=kwargs.pop("ahora", self.ahora), **kwargs)
+        return [p.clave for p in datos["placas"]]
+
+    def test_la_placa_de_sin_canchas_no_sale_si_el_club_cargo_las_canchas(self):
+        """El partido TIENE cancha pero la hora quedo vencida fuera de la ventana de
+        juego (VENTANA_EN_JUEGO = 6 h), asi que `armar_canchas` lo saltea y la lista
+        sale vacia. Vacia no es "nadie cargo la cancha", y el cartel didactico le
+        mentia al organizador todo el dia.
+
+        Es el escenario tipico del club: se programo a la maniana, se jugo tarde, y
+        nadie volvio a tocar la hora."""
+        PartidoGrupo.objects.filter(grupo=self.grupo).update(
+            fecha_hora=self.ahora - timedelta(hours=9))
+
+        pendientes = PartidoGrupo.objects.filter(
+            grupo=self.grupo, ganador__isnull=True).exclude(cancha="")
+        self.assertTrue(
+            pendientes.exists(),
+            "El escenario necesita un partido por jugar CON cancha cargada")
+        self.assertEqual(
+            self._claves().count("canchas-sin"), 0,
+            "Dice 'no hay canchas cargadas' con las canchas cargadas")
+
+    def test_la_placa_de_sin_canchas_sale_cuando_de_verdad_no_hay_ninguna(self):
+        """El caso legitimo: el arreglo no se tiene que pasar de largo."""
+        PartidoGrupo.objects.filter(grupo=self.grupo).update(cancha="")
+        self.assertIn("canchas-sin", self._claves())
+
+    def test_con_t_la_placa_de_inscripcion_sigue_saliendo(self):
+        """`?t=` trae pks de torneos EN JUEGO, y un torneo con la inscripcion abierta
+        nunca es uno de ellos: comparar pks dejaba la placa afuera para siempre."""
+        self.torneo.division = self.division
+        self.torneo.save()
+        abierto = self._torneo("Anotate 5ta", self.org, estado=Torneo.Estado.ABIERTO)
+        abierto.division = self.division
+        abierto.fecha_limite_inscripcion = self.ahora + timedelta(days=3)
+        abierto.save()
+
+        self.assertIn(
+            "inscripcion", self._claves(torneo_ids=[self.torneo.pk]),
+            "Con ?t= la TV se queda sin la placa de inscripciones para siempre")
+
+    def test_con_t_la_inscripcion_no_cruza_de_categoria(self):
+        """Lo que ?t= SI tiene que hacer: no ofrecer la categoria de otra TV."""
+        from .pantalla import armar_pantalla
+        otra = Division.objects.create(nombre="Primera", orden=1)
+        self.torneo.division = self.division
+        self.torneo.save()
+        ajeno = self._torneo("Anotate 1ra", self.org, estado=Torneo.Estado.ABIERTO)
+        ajeno.division = otra
+        ajeno.fecha_limite_inscripcion = self.ahora + timedelta(days=3)
+        ajeno.save()
+
+        datos = armar_pantalla(
+            self.org, ahora=self.ahora, torneo_ids=[self.torneo.pk])
+        ofrecidos = [
+            t.nombre for p in datos["placas"] if p.clave == "inscripcion"
+            for t in p.datos["torneos"]]
+        self.assertNotIn(
+            "Anotate 1ra", ofrecidos,
+            "Una TV de 5ta esta ofreciendo la inscripcion de 1ra")
+
     def test_alias_inexistente_da_404(self):
         resp = self.client.get(reverse("pantalla_club", kwargs={"alias": "no-existe"}))
         self.assertEqual(resp.status_code, 404)
@@ -3933,3 +3997,66 @@ class OrganizadorSinClubTests(TestCase):
             reverse("torneos:schedule_partido", kwargs={"pk": self.partido_huerfano.pk}),
         ):
             self.assertEqual(self.client.get(url).status_code, 200, url)
+
+
+class PaginacionLlaveTVTests(SimpleTestCase):
+    """El paginado de la llave en la pantalla del club.
+
+    No toca la base: opera sobre la estructura de columnas que le pasa
+    _placas_llave. Hasta ahora no tenia ningun test, y es el corazon de la
+    pantalla: si pierde o duplica un partido, en la tele del club falta gente.
+    """
+
+    def _columnas(self, tamanos):
+        """Columnas con partidos numerados corridos, como vienen por orden_partido."""
+        columnas, n = [], 0
+        for i, t in enumerate(tamanos):
+            partidos = list(range(n, n + t))
+            n += t
+            columnas.append({'nombre': 'Ronda %d' % (i + 1), 'partidos': partidos})
+        return columnas, n
+
+    def _todos(self, paginas):
+        vistos = []
+        for pagina in paginas:
+            for col in pagina:
+                vistos.extend(col['partidos'])
+        return vistos
+
+    def test_el_cuadro_de_16_parejas_entra_en_una_sola_placa(self):
+        from .pantalla import _paginar_llave
+        columnas, _ = self._columnas([8, 4, 2, 1])
+        paginas = _paginar_llave(columnas)
+        self.assertEqual(
+            len(paginas), 1,
+            'Un cuadro de 16 entra entero: partirlo corta las lineas entre '
+            'rondas y el jugador no ve contra quien juega el ganador')
+
+    def test_un_cuadro_grande_se_sigue_partiendo(self):
+        from .pantalla import _paginar_llave
+        columnas, _ = self._columnas([16, 8, 4, 2, 1])
+        paginas = _paginar_llave(columnas)
+        self.assertGreater(
+            len(paginas), 1,
+            'Con 32 parejas la letra baja de lo legible: hay que partir')
+
+    def test_no_pierde_ni_duplica_ningun_partido(self):
+        from .pantalla import _paginar_llave
+        for tamanos in ([1], [2, 1], [4, 2, 1], [8, 4, 2, 1],
+                        [16, 8, 4, 2, 1], [32, 16, 8, 4, 2, 1],
+                        [3, 2, 1], [6, 4, 2, 1], [5, 3, 2, 1]):
+            with self.subTest(tamanos=tamanos):
+                columnas, total = self._columnas(tamanos)
+                vistos = self._todos(_paginar_llave(columnas))
+                self.assertEqual(
+                    sorted(vistos), list(range(total)),
+                    'El paginado perdio o duplico partidos en %s' % (tamanos,))
+
+    def test_ninguna_columna_supera_el_tramo_cuando_se_parte(self):
+        from .pantalla import _paginar_llave, PARTIDOS_POR_TRAMO
+        columnas, _ = self._columnas([32, 16, 8, 4, 2, 1])
+        for pagina in _paginar_llave(columnas):
+            for col in pagina:
+                self.assertLessEqual(
+                    len(col['partidos']), PARTIDOS_POR_TRAMO,
+                    'Una columna quedo mas larga que el tramo comodo')

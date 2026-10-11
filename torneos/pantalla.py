@@ -58,9 +58,20 @@ INSCRIPCIONES_MAX = 4
 #   llave entra al tope de escala (1.6) y con 4 ya hay que encogerla a 1.18;
 # - a lo alto, la altura crece lineal con los partidos de la columna más larga:
 #   4 partidos entran a escala 1.6, 8 bajan a 0.96 y 16 a 0.49 (letra de 9px).
-# Encoger no es opción: es una tele que se mira de lejos. Se parte la placa.
-RONDAS_POR_PLACA = 3
-PARTIDOS_POR_COLUMNA = 5
+# Encoger sin límite no es opción: es una tele que se mira de lejos, y por eso el JS
+# tiene un piso de escala. Pero partir también cuesta: la placa pasa de 20 s a 14 s, el
+# ciclo se multiplica, y las líneas que cruzan de una placa a otra NO se dibujan, así
+# que el jugador deja de ver contra quién juega el ganador de su partido. Entonces:
+# - 4 rondas (1.18) y 8 partidos por columna (0.96) están los dos arriba del piso, así
+#   que la llave que entra entera NO se parte. Un cuadro con 16 parejas EN LA LLAVE
+#   (columnas [8, 4, 2, 1]) es exactamente este caso;
+# - si hay que partirla igual, se corta en tramos de PARTIDOS_POR_TRAMO, que es el
+#   tamaño cómodo (5 partidos ~ escala 1.4): el costo de partir ya está pagado.
+# El precio es la letra: una placa sin partir con 8 de alto queda en ~18px (legible a
+# 1,5 m) y no en los 26,7px (2,2 m) de antes.
+RONDAS_POR_PLACA = 4
+PARTIDOS_POR_COLUMNA = 8
+PARTIDOS_POR_TRAMO = 5
 
 # Segundos que se queda cada placa en pantalla.
 DURACION = {
@@ -351,7 +362,18 @@ def armar_pantalla(organizacion, torneo_ids=None, ahora=None):
             f'{i} de {len(paginas)}' if len(paginas) > 1 else '',
             {'canchas': pagina},
         ))
-    if not canchas and any(not p.ganador for p in partidos):
+    # "No hay NINGUNA cancha cargada" se le pregunta al campo `cancha` de los
+    # partidos, no a `canchas`: armar_canchas() sólo arma las canchas de los partidos
+    # que caen en la ventana de juego, así que la lista también queda vacía al final de
+    # la jornada (todo jugado hace más de RECIEN_TERMINADO), con la llave generada y sin
+    # programar, o con la cancha cargada y la hora no — o sea, con las canchas
+    # perfectamente cargadas. La llave se mira aparte porque los partidos que todavía no
+    # tienen ninguna de las dos parejas no entran en `partidos`, y se los puede
+    # programar igual.
+    hay_cancha_cargada = any(p.cancha for p in partidos) or any(
+        p.cancha for lista in partidos_llave.values() for p in lista)
+    if not canchas and not hay_cancha_cargada and any(
+            not p.ganador for p in partidos):
         # La placa estrella sale del campo `cancha`, que es opcional: si nadie lo
         # carga, "En cancha ahora" simplemente no existía y nada lo explicaba.
         # Con partidos por jugar y cero canchas, la placa aparece diciendo qué
@@ -457,18 +479,29 @@ def _placas_zonas(torneos, partidos, llaves):
 def _paginar_llave(columnas):
     """Parte la llave en placas que entren enteras y legibles.
 
-    Primero a lo ancho (bloques de rondas consecutivas: 5 rondas dan [3, 2] y 4 dan
-    [2, 2], porque la final sola no es una placa) y después a lo alto: si la columna
-    más larga del bloque pasa PARTIDOS_POR_COLUMNA, el bloque se corta en tramos
-    verticales, llevándose de cada ronda el tramo equivalente del cuadro.
-    Los partidos vienen ordenados por `orden_partido`, o sea en el orden del cuadro,
-    así que el tramo k de cada ronda es la misma zona de la llave: arriba con
-    arriba. Las líneas que cruzan de una placa a otra las saltea `dibujarLineas`.
+    Primero a lo ancho (bloques de rondas consecutivas: 4 rondas entran juntas y 5 dan
+    [3, 2], porque la final sola no es una placa).
+
+    Si la llave entera entra en UNA placa —un solo bloque de rondas y hasta
+    PARTIDOS_POR_COLUMNA partidos en la columna más larga— no se parte: ver el cuadro
+    completo, con las líneas de una ronda a la siguiente, vale más que la letra un poco
+    más grande.
+
+    Si hay que partir, se corta en tramos verticales de PARTIDOS_POR_TRAMO, llevándose
+    de cada ronda el tramo equivalente del cuadro. Los partidos vienen ordenados por
+    `orden_partido`, o sea en el orden del cuadro, así que el tramo k de cada ronda es
+    la misma zona de la llave: arriba con arriba. Las líneas que cruzan de una placa a
+    otra las saltea `dibujarLineas`.
     """
+    bloques = _en_tramos(columnas, _reparto(len(columnas), RONDAS_POR_PLACA))
     paginas = []
-    for bloque in _en_tramos(columnas, _reparto(len(columnas), RONDAS_POR_PLACA)):
+    for bloque in bloques:
         mas_largo = max(len(c['partidos']) for c in bloque)
-        tramos = max(1, -(-mas_largo // PARTIDOS_POR_COLUMNA))
+        if len(bloques) == 1 and mas_largo <= PARTIDOS_POR_COLUMNA:
+            # Entra entera: no se parte.
+            tramos = 1
+        else:
+            tramos = max(1, -(-mas_largo // PARTIDOS_POR_TRAMO))
         for k in range(tramos):
             pagina = []
             for col in bloque:
@@ -504,12 +537,34 @@ def _placas_llave(torneos, partidos_llave):
 
 def _placas_inscripcion(organizacion, torneo_ids=None):
     """`?t=` también manda acá: una TV dedicada a una categoría no puede ofrecer la
-    inscripción de otra. Y si el filtro deja la placa sin torneos, la placa no se
-    agrega: así `placas` puede quedar vacío y aparecer la placa `vacia`, que antes
-    nunca llegaba a verse porque esta siempre se colaba."""
+    inscripción de otra.
+
+    Pero `?t=` trae PKS de torneos, y los que la TV muestra están EN JUEGO: un torneo
+    con la inscripción abierta nunca es uno de ellos, así que filtrar los abiertos por
+    esos pks dejaba el queryset vacío SIEMPRE y la placa no salía nunca. Lo que `?t=`
+    quiere decir acá es la CATEGORÍA, así que se traduce pk -> división y se acota por
+    ahí.
+
+    Dos casos que el filtro por división dejaría afuera y acá entran: los torneos libres
+    (sin división, aceptan cualquier categoría, se ofrecen siempre) y los `?t=` de los
+    que no se puede deducir ninguna división (pk inexistente, de otro club, o sólo
+    torneos libres), donde no hay con qué acotar y se muestran todos. El `pk__in` final
+    es defensivo: cubre una TV apuntada derecho al pk de un torneo abierto.
+
+    Y si la categoría no deja ningún torneo abierto, la placa no se agrega: así `placas`
+    puede quedar vacío y aparecer la placa `vacia`, que antes nunca llegaba a verse
+    porque ésta siempre se colaba."""
     abiertos = Torneo.objects.filter(organizacion=organizacion, estado=Torneo.Estado.ABIERTO)
     if torneo_ids:
-        abiertos = abiertos.filter(pk__in=torneo_ids)
+        divisiones = set(
+            Torneo.objects.filter(organizacion=organizacion, pk__in=torneo_ids)
+            .exclude(division__isnull=True).values_list('division_id', flat=True)
+        )
+        if divisiones:
+            abiertos = abiertos.filter(
+                Q(division_id__in=divisiones)
+                | Q(division__isnull=True)
+                | Q(pk__in=torneo_ids))
     abiertos = list(abiertos.select_related('division').order_by('fecha_inicio')[:INSCRIPCIONES_MAX])
     if not abiertos:
         return []

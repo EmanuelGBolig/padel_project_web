@@ -1604,8 +1604,8 @@ y `PartidoScheduleForm` la piden, con botones de las canchas ya usadas por el cl
 | `proximos` | Pendientes con hora, sin los que ya están en juego. 8 por placa, hasta 2 placas | 14 s |
 | `resultados` | Con ganador y sin byes, ordenados por `finalizado_en` (o `fecha_hora` para los viejos). 8 por placa, hasta 2 | 14 s |
 | `zonas` | Tablas de posiciones. 6 zonas por placa, o 3 si las zonas son de 5+ parejas (`ZONAS_POR_PLACA_ANCHA` / `PAREJAS_ZONA_ANCHA`), repartidas parejo entre placas. Se dejan de mostrar cuando las zonas terminaron y ya hay llave | 15 s |
-| `llave` | El cuadro, **paginado**: hasta `RONDAS_POR_PLACA` (3) rondas y `PARTIDOS_POR_COLUMNA` (5) partidos por columna. Clave `llave-{pk}-{i}`. Resalta el partido en juego | 20 s, o `DURACION_LLAVE_PARTIDA` (14 s) si está partida |
-| `canchas-sin` | Cuando hay partidos por jugar y el club no cargó NINGUNA cancha: explica que cargándola se ve qué se juega en cada una | 12 s |
+| `llave` | El cuadro, **paginado sólo si no entra**: hasta `RONDAS_POR_PLACA` (4) rondas y `PARTIDOS_POR_COLUMNA` (8) partidos en la columna más larga entran en UNA placa; si hay que partir, se corta en tramos de `PARTIDOS_POR_TRAMO` (5). Clave `llave-{pk}-{i}`. Resalta el partido en juego | 20 s, o `DURACION_LLAVE_PARTIDA` (14 s) si está partida |
+| `canchas-sin` | Cuando hay partidos por jugar y **ningún** partido tiene cancha cargada: explica que cargándola se ve qué se juega en cada una. Lo decide el campo `cancha`, **no** que la lista `canchas` salga vacía: vacía también queda al final de la jornada, con la llave sin programar, o con la cancha cargada y la hora vencida fuera de `VENTANA_EN_JUEGO` | 12 s |
 | `inscripcion` | Torneos de la organización con inscripción abierta, con QR para anotarse | 12 s |
 | `sponsors` | Los `Sponsor` de la organización | 10 s |
 | `vacia` | Solo si no hay nada: "Por ahora no hay partidos en juego" | 30 s |
@@ -2869,6 +2869,10 @@ Cuatro banners condicionales, todos descartables:
 | Sumate a la comunidad | `not user.is_authenticated` | `sessionStorage['dismissed_banner-registro']` | 831-869 |
 
 Los íconos de los cuatro son SVG monolínea, no emoji (ver *Íconos y labels* en las convenciones de UI en mobile, más arriba), y los `✕` de descarte son botones de 40px con `aria-label="Cerrar aviso"`.
+
+> **El paginado de la llave es un trade-off, no una optimización.** Partir una placa baja su duración de 20 s a 14 s, multiplica el ciclo y —lo que más importa— las líneas que cruzan de una placa a otra **no se dibujan**, así que el jugador deja de ver contra quién juega el ganador de su partido. Por eso la llave que entra entera no se parte, aunque la letra quede en ~18px (legible a 1,5 m) en vez de 26,7px (2,2 m). Medido sobre los 43 cuadros FAP: 102 placas en vez de 119; los de 25 a 48 inscriptas salen idénticos y los de 13 a 24 pasan a una sola. Tests: `torneos.tests.PaginacionLlaveTVTests`.
+
+> **`?t=` significa CATEGORÍA, no pk.** El parámetro trae pks de torneos, y los que la TV muestra están EN JUEGO, así que un torneo con la inscripción abierta nunca es uno de ellos: filtrar los abiertos por esos pks dejaba la placa de inscripciones afuera **siempre**. `_placas_inscripcion` traduce pk → división y acota por ahí, dejando pasar los torneos libres (sin división) y, cuando no se puede deducir ninguna división, todos.
 
 #### 2.5.b Páginas de error
 
