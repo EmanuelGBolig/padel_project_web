@@ -694,7 +694,26 @@ class OrganizacionProgramacionPrintView(OrganizacionProgramacionView):
 
 from .forms import OrganizacionForm, SponsorForm
 
-class OrganizacionSettingsView(LoginRequiredMixin, UpdateView):
+class GestionDeClubRequiredMixin(UserPassesTestMixin):
+    """Sólo ADMIN y ORGANIZER gestionan un club y sus sponsors.
+
+    Las cuatro vistas de gestión llevaban SÓLO `LoginRequiredMixin`, así que
+    cualquier `PLAYER` con `organizacion` asignada podía editar los datos de ese
+    club y crear, editar o borrar sus sponsors: el `get_queryset` acotaba por
+    organización, pero nunca se chequeaba el ROL.
+
+    Ojo con el nombre: `equipos.GestorRequiredMixin` hace lo mismo pero vive en
+    otra app, y `equipos.AdminRequiredMixin` EXCLUYE a los ORGANIZER mientras
+    `torneos.AdminRequiredMixin` los incluye. Verificá cuál estás importando.
+    """
+
+    def test_func(self):
+        return (self.request.user.is_staff
+                or self.request.user.tipo_usuario in ('ADMIN', 'ORGANIZER'))
+
+
+class OrganizacionSettingsView(LoginRequiredMixin, GestionDeClubRequiredMixin,
+                               UpdateView):
     # model = Organizacion # Dynamic to avoid circular imports
     form_class = OrganizacionForm
     template_name = 'accounts/organizacion_settings.html'
@@ -714,7 +733,8 @@ class OrganizacionSettingsView(LoginRequiredMixin, UpdateView):
 
 
 
-class OrganizacionSponsorsView(LoginRequiredMixin, CreateView):
+class OrganizacionSponsorsView(LoginRequiredMixin, GestionDeClubRequiredMixin,
+                               CreateView):
     model = Sponsor
     form_class = SponsorForm
     template_name = 'accounts/organizacion_sponsors.html'
@@ -738,7 +758,8 @@ class OrganizacionSponsorsView(LoginRequiredMixin, CreateView):
             context['sponsors'] = user.organizacion.sponsors.all().order_by('orden')
         return context
 
-class SponsorDeleteView(LoginRequiredMixin, DeleteView):
+class SponsorDeleteView(LoginRequiredMixin, GestionDeClubRequiredMixin,
+                        DeleteView):
     model = Sponsor
     
     def get_success_url(self):
@@ -754,7 +775,8 @@ class SponsorDeleteView(LoginRequiredMixin, DeleteView):
         return Sponsor.objects.filter(
             organizacion_id=self.request.user.organizacion_id)
 
-class SponsorUpdateView(LoginRequiredMixin, UpdateView):
+class SponsorUpdateView(LoginRequiredMixin, GestionDeClubRequiredMixin,
+                        UpdateView):
     model = Sponsor
     form_class = SponsorForm
     template_name = 'accounts/sponsor_edit.html'

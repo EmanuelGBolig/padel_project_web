@@ -1448,12 +1448,33 @@ El paso 2 del alta tiene dos ramas excluyentes según el radio
 *"¿Tu compañero/a ya usa TodoPadel?"*:
 
 - **Todavía no tiene cuenta** → se cargan nombre, apellido, WhatsApp y email.
-- **Ya tiene cuenta** → **sólo un buscador**. Se elige a la persona de la lista y
-  al form viaja únicamente `companero_id`.
+- **Ya tiene cuenta** → un buscador **más una prueba de titularidad**: se elige a
+  la persona de la lista (viaja `companero_id`) y hay que escribir **su mail o su
+  WhatsApp**, que tiene que coincidir con lo que tiene en su cuenta
+  (`companero_prueba`).
 
 El motivo del segundo camino: pedirle a alguien que reescriba datos que ya están
 en la base es pedirle que los escriba distinto, y ahí nace el duplicado que
-después hay que fusionar a mano.
+después hay que fusionar a mano. Por eso se pide **un** dato y no los cuatro.
+
+> ⚠️ **Por qué el pk solo no alcanza.** `BuscarCompaneroPublicoView` va sin login
+> (el alta sin cuenta tampoco lo pide) y encuentra **por nombre**, devolviendo el
+> `pk`. O sea que con tres letras de un apellido, de forma anónima, se obtenía el
+> pk de cualquier jugador, se lo anotaba a un torneo sin que se enterara —el
+> único freno era que no tuviera pareja activa— y la pantalla de confirmación le
+> entregaba al anónimo **el teléfono de esa persona** en el link `wa.me`.
+>
+> La prueba cierra las dos mitades: no se puede anotar a nadie sin saber su mail o
+> su teléfono, y como para llegar a la confirmación hay que saber el teléfono,
+> mostrarlo ahí ya no filtra nada nuevo. Es el mismo criterio que el buscador ya
+> aplicaba en sus caminos fuertes ("email exacto: quien lo sabe, ya conoce a la
+> persona"); lo que faltaba era exigirlo también para anotar.
+>
+> La comparación reusa `_cola_telefono` (`accounts/identidad.py`), así que `+54`,
+> el `0` y el `15` dan todos lo mismo. **El mensaje de error es el mismo cuando la
+> cuenta no existe y cuando la prueba no coincide**, a propósito: si distinguiera
+> los casos, el formulario sería un oráculo para adivinar teléfonos de a uno.
+> Tests: `torneos.tests.ConsentimientoAltaSinCuentaTests`.
 
 `InscripcionSinCuentaForm.clean()` decide qué exigir según la rama; los campos
 del compañero son `required=False` a nivel de campo porque su obligatoriedad
@@ -2103,7 +2124,7 @@ El context processor `notifications` (`padel_project/context_processors.py:19-75
 | 1 | Alta | `accounts/views.py:721` + `:752-753` | **`MergeUserView` revienta después de fusionar.** `success_url = reverse_lazy('accounts:organizacion_list')` no existe (la ruta se llama `organizador_list`, `urls.py:21`) → `NoReverseMatch`; y el otro branch redirige a `accounts:organizacion_detail` con `slug=alias`, ruta que tampoco resuelve (ver #2). La fusión ya se ejecutó y se auditó cuando falla la respuesta. |
 | 2 | Alta | `accounts/urls.py:27` + `views.py:458-465` | La ruta `organizacion/detalle/<slug:slug>/` apunta a `OrganizacionDetailView`, pero `Organizacion` no tiene campo `slug` (usa `alias`, `models.py:215`) y la vista no define `slug_field` → `FieldError` al resolver. |
 | 3 | Alta | `accounts/views.py:700-704` | `DummyUserCreateView.dispatch` lee `request.user.tipo_usuario` **antes** de `super().dispatch()`, así que `LoginRequiredMixin` nunca corre primero: un anónimo produce `AttributeError` (500) en lugar del redirect a login. |
-| 4 | Media | `accounts/views.py:623, 643, 667, 678` | Las 4 vistas de gestión de organización/sponsors usan **solo `LoginRequiredMixin`**, sin chequeo de rol. Un `PLAYER` con `organizacion` asignada puede editar la organización y sus sponsors. |
+| 4 | ~~Media~~ **resuelto** | `accounts/views.py` | Las 4 vistas de gestión de organización/sponsors usaban **solo `LoginRequiredMixin`**: el `get_queryset` acotaba por organización pero nunca se chequeaba el ROL, así que un `PLAYER` con `organizacion` asignada podía editar el club y sus sponsors. Ahora llevan `GestionDeClubRequiredMixin` (ADMIN, ORGANIZER o staff). Tests: `equipos.tests.SponsorsSoloGestoresTests`. |
 | 5 | ~~Media~~ **resuelto** | `accounts/views.py` | `Sponsor.organizacion` es nullable y las vistas filtraban por `organizacion=request.user.organizacion`; un usuario **sin** organización (`None`) matcheaba los sponsors huérfanos y podía editarlos o borrarlos. Los dos `get_queryset` cortan con `.none()` cuando el usuario no tiene club. **Ojo que la fila 4 sigue viva**: un `PLAYER` **con** organización asignada todavía puede editar los sponsors de ese club, porque las vistas siguen siendo sólo `LoginRequiredMixin`. |
 | 6 | Media | `accounts/views.py:779-781` | El `unsubscribe` de push borra por endpoint **sin filtrar por `user`**: cualquier logueado que conozca un endpoint ajeno lo desuscribe. |
 | 7 | Media | `accounts/utils.py:11` vs `torneos/signals.py:14`, `equipos/signals.py:32` | Las claves de ranking se escriben con sufijo `_gen_<X>` pero se invalidan sin él → los rankings filtrados por género quedan hasta 300 s desactualizados tras cargar un resultado. |
@@ -2319,7 +2340,7 @@ Tests: `equipos/tests.py:17-49` (`MatchmakingTests`) cubren listado público 200
 
 **`EquipoCreateView`** — acepta `?partner=<pk>` como initial (`:200-209`), usado desde `accounts/templates/accounts/public_profile.html:82`. El form (`EquipoCreateForm`, `equipos/forms.py:10-71`) usa un `ModelMultipleChoiceField` con `ModelSelect2Multiple` y `data-maximum-selection-length: 1` (truco de UX); su `clean()` valida que haya un solo seleccionado, lo convierte a objeto único y prohíbe autoseleccionarse (`forms.py:49-71`).
 
-**`OrganizadorEquipoCreateView`** — usa `PairCreationForm` (`equipos/forms.py:74-143`), que sí pide `jugador1`, `jugador2`, `division` y `categoria` explícitamente y **salta el sistema de invitaciones**: `form_valid` hace `form.save(commit=False)` + `equipo.save()` directo (`views.py:472-477`). El `success_url` depende de si el organizador tiene `organizacion`: `accounts:organizacion_settings` o `equipos:admin_list` (`:454-458`). El autocompletado asociado etiqueta los dummies con `[Dummy]` (`:444-446`).
+**`OrganizadorEquipoCreateView`** — usa `PairCreationForm`, que sí pide `jugador1`, `jugador2`, `division` y `categoria` explícitamente y **salta el sistema de invitaciones**: `form_valid` hace `form.save(commit=False)` + `equipo.save()` directo. La vista le pasa `actor=request.user` por `get_form_kwargs`, y el form **acota el queryset de los dos campos** a los jugadores del club del organizador **más los que no tienen club** (que son la mayoría: el que se autoregistra no queda en ninguno). Antes exponía todos los `PLAYER` de la plataforma, así que el organizador del Club A podía armar una pareja activa con dos jugadores del Club B y desplazarles la que ya tenían — la `UniqueConstraint` sólo admite una activa por jugador. Va en el queryset y no en el autocompletado porque **lo que valida es el queryset**: un POST directo con otro pk pasaba igual. ADMIN y staff no se filtran. Tests: `equipos.tests.ParejaDeOtroClubTests`. El `success_url` depende de si el organizador tiene `organizacion`: `accounts:organizacion_settings` o `equipos:admin_list` (`:454-458`). El autocompletado asociado etiqueta los dummies con `[Dummy]` (`:444-446`).
 
 #### 1.7 Notas de comportamiento
 

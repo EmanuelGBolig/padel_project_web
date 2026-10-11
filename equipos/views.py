@@ -587,6 +587,14 @@ class OrganizadorEquipoCreateView(LoginRequiredMixin, UserPassesTestMixin, Creat
     def test_func(self):
         return self.request.user.tipo_usuario in ['ADMIN', 'ORGANIZER']
 
+    def get_form_kwargs(self):
+        # El form acota los jugadores elegibles al club del organizador. Va por
+        # el QUERYSET y no sólo por el autocompletado: un POST directo con el pk
+        # de un jugador de otro club pasaba la validación.
+        kwargs = super().get_form_kwargs()
+        kwargs['actor'] = self.request.user
+        return kwargs
+
     def handle_no_permission(self):
         messages.error(self.request, "Solo organizadores pueden acceder.")
         return redirect('core:home')

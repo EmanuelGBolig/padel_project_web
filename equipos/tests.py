@@ -415,3 +415,130 @@ class DisolverParejaAjenaTests(TestCase):
         self.assertIn(resp.status_code, (301, 302))
         self.pareja_de_b.refresh_from_db()
         self.assertFalse(self.pareja_de_b.esta_activo)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ParejaDeOtroClubTests(TestCase):
+    """Un ORGANIZER no puede armar una pareja con jugadores de otro club.
+
+    El form exponia TODOS los PLAYER de la plataforma. Acotar el autocompletado
+    no alcanza: lo que valida es el queryset del campo, asi que un POST directo
+    con el pk de un jugador ajeno pasaba igual — y de paso le desplazaba la
+    pareja que ya tenia, porque solo se admite una activa por jugador.
+
+    Los jugadores SIN club entran a proposito: la mayoria se autoregistra sin
+    organizacion y emparejarlos es para lo que existe esta pantalla.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre='Octava', orden=8)
+        self.org_a = Organizacion.objects.create(nombre='Club A', alias='cl-a')
+        self.org_b = Organizacion.objects.create(nombre='Club B', alias='cl-b')
+        self.org_user_a = User.objects.create_user(
+            email='oa@pc.com', password='x', nombre='Or', apellido='A',
+            genero='OTRO', tipo_usuario='ORGANIZER', organizacion=self.org_a)
+        self.admin = User.objects.create_user(
+            email='ad@pc.com', password='x', nombre='Ad', apellido='Min',
+            genero='OTRO', tipo_usuario='ADMIN')
+
+        def jugador(pref, org):
+            return User.objects.create_user(
+                email=pref + '@pc.com', password='x', nombre='N', apellido=pref,
+                division=self.division, organizacion=org)
+
+        self.mio = jugador('mio', self.org_a)
+        self.mio2 = jugador('mio2', self.org_a)
+        self.ajeno = jugador('ajeno', self.org_b)
+        self.ajeno2 = jugador('ajeno2', self.org_b)
+        self.libre = jugador('libre', None)
+
+    def _form(self, actor, j1, j2):
+        from .forms import PairCreationForm
+        return PairCreationForm(
+            data={'jugador1': j1.pk, 'jugador2': j2.pk,
+                  'division': self.division.pk, 'categoria': 'X'},
+            actor=actor)
+
+    def test_no_puede_armar_pareja_con_jugadores_de_otro_club(self):
+        form = self._form(self.org_user_a, self.ajeno, self.ajeno2)
+        self.assertFalse(
+            form.is_valid(),
+            'Un organizador armo una pareja con dos jugadores de otro club')
+
+    def test_tampoco_mezclando_uno_propio_con_uno_ajeno(self):
+        form = self._form(self.org_user_a, self.mio, self.ajeno)
+        self.assertFalse(form.is_valid())
+        self.assertIn('jugador2', form.errors)
+
+    def test_si_puede_con_sus_jugadores(self):
+        form = self._form(self.org_user_a, self.mio, self.mio2)
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+
+    def test_si_puede_con_jugadores_sin_club(self):
+        """El caso mas comun: el que se autoregistro y no es de ningun club."""
+        form = self._form(self.org_user_a, self.mio, self.libre)
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+
+    def test_el_admin_sigue_pudiendo_con_cualquiera(self):
+        form = self._form(self.admin, self.ajeno, self.ajeno2)
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+
+    def test_la_vista_le_pasa_el_actor_al_form(self):
+        """Si la vista no lo pasa, el form no acota nada y el agujero vuelve."""
+        self.client.force_login(self.org_user_a)
+        resp = self.client.post(reverse('equipos:crear_pareja'), {
+            'jugador1': self.ajeno.pk, 'jugador2': self.ajeno2.pk,
+            'division': self.division.pk, 'categoria': 'X'})
+        self.assertEqual(resp.status_code, 200, 'Tendria que volver con error')
+        from .models import Equipo
+        self.assertFalse(
+            Equipo.objects.filter(jugador1=self.ajeno).exists(),
+            'Se creo la pareja de otro club por POST directo')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SponsorsSoloGestoresTests(TestCase):
+    """Un PLAYER con club asignado no gestiona los sponsors de ese club.
+
+    Las cuatro vistas llevaban solo LoginRequiredMixin: el get_queryset acotaba
+    por organizacion pero nunca se chequeaba el ROL.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion, Sponsor
+        self.org = Organizacion.objects.create(nombre='Club S', alias='cl-s')
+        self.jugador = User.objects.create_user(
+            email='jug@sp.com', password='x', nombre='Ju', apellido='Gador',
+            genero='OTRO', tipo_usuario='PLAYER', organizacion=self.org)
+        self.organizador = User.objects.create_user(
+            email='org@sp.com', password='x', nombre='Or', apellido='Ga',
+            genero='OTRO', tipo_usuario='ORGANIZER', organizacion=self.org)
+        self.sponsor = Sponsor.objects.create(
+            nombre='Patrocinante', organizacion=self.org)
+
+    def test_el_jugador_no_entra_a_los_ajustes_del_club(self):
+        self.client.force_login(self.jugador)
+        resp = self.client.get(reverse('accounts:organizacion_settings'))
+        self.assertNotEqual(
+            resp.status_code, 200,
+            'Un PLAYER esta editando los datos del club')
+
+    def test_el_jugador_no_entra_a_los_sponsors(self):
+        self.client.force_login(self.jugador)
+        resp = self.client.get(reverse('accounts:organizacion_sponsors'))
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_el_jugador_no_borra_un_sponsor(self):
+        from accounts.models import Sponsor
+        self.client.force_login(self.jugador)
+        self.client.post(reverse('accounts:eliminar_sponsor',
+                                 kwargs={'pk': self.sponsor.pk}))
+        self.assertTrue(
+            Sponsor.objects.filter(pk=self.sponsor.pk).exists(),
+            'Un PLAYER borro un sponsor del club')
+
+    def test_el_organizador_si_entra(self):
+        self.client.force_login(self.organizador)
+        resp = self.client.get(reverse('accounts:organizacion_sponsors'))
+        self.assertEqual(resp.status_code, 200)

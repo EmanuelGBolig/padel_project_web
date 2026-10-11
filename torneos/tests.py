@@ -1102,6 +1102,12 @@ class AltaConCompaneroElegidoTests(TestCase):
             "email": "juan.elegir@mail.com", "telefono": "+54 9 223 555-1111",
             "companero_tiene_cuenta": "si",
             "companero_id": self.pedro.pk,
+            # Prueba de titularidad: el pk solo no alcanza para anotar a nadie.
+            # El buscador encuentra por nombre, así que sin esto un anónimo
+            # anotaba a un desconocido (ver ConsentimientoAltaSinCuentaTests).
+            # Sigue siendo UN dato y no los cuatro, que es lo que esta clase
+            # prueba: no se le pide reescribir lo que ya está cargado.
+            "companero_prueba": "pedro.elegir@mail.com",
             "division": self.division.pk,
         }
         d.update(over)
@@ -1138,7 +1144,10 @@ class AltaConCompaneroElegidoTests(TestCase):
     def test_un_id_inventado_no_pasa(self):
         resp = self.client.post(self.url, self._datos(companero_id=999999))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "No encontramos esa cuenta")
+        # El mensaje es el MISMO que cuando la prueba no coincide, a propósito:
+        # si distinguiera los casos, el formulario sería un oráculo para
+        # adivinar teléfonos y mails de a uno.
+        self.assertContains(resp, "No pudimos confirmar a tu compañero/a")
 
     def test_la_rama_manual_sigue_pidiendo_los_datos(self):
         resp = self.client.post(self.url, self._datos(
@@ -4145,3 +4154,109 @@ class OrdenDeClasificadosCoherenteTests(TestCase):
 
         self.assertEqual(orden_panel, orden_ficha)
         self.assertEqual(orden_panel[0], self.a.pk)
+
+
+class ConsentimientoAltaSinCuentaTests(TestCase):
+    """No se puede anotar a un desconocido a un torneo.
+
+    El buscador publico encuentra por NOMBRE y devuelve el pk, asi que con tres
+    letras de un apellido -sin cuenta y sin login- se obtenia el pk de cualquier
+    jugador y se lo anotaba a un torneo, quedandose ademas con su telefono. Ahora
+    hay que probar que lo conoces: su mail o su WhatsApp.
+    """
+
+    def setUp(self):
+        from accounts.models import Organizacion
+        self.division = Division.objects.create(nombre='Sexta', orden=6)
+        self.org = Organizacion.objects.create(nombre='OrgCons', alias='orgcons')
+        self.torneo = Torneo.objects.create(
+            nombre='Abierto', division=self.division, organizacion=self.org,
+            fecha_inicio=timezone.now().date() + timedelta(days=7),
+            fecha_limite_inscripcion=timezone.now() + timedelta(days=3),
+            cupos_totales=16, estado=Torneo.Estado.ABIERTO)
+        # La victima: jugadora con cuenta, mail y WhatsApp.
+        self.victima = User.objects.create_user(
+            email='lucia@mail.com', password='x', nombre='Lucia',
+            apellido='Gomez', division=self.division,
+            numero_telefono='+54 9 223 555-9999')
+
+    def _url(self):
+        return reverse('torneos:inscribirse_sin_cuenta',
+                       kwargs={'torneo_pk': self.torneo.pk})
+
+    def _datos(self, **extra):
+        d = {
+            'nombre': 'Atacante', 'apellido': 'Anonimo',
+            'email': 'atacante@mail.com', 'telefono': '+54 9 223 555-1111',
+            'companero_tiene_cuenta': 'si',
+            'companero_id': self.victima.pk,
+            'division': self.division.pk,
+        }
+        d.update(extra)
+        return d
+
+    def test_el_pk_solo_no_alcanza_para_anotar_a_alguien(self):
+        """El ataque: tres letras del apellido dan el pk, y con eso alcanzaba."""
+        resp = self.client.post(self._url(), self._datos())
+        self.assertEqual(resp.status_code, 200, 'Tendria que volver el formulario con error')
+        self.assertEqual(
+            self.torneo.inscripciones.count(), 0,
+            'Un anonimo anoto a una jugadora sin su consentimiento')
+
+    def test_una_prueba_que_no_coincide_no_alcanza(self):
+        resp = self.client.post(
+            self._url(), self._datos(companero_prueba='+54 9 223 555-0000'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.torneo.inscripciones.count(), 0)
+
+    def test_el_error_no_dice_si_la_cuenta_existe_ni_cual_es_el_dato(self):
+        """Si el mensaje distinguiera los casos, el form seria un oraculo para
+        adivinar telefonos de a uno."""
+        sin_prueba = self.client.post(self._url(), self._datos())
+        prueba_mala = self.client.post(
+            self._url(), self._datos(companero_prueba='otro@mail.com'))
+        pk_inexistente = self.client.post(
+            self._url(), self._datos(companero_id=999999,
+                                     companero_prueba='otro@mail.com'))
+
+        def errores(resp):
+            return sorted(str(e) for e in resp.context['form'].non_field_errors())
+
+        self.assertEqual(errores(prueba_mala), errores(pk_inexistente),
+                         'El error distingue cuenta inexistente de prueba mala')
+        self.assertTrue(errores(sin_prueba))
+        for e in errores(prueba_mala):
+            self.assertNotIn('9999', e, 'El mensaje filtra el telefono')
+            self.assertNotIn('lucia', e.lower(), 'El mensaje filtra el mail')
+
+    def test_con_el_mail_correcto_si_la_anota(self):
+        resp = self.client.post(
+            self._url(), self._datos(companero_prueba='Lucia@Mail.com'))
+        self.assertIn(resp.status_code, (301, 302),
+                      getattr(resp, 'context', None) and resp.context['form'].errors)
+        self.assertEqual(self.torneo.inscripciones.count(), 1)
+        equipo = self.torneo.inscripciones.first().equipo
+        self.assertIn(self.victima.pk, (equipo.jugador1_id, equipo.jugador2_id))
+
+    def test_con_el_telefono_escrito_de_otra_forma_tambien(self):
+        """La gente escribe el mismo numero con +54, con 0 y con 15."""
+        resp = self.client.post(
+            self._url(), self._datos(companero_prueba='0223 15 555-9999'))
+        self.assertIn(resp.status_code, (301, 302),
+                      getattr(resp, 'context', None) and resp.context['form'].errors)
+        self.assertEqual(self.torneo.inscripciones.count(), 1)
+
+    def test_la_rama_sin_cuenta_no_pide_prueba(self):
+        """El flujo normal no se toca: si no tiene cuenta, se cargan los datos."""
+        resp = self.client.post(self._url(), {
+            'nombre': 'Juan', 'apellido': 'Perez',
+            'email': 'juan@mail.com', 'telefono': '+54 9 223 555-1111',
+            'companero_tiene_cuenta': 'no',
+            'companero_nombre': 'Pedro', 'companero_apellido': 'Gomez',
+            'companero_email': 'pedro@mail.com',
+            'companero_telefono': '+54 9 223 555-2222',
+            'division': self.division.pk,
+        })
+        self.assertIn(resp.status_code, (301, 302),
+                      getattr(resp, 'context', None) and resp.context['form'].errors)
+        self.assertEqual(self.torneo.inscripciones.count(), 1)

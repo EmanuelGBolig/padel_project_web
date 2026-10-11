@@ -120,10 +120,31 @@ class PairCreationForm(forms.ModelForm):
         fields = ['jugador1', 'jugador2', 'division', 'categoria']
 
     def __init__(self, *args, **kwargs):
+        actor = kwargs.pop('actor', None)
         super().__init__(*args, **kwargs)
         qs_disponibles = CustomUser.objects.filter(
             tipo_usuario='PLAYER'
         ).order_by('apellido', 'nombre')
+
+        # Acotar al club del organizador. Sin esto el form exponía TODOS los
+        # jugadores de la plataforma y el organizador del Club A podía armar una
+        # pareja activa con dos jugadores del Club B — y de paso desplazarles la
+        # pareja que ya tenían, porque la UniqueConstraint sólo admite una
+        # activa por jugador. Acotar el autocompletado no alcanzaba: un POST
+        # directo con otro pk pasaba igual, porque lo que valida es el queryset.
+        #
+        # Los jugadores SIN club entran a propósito: la mayoría se autoregistra
+        # sin organización, y emparejarlos es justamente para lo que existe esta
+        # pantalla. ADMIN y staff no se filtran.
+        if (actor is not None and not actor.is_staff
+                and actor.tipo_usuario == 'ORGANIZER'):
+            if actor.organizacion_id:
+                qs_disponibles = qs_disponibles.filter(
+                    Q(organizacion_id=actor.organizacion_id)
+                    | Q(organizacion__isnull=True))
+            else:
+                # Sin club no hay "mis jugadores": sólo los que no son de nadie.
+                qs_disponibles = qs_disponibles.filter(organizacion__isnull=True)
 
         self.fields['jugador1'].queryset = qs_disponibles
         self.fields['jugador2'].queryset = qs_disponibles

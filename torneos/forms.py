@@ -1189,10 +1189,21 @@ class InscripcionSinCuentaForm(forms.Form):
         initial='no', label="¿Tu compañero/a ya usa TodoPadel?",
         widget=forms.RadioSelect)
     # Estos cuatro sólo se piden si el compañero NO tiene cuenta. Si ya la
-    # tiene, se lo elige del buscador y alcanza con `companero_id`: pedirle a
-    # alguien que reescriba datos que ya están cargados es pedirle que los
-    # escriba distinto, y ahí nace el duplicado.
+    # tiene, se lo elige del buscador: pedirle a alguien que reescriba datos que
+    # ya están cargados es pedirle que los escriba distinto, y ahí nace el
+    # duplicado.
     companero_id = forms.IntegerField(required=False, widget=forms.HiddenInput)
+    # Pero el pk solo NO alcanza para anotar a una persona. El buscador también
+    # encuentra por NOMBRE, así que con tres letras de un apellido cualquiera
+    # —sin cuenta, sin login— obtenía el pk de un jugador y lo anotaba a un
+    # torneo sin que se enterara. Esto pide la misma prueba que ya piden los
+    # caminos fuertes del buscador: su mail o su WhatsApp.
+    companero_prueba = forms.CharField(
+        max_length=254, required=False, label="Su WhatsApp o su mail",
+        help_text="Para confirmar que lo conocés. Tiene que ser el que tiene en su cuenta.",
+        widget=forms.TextInput(attrs={
+            'class': ESTILO, 'placeholder': '+54 9 223 555-5678 o pedro@mail.com',
+            'autocomplete': 'off'}))
     companero_nombre = forms.CharField(
         max_length=150, label="Nombre", required=False,
         widget=forms.TextInput(attrs={'class': ESTILO, 'placeholder': 'Pedro'}))
@@ -1238,11 +1249,45 @@ class InscripcionSinCuentaForm(forms.Form):
             return valor
         return self._telefono_valido(valor, 'companero_telefono')
 
+    @staticmethod
+    def _prueba_coincide(usuario, valor):
+        """¿El mail o el teléfono que escribió son los de esa cuenta?
+
+        Se compara con el mismo normalizador que usa el enganche de identidad
+        (`_cola_telefono`: característica + abonado, 10 dígitos), así que las
+        formas en que la gente escribe el mismo número —con +54, con 0, con 15—
+        coinciden todas. Si el número no se puede llevar a esa forma, no
+        coincide: preferimos no comparar antes que comparar mal.
+        """
+        from accounts.identidad import _cola_telefono
+
+        valor = (valor or '').strip()
+        if not valor:
+            return False
+        if '@' in valor:
+            propio = (usuario.email or '').strip().lower()
+            return bool(propio) and valor.lower() == propio
+        cola = _cola_telefono(valor)
+        propia = _cola_telefono(usuario.numero_telefono)
+        return bool(cola) and cola == propia
+
     def _resolver_companero_elegido(self, cleaned):
-        """Trae la cuenta que se eligió en el buscador.
+        """Trae la cuenta que se eligió en el buscador, con prueba de titularidad.
 
         El id llega del cliente, así que se valida como cualquier dato de
-        formulario: tiene que ser un jugador vivo y no fusionado.
+        formulario: tiene que ser un jugador vivo y no fusionado. Pero eso NO
+        alcanza: el buscador público encuentra por nombre, así que el pk de
+        cualquier jugador está al alcance de tres letras de su apellido. Sin
+        prueba, un anónimo anotaba a un desconocido a un torneo.
+
+        La prueba es su mail o su WhatsApp, que es lo que ya pedían los caminos
+        fuertes del buscador ("quien lo sabe, ya conoce a la persona"). Y como
+        para llegar acá hay que saber el teléfono, mostrarlo después en la
+        pantalla de confirmación no filtra nada nuevo.
+
+        El error es el MISMO cuando la cuenta no existe y cuando la prueba no
+        coincide, y a propósito: si dijera "ese no es su teléfono", el formulario
+        sería un oráculo para adivinar teléfonos de a uno.
         """
         from django.contrib.auth import get_user_model
 
@@ -1251,11 +1296,20 @@ class InscripcionSinCuentaForm(forms.Form):
             self.add_error(
                 None, "Buscá a tu compañero/a y elegilo de la lista para continuar.")
             return None
+
+        generico = (
+            "No pudimos confirmar a tu compañero/a. Fijate que el mail o el "
+            "WhatsApp sean los que usa en TodoPadel; si no los tenés a mano, "
+            "cargalo como si todavía no tuviera cuenta."
+        )
         usuario = get_user_model().objects.filter(
             pk=pk, merged_into__isnull=True, tipo_usuario='PLAYER').first()
         if usuario is None:
-            self.add_error(
-                None, "No encontramos esa cuenta. Volvé a buscarla, por favor.")
+            self.add_error(None, generico)
+            return None
+        if not self._prueba_coincide(usuario, cleaned.get('companero_prueba')):
+            self.add_error(None, generico)
+            return None
         return usuario
 
     def clean(self):
@@ -1280,6 +1334,12 @@ class InscripcionSinCuentaForm(forms.Form):
                 cleaned[campo] = ''
                 self.errors.pop(campo, None)
             return cleaned
+
+        # Rama "todavía no tiene cuenta": la prueba no se pide ni se mira. Los
+        # datos se cargan a mano y el enganche por mail/teléfono ya resuelve si
+        # esa persona existía.
+        cleaned['companero_prueba'] = ''
+        self.errors.pop('companero_prueba', None)
 
         # Rama "todavía no tiene cuenta": se cargan los datos a mano.
         for campo, mensaje in (('companero_nombre', "Poné el nombre de tu compañero/a."),

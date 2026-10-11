@@ -146,6 +146,27 @@
                         </button>
                     </div>
                 </div>
+
+                {% comment %}
+                    La prueba de titularidad. Elegir del buscador no alcanza: el
+                    buscador también encuentra por nombre, así que con tres letras
+                    de un apellido cualquiera se obtenía el pk de un jugador y se
+                    lo anotaba a un torneo sin que se enterara. Pedir su mail o su
+                    WhatsApp es lo mismo que ya pedían los caminos fuertes del
+                    buscador, y lo sabe quien de verdad va a jugar con esa persona.
+                {% endcomment %}
+                <div class="form-control mt-2">
+                    <label class="label py-1" for="{{ form.companero_prueba.id_for_label }}">
+                        <span class="label-text font-medium">{{ form.companero_prueba.label }}</span>
+                    </label>
+                    {{ form.companero_prueba }}
+                    <span class="label-text-alt opacity-60 text-xs mt-1">
+                        {{ form.companero_prueba.help_text }}
+                    </span>
+                    {% for e in form.companero_prueba.errors %}
+                        <span class="text-error text-xs mt-1">{{ e }}</span>
+                    {% endfor %}
+                </div>
             </div>
 
             {# --- Todavia no tiene cuenta: se cargan los datos --- #}
