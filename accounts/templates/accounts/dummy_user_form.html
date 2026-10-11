@@ -87,7 +87,20 @@
                     {% endfor %}
 
                     {% if coincidencias %}
-                        <label for="{{ form.confirmar_distinto.id_for_label }}" class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 p-3">
+                        {% comment %}
+                            Sin `for` a propósito: el control del label es el
+                            casillero que envuelve (asociación implícita).
+
+                            Con `for` el navegador resuelve SOLO por id, y acá el
+                            id era id_confirmar_distinto, que en ESTA rama del
+                            template no existe: el campo es un HiddenInput que el
+                            loop de arriba saltea y que sólo se imprime en el
+                            {% templatetag openblock %} else {% templatetag closeblock %}.
+                            Resultado: label.control quedaba en null y tocar la
+                            tarjeta -que tiene borde y p-3 justamente para ser un
+                            blanco grande- no marcaba nada.
+                        {% endcomment %}
+                        <label class="label cursor-pointer justify-start gap-3 rounded-xl border border-base-300 p-3">
                             <input type="checkbox" name="confirmar_distinto" value="1"
                                    class="checkbox checkbox-warning" />
                             <span class="label-text">

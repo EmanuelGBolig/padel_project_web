@@ -679,7 +679,29 @@
         {% endif %}
         <!-- MODAL RESULTADO -->
         <dialog id="resultado_modal" class="modal">
-            <div class="modal-box max-w-lg p-0 overflow-hidden">
+            {% comment %}
+                `overflow-y-auto` es obligatorio, no decorativo. Antes decía
+                overflow oculto, que viene DESPUÉS de DaisyUI en el bundle y le
+                pisa el `overflow-y:auto` de .modal-box: el popup recortaba a
+                max-height: calc(100vh - 5em) y no scrolleaba. La botonera
+                sticky de _form_resultado.html igual se engancha contra ese
+                scrollport, así que la barra opaca se clavaba encima de los seis
+                casilleros de sets y no había forma de llegar a ellos.
+                Medido a 375x380 (teclado numérico abierto): 0 de 6 casilleros
+                usables. Y a 812x375 (celular acostado): 2 de 6.
+
+                `scroll-pb-32` es la otra mitad: 8rem de scroll-padding-bottom,
+                más que los ~109px que mide la barra. Sin eso, al tocar un
+                casillero el navegador lo alinea contra el borde de abajo —que es
+                donde está la barra— y el campo que acaba de tocar le queda
+                tapado igual (medido: 0 de 6 con el scroll solo).
+                Con las dos cosas: 6 de 6, y el Guardar siempre a la vista.
+
+                Las esquinas redondeadas las ponen los hijos (rounded-t-2xl en
+                el encabezado, rounded-b-2xl en el form), así que no hace falta
+                recortar acá.
+            {% endcomment %}
+            <div class="modal-box max-w-lg p-0 overflow-y-auto scroll-pb-32">
                 <div id="modal_content">
                     <div class="p-8 space-y-4">
                         <div class="h-8 w-64 skeleton mb-6"></div>

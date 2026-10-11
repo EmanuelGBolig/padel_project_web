@@ -65,7 +65,20 @@
         </div>
         <div class="divider text-xs font-bold opacity-50 uppercase tracking-widest my-2">O bien</div>
         <div class="form-control bg-base-200/50 p-4 rounded-xl border border-base-300">
-            <label for="{{ form.nombre_dummy.id_for_label }}" class="cursor-pointer label justify-start gap-3 w-fit mb-2">
+            {% comment %}
+                Este label NO lleva `for` a propósito: su control es el primer
+                elemento labelable que tiene adentro, o sea el propio
+                {{ form.crear_dummy }} (asociación implícita, HTML válido).
+
+                En cuanto aparece un `for`, el navegador resuelve el control SOLO
+                por id y se olvida del descendiente. Acá el `for` apuntaba a
+                id_nombre_dummy -el campo de TEXTO del div de abajo-, así que tocar
+                la fila abría el teclado en "Nombre del Dummy" sin marcar el
+                casillero, y el form volvía con error. La fila entera está puesta
+                con cursor-pointer justamente para que el blanco táctil no sea el
+                cuadradito de 20px.
+            {% endcomment %}
+            <label class="cursor-pointer label justify-start gap-3 w-fit mb-2">
                 {{ form.crear_dummy }}
                 <span class="label-text font-bold">{{ form.crear_dummy.label }}</span>
             </label>

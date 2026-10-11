@@ -134,9 +134,19 @@
     en top: 596. El organizador carga el 3-0, va a guardar y no encuentra el
     botón — parado al borde de la cancha, con una mano y gente esperando.
 
-    El `-mx-*` compensa el padding del modal para que la barra ocupe todo el
-    ancho, y el fondo opaco evita que los casilleros se vean por debajo. {% endcomment %}
-    <div class="sticky bottom-0 z-10 mt-5 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2
+    Los márgenes negativos compensan EXACTO el `p-5` del form para que la barra
+    ocupe todo el ancho. Antes eran de 4 y 6, y el form tiene 5: a 375px la barra
+    quedaba 4px corta de cada lado y por ese hueco pasaba el contenido
+    scrolleando por detrás; de 768px para arriba SOBRESALÍA 4px de cada lado de
+    la caja redondeada y, como el overflow horizontal computa a `auto` cuando el
+    vertical lo es, aparecía scroll horizontal en el modal. Con `overflow`
+    oculto no se notaba; apenas la caja scrollea, se ve.
+
+    El fondo opaco evita que los casilleros se vean por debajo.
+
+    Todo esto depende de que la caja del modal scrollee: ver el comentario de
+    admin_torneo_manage.html. {% endcomment %}
+    <div class="sticky bottom-0 z-10 mt-5 -mx-5 px-5 pt-3 pb-2
                 bg-base-100 border-t border-base-content/10 flex flex-col gap-2">
         <button type="submit" class="btn btn-primary btn-block">Guardar resultado</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="resultado_modal.close()">

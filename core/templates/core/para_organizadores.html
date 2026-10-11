@@ -1396,18 +1396,35 @@ try{
 // ---- el carrusel de precios arranca en el plan recomendado
 // Al cargar, "Club" ($70.000, unico btn-primary) quedaba en x=309 de 375: 77% afuera.
 // Lo primero que veia el prospecto era "Piloto · Gratis" con un boton ghost.
+// El centrado es de ARRANQUE, no permanente. Antes esto escuchaba `resize` a
+// secas y CUALQUIER resize le devolvia el carrusel a Club: en Android, que
+// aparezca o se esconda la barra de direcciones al scrollear ya dispara uno, asi
+// que al que deslizaba para leer "Piloto - Gratis" la pagina le peleaba el dedo.
+// Medido a 375px: scrollLeft 262 (Club) -> el visitante lo lleva a 0 (Piloto) ->
+// un resize de SOLO ALTO lo devolvia a 262.
+// Ahora: en cuanto el visitante toca el carrusel no lo movemos mas, y un resize
+// que no cambia el ANCHO (barra de direcciones, teclado) ni se mira.
 try{
   const pl=document.querySelector('.plans'), feat=pl&&pl.querySelector('.plan.feat');
+  let tocado=false, anchoPrevio=innerWidth;
   const centrar=()=>{
-    if(!feat || getComputedStyle(pl).overflowX!=='auto') return;   // en escritorio es grid
+    if(tocado || !feat || getComputedStyle(pl).overflowX!=='auto') return;   // en escritorio es grid
     // en delta, no en absoluto: no depende de donde caiga el offsetParent
     pl.scrollLeft += feat.getBoundingClientRect().left - pl.getBoundingClientRect().left
                      - (pl.clientWidth - feat.offsetWidth)/2;
   };
   if(pl){
+    // Gestos del visitante, NO el evento `scroll`: `scroll` tambien lo dispara
+    // nuestro propio centrado, asi que el centrado inicial se autobloquearia.
+    ['pointerdown','touchstart','wheel','keydown'].forEach(ev=>
+      pl.addEventListener(ev,()=>{ tocado=true; },{passive:true,once:true}));
     centrar();
     addEventListener('load',centrar);          // por si las capturas mueven el layout
-    addEventListener('resize',centrar);
+    addEventListener('resize',()=>{
+      if(innerWidth===anchoPrevio) return;     // alto solo: barra de direcciones / teclado
+      anchoPrevio=innerWidth;
+      centrar();
+    });
   }
 }catch(e){}
 
